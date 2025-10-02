@@ -80,7 +80,7 @@ export const createPhysicalProgress = async (
     [userId, bmi, tdee, targetCalories]
   );
 
-  console.log(\`✅ Physical progress created for user \${userId} - BMI: \${bmi}, TDEE: \${tdee}\`);
+  console.log(`✅ Physical progress created for user ${userId} - BMI: ${bmi}, TDEE: ${tdee}`);
 };
 
 // Update Physical Progress
@@ -92,11 +92,11 @@ export const updatePhysicalProgress = async (userId: number, updates: {
   target_calories?: number;
 }) => {
   const db = await getDatabase();
-  const fields = Object.keys(updates).map((key) => \`\${key} = ?\`).join(', ');
+  const fields = Object.keys(updates).map((key) => `${key} = ?`).join(', ');
   const values = [...Object.values(updates), userId];
 
   await db.runAsync(
-    \`UPDATE physical_progress SET \${fields}, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?\`,
+    `UPDATE physical_progress SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?`,
     values
   );
 };
@@ -125,7 +125,7 @@ export const checkAndUnlockNextFoundation = async (userId: number) => {
       await updatePhysicalProgress(userId, {
         current_foundation: currentFoundation + 1,
       });
-      console.log(\`🎉 Foundation \${currentFoundation} completed! Unlocked Foundation \${currentFoundation + 1}\`);
+      console.log(`🎉 Foundation ${currentFoundation} completed! Unlocked Foundation ${currentFoundation + 1}`);
     }
   } catch (error) {
     console.error('Error checking foundation unlock:', error);
@@ -143,8 +143,8 @@ export const logWorkout = async (userId: number, data: {
 }) => {
   const db = await getDatabase();
   await db.runAsync(
-    \`INSERT INTO workout_sessions (user_id, workout_date, type, duration_minutes, intensity, calories_burned, notes)
-     VALUES (?, ?, ?, ?, ?, ?, ?)\`,
+    `INSERT INTO workout_sessions (user_id, workout_date, type, duration_minutes, intensity, calories_burned, notes)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
     [
       userId,
       data.workoutDate,
@@ -155,16 +155,16 @@ export const logWorkout = async (userId: number, data: {
       data.notes || '',
     ]
   );
-  console.log(\`✅ Workout logged: \${data.type}, \${data.durationMinutes}min\`);
+  console.log(`✅ Workout logged: ${data.type}, ${data.durationMinutes}min`);
 };
 
 export const getWorkoutHistory = async (userId: number, limit: number = 7) => {
   const db = await getDatabase();
   return await db.getAllAsync(
-    \`SELECT * FROM workout_sessions
+    `SELECT * FROM workout_sessions
      WHERE user_id = ?
      ORDER BY workout_date DESC
-     LIMIT ?\`,
+     LIMIT ?`,
     [userId, limit]
   );
 };
@@ -193,7 +193,7 @@ export const logWaterIntake = async (userId: number, date: string, amount: numbe
     );
   }
 
-  console.log(\`💧 Water logged: +\${amount}ml\`);
+  console.log(`💧 Water logged: +${amount}ml`);
 };
 
 export const getWaterIntakeForDate = async (userId: number, date: string) => {
@@ -207,10 +207,10 @@ export const getWaterIntakeForDate = async (userId: number, date: string) => {
 export const getWaterIntakeHistory = async (userId: number, limit: number = 7) => {
   const db = await getDatabase();
   return await db.getAllAsync(
-    \`SELECT * FROM water_intake_logs
+    `SELECT * FROM water_intake_logs
      WHERE user_id = ?
      ORDER BY log_date DESC
-     LIMIT ?\`,
+     LIMIT ?`,
     [userId, limit]
   );
 };
@@ -235,29 +235,29 @@ export const logSleep = async (userId: number, data: {
   if (existing) {
     // Update existing
     await db.runAsync(
-      \`UPDATE sleep_logs SET bed_time = ?, wake_time = ?, duration_hours = ?, quality_rating = ?, notes = ?
-       WHERE user_id = ? AND sleep_date = ?\`,
+      `UPDATE sleep_logs SET bed_time = ?, wake_time = ?, duration_hours = ?, quality_rating = ?, notes = ?
+       WHERE user_id = ? AND sleep_date = ?`,
       [data.bedTime, data.wakeTime, data.durationHours, data.qualityRating, data.notes || '', userId, data.sleepDate]
     );
   } else {
     // Create new
     await db.runAsync(
-      \`INSERT INTO sleep_logs (user_id, sleep_date, bed_time, wake_time, duration_hours, quality_rating, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?)\`,
+      `INSERT INTO sleep_logs (user_id, sleep_date, bed_time, wake_time, duration_hours, quality_rating, notes)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [userId, data.sleepDate, data.bedTime, data.wakeTime, data.durationHours, data.qualityRating, data.notes || '']
     );
   }
 
-  console.log(\`😴 Sleep logged: \${data.durationHours}h, quality: \${data.qualityRating}/5\`);
+  console.log(`😴 Sleep logged: ${data.durationHours}h, quality: ${data.qualityRating}/5`);
 };
 
 export const getSleepHistory = async (userId: number, limit: number = 7) => {
   const db = await getDatabase();
   return await db.getAllAsync(
-    \`SELECT * FROM sleep_logs
+    `SELECT * FROM sleep_logs
      WHERE user_id = ?
      ORDER BY sleep_date DESC
-     LIMIT ?\`,
+     LIMIT ?`,
     [userId, limit]
   );
 };
@@ -265,12 +265,12 @@ export const getSleepHistory = async (userId: number, limit: number = 7) => {
 export const getSleepStats = async (userId: number) => {
   const db = await getDatabase();
   const stats: any = await db.getFirstAsync(
-    \`SELECT
+    `SELECT
        AVG(duration_hours) as avg_duration,
        AVG(quality_rating) as avg_quality,
        COUNT(*) as total_logs
      FROM sleep_logs
-     WHERE user_id = ?\`,
+     WHERE user_id = ?`,
     [userId]
   );
 
