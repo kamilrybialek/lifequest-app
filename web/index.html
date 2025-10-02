@@ -43,14 +43,25 @@
 
     /* Fix for bottom tab bar visibility in PWA */
     [role="tablist"] {
-      min-height: 70px !important;
-      padding-bottom: max(12px, env(safe-area-inset-bottom)) !important;
+      min-height: 65px !important;
+      padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
       box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
     }
 
     /* Ensure tab labels are visible */
     [role="tab"] {
-      min-height: 60px !important;
+      min-height: 55px !important;
+      padding-bottom: 4px !important;
+    }
+
+    /* Force tab labels to be visible */
+    [role="tab"] span {
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      font-size: 12px !important;
+      font-weight: 600 !important;
+      margin-top: 2px !important;
     }
 
     /* Smooth scrolling for content areas */

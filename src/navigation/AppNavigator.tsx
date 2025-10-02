@@ -69,21 +69,36 @@ const MainTabs = () => {
         },
         tabBarActiveTintColor: '#58CC02',
         tabBarInactiveTintColor: '#AFAFAF',
-        tabBarStyle: {
-          backgroundColor: '#FFFFFF',
-          borderTopWidth: 1,
-          borderTopColor: '#E5E5E5',
-          height: Platform.OS === 'web' ? 70 : 60,
-          paddingBottom: Platform.OS === 'web' ? 12 : 8,
-          paddingTop: Platform.OS === 'web' ? 12 : 8,
-        },
-        tabBarLabelStyle: {
-          fontSize: Platform.OS === 'web' ? 13 : 12,
-          fontWeight: '600',
-        },
-        tabBarIconStyle: {
-          marginTop: Platform.OS === 'web' ? 4 : 0,
-        },
+        tabBarStyle: Platform.OS === 'web'
+          ? {
+              backgroundColor: '#FFFFFF',
+              borderTopWidth: 1,
+              borderTopColor: '#E5E5E5',
+              height: 65,
+              paddingBottom: 8,
+              paddingTop: 8,
+            }
+          : {
+              backgroundColor: '#FFFFFF',
+              borderTopWidth: 1,
+              borderTopColor: '#E5E5E5',
+              paddingBottom: 8,
+              paddingTop: 8,
+            },
+        tabBarLabelStyle: Platform.OS === 'web'
+          ? {
+              fontSize: 12,
+              fontWeight: '600',
+              marginBottom: 4,
+            }
+          : {
+              fontSize: 12,
+            },
+        tabBarIconStyle: Platform.OS === 'web'
+          ? {
+              marginTop: 2,
+            }
+          : undefined,
         headerShown: false,
       })}
     >
