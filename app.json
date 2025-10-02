@@ -24,7 +24,22 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
-    }
+      "favicon": "./assets/favicon.png",
+      "name": "LifeQuest",
+      "shortName": "LifeQuest",
+      "lang": "en",
+      "scope": "/",
+      "startUrl": "/",
+      "backgroundColor": "#FFFFFF",
+      "themeColor": "#58CC02",
+      "display": "standalone",
+      "orientation": "portrait",
+      "bundler": "metro"
+    },
+    "plugins": [
+      [
+        "expo-notifications"
+      ]
+    ]
   }
 }
