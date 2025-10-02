@@ -24,7 +24,14 @@ export const initDatabase = async () => {
     'screen_time_logs',
     'dopamine_detox_sessions',
     'morning_routines',
-    'meditation_sessions'
+    'meditation_sessions',
+    'physical_progress',
+    'workout_sessions',
+    'water_intake_logs',
+    'sleep_logs',
+    'meal_plans',
+    'meal_plan_items',
+    'recipes'
   ];
 
   for (const table of tables) {

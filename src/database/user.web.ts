@@ -18,6 +18,7 @@ export const createUser = async (email: string, name: string) => {
     age: null,
     weight: null,
     height: null,
+    gender: null,
     onboarded: 0,
     created_at: new Date().toISOString(),
   };
@@ -39,6 +40,7 @@ export const updateUserOnboarding = async (userId: number, updates: {
   age?: number;
   weight?: number;
   height?: number;
+  gender?: string;
   onboarded?: number;
 }) => {
   const data = await AsyncStorage.getItem(USERS_KEY);
@@ -48,6 +50,7 @@ export const updateUserOnboarding = async (userId: number, updates: {
   if (userIndex !== -1) {
     users[userIndex] = { ...users[userIndex], ...updates };
     await AsyncStorage.setItem(USERS_KEY, JSON.stringify(users));
+    console.log(`✅ User ${userId} onboarding updated:`, updates);
   }
 };
 

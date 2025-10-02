@@ -6,6 +6,7 @@ export interface User {
   age?: number;
   weight?: number;
   height?: number;
+  gender?: 'male' | 'female' | 'other';
   financialStatus?: 'debt' | 'paycheck' | 'stable' | 'saving' | 'investing';
   activityLevel?: 'sedentary' | 'light' | 'moderate' | 'active';
   sleepQuality?: number; // 1-5

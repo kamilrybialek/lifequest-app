@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../types';
+import { getUserByEmail, createUser as createUserInDB, updateUserOnboarding } from '../database/user';
 
 interface AuthState {
   user: User | null;
@@ -19,22 +20,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: true,
 
   login: async (email: string, password: string) => {
-    // Mock login - in production, call API
-    const mockUser: User = {
-      id: 1,
-      email,
-      onboarded: false,
-      createdAt: new Date().toISOString(),
+    // Get user from database
+    const dbUser: any = await getUserByEmail(email);
+
+    if (!dbUser) {
+      throw new Error('User not found');
+    }
+
+    const user: User = {
+      id: dbUser.id,
+      email: dbUser.email,
+      age: dbUser.age,
+      weight: dbUser.weight,
+      height: dbUser.height,
+      gender: dbUser.gender,
+      onboarded: dbUser.onboarded === 1,
+      createdAt: dbUser.created_at,
     };
 
-    await AsyncStorage.setItem('user', JSON.stringify(mockUser));
-    set({ user: mockUser, isAuthenticated: true });
+    await AsyncStorage.setItem('user', JSON.stringify(user));
+    set({ user, isAuthenticated: true });
   },
 
   register: async (email: string, password: string) => {
-    // Mock registration - in production, call API
+    // Create user in database
+    const userId = await createUserInDB(email, email.split('@')[0]);
+
     const newUser: User = {
-      id: Date.now(),
+      id: userId,
       email,
       onboarded: false,
       createdAt: new Date().toISOString(),
@@ -53,6 +66,16 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const currentUser = get().user;
     if (!currentUser) return;
 
+    // Update in database
+    await updateUserOnboarding(currentUser.id, {
+      age: data.age,
+      weight: data.weight,
+      height: data.height,
+      gender: data.gender,
+      onboarded: data.onboarded ? 1 : 0,
+    });
+
+    // Update in state and AsyncStorage
     const updatedUser = { ...currentUser, ...data };
     await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
     set({ user: updatedUser });

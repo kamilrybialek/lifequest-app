@@ -18,6 +18,7 @@ export const updateUserOnboarding = async (userId: number, data: {
   age?: number;
   weight?: number;
   height?: number;
+  gender?: string;
   onboarded?: number;
 }) => {
   const db = await getDatabase();
@@ -28,6 +29,8 @@ export const updateUserOnboarding = async (userId: number, data: {
     `UPDATE users SET ${fields} WHERE id = ?`,
     values
   );
+
+  console.log(`✅ User ${userId} onboarding updated:`, data);
 };
 
 export const getUserStats = async (userId: number) => {

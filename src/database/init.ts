@@ -14,6 +14,7 @@ export const initDatabase = async () => {
       age INTEGER,
       weight REAL,
       height REAL,
+      gender TEXT,
       onboarded INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );

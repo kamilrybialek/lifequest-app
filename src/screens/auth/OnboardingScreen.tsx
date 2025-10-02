@@ -8,6 +8,7 @@ export const OnboardingScreen = () => {
   const [age, setAge] = useState('');
   const [weight, setWeight] = useState('');
   const [height, setHeight] = useState('');
+  const [gender, setGender] = useState('');
   const [financialStatus, setFinancialStatus] = useState('');
   const [activityLevel, setActivityLevel] = useState('');
   const [sleepQuality, setSleepQuality] = useState(3);
@@ -17,8 +18,9 @@ export const OnboardingScreen = () => {
   const handleComplete = async () => {
     await updateProfile({
       age: parseInt(age),
-      weight: parseInt(weight),
-      height: parseInt(height),
+      weight: parseFloat(weight),
+      height: parseFloat(height),
+      gender: gender as any,
       financialStatus: financialStatus as any,
       activityLevel: activityLevel as any,
       sleepQuality,
@@ -74,6 +76,30 @@ export const OnboardingScreen = () => {
       case 2:
         return (
           <View style={styles.stepContainer}>
+            <Title style={styles.stepTitle}>Gender</Title>
+            <Text style={styles.stepDescription}>
+              This helps us calculate your calorie needs accurately
+            </Text>
+            <RadioButton.Group onValueChange={setGender} value={gender}>
+              <View style={styles.radioItem}>
+                <RadioButton value="male" />
+                <Text>Male</Text>
+              </View>
+              <View style={styles.radioItem}>
+                <RadioButton value="female" />
+                <Text>Female</Text>
+              </View>
+              <View style={styles.radioItem}>
+                <RadioButton value="other" />
+                <Text>Other / Prefer not to say</Text>
+              </View>
+            </RadioButton.Group>
+          </View>
+        );
+
+      case 3:
+        return (
+          <View style={styles.stepContainer}>
             <Title style={styles.stepTitle}>Financial Situation</Title>
             <Text style={styles.stepDescription}>
               This helps us tailor your financial tasks
@@ -103,7 +129,7 @@ export const OnboardingScreen = () => {
           </View>
         );
 
-      case 3:
+      case 4:
         return (
           <View style={styles.stepContainer}>
             <Title style={styles.stepTitle}>Activity Level</Title>
@@ -131,7 +157,7 @@ export const OnboardingScreen = () => {
           </View>
         );
 
-      case 4:
+      case 5:
         return (
           <View style={styles.stepContainer}>
             <Title style={styles.stepTitle}>Sleep Quality</Title>
@@ -169,9 +195,10 @@ export const OnboardingScreen = () => {
   const canGoNext = () => {
     if (step === 0) return true;
     if (step === 1) return age && weight && height;
-    if (step === 2) return financialStatus;
-    if (step === 3) return activityLevel;
-    if (step === 4) return true;
+    if (step === 2) return gender;
+    if (step === 3) return financialStatus;
+    if (step === 4) return activityLevel;
+    if (step === 5) return true;
     return false;
   };
 
@@ -179,7 +206,7 @@ export const OnboardingScreen = () => {
     <ScrollView style={styles.container}>
       <View style={styles.content}>
         <View style={styles.progressContainer}>
-          {[0, 1, 2, 3, 4].map((i) => (
+          {[0, 1, 2, 3, 4, 5].map((i) => (
             <View
               key={i}
               style={[
@@ -205,7 +232,7 @@ export const OnboardingScreen = () => {
           <Button
             mode="contained"
             onPress={() => {
-              if (step < 4) {
+              if (step < 5) {
                 setStep(step + 1);
               } else {
                 handleComplete();
@@ -214,7 +241,7 @@ export const OnboardingScreen = () => {
             disabled={!canGoNext()}
             style={styles.nextButton}
           >
-            {step === 4 ? "Let's Start!" : 'Next'}
+            {step === 5 ? "Let's Start!" : 'Next'}
           </Button>
         </View>
       </View>
