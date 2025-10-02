@@ -74,22 +74,20 @@ const MainTabs = () => {
               backgroundColor: '#FFFFFF',
               borderTopWidth: 1,
               borderTopColor: '#E5E5E5',
-              height: 70,
-              paddingBottom: 10,
-              paddingTop: 10,
+              height: 75,
+              paddingBottom: 12,
+              paddingTop: 8,
             }
           : {
               backgroundColor: '#FFFFFF',
               borderTopWidth: 1,
               borderTopColor: '#E5E5E5',
-              paddingBottom: 8,
-              paddingTop: 8,
             },
         tabBarLabelStyle: Platform.OS === 'web'
           ? {
               fontSize: 12,
               fontWeight: '600',
-              marginBottom: 4,
+              marginTop: 4,
             }
           : {
               fontSize: 12,

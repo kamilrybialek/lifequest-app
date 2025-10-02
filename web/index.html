@@ -41,53 +41,61 @@
       padding-bottom: env(safe-area-inset-bottom);
     }
 
-    /* Fix for bottom tab bar visibility in PWA - more aggressive selectors */
+    /* Fix for bottom tab bar container - maximum specificity */
     [role="tablist"],
-    div[style*="flex-direction: row"][style*="background"] {
-      min-height: 70px !important;
-      max-height: 70px !important;
-      height: 70px !important;
-      padding-bottom: 10px !important;
-      padding-top: 10px !important;
+    div[style*="flex-direction: row"][style*="background"],
+    div[style*="flexDirection"][style*="row"] {
+      min-height: 75px !important;
+      height: 75px !important;
+      padding-bottom: 12px !important;
+      padding-top: 8px !important;
       box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
     }
 
-    /* Ensure tab buttons have proper height */
+    /* Ensure individual tab buttons have enough space */
     [role="tab"],
-    button[role="tab"] {
-      min-height: 65px !important;
-      height: 65px !important;
-      padding-bottom: 8px !important;
-      padding-top: 8px !important;
+    button[role="tab"],
+    a[role="tab"] {
+      min-height: 75px !important;
+      height: auto !important;
+      padding: 8px 4px 12px 4px !important;
       display: flex !important;
       flex-direction: column !important;
-      justify-content: center !important;
+      justify-content: space-between !important;
       align-items: center !important;
+      gap: 4px !important;
     }
 
-    /* Force all text in tabs to be visible */
+    /* Icon container */
+    [role="tab"] > div:first-child,
+    button[role="tab"] > div:first-child {
+      flex-shrink: 0 !important;
+      margin-bottom: 2px !important;
+    }
+
+    /* Force text labels to be fully visible with specific targeting */
     [role="tab"] span,
-    [role="tab"] div,
-    [role="tab"] p,
+    [role="tab"] div:last-child,
     button[role="tab"] span,
-    button[role="tab"] div,
-    button[role="tab"] p {
+    button[role="tab"] div:last-child {
       display: block !important;
       visibility: visible !important;
       opacity: 1 !important;
       font-size: 12px !important;
       font-weight: 600 !important;
-      margin-top: 4px !important;
-      line-height: 14px !important;
+      line-height: 16px !important;
       overflow: visible !important;
       max-height: none !important;
+      height: auto !important;
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
     }
 
-    /* Target React Navigation specific classes */
-    [class*="tabBar"],
-    [class*="tab-bar"] {
-      min-height: 70px !important;
-      padding-bottom: 10px !important;
+    /* Ensure no clipping happens */
+    [role="tab"] *,
+    button[role="tab"] * {
+      overflow: visible !important;
+      text-overflow: clip !important;
     }
 
     /* Smooth scrolling for content areas */
