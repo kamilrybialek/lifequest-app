@@ -74,9 +74,9 @@ const MainTabs = () => {
               backgroundColor: '#FFFFFF',
               borderTopWidth: 1,
               borderTopColor: '#E5E5E5',
-              height: 65,
-              paddingBottom: 8,
-              paddingTop: 8,
+              height: 70,
+              paddingBottom: 10,
+              paddingTop: 10,
             }
           : {
               backgroundColor: '#FFFFFF',

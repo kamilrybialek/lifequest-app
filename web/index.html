@@ -41,27 +41,53 @@
       padding-bottom: env(safe-area-inset-bottom);
     }
 
-    /* Fix for bottom tab bar visibility in PWA */
-    [role="tablist"] {
-      min-height: 65px !important;
-      padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
+    /* Fix for bottom tab bar visibility in PWA - more aggressive selectors */
+    [role="tablist"],
+    div[style*="flex-direction: row"][style*="background"] {
+      min-height: 70px !important;
+      max-height: 70px !important;
+      height: 70px !important;
+      padding-bottom: 10px !important;
+      padding-top: 10px !important;
       box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
     }
 
-    /* Ensure tab labels are visible */
-    [role="tab"] {
-      min-height: 55px !important;
-      padding-bottom: 4px !important;
+    /* Ensure tab buttons have proper height */
+    [role="tab"],
+    button[role="tab"] {
+      min-height: 65px !important;
+      height: 65px !important;
+      padding-bottom: 8px !important;
+      padding-top: 8px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: center !important;
+      align-items: center !important;
     }
 
-    /* Force tab labels to be visible */
-    [role="tab"] span {
+    /* Force all text in tabs to be visible */
+    [role="tab"] span,
+    [role="tab"] div,
+    [role="tab"] p,
+    button[role="tab"] span,
+    button[role="tab"] div,
+    button[role="tab"] p {
       display: block !important;
       visibility: visible !important;
       opacity: 1 !important;
       font-size: 12px !important;
       font-weight: 600 !important;
-      margin-top: 2px !important;
+      margin-top: 4px !important;
+      line-height: 14px !important;
+      overflow: visible !important;
+      max-height: none !important;
+    }
+
+    /* Target React Navigation specific classes */
+    [class*="tabBar"],
+    [class*="tab-bar"] {
+      min-height: 70px !important;
+      padding-bottom: 10px !important;
     }
 
     /* Smooth scrolling for content areas */
