@@ -233,6 +233,66 @@ export const initDatabase = async () => {
     );
   `);
 
+  // Physical Health Progress
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS physical_progress (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      current_foundation INTEGER DEFAULT 1,
+      total_lessons_completed INTEGER DEFAULT 0,
+      bmi REAL,
+      tdee REAL,
+      target_calories REAL,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+
+  // Workout Sessions
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS workout_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      workout_date DATETIME NOT NULL,
+      type TEXT,
+      duration_minutes INTEGER,
+      intensity INTEGER,
+      calories_burned INTEGER,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+
+  // Water Intake Logs
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS water_intake_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      log_date DATE NOT NULL,
+      amount_ml INTEGER DEFAULT 0,
+      goal_ml INTEGER DEFAULT 2000,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+
+  // Sleep Logs
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS sleep_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      sleep_date DATE NOT NULL,
+      bed_time TIME,
+      wake_time TIME,
+      duration_hours REAL,
+      quality_rating INTEGER,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+
   console.log('✅ Database initialized successfully');
   return db;
 };
@@ -260,6 +320,10 @@ export const resetDatabase = async () => {
   await db.execAsync(`DROP TABLE IF EXISTS dopamine_detox_sessions;`);
   await db.execAsync(`DROP TABLE IF EXISTS morning_routines;`);
   await db.execAsync(`DROP TABLE IF EXISTS meditation_sessions;`);
+  await db.execAsync(`DROP TABLE IF EXISTS physical_progress;`);
+  await db.execAsync(`DROP TABLE IF EXISTS workout_sessions;`);
+  await db.execAsync(`DROP TABLE IF EXISTS water_intake_logs;`);
+  await db.execAsync(`DROP TABLE IF EXISTS sleep_logs;`);
 
   console.log('🗑️ All tables dropped');
 

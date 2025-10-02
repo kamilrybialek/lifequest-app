@@ -31,8 +31,13 @@ import { ScreenTimeTracker } from '../screens/mental/tools/ScreenTimeTracker';
 import { MorningRoutine } from '../screens/mental/tools/MorningRoutineScreen';
 import { MeditationTimer } from '../screens/mental/tools/MeditationTimer';
 
+// Physical Health Path & Screens
+import { PhysicalHealthPath } from '../screens/physical/PhysicalHealthPath';
+import { PhysicalLessonIntro } from '../screens/physical/PhysicalLessonIntro';
+import { PhysicalLessonContent } from '../screens/physical/PhysicalLessonContent';
+import { WorkoutTracker } from '../screens/physical/tools/WorkoutTrackerScreen';
+
 // Other Paths
-import { PhysicalHealthScreen } from '../screens/physical/PhysicalHealthScreen';
 import { NutritionScreen } from '../screens/nutrition/NutritionScreen';
 
 // Task screens
@@ -103,7 +108,7 @@ const MainTabs = () => {
       <Tab.Screen name="Home" component={HomeScreenFlat} options={{ tabBarLabel: 'Home' }} />
       <Tab.Screen name="Finance" component={FinanceScreenPath} options={{ tabBarLabel: 'Finance' }} />
       <Tab.Screen name="Mental" component={MentalHealthPath} options={{ tabBarLabel: 'Mental' }} />
-      <Tab.Screen name="Physical" component={PhysicalHealthScreen} options={{ tabBarLabel: 'Physical' }} />
+      <Tab.Screen name="Physical" component={PhysicalHealthPath} options={{ tabBarLabel: 'Physical' }} />
       <Tab.Screen name="Nutrition" component={NutritionScreen} options={{ tabBarLabel: 'Nutrition' }} />
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: 'Profile' }} />
     </Tab.Navigator>
@@ -189,6 +194,23 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="MeditationTimer"
               component={MeditationTimer}
+              options={{ headerShown: false }}
+            />
+
+            {/* Physical Health Lessons & Tools */}
+            <Stack.Screen
+              name="PhysicalLessonIntro"
+              component={PhysicalLessonIntro}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="PhysicalLessonContent"
+              component={PhysicalLessonContent}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="WorkoutTracker"
+              component={WorkoutTracker}
               options={{ headerShown: false }}
             />
 
