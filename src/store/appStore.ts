@@ -116,51 +116,62 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   generateDailyTasks: () => {
-    const tasks: Task[] = [
-      // Finance
-      {
-        id: 'finance_' + Date.now(),
-        pillar: 'finance',
-        title: 'Track Your Expenses',
-        description: 'Record 3 expenses from today',
-        duration: 5,
-        completed: false,
-        points: 10,
-      },
-      // Mental Health
-      {
-        id: 'mental_' + Date.now(),
-        pillar: 'mental',
-        title: 'Morning Sunlight',
-        description: 'Get 10 minutes of sunlight exposure',
-        duration: 10,
-        completed: false,
-        points: 10,
-      },
-      // Physical Health
-      {
-        id: 'physical_' + Date.now(),
-        pillar: 'physical',
-        title: 'Reach Step Goal',
-        description: 'Walk 8,000 steps today',
-        duration: 60,
-        completed: false,
-        points: 10,
-      },
-      // Nutrition
-      {
-        id: 'nutrition_' + Date.now(),
-        pillar: 'nutrition',
-        title: 'Drink Water',
-        description: 'Drink 8 glasses of water today',
-        duration: 1,
-        completed: false,
-        points: 10,
-      },
-    ];
+    // Task pools for each pillar
+    const taskPools = {
+      finance: [
+        { title: 'Track Your Expenses', description: 'Record 3 expenses from today', duration: 5, points: 10 },
+        { title: 'Review Budget', description: 'Check your budget categories', duration: 10, points: 15 },
+        { title: 'Log Debt Payment', description: 'Make a payment on your smallest debt', duration: 5, points: 20 },
+        { title: 'Update Emergency Fund', description: 'Add to your emergency savings', duration: 3, points: 10 },
+        { title: 'Check Bank Balance', description: 'Review account balances', duration: 2, points: 5 },
+      ],
+      mental: [
+        { title: 'Morning Sunlight', description: 'Get 10 minutes of sunlight exposure', duration: 10, points: 10 },
+        { title: 'Meditation Practice', description: 'Complete 5-minute meditation', duration: 5, points: 15 },
+        { title: 'Gratitude Journal', description: 'Write 3 things you are grateful for', duration: 5, points: 10 },
+        { title: 'Deep Breathing', description: 'Practice box breathing for 3 minutes', duration: 3, points: 10 },
+        { title: 'Digital Detox', description: 'Take 30-min break from screens', duration: 30, points: 20 },
+      ],
+      physical: [
+        { title: 'Reach Step Goal', description: 'Walk 8,000 steps today', duration: 60, points: 15 },
+        { title: 'Morning Mobility', description: 'Complete 10-minute stretching routine', duration: 10, points: 10 },
+        { title: 'Log Workout', description: 'Record today exercise session', duration: 5, points: 15 },
+        { title: 'Active Break', description: 'Take a 10-minute walk', duration: 10, points: 10 },
+        { title: 'Cold Exposure', description: 'End shower with 30s cold water', duration: 1, points: 20 },
+      ],
+      nutrition: [
+        { title: 'Drink Water', description: 'Drink 8 glasses of water today', duration: 1, points: 10 },
+        { title: 'Protein Tracking', description: 'Log protein intake for meals', duration: 5, points: 10 },
+        { title: 'Plan Meals', description: 'Plan tomorrow meals', duration: 10, points: 15 },
+        { title: 'Mindful Eating', description: 'Eat one meal without distractions', duration: 20, points: 15 },
+        { title: 'Hydration Check', description: 'Drink water every 2 hours', duration: 1, points: 10 },
+      ],
+    };
 
-    set({ dailyTasks: tasks });
-    AsyncStorage.setItem('dailyTasks', JSON.stringify(tasks));
+    // Randomly select one task from each pillar
+    const tasks: Task[] = [];
+    const pillars: Pillar[] = ['finance', 'mental', 'physical', 'nutrition'];
+
+    pillars.forEach((pillar) => {
+      const pool = taskPools[pillar];
+      const randomTask = pool[Math.floor(Math.random() * pool.length)];
+
+      tasks.push({
+        id: `${pillar}_${Date.now()}_${Math.random()}`,
+        pillar,
+        title: randomTask.title,
+        description: randomTask.description,
+        duration: randomTask.duration,
+        completed: false,
+        points: randomTask.points,
+      });
+    });
+
+    // Shuffle tasks for variety
+    const shuffledTasks = tasks.sort(() => Math.random() - 0.5);
+
+    set({ dailyTasks: shuffledTasks });
+    AsyncStorage.setItem('dailyTasks', JSON.stringify(shuffledTasks));
   },
 
   completeTask: async (taskId: string) => {
