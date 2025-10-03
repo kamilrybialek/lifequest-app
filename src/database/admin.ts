@@ -49,9 +49,9 @@ export const getAdminActivityLogs = async (limit = 50) => {
 
 // ===== USER MANAGEMENT =====
 
-export const getAllUsers = async () => {
+export const getAllUsers = async (): Promise<any[]> => {
   const db = await getDatabase();
-  return await db.getAllAsync(`
+  const result = await db.getAllAsync(`
     SELECT
       u.*,
       us.total_xp,
@@ -65,6 +65,7 @@ export const getAllUsers = async () => {
     LEFT JOIN user_stats us ON u.id = us.user_id
     ORDER BY u.created_at DESC
   `);
+  return result || [];
 };
 
 export const getUserDetails = async (userId: number) => {
@@ -121,15 +122,16 @@ export const createTaskTemplate = async (
   return result.lastInsertRowId;
 };
 
-export const getAllTaskTemplates = async () => {
+export const getAllTaskTemplates = async (): Promise<any[]> => {
   const db = await getDatabase();
-  return await db.getAllAsync(`
+  const result = await db.getAllAsync(`
     SELECT tt.*, au.email as created_by_email
     FROM task_templates tt
     LEFT JOIN admin_users au ON tt.created_by = au.id
     WHERE tt.is_active = 1
     ORDER BY tt.pillar, tt.title
   `);
+  return result || [];
 };
 
 export const updateTaskTemplate = async (
@@ -288,14 +290,14 @@ export const createPushNotification = async (
   return result.lastInsertRowId;
 };
 
-export const getPendingNotifications = async () => {
+export const getPendingNotifications = async (): Promise<any[]> => {
   const db = await getDatabase();
-  return await db.getAllAsync(`
+  const result = await db.getAllAsync(`
     SELECT * FROM push_notifications
-    WHERE status = 'pending'
-    AND (scheduled_at IS NULL OR scheduled_at <= datetime('now'))
-    ORDER BY created_at ASC
+    ORDER BY created_at DESC
+    LIMIT 50
   `);
+  return result || [];
 };
 
 export const markNotificationAsSent = async (notificationId: number) => {

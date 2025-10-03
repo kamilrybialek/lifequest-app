@@ -13,9 +13,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 import { shadows } from '../theme/theme';
 import { useAuthStore } from '../store/authStore';
-
-// Admin API URL (można zmienić na deployed URL później)
-const ADMIN_API_URL = __DEV__ ? 'http://localhost:3001' : 'https://your-api.herokuapp.com';
+import {
+  getAllUsers,
+  getAnalyticsSummary,
+  getAllTaskTemplates,
+  createTaskTemplate,
+  deleteTaskTemplate,
+  createPushNotification,
+  getPendingNotifications,
+  logAdminActivity,
+} from '../database/admin';
 
 export const AdminScreen = ({ navigation }: any) => {
   const { user } = useAuthStore();
@@ -83,10 +90,7 @@ export const AdminScreen = ({ navigation }: any) => {
 
   const loadAnalytics = async () => {
     try {
-      const response = await fetch(`${ADMIN_API_URL}/api/admin/analytics`, {
-        headers: { 'x-admin-email': user?.email || '' },
-      });
-      const data = await response.json();
+      const data = await getAnalyticsSummary();
       setAnalytics(data);
     } catch (error) {
       console.error('Analytics error:', error);
@@ -95,11 +99,8 @@ export const AdminScreen = ({ navigation }: any) => {
 
   const loadUsers = async () => {
     try {
-      const response = await fetch(`${ADMIN_API_URL}/api/admin/users`, {
-        headers: { 'x-admin-email': user?.email || '' },
-      });
-      const data = await response.json();
-      setUsers(data.users || []);
+      const data = await getAllUsers();
+      setUsers(data);
     } catch (error) {
       console.error('Users error:', error);
     }
@@ -107,11 +108,8 @@ export const AdminScreen = ({ navigation }: any) => {
 
   const loadTaskTemplates = async () => {
     try {
-      const response = await fetch(`${ADMIN_API_URL}/api/admin/task-templates`, {
-        headers: { 'x-admin-email': user?.email || '' },
-      });
-      const data = await response.json();
-      setTaskTemplates(data.templates || []);
+      const data = await getAllTaskTemplates();
+      setTaskTemplates(data);
     } catch (error) {
       console.error('Tasks error:', error);
     }
@@ -119,11 +117,8 @@ export const AdminScreen = ({ navigation }: any) => {
 
   const loadNotifications = async () => {
     try {
-      const response = await fetch(`${ADMIN_API_URL}/api/admin/notifications`, {
-        headers: { 'x-admin-email': user?.email || '' },
-      });
-      const data = await response.json();
-      setNotifications(data.notifications || []);
+      const data = await getPendingNotifications();
+      setNotifications(data);
     } catch (error) {
       console.error('Notifications error:', error);
     }
@@ -131,28 +126,28 @@ export const AdminScreen = ({ navigation }: any) => {
 
   const createTask = async () => {
     try {
-      const response = await fetch(`${ADMIN_API_URL}/api/admin/task-templates`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-email': user?.email || '',
-        },
-        body: JSON.stringify(newTask),
+      if (!user?.id) return;
+
+      await createTaskTemplate(user.id, {
+        pillar: newTask.pillar,
+        title: newTask.title,
+        description: newTask.description,
+        duration: newTask.duration,
+        xp: newTask.xp,
+        difficulty: newTask.difficulty,
       });
 
-      if (response.ok) {
-        Alert.alert('Success', 'Task template created!');
-        setShowCreateTask(false);
-        setNewTask({
-          pillar: 'finance',
-          title: '',
-          description: '',
-          duration: 5,
-          xp: 10,
-          difficulty: 'easy',
-        });
-        loadTaskTemplates();
-      }
+      Alert.alert('Success', 'Task template created!');
+      setShowCreateTask(false);
+      setNewTask({
+        pillar: 'finance',
+        title: '',
+        description: '',
+        duration: 5,
+        xp: 10,
+        difficulty: 'easy',
+      });
+      loadTaskTemplates();
     } catch (error) {
       Alert.alert('Error', 'Failed to create task');
     }
@@ -160,21 +155,18 @@ export const AdminScreen = ({ navigation }: any) => {
 
   const createNotification = async () => {
     try {
-      const response = await fetch(`${ADMIN_API_URL}/api/admin/notifications`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-admin-email': user?.email || '',
-        },
-        body: JSON.stringify(newNotif),
+      if (!user?.id) return;
+
+      await createPushNotification(user.id, {
+        title: newNotif.title,
+        body: newNotif.body,
+        targetSegment: newNotif.targetSegment,
       });
 
-      if (response.ok) {
-        Alert.alert('Success', 'Notification sent!');
-        setShowCreateNotif(false);
-        setNewNotif({ title: '', body: '', targetSegment: 'all' });
-        loadNotifications();
-      }
+      Alert.alert('Success', 'Notification created!');
+      setShowCreateNotif(false);
+      setNewNotif({ title: '', body: '', targetSegment: 'all' });
+      loadNotifications();
     } catch (error) {
       Alert.alert('Error', 'Failed to send notification');
     }
@@ -188,10 +180,8 @@ export const AdminScreen = ({ navigation }: any) => {
         style: 'destructive',
         onPress: async () => {
           try {
-            await fetch(`${ADMIN_API_URL}/api/admin/task-templates/${taskId}`, {
-              method: 'DELETE',
-              headers: { 'x-admin-email': user?.email || '' },
-            });
+            if (!user?.id) return;
+            await deleteTaskTemplate(user.id, taskId);
             loadTaskTemplates();
           } catch (error) {
             Alert.alert('Error', 'Failed to delete task');
