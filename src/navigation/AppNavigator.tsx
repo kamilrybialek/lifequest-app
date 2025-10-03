@@ -40,6 +40,9 @@ import { WorkoutTrackerScreen } from '../screens/physical/tools/WorkoutTrackerSc
 // Other Paths
 import { NutritionScreen } from '../screens/nutrition/NutritionScreen';
 
+// Admin
+import { AdminScreen } from '../screens/AdminScreen';
+
 // Task screens
 import { TrackExpensesScreen } from '../screens/tasks/TrackExpensesScreen';
 import { MorningSunlightScreen } from '../screens/tasks/MorningSunlightScreen';
@@ -50,6 +53,9 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 const MainTabs = () => {
+  const { user } = useAuthStore();
+  const isAdmin = user?.email === 'kamil.rybialek@gmail.com';
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -68,6 +74,8 @@ const MainTabs = () => {
             iconName = focused ? 'restaurant' : 'restaurant-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
+          } else if (route.name === 'Admin') {
+            iconName = focused ? 'settings' : 'settings-outline';
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -110,6 +118,12 @@ const MainTabs = () => {
       <Tab.Screen name="Mental" component={MentalHealthPath} options={{ tabBarLabel: 'Mental' }} />
       <Tab.Screen name="Physical" component={PhysicalHealthPath} options={{ tabBarLabel: 'Physical' }} />
       <Tab.Screen name="Nutrition" component={NutritionScreen} options={{ tabBarLabel: 'Nutrition' }} />
+
+      {/* Admin Tab - Only visible for kamil.rybialek@gmail.com */}
+      {isAdmin && (
+        <Tab.Screen name="Admin" component={AdminScreen} options={{ tabBarLabel: 'Admin' }} />
+      )}
+
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: 'Profile' }} />
     </Tab.Navigator>
   );
