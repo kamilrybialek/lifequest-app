@@ -293,6 +293,140 @@ export const initDatabase = async () => {
     );
   `);
 
+  // ===== ADMIN TABLES =====
+
+  // Admin Users
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS admin_users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT UNIQUE NOT NULL,
+      name TEXT,
+      role TEXT DEFAULT 'admin',
+      is_active INTEGER DEFAULT 1,
+      last_login DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // Admin Activity Logs
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS admin_activity_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      admin_id INTEGER NOT NULL,
+      action TEXT NOT NULL,
+      target_type TEXT,
+      target_id INTEGER,
+      details TEXT,
+      ip_address TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (admin_id) REFERENCES admin_users(id)
+    );
+  `);
+
+  // Task Templates (for admin to create random tasks)
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS task_templates (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      pillar TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      duration_minutes INTEGER DEFAULT 5,
+      xp_reward INTEGER DEFAULT 10,
+      difficulty TEXT DEFAULT 'easy',
+      is_active INTEGER DEFAULT 1,
+      created_by INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (created_by) REFERENCES admin_users(id)
+    );
+  `);
+
+  // Content Management (lessons, tips, articles)
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS content_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      pillar TEXT NOT NULL,
+      title TEXT NOT NULL,
+      content TEXT,
+      order_index INTEGER DEFAULT 0,
+      is_published INTEGER DEFAULT 0,
+      published_at DATETIME,
+      created_by INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (created_by) REFERENCES admin_users(id)
+    );
+  `);
+
+  // Push Notifications
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS push_notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      target_user_id INTEGER,
+      target_segment TEXT,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL,
+      data TEXT,
+      scheduled_at DATETIME,
+      sent_at DATETIME,
+      status TEXT DEFAULT 'pending',
+      created_by INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (target_user_id) REFERENCES users(id),
+      FOREIGN KEY (created_by) REFERENCES admin_users(id)
+    );
+  `);
+
+  // User Activity Tracking
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS user_activity (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      activity_type TEXT NOT NULL,
+      activity_data TEXT,
+      session_id TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+
+  // App Analytics
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS app_analytics (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      metric_name TEXT NOT NULL,
+      metric_value REAL NOT NULL,
+      metric_date DATE NOT NULL,
+      metadata TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  // User Feedback
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS user_feedback (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      feedback_type TEXT NOT NULL,
+      rating INTEGER,
+      message TEXT,
+      screenshot_url TEXT,
+      status TEXT DEFAULT 'new',
+      admin_response TEXT,
+      responded_by INTEGER,
+      responded_at DATETIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (responded_by) REFERENCES admin_users(id)
+    );
+  `);
+
+  // Insert default admin user (kamil.rybialek@gmail.com)
+  await db.execAsync(`
+    INSERT OR IGNORE INTO admin_users (email, name, role)
+    VALUES ('kamil.rybialek@gmail.com', 'Kamil Rybiałek', 'superadmin');
+  `);
+
   console.log('✅ Database initialized successfully');
   return db;
 };
