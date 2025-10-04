@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { getLessonContent, LessonSection } from '../../data/lessonContent';
 import { useAuthStore } from '../../store/authStore';
-import { saveLessonProgress } from '../../database/lessons';
+import { saveLessonProgress, getStepCompletionCount } from '../../database/lessons';
 import { addEmergencyFundContribution } from '../../database/finance';
 
 export const LessonContentScreen = ({ route, navigation }: any) => {
@@ -29,6 +29,21 @@ export const LessonContentScreen = ({ route, navigation }: any) => {
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
   const [showAnswerModal, setShowAnswerModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [lessonProgress, setLessonProgress] = useState({ completed: 0, total: 4 });
+
+  // Load lesson progress on mount
+  React.useEffect(() => {
+    const loadProgress = async () => {
+      if (!user?.id || !stepId) return;
+      try {
+        const progress = await getStepCompletionCount(user.id, stepId);
+        setLessonProgress(progress);
+      } catch (error) {
+        console.error('Error loading lesson progress:', error);
+      }
+    };
+    loadProgress();
+  }, [user?.id, stepId]);
 
   if (!content) {
     navigation.goBack();
@@ -75,6 +90,10 @@ export const LessonContentScreen = ({ route, navigation }: any) => {
       }
 
       console.log('✅ Lesson completed and saved:', lessonId);
+
+      // Update lesson progress count after saving
+      const updatedProgress = await getStepCompletionCount(user.id, stepId);
+      setLessonProgress(updatedProgress);
     } catch (error) {
       console.error('Error saving lesson progress:', error);
     }
@@ -173,7 +192,9 @@ export const LessonContentScreen = ({ route, navigation }: any) => {
               </View>
               <View style={styles.successStat}>
                 <Ionicons name="trophy" size={24} color={colors.finance} />
-                <Text style={styles.successStatValue}>1/4</Text>
+                <Text style={styles.successStatValue}>
+                  {lessonProgress.completed}/{lessonProgress.total}
+                </Text>
                 <Text style={styles.successStatLabel}>Lessons</Text>
               </View>
             </View>
