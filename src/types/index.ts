@@ -97,6 +97,8 @@ export interface PhysicalHealthData {
   dailySteps: number;
   stepsGoal: number;
   workouts: Workout[];
+  weight?: number; // kg
+  height?: number; // cm
 }
 
 export interface Workout {
@@ -113,4 +115,6 @@ export interface NutritionData {
   firstMealTime?: string;
   mealQuality?: number; // 1-5
   hadProtein: boolean;
+  caloriesConsumed?: number;
+  calorieGoal?: number;
 }

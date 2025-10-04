@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, Card, Title, TextInput, Button, RadioButton, ProgressBar } from 'react-native-paper';
 import { useAppStore } from '../../store/appStore';
+import { calculateBMI, getBMICategory, getBMIColor, getIdealWeightRange } from '../../utils/healthCalculations';
 
 export const PhysicalHealthScreen = () => {
   const { physicalHealthData, updatePhysicalHealthData } = useAppStore();
@@ -9,6 +10,8 @@ export const PhysicalHealthScreen = () => {
   const [duration, setDuration] = useState('');
   const [intensity, setIntensity] = useState('5');
   const [steps, setSteps] = useState('');
+  const [weight, setWeight] = useState(physicalHealthData.weight?.toString() || '');
+  const [height, setHeight] = useState(physicalHealthData.height?.toString() || '');
 
   const handleLogWorkout = () => {
     const durationNum = parseInt(duration);
@@ -40,7 +43,26 @@ export const PhysicalHealthScreen = () => {
     }
   };
 
+  const handleUpdateBodyMetrics = () => {
+    const weightNum = parseFloat(weight);
+    const heightNum = parseFloat(height);
+    if (!isNaN(weightNum) && !isNaN(heightNum) && heightNum > 0) {
+      updatePhysicalHealthData({
+        weight: weightNum,
+        height: heightNum,
+      });
+    }
+  };
+
   const stepsProgress = physicalHealthData.dailySteps / physicalHealthData.stepsGoal;
+
+  // Calculate BMI if weight and height are available
+  const weightNum = physicalHealthData.weight || parseFloat(weight);
+  const heightNum = physicalHealthData.height || parseFloat(height);
+  const bmi = weightNum && heightNum ? calculateBMI(weightNum, heightNum) : 0;
+  const bmiCategory = bmi > 0 ? getBMICategory(bmi) : '';
+  const bmiColor = bmi > 0 ? getBMIColor(bmi) : '#999';
+  const idealWeight = heightNum ? getIdealWeightRange(heightNum) : null;
   const todayWorkouts = physicalHealthData.workouts.filter(
     (w) => new Date(w.date).toDateString() === new Date().toDateString()
   );
@@ -51,6 +73,76 @@ export const PhysicalHealthScreen = () => {
         <Title style={styles.title}>💪 Physical Health</Title>
         <Text style={styles.subtitle}>Build a strong, healthy body</Text>
       </View>
+
+      {/* BMI Calculator */}
+      <Card style={styles.card}>
+        <Card.Content>
+          <Title>📊 BMI & Body Metrics</Title>
+          <Text style={styles.description}>
+            Track your body composition and health metrics
+          </Text>
+
+          <TextInput
+            label="Weight (kg)"
+            value={weight}
+            onChangeText={setWeight}
+            keyboardType="numeric"
+            mode="outlined"
+            style={styles.input}
+          />
+
+          <TextInput
+            label="Height (cm)"
+            value={height}
+            onChangeText={setHeight}
+            keyboardType="numeric"
+            mode="outlined"
+            style={styles.input}
+          />
+
+          <Button mode="contained" onPress={handleUpdateBodyMetrics} style={styles.button}>
+            Update Metrics
+          </Button>
+
+          {bmi > 0 && (
+            <View style={styles.bmiResults}>
+              <View style={styles.bmiHeader}>
+                <Text style={styles.bmiTitle}>Your BMI</Text>
+                <View style={[styles.bmiBadge, { backgroundColor: bmiColor + '20' }]}>
+                  <Text style={[styles.bmiValue, { color: bmiColor }]}>{bmi}</Text>
+                </View>
+              </View>
+              <Text style={[styles.bmiCategory, { color: bmiColor }]}>
+                {bmiCategory}
+              </Text>
+
+              {idealWeight && (
+                <View style={styles.idealWeightSection}>
+                  <Text style={styles.idealWeightTitle}>Ideal Weight Range:</Text>
+                  <Text style={styles.idealWeightRange}>
+                    {idealWeight.min} - {idealWeight.max} kg
+                  </Text>
+                  {weightNum < idealWeight.min && (
+                    <Text style={styles.weightAdvice}>
+                      💡 Consider gaining {(idealWeight.min - weightNum).toFixed(1)} kg to reach ideal range
+                    </Text>
+                  )}
+                  {weightNum > idealWeight.max && (
+                    <Text style={styles.weightAdvice}>
+                      💡 Consider losing {(weightNum - idealWeight.max).toFixed(1)} kg to reach ideal range
+                    </Text>
+                  )}
+                  {weightNum >= idealWeight.min && weightNum <= idealWeight.max && (
+                    <Text style={[styles.weightAdvice, { color: '#4CAF50' }]}>
+                      ✅ You're in the ideal weight range!
+                    </Text>
+                  )}
+                </View>
+              )}
+            </View>
+          )}
+        </Card.Content>
+      </Card>
 
       {/* Steps Counter */}
       <Card style={styles.card}>
@@ -342,5 +434,61 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 12,
     marginBottom: 8,
+  },
+  bmiResults: {
+    marginTop: 16,
+    padding: 16,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+  },
+  bmiHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  bmiTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  bmiBadge: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  bmiValue: {
+    fontSize: 24,
+    fontWeight: '800',
+  },
+  bmiCategory: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  idealWeightSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  idealWeightTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 4,
+  },
+  idealWeightRange: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 8,
+  },
+  weightAdvice: {
+    fontSize: 13,
+    color: '#666',
+    fontStyle: 'italic',
+    marginTop: 4,
   },
 });

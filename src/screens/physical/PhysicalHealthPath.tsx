@@ -49,6 +49,8 @@ const PHYSICAL_TOOLS = [
 
 export const PhysicalHealthPath = ({ navigation }: any) => {
   const [foundations, setFoundations] = useState<PhysicalFoundation[]>(PHYSICAL_FOUNDATIONS);
+  const [expandedFoundations, setExpandedFoundations] = useState<{ [key: string]: boolean }>({});
+  const [nextLesson, setNextLesson] = useState<any>(null);
   const { user } = useAuthStore();
 
   const loadLessonProgress = async () => {
@@ -63,6 +65,8 @@ export const PhysicalHealthPath = ({ navigation }: any) => {
 
       // Determine which foundation should be current
       const currentFoundation = physicalProgress?.current_foundation || 1;
+
+      let foundNextLesson: any = null;
 
       // Update foundations with progress data
       const updatedFoundations = PHYSICAL_FOUNDATIONS.map((foundation) => {
@@ -93,6 +97,15 @@ export const PhysicalHealthPath = ({ navigation }: any) => {
             .every((prevLesson) => completedLessonIds.includes(prevLesson.id));
 
           if (allPreviousCompleted && foundationStatus === 'current') {
+            // This is the next lesson to complete
+            if (!foundNextLesson) {
+              foundNextLesson = {
+                lesson,
+                foundation,
+                foundationIndex: foundation.number,
+                lessonIndex,
+              };
+            }
             return { ...lesson, status: 'current' as const };
           }
 
@@ -107,9 +120,28 @@ export const PhysicalHealthPath = ({ navigation }: any) => {
       });
 
       setFoundations(updatedFoundations);
+      setNextLesson(foundNextLesson);
+
+      // Auto-expand current foundation, collapse completed foundations
+      const newExpandedState: { [key: string]: boolean } = {};
+      updatedFoundations.forEach((foundation) => {
+        if (foundation.status === 'current') {
+          newExpandedState[foundation.id] = true;
+        } else {
+          newExpandedState[foundation.id] = false;
+        }
+      });
+      setExpandedFoundations(newExpandedState);
     } catch (error) {
       console.error('Error loading physical lesson progress:', error);
     }
+  };
+
+  const toggleFoundationExpanded = (foundationId: string) => {
+    setExpandedFoundations((prev) => ({
+      ...prev,
+      [foundationId]: !prev[foundationId],
+    }));
   };
 
   // Load progress when screen is focused
@@ -171,10 +203,40 @@ export const PhysicalHealthPath = ({ navigation }: any) => {
           </View>
         </View>
 
+        {/* Next Lesson Card - Duolingo Style */}
+        {nextLesson && (
+          <View style={styles.nextLessonSection}>
+            <Text style={styles.nextLessonTitle}>📚 Continue Your Journey</Text>
+            <TouchableOpacity
+              style={styles.nextLessonCard}
+              onPress={() => handleLessonPress(nextLesson.foundation, nextLesson.lesson)}
+              activeOpacity={0.9}
+            >
+              <View style={styles.nextLessonContent}>
+                <View style={styles.nextLessonBadge}>
+                  <Text style={styles.nextLessonBadgeText}>NEXT LESSON</Text>
+                </View>
+                <Text style={styles.nextLessonStepTitle}>
+                  Foundation {nextLesson.foundationIndex}: {nextLesson.foundation.title}
+                </Text>
+                <Text style={styles.nextLessonName}>{nextLesson.lesson.title}</Text>
+                <View style={styles.nextLessonMeta}>
+                  <Text style={styles.nextLessonMetaText}>
+                    ⏱️ {nextLesson.lesson.estimatedTime} min • +{nextLesson.lesson.xp} XP
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.nextLessonButton}>
+                <Ionicons name="play-circle" size={48} color={colors.physical} />
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Path Divider */}
         <View style={styles.pathDivider}>
           <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>YOUR WELLNESS PATH</Text>
+          <Text style={styles.dividerText}>ALL FOUNDATIONS</Text>
           <View style={styles.dividerLine} />
         </View>
 
@@ -182,11 +244,17 @@ export const PhysicalHealthPath = ({ navigation }: any) => {
         <View style={styles.path}>
           {foundations.map((foundation, foundationIndex) => (
             <View key={foundation.id}>
-              {/* Foundation Header */}
-              <FoundationHeader foundation={foundation} />
+              {/* Foundation Header - Now Collapsible */}
+              <TouchableOpacity
+                onPress={() => foundation.status !== 'locked' && toggleFoundationExpanded(foundation.id)}
+                disabled={foundation.status === 'locked'}
+                activeOpacity={0.8}
+              >
+                <FoundationHeader foundation={foundation} isExpanded={expandedFoundations[foundation.id]} />
+              </TouchableOpacity>
 
-              {/* Lessons */}
-              {foundation.status !== 'locked' && (
+              {/* Lessons - Only show if expanded */}
+              {foundation.status !== 'locked' && expandedFoundations[foundation.id] && (
                 <View style={styles.lessonsContainer}>
                   {foundation.lessons.map((lesson, lessonIndex) => (
                     <View key={lesson.id}>
@@ -218,7 +286,7 @@ export const PhysicalHealthPath = ({ navigation }: any) => {
   );
 };
 
-const FoundationHeader: React.FC<{ foundation: PhysicalFoundation }> = ({ foundation }) => {
+const FoundationHeader: React.FC<{ foundation: PhysicalFoundation; isExpanded?: boolean }> = ({ foundation, isExpanded }) => {
   const getFoundationColor = () => {
     if (foundation.status === 'completed') return colors.success;
     if (foundation.status === 'current') return colors.physical;
@@ -253,6 +321,15 @@ const FoundationHeader: React.FC<{ foundation: PhysicalFoundation }> = ({ founda
         </Text>
         <Text style={styles.foundationDescription}>{foundation.description}</Text>
       </View>
+      {foundation.status !== 'locked' && (
+        <View style={styles.expandIcon}>
+          <Ionicons
+            name={isExpanded ? 'chevron-up' : 'chevron-down'}
+            size={24}
+            color={getFoundationColor()}
+          />
+        </View>
+      )}
     </View>
   );
 };
@@ -467,6 +544,10 @@ const styles = StyleSheet.create({
   foundationInfo: {
     flex: 1,
   },
+  expandIcon: {
+    marginLeft: 8,
+    justifyContent: 'center',
+  },
   foundationTitle: {
     ...typography.bodyBold,
     fontSize: 18,
@@ -548,6 +629,67 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '800',
+  },
+  // Next Lesson Card
+  nextLessonSection: {
+    marginVertical: 16,
+    paddingHorizontal: 16,
+  },
+  nextLessonTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  nextLessonCard: {
+    flexDirection: 'row',
+    backgroundColor: colors.physical + '10',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 2,
+    borderColor: colors.physical,
+    ...shadows.large,
+  },
+  nextLessonContent: {
+    flex: 1,
+  },
+  nextLessonBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.physical,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  nextLessonBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 1,
+  },
+  nextLessonStepTitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  nextLessonName: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  nextLessonMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  nextLessonMetaText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  nextLessonButton: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 16,
   },
   // Connectors
   connector: {

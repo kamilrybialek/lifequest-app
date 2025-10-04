@@ -2,11 +2,16 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, Card, Title, Button, Chip, TextInput, ProgressBar } from 'react-native-paper';
 import { useAppStore } from '../../store/appStore';
+import { useAuthStore } from '../../store/authStore';
+import { calculateBMR, calculateTDEE, calculateCalorieGoal } from '../../utils/healthCalculations';
 
 export const NutritionScreen = () => {
-  const { nutritionData, updateNutritionData } = useAppStore();
+  const { nutritionData, updateNutritionData, physicalHealthData } = useAppStore();
+  const { user } = useAuthStore();
   const [firstMealTime, setFirstMealTime] = useState('');
   const [mealQuality, setMealQuality] = useState(3);
+  const [caloriesInput, setCaloriesInput] = useState('');
+  const [activityLevel, setActivityLevel] = useState<'sedentary' | 'light' | 'moderate' | 'active' | 'very_active'>('moderate');
 
   const handleAddWater = () => {
     updateNutritionData({
@@ -40,7 +45,38 @@ export const NutritionScreen = () => {
     });
   };
 
+  const handleAddCalories = () => {
+    const calories = parseInt(caloriesInput);
+    if (!isNaN(calories) && calories > 0) {
+      updateNutritionData({
+        caloriesConsumed: (nutritionData.caloriesConsumed || 0) + calories,
+      });
+      setCaloriesInput('');
+    }
+  };
+
+  const handleResetCalories = () => {
+    updateNutritionData({
+      caloriesConsumed: 0,
+    });
+  };
+
+  // Calculate calorie requirements if we have user data
+  let calorieGoal = nutritionData.calorieGoal || 2000; // Default
+  let tdee = 0;
+  let bmr = 0;
+
+  if (physicalHealthData.weight && physicalHealthData.height && user?.age && user?.gender) {
+    bmr = calculateBMR(physicalHealthData.weight, physicalHealthData.height, user.age, user.gender);
+    tdee = calculateTDEE(bmr, activityLevel);
+    // Assuming maintenance for now, can be adjusted based on user goals
+    calorieGoal = calculateCalorieGoal(tdee, 'maintain');
+  }
+
   const waterProgress = nutritionData.waterIntake / nutritionData.waterGoal;
+  const caloriesConsumed = nutritionData.caloriesConsumed || 0;
+  const caloriesProgress = caloriesConsumed / calorieGoal;
+  const caloriesRemaining = calorieGoal - caloriesConsumed;
 
   return (
     <ScrollView style={styles.container}>
@@ -48,6 +84,90 @@ export const NutritionScreen = () => {
         <Title style={styles.title}>🥗 Nutrition</Title>
         <Text style={styles.subtitle}>Fuel your body optimally</Text>
       </View>
+
+      {/* Calorie Tracker */}
+      <Card style={styles.card}>
+        <Card.Content>
+          <Title>🔥 Calorie Tracker</Title>
+          <Text style={styles.description}>
+            Track your daily calorie intake
+          </Text>
+
+          <View style={styles.calorieStats}>
+            <View style={styles.calorieStatItem}>
+              <Text style={styles.calorieStatLabel}>Consumed</Text>
+              <Text style={styles.calorieStatValue}>{caloriesConsumed}</Text>
+            </View>
+            <View style={styles.calorieStatDivider} />
+            <View style={styles.calorieStatItem}>
+              <Text style={styles.calorieStatLabel}>Goal</Text>
+              <Text style={styles.calorieStatValue}>{calorieGoal}</Text>
+            </View>
+            <View style={styles.calorieStatDivider} />
+            <View style={styles.calorieStatItem}>
+              <Text style={styles.calorieStatLabel}>Remaining</Text>
+              <Text style={[
+                styles.calorieStatValue,
+                { color: caloriesRemaining >= 0 ? '#4CAF50' : '#F44336' }
+              ]}>
+                {caloriesRemaining}
+              </Text>
+            </View>
+          </View>
+
+          <ProgressBar
+            progress={Math.min(caloriesProgress, 1)}
+            color={caloriesProgress > 1 ? '#F44336' : '#4CAF50'}
+            style={styles.progressBar}
+          />
+
+          {bmr > 0 && (
+            <View style={styles.metabolismInfo}>
+              <Text style={styles.metabolismText}>
+                💡 BMR: {bmr} cal/day • TDEE: {tdee} cal/day
+              </Text>
+              <Text style={styles.metabolismSubtext}>
+                Based on your height, weight, age, and activity level
+              </Text>
+            </View>
+          )}
+
+          <TextInput
+            label="Add Calories"
+            value={caloriesInput}
+            onChangeText={setCaloriesInput}
+            keyboardType="numeric"
+            mode="outlined"
+            placeholder="e.g., 500"
+            style={styles.input}
+          />
+
+          <View style={styles.waterButtons}>
+            <Button mode="contained" onPress={handleAddCalories} style={styles.button}>
+              + Add Calories
+            </Button>
+            <Button mode="outlined" onPress={handleResetCalories} style={styles.button}>
+              Reset
+            </Button>
+          </View>
+
+          {caloriesProgress >= 0.9 && caloriesProgress < 1.1 && (
+            <View style={[styles.achievement, { backgroundColor: '#E8F5E9' }]}>
+              <Text style={[styles.achievementText, { color: '#4CAF50' }]}>
+                ✅ Perfect! You're within your calorie goal!
+              </Text>
+            </View>
+          )}
+
+          {caloriesProgress > 1.1 && (
+            <View style={[styles.achievement, { backgroundColor: '#FFEBEE' }]}>
+              <Text style={[styles.achievementText, { color: '#F44336' }]}>
+                ⚠️ You've exceeded your calorie goal
+              </Text>
+            </View>
+          )}
+        </Card.Content>
+      </Card>
 
       {/* Hydration Tracker */}
       <Card style={styles.card}>
@@ -374,5 +494,48 @@ const styles = StyleSheet.create({
   checklistText: {
     fontSize: 14,
     color: '#333',
+  },
+  calorieStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 16,
+    paddingVertical: 12,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 12,
+  },
+  calorieStatItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  calorieStatLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  calorieStatValue: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#333',
+  },
+  calorieStatDivider: {
+    width: 1,
+    backgroundColor: '#ddd',
+  },
+  metabolismInfo: {
+    marginTop: 12,
+    marginBottom: 12,
+    padding: 12,
+    backgroundColor: '#E3F2FD',
+    borderRadius: 8,
+  },
+  metabolismText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#1976D2',
+    marginBottom: 4,
+  },
+  metabolismSubtext: {
+    fontSize: 11,
+    color: '#1565C0',
   },
 });

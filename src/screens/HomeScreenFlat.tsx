@@ -9,12 +9,13 @@ import { typography, shadows } from '../theme/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { getUserAchievements, getAchievementCount } from '../database/achievements';
 import { getRandomActionTasks, completeRandomActionTask, RandomActionTask } from '../database/randomTasks';
+import { calculateBMI, getBMICategory, getBMIColor } from '../utils/healthCalculations';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
 
 export const HomeScreenFlat = ({ navigation }: any) => {
-  const { dailyTasks, progress, completeTask, loadAppData } = useAppStore();
+  const { dailyTasks, progress, completeTask, loadAppData, physicalHealthData } = useAppStore();
   const { user } = useAuthStore();
   const [fadeAnim] = useState(new Animated.Value(0));
   const [achievements, setAchievements] = useState<any[]>([]);
@@ -369,6 +370,66 @@ export const HomeScreenFlat = ({ navigation }: any) => {
             <Text style={styles.statLabel}>Best Streak</Text>
           </View>
         </View>
+
+        {/* Health Stats Card */}
+        {physicalHealthData?.weight && physicalHealthData?.height && (
+          <View style={styles.healthStatsCard}>
+            <View style={styles.healthStatsHeader}>
+              <Text style={styles.healthStatsTitle}>Health Stats</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Physical')}>
+                <Ionicons name="arrow-forward-circle" size={24} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.healthStatsGrid}>
+              {(() => {
+                const bmi = calculateBMI(physicalHealthData.weight!, physicalHealthData.height!);
+                const bmiCategory = getBMICategory(bmi);
+                const bmiColor = getBMIColor(bmi);
+
+                return (
+                  <>
+                    <View style={styles.healthStatItem}>
+                      <View style={[styles.healthStatBadge, { backgroundColor: bmiColor + '20' }]}>
+                        <Ionicons name="fitness" size={20} color={bmiColor} />
+                      </View>
+                      <Text style={styles.healthStatValue}>{bmi}</Text>
+                      <Text style={styles.healthStatLabel}>BMI</Text>
+                      <Text style={[styles.healthStatCategory, { color: bmiColor }]}>
+                        {bmiCategory}
+                      </Text>
+                    </View>
+
+                    <View style={styles.healthStatItem}>
+                      <View style={[styles.healthStatBadge, { backgroundColor: colors.physical + '20' }]}>
+                        <Ionicons name="scale" size={20} color={colors.physical} />
+                      </View>
+                      <Text style={styles.healthStatValue}>{user.weight}</Text>
+                      <Text style={styles.healthStatLabel}>Weight (kg)</Text>
+                    </View>
+
+                    <View style={styles.healthStatItem}>
+                      <View style={[styles.healthStatBadge, { backgroundColor: colors.primary + '20' }]}>
+                        <Ionicons name="resize" size={20} color={colors.primary} />
+                      </View>
+                      <Text style={styles.healthStatValue}>{user.height}</Text>
+                      <Text style={styles.healthStatLabel}>Height (cm)</Text>
+                    </View>
+
+                    <View style={styles.healthStatItem}>
+                      <View style={[styles.healthStatBadge, { backgroundColor: colors.mental + '20' }]}>
+                        <Ionicons name="time" size={20} color={colors.mental} />
+                      </View>
+                      <Text style={styles.healthStatValue}>--</Text>
+                      <Text style={styles.healthStatLabel}>Screen Time</Text>
+                      <Text style={styles.healthStatCategory}>Track in Mental</Text>
+                    </View>
+                  </>
+                );
+              })()}
+            </View>
+          </View>
+        )}
 
         {/* Achievements Preview */}
         <View style={styles.achievementsSection}>
@@ -1208,5 +1269,65 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     color: '#FFFFFF',
+  },
+
+  // Health Stats
+  healthStatsCard: {
+    margin: 16,
+    marginTop: 0,
+    padding: 20,
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    ...shadows.medium,
+  },
+  healthStatsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  healthStatsTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  healthStatsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  healthStatItem: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: colors.backgroundGray,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  healthStatBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: colors.primary + '20',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  healthStatValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  healthStatLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  healthStatCategory: {
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 2,
+    textAlign: 'center',
   },
 });
