@@ -10,12 +10,21 @@ import {
   FlatList,
   SafeAreaView,
   StatusBar,
+  Modal,
+  Animated,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { useAuthStore } from '../../store/authStore';
 import { useFinanceStore } from '../../store/financeStore';
-import { addExpense, getRecentExpenses } from '../../database/finance';
+import {
+  addExpense,
+  getRecentExpenses,
+  deleteExpense,
+  updateExpense,
+  searchExpenses,
+  getExpensesByCategory,
+} from '../../database/finance';
 
 const EXPENSE_CATEGORIES = [
   { id: 'housing', label: 'Housing', icon: '🏠', color: colors.finance },
@@ -36,6 +45,19 @@ export const ExpenseLoggerScreen = ({ navigation }: any) => {
   const [selectedCategory, setSelectedCategory] = useState('food');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Edit modal state
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<any>(null);
+  const [editAmount, setEditAmount] = useState('');
+  const [editDescription, setEditDescription] = useState('');
+  const [editCategory, setEditCategory] = useState('food');
+
+  // Filter/search state
+  const [showFilters, setShowFilters] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
+
   useEffect(() => {
     loadRecentExpenses();
   }, []);
@@ -44,12 +66,37 @@ export const ExpenseLoggerScreen = ({ navigation }: any) => {
     if (!user?.id) return;
 
     try {
-      const expenses: any = await getRecentExpenses(user.id, 20);
+      let expenses: any;
+
+      // Apply filters if any are active
+      if (searchTerm || filterCategory) {
+        expenses = await searchExpenses(user.id, {
+          searchTerm: searchTerm || undefined,
+          category: filterCategory || undefined,
+        });
+      } else {
+        expenses = await getRecentExpenses(user.id, 50);
+      }
+
+      // Apply sorting
+      if (sortBy === 'amount') {
+        expenses.sort((a: any, b: any) => b.amount - a.amount);
+      } else {
+        expenses.sort((a: any, b: any) =>
+          new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime()
+        );
+      }
+
       setRecentExpenses(expenses);
     } catch (error) {
       console.error('Error loading expenses:', error);
     }
   };
+
+  // Reload when filters change
+  useEffect(() => {
+    loadRecentExpenses();
+  }, [searchTerm, filterCategory, sortBy]);
 
   const handleAddExpense = async () => {
     if (!user?.id) return;
@@ -99,6 +146,79 @@ export const ExpenseLoggerScreen = ({ navigation }: any) => {
     }
   };
 
+  const handleDeleteExpense = async (expenseId: number) => {
+    Alert.alert(
+      'Delete Expense',
+      'Are you sure you want to delete this expense?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            if (!user?.id) return;
+
+            try {
+              await deleteExpense(expenseId, user.id);
+              await loadRecentExpenses();
+              Alert.alert('Deleted', 'Expense deleted successfully');
+            } catch (error) {
+              console.error('Error deleting expense:', error);
+              Alert.alert('Error', 'Failed to delete expense');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const openEditModal = (expense: any) => {
+    setEditingExpense(expense);
+    setEditAmount(expense.amount.toString());
+    setEditDescription(expense.description || '');
+    const categoryId = EXPENSE_CATEGORIES.find((c) => c.label === expense.category)?.id || 'other';
+    setEditCategory(categoryId);
+    setEditModalVisible(true);
+  };
+
+  const handleUpdateExpense = async () => {
+    if (!user?.id || !editingExpense) return;
+
+    const expenseAmount = parseFloat(editAmount);
+
+    if (!expenseAmount || expenseAmount <= 0) {
+      Alert.alert('Invalid Amount', 'Please enter a valid amount.');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const categoryName = EXPENSE_CATEGORIES.find((c) => c.id === editCategory)?.label || 'Other';
+
+      await updateExpense(editingExpense.id, user.id, {
+        amount: expenseAmount,
+        category: categoryName,
+        description: editDescription,
+      });
+
+      await loadRecentExpenses();
+      setEditModalVisible(false);
+      Alert.alert('Updated', 'Expense updated successfully');
+    } catch (error) {
+      console.error('Error updating expense:', error);
+      Alert.alert('Error', 'Failed to update expense');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setFilterCategory('');
+    setSortBy('date');
+  };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const today = new Date();
@@ -125,18 +245,37 @@ export const ExpenseLoggerScreen = ({ navigation }: any) => {
     const category = EXPENSE_CATEGORIES.find((c) => c.label === item.category) || EXPENSE_CATEGORIES[7];
 
     return (
-      <View style={styles.expenseItem}>
-        <View style={[styles.categoryIcon, { backgroundColor: category.color + '20' }]}>
-          <Text style={styles.categoryEmoji}>{category.icon}</Text>
+      <View style={styles.expenseItemContainer}>
+        <View style={styles.expenseItem}>
+          <View style={[styles.categoryIcon, { backgroundColor: category.color + '20' }]}>
+            <Text style={styles.categoryEmoji}>{category.icon}</Text>
+          </View>
+
+          <View style={styles.expenseInfo}>
+            <Text style={styles.expenseCategory}>{item.category}</Text>
+            {item.description && <Text style={styles.expenseDescription}>{item.description}</Text>}
+            <Text style={styles.expenseDate}>{formatDate(item.expense_date)}</Text>
+          </View>
+
+          <Text style={styles.expenseAmount}>-${item.amount.toFixed(2)}</Text>
         </View>
 
-        <View style={styles.expenseInfo}>
-          <Text style={styles.expenseCategory}>{item.category}</Text>
-          {item.description && <Text style={styles.expenseDescription}>{item.description}</Text>}
-          <Text style={styles.expenseDate}>{formatDate(item.expense_date)}</Text>
+        <View style={styles.expenseActions}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => openEditModal(item)}
+          >
+            <Ionicons name="pencil" size={18} color={colors.finance} />
+            <Text style={styles.actionButtonText}>Edit</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.deleteButton]}
+            onPress={() => handleDeleteExpense(item.id)}
+          >
+            <Ionicons name="trash" size={18} color={colors.error} />
+            <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Delete</Text>
+          </TouchableOpacity>
         </View>
-
-        <Text style={styles.expenseAmount}>-${item.amount.toFixed(2)}</Text>
       </View>
     );
   };
@@ -152,6 +291,76 @@ export const ExpenseLoggerScreen = ({ navigation }: any) => {
       </View>
 
       <ScrollView style={styles.scrollContainer}>
+        {/* Search and Filter Bar */}
+        <View style={styles.searchSection}>
+          <View style={styles.searchBar}>
+            <Ionicons name="search" size={20} color={colors.textSecondary} />
+            <TextInput
+              style={styles.searchInput}
+              value={searchTerm}
+              onChangeText={setSearchTerm}
+              placeholder="Search expenses..."
+              placeholderTextColor={colors.textSecondary}
+            />
+            {searchTerm.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchTerm('')}>
+                <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+              </TouchableOpacity>
+            )}
+          </View>
+
+          <View style={styles.filterRow}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
+              <TouchableOpacity
+                style={[styles.filterChip, !filterCategory && styles.filterChipActive]}
+                onPress={() => setFilterCategory('')}
+              >
+                <Text style={[styles.filterChipText, !filterCategory && styles.filterChipTextActive]}>
+                  All
+                </Text>
+              </TouchableOpacity>
+              {EXPENSE_CATEGORIES.map((cat) => (
+                <TouchableOpacity
+                  key={cat.id}
+                  style={[
+                    styles.filterChip,
+                    filterCategory === cat.label && styles.filterChipActive,
+                  ]}
+                  onPress={() => setFilterCategory(filterCategory === cat.label ? '' : cat.label)}
+                >
+                  <Text style={styles.filterChipEmoji}>{cat.icon}</Text>
+                  <Text
+                    style={[
+                      styles.filterChipText,
+                      filterCategory === cat.label && styles.filterChipTextActive,
+                    ]}
+                  >
+                    {cat.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <TouchableOpacity
+              style={styles.sortButton}
+              onPress={() => setSortBy(sortBy === 'date' ? 'amount' : 'date')}
+            >
+              <Ionicons
+                name={sortBy === 'date' ? 'calendar-outline' : 'cash-outline'}
+                size={20}
+                color={colors.finance}
+              />
+            </TouchableOpacity>
+          </View>
+
+          {(searchTerm || filterCategory) && (
+            <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters}>
+              <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
+              <Text style={styles.clearFiltersText}>Clear filters</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
         {/* Today's Total */}
         <View style={styles.todayCard}>
           <Text style={styles.todayLabel}>Today's Expenses</Text>
@@ -244,6 +453,84 @@ export const ExpenseLoggerScreen = ({ navigation }: any) => {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
+
+      {/* Edit Modal */}
+      <Modal
+        visible={editModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setEditModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Edit Expense</Text>
+              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
+                <Ionicons name="close" size={28} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Amount Input */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.dollarSign}>$</Text>
+              <TextInput
+                style={styles.input}
+                value={editAmount}
+                onChangeText={setEditAmount}
+                keyboardType="decimal-pad"
+                placeholder="0.00"
+                placeholderTextColor={colors.textSecondary}
+              />
+            </View>
+
+            {/* Description Input */}
+            <TextInput
+              style={styles.descriptionInput}
+              value={editDescription}
+              onChangeText={setEditDescription}
+              placeholder="Description (optional)"
+              placeholderTextColor={colors.textSecondary}
+            />
+
+            {/* Category Selection */}
+            <Text style={styles.categoryTitle}>Category</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
+              {EXPENSE_CATEGORIES.map((category) => (
+                <TouchableOpacity
+                  key={category.id}
+                  style={[
+                    styles.categoryButton,
+                    editCategory === category.id && styles.categoryButtonActive,
+                    { borderColor: category.color },
+                    editCategory === category.id && { backgroundColor: category.color },
+                  ]}
+                  onPress={() => setEditCategory(category.id)}
+                >
+                  <Text style={styles.categoryButtonEmoji}>{category.icon}</Text>
+                  <Text
+                    style={[
+                      styles.categoryButtonText,
+                      editCategory === category.id && styles.categoryButtonTextActive,
+                    ]}
+                  >
+                    {category.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            {/* Update Button */}
+            <TouchableOpacity
+              style={[styles.addButton, isLoading && styles.addButtonDisabled]}
+              onPress={handleUpdateExpense}
+              disabled={isLoading}
+            >
+              <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
+              <Text style={styles.addButtonText}>{isLoading ? 'Updating...' : 'Update Expense'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -458,5 +745,133 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: 40,
+  },
+  // Search and Filter
+  searchSection: {
+    backgroundColor: colors.background,
+    padding: 16,
+    paddingBottom: 12,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.backgroundGray,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    fontSize: 16,
+    color: colors.text,
+  },
+  filterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  filterScroll: {
+    flex: 1,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: colors.backgroundGray,
+    borderRadius: 20,
+    marginRight: 8,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  filterChipActive: {
+    backgroundColor: colors.finance,
+    borderColor: colors.finance,
+  },
+  filterChipEmoji: {
+    fontSize: 16,
+    marginRight: 4,
+  },
+  filterChipText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  filterChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  sortButton: {
+    padding: 8,
+    backgroundColor: colors.backgroundGray,
+    borderRadius: 20,
+    marginLeft: 8,
+  },
+  clearFiltersButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginTop: 8,
+  },
+  clearFiltersText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginLeft: 4,
+  },
+  // Expense Item with Actions
+  expenseItemContainer: {
+    marginBottom: 12,
+  },
+  expenseActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingTop: 8,
+    gap: 12,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backgroundColor: colors.backgroundGray,
+    gap: 4,
+  },
+  deleteButton: {
+    backgroundColor: colors.error + '15',
+  },
+  actionButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.finance,
+  },
+  deleteButtonText: {
+    color: colors.error,
+  },
+  // Edit Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 40,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text,
   },
 });

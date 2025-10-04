@@ -301,3 +301,175 @@ export const getRecentExpenses = async (userId: number, limit: number = 10) => {
     [userId, limit]
   );
 };
+
+export const deleteExpense = async (expenseId: number, userId: number) => {
+  const db = await getDatabase();
+
+  // Get expense details before deletion to reverse budget impact
+  const expense: any = await db.getFirstAsync(
+    'SELECT * FROM user_expenses WHERE id = ? AND user_id = ?',
+    [expenseId, userId]
+  );
+
+  if (!expense) return false;
+
+  // Delete the expense
+  await db.runAsync(
+    'DELETE FROM user_expenses WHERE id = ? AND user_id = ?',
+    [expenseId, userId]
+  );
+
+  // Reverse budget category impact if exists
+  const month = expense.expense_date.substring(0, 7);
+  const budget = await getBudgetForMonth(userId, month);
+
+  if (budget) {
+    const category: any = budget.categories.find((c: any) => c.name === expense.category);
+    if (category) {
+      await db.runAsync(
+        'UPDATE budget_categories SET spent_amount = spent_amount - ? WHERE id = ?',
+        [expense.amount, category.id]
+      );
+    }
+  }
+
+  return true;
+};
+
+export const updateExpense = async (
+  expenseId: number,
+  userId: number,
+  updates: {
+    amount?: number;
+    category?: string;
+    description?: string;
+    expenseDate?: string;
+  }
+) => {
+  const db = await getDatabase();
+
+  // Get old expense data
+  const oldExpense: any = await db.getFirstAsync(
+    'SELECT * FROM user_expenses WHERE id = ? AND user_id = ?',
+    [expenseId, userId]
+  );
+
+  if (!oldExpense) return false;
+
+  // Build update query
+  const fields = Object.keys(updates).map((key) => {
+    const dbKey = key === 'expenseDate' ? 'expense_date' : key;
+    return `${dbKey} = ?`;
+  }).join(', ');
+  const values = [...Object.values(updates), expenseId, userId];
+
+  await db.runAsync(
+    `UPDATE user_expenses SET ${fields} WHERE id = ? AND user_id = ?`,
+    values
+  );
+
+  // Update budget impact if amount or category changed
+  if (updates.amount !== undefined || updates.category !== undefined) {
+    const oldMonth = oldExpense.expense_date.substring(0, 7);
+    const newMonth = (updates.expenseDate || oldExpense.expense_date).substring(0, 7);
+
+    // Reverse old budget impact
+    const oldBudget = await getBudgetForMonth(userId, oldMonth);
+    if (oldBudget) {
+      const oldCategory: any = oldBudget.categories.find((c: any) => c.name === oldExpense.category);
+      if (oldCategory) {
+        await db.runAsync(
+          'UPDATE budget_categories SET spent_amount = spent_amount - ? WHERE id = ?',
+          [oldExpense.amount, oldCategory.id]
+        );
+      }
+    }
+
+    // Apply new budget impact
+    const newBudget = await getBudgetForMonth(userId, newMonth);
+    if (newBudget) {
+      const newCategory: any = newBudget.categories.find(
+        (c: any) => c.name === (updates.category || oldExpense.category)
+      );
+      if (newCategory) {
+        await db.runAsync(
+          'UPDATE budget_categories SET spent_amount = spent_amount + ? WHERE id = ?',
+          [updates.amount || oldExpense.amount, newCategory.id]
+        );
+      }
+    }
+  }
+
+  return true;
+};
+
+export const searchExpenses = async (
+  userId: number,
+  filters: {
+    category?: string;
+    startDate?: string;
+    endDate?: string;
+    minAmount?: number;
+    maxAmount?: number;
+    searchTerm?: string;
+  }
+) => {
+  const db = await getDatabase();
+
+  let query = 'SELECT * FROM user_expenses WHERE user_id = ?';
+  const params: any[] = [userId];
+
+  if (filters.category) {
+    query += ' AND category = ?';
+    params.push(filters.category);
+  }
+
+  if (filters.startDate) {
+    query += ' AND expense_date >= ?';
+    params.push(filters.startDate);
+  }
+
+  if (filters.endDate) {
+    query += ' AND expense_date <= ?';
+    params.push(filters.endDate);
+  }
+
+  if (filters.minAmount !== undefined) {
+    query += ' AND amount >= ?';
+    params.push(filters.minAmount);
+  }
+
+  if (filters.maxAmount !== undefined) {
+    query += ' AND amount <= ?';
+    params.push(filters.maxAmount);
+  }
+
+  if (filters.searchTerm) {
+    query += ' AND (description LIKE ? OR category LIKE ?)';
+    params.push(`%${filters.searchTerm}%`, `%${filters.searchTerm}%`);
+  }
+
+  query += ' ORDER BY expense_date DESC';
+
+  return await db.getAllAsync(query, params);
+};
+
+export const getExpensesByCategory = async (userId: number, month?: string) => {
+  const db = await getDatabase();
+
+  let query = `
+    SELECT category, SUM(amount) as total, COUNT(*) as count
+    FROM user_expenses
+    WHERE user_id = ?
+  `;
+  const params: any[] = [userId];
+
+  if (month) {
+    query += ` AND strftime('%Y-%m', expense_date) = ?`;
+    params.push(month);
+  }
+
+  query += ' GROUP BY category ORDER BY total DESC';
+
+  return await db.getAllAsync(query, params);
+};

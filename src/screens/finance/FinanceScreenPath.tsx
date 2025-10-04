@@ -65,6 +65,8 @@ const INTEGRATED_TOOLS = [
 
 export const FinanceScreenPath = ({ navigation }: any) => {
   const [babySteps, setBabySteps] = useState<BabyStep[]>(BABY_STEPS);
+  const [expandedSteps, setExpandedSteps] = useState<{ [key: string]: boolean }>({});
+  const [nextLesson, setNextLesson] = useState<any>(null);
   const { user } = useAuthStore();
 
   const loadLessonProgress = async () => {
@@ -79,6 +81,8 @@ export const FinanceScreenPath = ({ navigation }: any) => {
 
       // Determine which baby step should be current based on progress
       const currentBabyStep = financeProgress?.current_baby_step || 1;
+
+      let foundNextLesson: any = null;
 
       // Update baby steps with progress data
       const updatedSteps = BABY_STEPS.map((step) => {
@@ -109,6 +113,15 @@ export const FinanceScreenPath = ({ navigation }: any) => {
             .every((prevLesson) => completedLessonIds.includes(prevLesson.id));
 
           if (allPreviousCompleted && stepStatus === 'current') {
+            // This is the next lesson to complete
+            if (!foundNextLesson) {
+              foundNextLesson = {
+                lesson,
+                step,
+                stepIndex: step.number,
+                lessonIndex,
+              };
+            }
             return { ...lesson, status: 'current' as const };
           }
 
@@ -131,10 +144,30 @@ export const FinanceScreenPath = ({ navigation }: any) => {
       });
 
       setBabySteps(updatedSteps);
+      setNextLesson(foundNextLesson);
+
+      // Auto-expand current step, collapse completed steps
+      const newExpandedState: { [key: string]: boolean } = {};
+      updatedSteps.forEach((step) => {
+        if (step.status === 'current') {
+          newExpandedState[step.id] = true;
+        } else {
+          newExpandedState[step.id] = false;
+        }
+      });
+      setExpandedSteps(newExpandedState);
+
       console.log('✅ Lesson progress loaded');
     } catch (error) {
       console.error('Error loading lesson progress:', error);
     }
+  };
+
+  const toggleStepExpanded = (stepId: string) => {
+    setExpandedSteps((prev) => ({
+      ...prev,
+      [stepId]: !prev[stepId],
+    }));
   };
 
   // Load progress when screen comes into focus
@@ -196,10 +229,40 @@ export const FinanceScreenPath = ({ navigation }: any) => {
           </View>
         </View>
 
+        {/* Next Lesson Card - Duolingo Style */}
+        {nextLesson && (
+          <View style={styles.nextLessonSection}>
+            <Text style={styles.nextLessonTitle}>📚 Continue Your Journey</Text>
+            <TouchableOpacity
+              style={styles.nextLessonCard}
+              onPress={() => handleLessonPress(nextLesson.step, nextLesson.lesson)}
+              activeOpacity={0.9}
+            >
+              <View style={styles.nextLessonContent}>
+                <View style={styles.nextLessonBadge}>
+                  <Text style={styles.nextLessonBadgeText}>NEXT LESSON</Text>
+                </View>
+                <Text style={styles.nextLessonStepTitle}>
+                  Step {nextLesson.stepIndex}: {nextLesson.step.title}
+                </Text>
+                <Text style={styles.nextLessonName}>{nextLesson.lesson.title}</Text>
+                <View style={styles.nextLessonMeta}>
+                  <Text style={styles.nextLessonMetaText}>
+                    ⏱️ {nextLesson.lesson.estimatedTime} min • +{nextLesson.lesson.xp} XP
+                  </Text>
+                </View>
+              </View>
+              <View style={styles.nextLessonButton}>
+                <Ionicons name="play-circle" size={48} color={colors.finance} />
+              </View>
+            </TouchableOpacity>
+          </View>
+        )}
+
         {/* Baby Steps Path */}
         <View style={styles.pathDivider}>
           <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>YOUR BABY STEPS PATH</Text>
+          <Text style={styles.dividerText}>ALL BABY STEPS</Text>
           <View style={styles.dividerLine} />
         </View>
 
@@ -207,11 +270,17 @@ export const FinanceScreenPath = ({ navigation }: any) => {
         <View style={styles.path}>
           {babySteps.map((step, stepIndex) => (
             <View key={step.id}>
-              {/* Baby Step Header */}
-              <BabyStepHeader step={step} />
+              {/* Baby Step Header - Now Collapsible */}
+              <TouchableOpacity
+                onPress={() => step.status !== 'locked' && toggleStepExpanded(step.id)}
+                disabled={step.status === 'locked'}
+                activeOpacity={0.8}
+              >
+                <BabyStepHeader step={step} isExpanded={expandedSteps[step.id]} />
+              </TouchableOpacity>
 
-              {/* Lessons */}
-              {step.status !== 'locked' && (
+              {/* Lessons - Only show if expanded */}
+              {step.status !== 'locked' && expandedSteps[step.id] && (
                 <View style={styles.lessonsContainer}>
                   {step.lessons.map((lesson, lessonIndex) => (
                     <View key={lesson.id}>
@@ -263,7 +332,7 @@ export const FinanceScreenPath = ({ navigation }: any) => {
   );
 };
 
-const BabyStepHeader: React.FC<{ step: BabyStep }> = ({ step }) => {
+const BabyStepHeader: React.FC<{ step: BabyStep; isExpanded?: boolean }> = ({ step, isExpanded }) => {
   const getStepColor = () => {
     if (step.status === 'completed') return colors.success;
     if (step.status === 'current') return colors.finance;
@@ -275,6 +344,9 @@ const BabyStepHeader: React.FC<{ step: BabyStep }> = ({ step }) => {
     : step.status === 'current'
     ? colors.finance + '20'
     : colors.backgroundGray;
+
+  const completedCount = step.lessons.filter(l => l.status === 'completed').length;
+  const totalCount = step.lessons.length;
 
   return (
     <View style={[styles.stepHeader, { backgroundColor }]}>
@@ -297,7 +369,19 @@ const BabyStepHeader: React.FC<{ step: BabyStep }> = ({ step }) => {
           {step.icon} {step.title}
         </Text>
         <Text style={styles.stepDescription}>{step.description}</Text>
+        {step.status !== 'locked' && (
+          <Text style={styles.stepProgress}>
+            {completedCount}/{totalCount} lessons completed
+          </Text>
+        )}
       </View>
+      {step.status !== 'locked' && (
+        <Ionicons
+          name={isExpanded ? 'chevron-up' : 'chevron-down'}
+          size={24}
+          color={getStepColor()}
+        />
+      )}
     </View>
   );
 };
@@ -459,6 +543,69 @@ const styles = StyleSheet.create({
     top: 12,
     right: 12,
   },
+  // Next Lesson Section (Duolingo-style)
+  nextLessonSection: {
+    padding: 20,
+    backgroundColor: colors.background,
+    marginBottom: 8,
+  },
+  nextLessonTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 16,
+  },
+  nextLessonCard: {
+    backgroundColor: colors.finance + '10',
+    borderRadius: 16,
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: colors.finance,
+    ...shadows.medium,
+  },
+  nextLessonContent: {
+    flex: 1,
+  },
+  nextLessonBadge: {
+    backgroundColor: colors.finance,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginBottom: 12,
+  },
+  nextLessonBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+  },
+  nextLessonStepTitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: 4,
+    fontWeight: '600',
+  },
+  nextLessonName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  nextLessonMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  nextLessonMetaText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  nextLessonButton: {
+    marginLeft: 16,
+  },
   // Divider
   pathDivider: {
     flexDirection: 'row',
@@ -522,6 +669,12 @@ const styles = StyleSheet.create({
   },
   stepDescription: {
     ...typography.caption,
+  },
+  stepProgress: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginTop: 4,
   },
   // Lessons
   lessonsContainer: {
