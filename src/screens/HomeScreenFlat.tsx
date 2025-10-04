@@ -7,6 +7,7 @@ import { Task, Pillar } from '../types';
 import { colors } from '../theme/colors';
 import { typography, shadows } from '../theme/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { getUserAchievements, getAchievementCount } from '../database/achievements';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
@@ -15,15 +16,32 @@ export const HomeScreenFlat = ({ navigation }: any) => {
   const { dailyTasks, progress, completeTask, loadAppData } = useAppStore();
   const { user } = useAuthStore();
   const [fadeAnim] = useState(new Animated.Value(0));
+  const [achievements, setAchievements] = useState<any[]>([]);
+  const [achievementStats, setAchievementStats] = useState({ unlocked: 0, total: 0 });
 
   useEffect(() => {
     loadAppData();
+    loadAchievements();
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 600,
       useNativeDriver: true,
     }).start();
   }, []);
+
+  const loadAchievements = async () => {
+    if (!user?.id) return;
+    try {
+      const [achievementsData, stats] = await Promise.all([
+        getUserAchievements(user.id),
+        getAchievementCount(user.id),
+      ]);
+      setAchievements(achievementsData);
+      setAchievementStats(stats);
+    } catch (error) {
+      console.error('Error loading achievements:', error);
+    }
+  };
 
   const getPillarColor = (pillar: Pillar) => {
     switch (pillar) {
@@ -287,24 +305,39 @@ export const HomeScreenFlat = ({ navigation }: any) => {
         <View style={styles.achievementsSection}>
           <View style={styles.achievementsHeader}>
             <Text style={styles.sectionTitle}>Achievements</Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
-              <Text style={styles.viewAllText}>View All →</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Achievements')}>
+              <Text style={styles.viewAllText}>
+                {achievementStats.unlocked}/{achievementStats.total} →
+              </Text>
             </TouchableOpacity>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.achievementsScroll}>
-            {progress.achievements.slice(0, 5).map((achievement) => (
-              <View
-                key={achievement.id}
-                style={[
-                  styles.achievementCard,
+          {achievements.length > 0 ? (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.achievementsScroll}>
+              {achievements.slice(0, 5).map((achievement) => (
+                <View
+                  key={achievement.id}
+                  style={[
+                    styles.achievementCard,
                   !achievement.unlocked && styles.achievementCardLocked,
                 ]}
               >
-                <Text style={styles.achievementIcon}>{achievement.icon}</Text>
-                <Text style={styles.achievementName}>{achievement.name}</Text>
+                <View style={[styles.achievementBadge, { backgroundColor: achievement.badge_color + '20' }]}>
+                  <Text style={styles.achievementIcon}>{achievement.icon}</Text>
+                </View>
+                <Text style={styles.achievementName}>{achievement.title}</Text>
               </View>
             ))}
           </ScrollView>
+          ) : (
+            <TouchableOpacity
+              style={styles.emptyAchievements}
+              onPress={() => navigation.navigate('Achievements')}
+            >
+              <Text style={styles.emptyAchievementsText}>
+                🏆 Unlock your first achievement!
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </Animated.View>
 
@@ -788,24 +821,43 @@ const styles = StyleSheet.create({
     height: 120,
     backgroundColor: colors.background,
     borderRadius: 16,
-    padding: 16,
+    padding: 12,
     marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
     ...shadows.small,
   },
+  achievementBadge: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
   achievementCardLocked: {
     opacity: 0.4,
   },
   achievementIcon: {
-    fontSize: 40,
-    marginBottom: 8,
+    fontSize: 24,
   },
   achievementName: {
     fontSize: 11,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
+  },
+  emptyAchievements: {
+    backgroundColor: colors.background,
+    padding: 20,
+    borderRadius: 16,
+    alignItems: 'center',
+    ...shadows.small,
+  },
+  emptyAchievementsText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '600',
   },
 
   bottomSpacer: {

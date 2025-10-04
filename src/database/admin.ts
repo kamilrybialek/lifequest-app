@@ -371,3 +371,68 @@ export const respondToFeedback = async (
   );
   await logAdminActivity(adminId, 'respond_feedback', 'user_feedback', feedbackId);
 };
+
+// ===== ACHIEVEMENTS MANAGEMENT =====
+
+export const createCustomAchievement = async (
+  adminId: number,
+  data: {
+    achievementKey: string;
+    title: string;
+    description: string;
+    icon: string;
+    category: string;
+    requirementType: string;
+    requirementValue: number;
+    xpReward: number;
+    badgeColor: string;
+    isSecret: boolean;
+  }
+) => {
+  const db = await getDatabase();
+  const result = await db.runAsync(
+    `INSERT INTO achievements
+     (achievement_key, title, description, icon, category, requirement_type, requirement_value, xp_reward, badge_color, is_secret)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      data.achievementKey,
+      data.title,
+      data.description,
+      data.icon,
+      data.category,
+      data.requirementType,
+      data.requirementValue,
+      data.xpReward,
+      data.badgeColor,
+      data.isSecret ? 1 : 0,
+    ]
+  );
+
+  await logAdminActivity(adminId, 'create_achievement', 'achievement', result.lastInsertRowId);
+  return result.lastInsertRowId;
+};
+
+export const getAllAchievementsAdmin = async (): Promise<any[]> => {
+  const db = await getDatabase();
+  const result = await db.getAllAsync(`
+    SELECT a.*, COUNT(DISTINCT ua.user_id) as unlock_count
+    FROM achievements a
+    LEFT JOIN user_achievements ua ON a.achievement_key = ua.achievement_key
+    GROUP BY a.id
+    ORDER BY a.category, a.requirement_value
+  `);
+  return result || [];
+};
+
+export const unlockAchievementForUser = async (
+  adminId: number,
+  userId: number,
+  achievementKey: string
+) => {
+  const db = await getDatabase();
+  await db.runAsync(
+    'INSERT OR IGNORE INTO user_achievements (user_id, achievement_key, progress) VALUES (?, ?, 100)',
+    [userId, achievementKey]
+  );
+  await logAdminActivity(adminId, 'unlock_achievement', 'user_achievement', userId);
+};

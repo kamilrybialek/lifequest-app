@@ -43,6 +43,9 @@ import { NutritionScreen } from '../screens/nutrition/NutritionScreen';
 // Admin
 import { AdminScreen } from '../screens/AdminScreen';
 
+// Achievements
+import { AchievementsScreen } from '../screens/AchievementsScreen';
+
 // Task screens
 import { TrackExpensesScreen } from '../screens/tasks/TrackExpensesScreen';
 import { MorningSunlightScreen } from '../screens/tasks/MorningSunlightScreen';
@@ -238,6 +241,13 @@ export const AppNavigator = () => {
               name="MorningSunlight"
               component={MorningSunlightScreen}
               options={{ headerShown: true, title: 'Morning Sunlight' }}
+            />
+
+            {/* Achievements Screen */}
+            <Stack.Screen
+              name="Achievements"
+              component={AchievementsScreen}
+              options={{ headerShown: false }}
             />
           </>
         )}

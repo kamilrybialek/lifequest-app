@@ -427,6 +427,96 @@ export const initDatabase = async () => {
     VALUES ('kamil.rybialek@gmail.com', 'Kamil Rybiałek', 'superadmin');
   `);
 
+  // ===== ACHIEVEMENTS & BADGES SYSTEM =====
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS achievements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      achievement_key TEXT UNIQUE NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      icon TEXT NOT NULL,
+      category TEXT NOT NULL,
+      requirement_type TEXT NOT NULL,
+      requirement_value INTEGER NOT NULL,
+      xp_reward INTEGER DEFAULT 0,
+      badge_color TEXT DEFAULT '#FFD700',
+      is_secret INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS user_achievements (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      achievement_key TEXT NOT NULL,
+      unlocked_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      progress INTEGER DEFAULT 0,
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      UNIQUE(user_id, achievement_key)
+    );
+  `);
+
+  // Insert default achievements
+  await db.execAsync(`
+    INSERT OR IGNORE INTO achievements (achievement_key, title, description, icon, category, requirement_type, requirement_value, xp_reward, badge_color)
+    VALUES
+      ('first_lesson', 'First Steps', 'Complete your first lesson', '🎓', 'education', 'lessons_completed', 1, 50, '#58CC02'),
+      ('streak_7', 'Week Warrior', 'Maintain a 7-day streak', '🔥', 'consistency', 'streak_days', 7, 100, '#FF9500'),
+      ('streak_30', 'Monthly Master', 'Maintain a 30-day streak', '🏆', 'consistency', 'streak_days', 30, 500, '#FFD700'),
+      ('level_5', 'Rising Star', 'Reach Level 5', '⭐', 'progression', 'level', 5, 200, '#CE82FF'),
+      ('level_10', 'Elite Achiever', 'Reach Level 10', '💎', 'progression', 'level', 10, 500, '#1CB0F6'),
+      ('tasks_50', 'Task Master', 'Complete 50 tasks', '✅', 'tasks', 'tasks_completed', 50, 300, '#58CC02'),
+      ('tasks_100', 'Century Club', 'Complete 100 tasks', '💯', 'tasks', 'tasks_completed', 100, 1000, '#FFD700'),
+      ('perfect_week', 'Perfect Week', 'Complete all daily tasks for 7 days', '🌟', 'tasks', 'perfect_days', 7, 400, '#FF9500'),
+      ('finance_step1', 'Emergency Ready', 'Complete Baby Step 1', '💰', 'finance', 'baby_step', 1, 250, '#00C853'),
+      ('mental_foundation1', 'Mental Clarity', 'Complete Mental Foundation 1', '🧠', 'mental', 'foundation', 1, 250, '#9C27B0'),
+      ('physical_foundation1', 'Body Builder', 'Complete Physical Foundation 1', '💪', 'physical', 'foundation', 1, 250, '#FF5722'),
+      ('early_bird', 'Early Bird', 'Complete morning routine 10 times', '🌅', 'habits', 'morning_routines', 10, 150, '#FFC107'),
+      ('meditation_master', 'Zen Master', 'Complete 20 meditation sessions', '🧘', 'mental', 'meditation_count', 20, 200, '#9C27B0'),
+      ('workout_warrior', 'Fitness Fanatic', 'Complete 30 workouts', '🏋️', 'physical', 'workout_count', 30, 300, '#FF5722'),
+      ('social_sharer', 'Inspiration Spreader', 'Share your progress 5 times', '📱', 'social', 'shares_count', 5, 100, '#2196F3');
+  `);
+
+  // ===== DAILY CHALLENGES SYSTEM =====
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS daily_challenges (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      challenge_date TEXT NOT NULL,
+      challenge_type TEXT NOT NULL,
+      challenge_description TEXT NOT NULL,
+      xp_reward INTEGER DEFAULT 50,
+      pillar TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(challenge_date, challenge_type)
+    );
+  `);
+
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS user_challenges (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      challenge_id INTEGER NOT NULL,
+      completed INTEGER DEFAULT 0,
+      completed_at TEXT,
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (challenge_id) REFERENCES daily_challenges(id),
+      UNIQUE(user_id, challenge_id)
+    );
+  `);
+
+  // ===== USER MILESTONES =====
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS user_milestones (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      milestone_type TEXT NOT NULL,
+      milestone_value INTEGER NOT NULL,
+      achieved_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+
   console.log('✅ Database initialized successfully');
   return db;
 };
