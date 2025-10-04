@@ -517,6 +517,186 @@ export const initDatabase = async () => {
     );
   `);
 
+  // ===== ENHANCED FINANCE FEATURES =====
+
+  // Recurring Transactions (subscriptions, bills, income)
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS recurring_transactions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      type TEXT NOT NULL CHECK(type IN ('expense', 'income')),
+      category TEXT NOT NULL,
+      merchant_name TEXT,
+      amount REAL NOT NULL,
+      frequency TEXT NOT NULL CHECK(frequency IN ('daily', 'weekly', 'biweekly', 'monthly', 'quarterly', 'annually')),
+      start_date TEXT NOT NULL,
+      end_date TEXT,
+      next_due_date TEXT NOT NULL,
+      is_active INTEGER DEFAULT 1,
+      auto_detected INTEGER DEFAULT 0,
+      reminder_days_before INTEGER DEFAULT 3,
+      notes TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+
+  // Transaction Categories with AI learning
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS transaction_categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      icon TEXT,
+      color TEXT,
+      parent_category_id INTEGER,
+      is_system INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (parent_category_id) REFERENCES transaction_categories(id)
+    );
+  `);
+
+  // Merchant Learning (for AI categorization)
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS merchant_patterns (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      merchant_name TEXT NOT NULL,
+      category_id INTEGER NOT NULL,
+      confidence_score REAL DEFAULT 1.0,
+      learned_from_count INTEGER DEFAULT 1,
+      last_used TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (category_id) REFERENCES transaction_categories(id),
+      UNIQUE(user_id, merchant_name)
+    );
+  `);
+
+  // Savings Goals (like YNAB goals)
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS savings_goals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      goal_name TEXT NOT NULL,
+      goal_type TEXT CHECK(goal_type IN ('target_amount', 'monthly_funding', 'target_date')),
+      target_amount REAL NOT NULL,
+      current_amount REAL DEFAULT 0,
+      target_date TEXT,
+      monthly_contribution REAL,
+      icon TEXT,
+      color TEXT,
+      priority INTEGER DEFAULT 0,
+      is_completed INTEGER DEFAULT 0,
+      completed_at TEXT,
+      notes TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+
+  // Savings Goal Contributions
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS goal_contributions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      goal_id INTEGER NOT NULL,
+      amount REAL NOT NULL,
+      contribution_date TEXT NOT NULL,
+      notes TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (goal_id) REFERENCES savings_goals(id)
+    );
+  `);
+
+  // Bill Reminders
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS bill_reminders (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      recurring_transaction_id INTEGER,
+      title TEXT NOT NULL,
+      amount REAL,
+      due_date TEXT NOT NULL,
+      is_paid INTEGER DEFAULT 0,
+      paid_at TEXT,
+      reminder_sent INTEGER DEFAULT 0,
+      notes TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (recurring_transaction_id) REFERENCES recurring_transactions(id)
+    );
+  `);
+
+  // Financial Insights & Analytics
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS financial_insights (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      insight_type TEXT NOT NULL CHECK(insight_type IN ('overspending', 'savings_opportunity', 'recurring_detected', 'budget_warning', 'goal_progress', 'trend_alert')),
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      amount REAL,
+      category TEXT,
+      severity TEXT CHECK(severity IN ('info', 'warning', 'critical')),
+      is_read INTEGER DEFAULT 0,
+      action_taken INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+
+  // Net Worth Tracking
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS net_worth_snapshots (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      snapshot_date TEXT NOT NULL,
+      total_assets REAL DEFAULT 0,
+      total_liabilities REAL DEFAULT 0,
+      net_worth REAL DEFAULT 0,
+      notes TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      UNIQUE(user_id, snapshot_date)
+    );
+  `);
+
+  // Account Balances (preparation for bank connection)
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS account_balances (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      account_name TEXT NOT NULL,
+      account_type TEXT CHECK(account_type IN ('checking', 'savings', 'credit_card', 'investment', 'loan', 'other')),
+      institution_name TEXT,
+      current_balance REAL DEFAULT 0,
+      currency TEXT DEFAULT 'USD',
+      is_active INTEGER DEFAULT 1,
+      last_synced TEXT,
+      sync_enabled INTEGER DEFAULT 0,
+      external_account_id TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+
+  // Spending Trends
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS spending_trends (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      category TEXT NOT NULL,
+      month TEXT NOT NULL,
+      total_spent REAL DEFAULT 0,
+      transaction_count INTEGER DEFAULT 0,
+      avg_transaction REAL DEFAULT 0,
+      compared_to_previous REAL DEFAULT 0,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      UNIQUE(user_id, category, month)
+    );
+  `);
+
   console.log('✅ Database initialized successfully');
   return db;
 };

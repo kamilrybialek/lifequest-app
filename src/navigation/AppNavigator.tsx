@@ -21,6 +21,8 @@ import { EmergencyFundScreen } from '../screens/finance/EmergencyFundScreen';
 import { BudgetManagerScreen } from '../screens/finance/BudgetManagerScreen';
 import { DebtTrackerScreen } from '../screens/finance/DebtTrackerScreen';
 import { ExpenseLoggerScreen } from '../screens/finance/ExpenseLoggerScreen';
+import { SubscriptionsScreen } from '../screens/finance/SubscriptionsScreen';
+import { SavingsGoalsScreen } from '../screens/finance/SavingsGoalsScreen';
 
 // Mental Health Path & Screens
 import { MentalHealthPath } from '../screens/mental/MentalHealthPath';
@@ -179,6 +181,16 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="ExpenseLogger"
               component={ExpenseLoggerScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="Subscriptions"
+              component={SubscriptionsScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="SavingsGoals"
+              component={SavingsGoalsScreen}
               options={{ headerShown: false }}
             />
 

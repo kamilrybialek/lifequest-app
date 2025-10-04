@@ -45,6 +45,22 @@ const INTEGRATED_TOOLS = [
     screen: 'ExpenseLogger',
     color: '#FF4B4B',
   },
+  {
+    id: 'subscriptions',
+    title: 'Subscriptions',
+    icon: '📱',
+    description: 'Track recurring bills',
+    screen: 'Subscriptions',
+    color: '#CE82FF',
+  },
+  {
+    id: 'savings-goals',
+    title: 'Savings Goals',
+    icon: '🎯',
+    description: 'Set and track goals',
+    screen: 'SavingsGoals',
+    color: '#58CC02',
+  },
 ];
 
 export const FinanceScreenPath = ({ navigation }: any) => {
