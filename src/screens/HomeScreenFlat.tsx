@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Animated, Modal } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useAppStore } from '../store/appStore';
 import { useAuthStore } from '../store/authStore';
@@ -8,6 +8,7 @@ import { colors } from '../theme/colors';
 import { typography, shadows } from '../theme/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { getUserAchievements, getAchievementCount } from '../database/achievements';
+import { getRandomActionTasks, completeRandomActionTask, RandomActionTask } from '../database/randomTasks';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
@@ -19,9 +20,15 @@ export const HomeScreenFlat = ({ navigation }: any) => {
   const [achievements, setAchievements] = useState<any[]>([]);
   const [achievementStats, setAchievementStats] = useState({ unlocked: 0, total: 0 });
 
+  // Random Action Tasks
+  const [randomTasks, setRandomTasks] = useState<RandomActionTask[]>([]);
+  const [showTakeActionModal, setShowTakeActionModal] = useState(false);
+  const [selectedActionTask, setSelectedActionTask] = useState<RandomActionTask | null>(null);
+
   useEffect(() => {
     loadAppData();
     loadAchievements();
+    loadRandomTasks();
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 600,
@@ -40,6 +47,28 @@ export const HomeScreenFlat = ({ navigation }: any) => {
       setAchievementStats(stats);
     } catch (error) {
       console.error('Error loading achievements:', error);
+    }
+  };
+
+  const loadRandomTasks = async () => {
+    try {
+      const tasks = await getRandomActionTasks(4); // Get 4 random tasks
+      setRandomTasks(tasks);
+    } catch (error) {
+      console.error('Error loading random tasks:', error);
+    }
+  };
+
+  const handleCompleteActionTask = async (task: RandomActionTask) => {
+    if (!user?.id) return;
+    try {
+      await completeRandomActionTask(user.id, task.id);
+      setShowTakeActionModal(false);
+      setSelectedActionTask(null);
+      loadRandomTasks(); // Refresh tasks
+      loadAppData(); // Refresh progress
+    } catch (error) {
+      console.error('Error completing action task:', error);
     }
   };
 
@@ -79,7 +108,8 @@ export const HomeScreenFlat = ({ navigation }: any) => {
   const weekProgress = [65, 80, 45, 90, 75, 100, progressPercentage];
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={{ flex: 1, backgroundColor: colors.backgroundGray }}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
@@ -141,6 +171,70 @@ export const HomeScreenFlat = ({ navigation }: any) => {
               {xpToNextLevel - currentLevelXP} XP to level {progress.level + 1}
             </Text>
           </View>
+        </View>
+
+        {/* QUICK ACTIONS - Random Tasks */}
+        <View style={styles.quickActionsSection}>
+          <View style={styles.quickActionsHeader}>
+            <View>
+              <Text style={styles.quickActionsTitle}>⚡ Quick Actions</Text>
+              <Text style={styles.quickActionsSubtitle}>
+                Instant tasks to improve your life
+              </Text>
+            </View>
+            <TouchableOpacity onPress={loadRandomTasks} style={styles.refreshButton}>
+              <Ionicons name="refresh" size={22} color={colors.primary} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.randomTasksGrid}>
+            {randomTasks.map((task) => (
+              <TouchableOpacity
+                key={task.id}
+                style={styles.randomTaskCard}
+                onPress={() => {
+                  setSelectedActionTask(task);
+                  setShowTakeActionModal(true);
+                }}
+                activeOpacity={0.8}
+              >
+                <View style={styles.randomTaskHeader}>
+                  <Text style={styles.randomTaskIcon}>{task.icon}</Text>
+                  <View style={[
+                    styles.randomTaskDifficultyBadge,
+                    { backgroundColor: task.difficulty === 'easy' ? '#4CAF50' : task.difficulty === 'medium' ? '#FF9800' : '#F44336' }
+                  ]}>
+                    <Text style={styles.randomTaskDifficultyText}>
+                      {task.difficulty === 'easy' ? 'Easy' : task.difficulty === 'medium' ? 'Med' : 'Hard'}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.randomTaskTitle} numberOfLines={2}>
+                  {task.title}
+                </Text>
+                <View style={styles.randomTaskFooter}>
+                  <Text style={styles.randomTaskMeta}>⏱️ {task.duration_minutes}m</Text>
+                  <Text style={styles.randomTaskXP}>+{task.xp_reward} XP</Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <TouchableOpacity
+            style={styles.takeActionButton}
+            onPress={async () => {
+              // Always generate a new random task
+              const newTasks = await getRandomActionTasks(1);
+              if (newTasks.length > 0) {
+                setSelectedActionTask(newTasks[0]);
+                setShowTakeActionModal(true);
+              }
+            }}
+          >
+            <Ionicons name="flash" size={24} color="#FFFFFF" />
+            <Text style={styles.takeActionButtonText}>TAKE ACTION NOW</Text>
+            <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
 
         {/* Daily Quest - Main Task */}
@@ -205,60 +299,6 @@ export const HomeScreenFlat = ({ navigation }: any) => {
           </View>
         </View>
 
-        {/* Task Cards */}
-        <View style={styles.tasksSection}>
-          <Text style={styles.sectionTitle}>Today's Tasks</Text>
-          {dailyTasks.map((task) => {
-            const taskColor = getPillarColor(task.pillar);
-            const taskIcon = getPillarIcon(task.pillar);
-
-            return (
-              <TouchableOpacity
-                key={task.id}
-                onPress={task.completed ? undefined : () => {
-                  const screen = task.pillar === 'finance' ? 'ExpenseLogger' :
-                    task.pillar === 'mental' ? 'MorningSunlight' :
-                      task.pillar === 'physical' ? 'Physical' : 'Nutrition';
-                  navigation.navigate(screen);
-                }}
-                activeOpacity={task.completed ? 1 : 0.8}
-                disabled={task.completed}
-              >
-                <View style={[
-                  styles.taskCard,
-                  task.completed && styles.taskCardCompleted,
-                ]}>
-                  {/* Colored left border */}
-                  <View style={[styles.taskBorder, { backgroundColor: taskColor }]} />
-
-                  <View style={styles.taskContent}>
-                    <View style={[styles.taskIconCircle, { backgroundColor: taskColor + '20' }]}>
-                      <Text style={styles.taskIcon}>{taskIcon}</Text>
-                    </View>
-                    <View style={styles.taskInfo}>
-                      <Text style={[styles.taskTitle, task.completed && styles.taskTitleCompleted]}>
-                        {task.title}
-                      </Text>
-                      <Text style={styles.taskMeta}>
-                        ⏱️ {task.duration} min • +{task.points} XP
-                      </Text>
-                    </View>
-
-                    {!task.completed ? (
-                      <View style={[styles.taskButton, { backgroundColor: taskColor }]}>
-                        <Ionicons name="play" size={16} color="#FFFFFF" />
-                      </View>
-                    ) : (
-                      <View style={styles.completedBadge}>
-                        <Ionicons name="checkmark" size={20} color={colors.success} />
-                      </View>
-                    )}
-                  </View>
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
 
         {/* Pillar Streaks Grid */}
         <View style={styles.streaksSection}>
@@ -343,6 +383,72 @@ export const HomeScreenFlat = ({ navigation }: any) => {
 
       <View style={styles.bottomSpacer} />
     </ScrollView>
+
+      {/* Take Action Modal */}
+      <Modal
+        visible={showTakeActionModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowTakeActionModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {selectedActionTask && (
+              <>
+                <View style={styles.modalHeader}>
+                  <Text style={styles.modalIcon}>{selectedActionTask.icon}</Text>
+                  <TouchableOpacity
+                    style={styles.modalCloseButton}
+                    onPress={() => setShowTakeActionModal(false)}
+                  >
+                    <Ionicons name="close" size={28} color={colors.text} />
+                  </TouchableOpacity>
+                </View>
+
+                <Text style={styles.modalTitle}>{selectedActionTask.title}</Text>
+                <Text style={styles.modalDescription}>{selectedActionTask.description}</Text>
+
+                <View style={styles.modalStats}>
+                  <View style={styles.modalStatItem}>
+                    <Ionicons name="time-outline" size={24} color={colors.primary} />
+                    <Text style={styles.modalStatLabel}>{selectedActionTask.duration_minutes} min</Text>
+                  </View>
+                  <View style={styles.modalStatItem}>
+                    <Ionicons name="flash" size={24} color={colors.xpGold} />
+                    <Text style={styles.modalStatLabel}>+{selectedActionTask.xp_reward} XP</Text>
+                  </View>
+                  <View style={styles.modalStatItem}>
+                    <Ionicons name="speedometer-outline" size={24} color={
+                      selectedActionTask.difficulty === 'easy' ? '#4CAF50' :
+                      selectedActionTask.difficulty === 'medium' ? '#FF9800' : '#F44336'
+                    } />
+                    <Text style={styles.modalStatLabel}>
+                      {selectedActionTask.difficulty.charAt(0).toUpperCase() + selectedActionTask.difficulty.slice(1)}
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={styles.modalButtonSecondary}
+                    onPress={() => setShowTakeActionModal(false)}
+                  >
+                    <Text style={styles.modalButtonSecondaryText}>Later</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.modalButtonPrimary}
+                    onPress={() => handleCompleteActionTask(selectedActionTask)}
+                  >
+                    <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
+                    <Text style={styles.modalButtonPrimaryText}>Complete</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 };
 
@@ -862,5 +968,202 @@ const styles = StyleSheet.create({
 
   bottomSpacer: {
     height: 20,
+  },
+
+  // Quick Actions Section
+  quickActionsSection: {
+    margin: 16,
+    marginTop: 0,
+    padding: 20,
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    ...shadows.medium,
+  },
+  quickActionsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  refreshButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.backgroundGray,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quickActionsTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: 2,
+  },
+  quickActionsSubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  randomTasksGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  randomTaskCard: {
+    width: '48%',
+    backgroundColor: colors.backgroundGray,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 12,
+    ...shadows.small,
+  },
+  randomTaskHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  randomTaskIcon: {
+    fontSize: 32,
+  },
+  randomTaskDifficultyBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  randomTaskDifficultyText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  randomTaskTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 8,
+    height: 36,
+  },
+  randomTaskFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  randomTaskMeta: {
+    fontSize: 11,
+    color: colors.textSecondary,
+  },
+  randomTaskXP: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: colors.xpGold,
+  },
+  takeActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 8,
+    ...shadows.large,
+  },
+  takeActionButtonText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalIcon: {
+    fontSize: 64,
+  },
+  modalCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.backgroundGray,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  modalDescription: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    lineHeight: 24,
+    marginBottom: 24,
+  },
+  modalStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 32,
+    paddingVertical: 20,
+    backgroundColor: colors.backgroundGray,
+    borderRadius: 12,
+  },
+  modalStatItem: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  modalStatLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  modalButtonSecondary: {
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: 12,
+    backgroundColor: colors.backgroundGray,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalButtonSecondaryText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  modalButtonPrimary: {
+    flex: 2,
+    paddingVertical: 16,
+    borderRadius: 12,
+    backgroundColor: colors.success,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    ...shadows.large,
+  },
+  modalButtonPrimaryText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
 });

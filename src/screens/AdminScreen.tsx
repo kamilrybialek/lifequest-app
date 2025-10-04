@@ -22,6 +22,10 @@ import {
   createPushNotification,
   getPendingNotifications,
   logAdminActivity,
+  getAllRandomActionTasksAdmin,
+  createRandomActionTaskAdmin,
+  updateRandomActionTaskAdmin,
+  deleteRandomActionTaskAdmin,
 } from '../database/admin';
 
 export const AdminScreen = ({ navigation }: any) => {
@@ -53,6 +57,20 @@ export const AdminScreen = ({ navigation }: any) => {
     difficulty: 'easy',
   });
 
+  // Random Action Tasks
+  const [randomTasks, setRandomTasks] = useState([]);
+  const [showCreateRandomTask, setShowCreateRandomTask] = useState(false);
+  const [newRandomTask, setNewRandomTask] = useState({
+    pillar: 'finance',
+    title: '',
+    description: '',
+    duration_minutes: 5,
+    xp_reward: 15,
+    difficulty: 'easy',
+    icon: '⭐',
+    weight: 1,
+  });
+
   // Notifications
   const [notifications, setNotifications] = useState([]);
   const [showCreateNotif, setShowCreateNotif] = useState(false);
@@ -74,6 +92,8 @@ export const AdminScreen = ({ navigation }: any) => {
         await loadUsers();
       } else if (activeTab === 'tasks') {
         await loadTaskTemplates();
+      } else if (activeTab === 'random') {
+        await loadRandomTasks();
       } else if (activeTab === 'notifications') {
         await loadNotifications();
       }
@@ -121,6 +141,15 @@ export const AdminScreen = ({ navigation }: any) => {
       setNotifications(data);
     } catch (error) {
       console.error('Notifications error:', error);
+    }
+  };
+
+  const loadRandomTasks = async () => {
+    try {
+      const data = await getAllRandomActionTasksAdmin();
+      setRandomTasks(data);
+    } catch (error) {
+      console.error('Random tasks error:', error);
     }
   };
 
@@ -228,6 +257,14 @@ export const AdminScreen = ({ navigation }: any) => {
         >
           <Text style={[styles.tabText, activeTab === 'tasks' && styles.tabTextActive]}>
             ✅ Tasks
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'random' && styles.tabActive]}
+          onPress={() => setActiveTab('random')}
+        >
+          <Text style={[styles.tabText, activeTab === 'random' && styles.tabTextActive]}>
+            ⚡ Random
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
@@ -375,6 +412,39 @@ export const AdminScreen = ({ navigation }: any) => {
                 <Text style={styles.taskMeta}>
                   {task.duration_minutes} min • {task.xp_reward} XP • {task.difficulty}
                 </Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {/* Random Tasks Tab */}
+        {activeTab === 'random' && (
+          <View>
+            <Text style={styles.sectionTitle}>Random Action Tasks ({randomTasks.length})</Text>
+            <Text style={styles.sectionSubtitle}>
+              Tasks shown in Quick Actions on home screen
+            </Text>
+
+            {randomTasks.map((task: any) => (
+              <View key={task.id} style={styles.taskCard}>
+                <View style={styles.taskCardHeader}>
+                  <Text style={styles.taskIcon}>{task.icon}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.taskTitle}>{task.title}</Text>
+                    <Text style={styles.taskMeta}>
+                      {task.pillar} • {task.duration_minutes}min • +{task.xp_reward} XP • {task.difficulty}
+                    </Text>
+                    <Text style={styles.taskDescription} numberOfLines={2}>
+                      {task.description}
+                    </Text>
+                  </View>
+                  <Text style={[
+                    styles.activeStatusBadge,
+                    { backgroundColor: task.is_active ? colors.success : colors.textLight }
+                  ]}>
+                    {task.is_active ? 'Active' : 'Inactive'}
+                  </Text>
+                </View>
               </View>
             ))}
           </View>
@@ -668,6 +738,34 @@ const styles = StyleSheet.create({
   taskMeta: {
     fontSize: 12,
     color: colors.textSecondary,
+  },
+  taskIcon: {
+    fontSize: 32,
+    marginRight: 12,
+  },
+  taskDescription: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  activeStatusBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    overflow: 'hidden',
+  },
+  taskCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sectionSubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 16,
+    marginTop: -8,
   },
   notifCard: {
     backgroundColor: colors.background,

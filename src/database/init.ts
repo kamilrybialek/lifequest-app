@@ -340,6 +340,24 @@ export const initDatabase = async () => {
     );
   `);
 
+  // Random Daily Action Tasks (RPG-style instant actions)
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS random_action_tasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      pillar TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT,
+      duration_minutes INTEGER DEFAULT 5,
+      xp_reward INTEGER DEFAULT 15,
+      difficulty TEXT DEFAULT 'easy',
+      action_type TEXT DEFAULT 'instant',
+      icon TEXT,
+      is_active INTEGER DEFAULT 1,
+      weight INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
   // Content Management (lessons, tips, articles)
   await db.execAsync(`
     CREATE TABLE IF NOT EXISTS content_items (
@@ -425,6 +443,69 @@ export const initDatabase = async () => {
   await db.execAsync(`
     INSERT OR IGNORE INTO admin_users (email, name, role)
     VALUES ('kamil.rybialek@gmail.com', 'Kamil Rybiałek', 'superadmin');
+  `);
+
+  // Insert 50 default random action tasks (English)
+  await db.execAsync(`
+    INSERT OR IGNORE INTO random_action_tasks (pillar, title, description, duration_minutes, xp_reward, difficulty, icon, weight)
+    VALUES
+      -- FINANCE (15 tasks)
+      ('finance', 'Plan your weekly budget', 'Sit down for 10 minutes and plan what you''ll spend money on this week', 10, 25, 'medium', '💰', 3),
+      ('finance', 'Check your bank account', 'Log into your bank and review your balance and recent transactions', 5, 15, 'easy', '🏦', 5),
+      ('finance', 'Log today''s expenses', 'Write down all expenses from today and add them to your tracker', 5, 20, 'easy', '📝', 4),
+      ('finance', 'Find one subscription to cancel', 'Review your subscriptions and find one you don''t use', 10, 30, 'medium', '❌', 2),
+      ('finance', 'Set a savings goal for the month', 'Decide how much you want to save this month', 5, 20, 'easy', '🎯', 3),
+      ('finance', 'Analyze your biggest expense', 'Look at your largest expense from last week and evaluate if it was necessary', 10, 25, 'medium', '📊', 2),
+      ('finance', 'Research before buying', 'Instead of impulse buying, read 3 reviews about the product', 15, 30, 'medium', '🔍', 2),
+      ('finance', 'Add $20 to emergency fund', 'Transfer $20 to your savings account', 2, 40, 'hard', '🚨', 1),
+      ('finance', 'Review last 7 days spending', 'See where your money went in the last week', 10, 25, 'medium', '📅', 3),
+      ('finance', 'Negotiate a better price', 'Call your internet/phone provider and ask for a better deal', 20, 50, 'hard', '📞', 1),
+      ('finance', 'Make a shopping list', 'Plan what to buy at the store and stick to the list', 5, 20, 'easy', '🛒', 4),
+      ('finance', 'Plan free weekend fun', 'Find a free event or activity instead of spending money', 10, 25, 'medium', '🎉', 2),
+      ('finance', 'Use the 30-day rule', 'Write down a product you want to buy and wait 30 days', 5, 20, 'easy', '⏳', 3),
+      ('finance', 'Check credit card limit', 'See how much available credit you have and how much you''ve used', 3, 15, 'easy', '💳', 4),
+      ('finance', 'Plan a no-spend day', 'Decide which day this week will be spend-free', 5, 25, 'medium', '🚫', 2),
+
+      -- MENTAL (13 tasks)
+      ('mental', '5 minutes deep breathing', 'Sit comfortably and focus only on your breath for 5 minutes', 5, 20, 'easy', '🧘', 5),
+      ('mental', 'Write 3 things you''re grateful for', 'List 3 things from today in a notebook or phone', 5, 20, 'easy', '🙏', 4),
+      ('mental', 'Take a 10-minute walk', 'Leave your phone at home and go for a short walk', 10, 25, 'medium', '🚶', 3),
+      ('mental', 'No phone for 30 minutes', 'Set a timer and don''t touch your phone for half an hour', 30, 35, 'hard', '📵', 2),
+      ('mental', 'Guided meditation (5 min)', 'Use a meditation app or YouTube and meditate for 5 minutes', 5, 20, 'easy', '🧠', 4),
+      ('mental', 'Read 10 pages of a book', 'Pick up a book (not e-book) and read 10 pages', 15, 30, 'medium', '📖', 2),
+      ('mental', 'Cold shower for 1 minute', 'End your shower with one minute of cold water', 5, 40, 'hard', '🚿', 1),
+      ('mental', 'Turn off notifications for 2 hours', 'Set focus/DND mode on your phone for 2h', 5, 25, 'medium', '🔕', 3),
+      ('mental', 'Morning sunlight exposure', 'Go outside within 30 minutes of waking up', 10, 30, 'medium', '☀️', 3),
+      ('mental', 'Journal your thoughts', 'Spend 10 minutes writing down what''s on your mind', 10, 25, 'medium', '📔', 2),
+      ('mental', 'Delete one distracting app', 'Uninstall the app that takes up most of your time', 5, 35, 'hard', '🗑️', 1),
+      ('mental', 'Mindful eating practice', 'Eat a meal without phone, TV, computer - just eat', 15, 30, 'medium', '🍽️', 2),
+      ('mental', 'Visualize your goals (5 min)', 'Close your eyes and imagine achieving your goal', 5, 20, 'easy', '✨', 3),
+
+      -- PHYSICAL (12 tasks)
+      ('physical', '20 push-ups', 'Do 20 push-ups (you can do them on your knees)', 5, 25, 'medium', '💪', 4),
+      ('physical', '50 squats', 'Perform 50 bodyweight squats', 8, 30, 'medium', '🦵', 3),
+      ('physical', '1 minute plank hold', 'Hold a plank position for one minute', 3, 25, 'medium', '🏋️', 4),
+      ('physical', 'Drink 500ml of water now', 'Drink half a liter of water right now', 2, 15, 'easy', '💧', 5),
+      ('physical', '10 minutes yoga or stretching', 'Do a short stretching session', 10, 25, 'easy', '🧘‍♀️', 3),
+      ('physical', 'Walk 5000 steps today', 'Go out and walk until you reach 5000 steps', 40, 35, 'hard', '👟', 2),
+      ('physical', 'Take stairs instead of elevator', 'Next time choose stairs instead of the elevator', 5, 20, 'easy', '🪜', 4),
+      ('physical', '30 jumping jacks', 'Do 30 jumping jacks', 3, 20, 'easy', '🤸', 5),
+      ('physical', 'Set yourself a challenge', 'Decide what workout you''ll do today and complete it', 30, 40, 'hard', '🎯', 1),
+      ('physical', 'Stretch back and neck', 'Spend 5 minutes stretching your upper body', 5, 20, 'easy', '🙆', 4),
+      ('physical', 'Do a set of burpees (10x)', 'Perform 10 burpees', 5, 30, 'hard', '🔥', 2),
+      ('physical', 'Stand and walk every hour', 'Set a reminder - stand and walk 2 min every hour', 2, 15, 'easy', '⏰', 4),
+
+      -- NUTRITION (10 tasks)
+      ('nutrition', 'Add vegetables to every meal', 'Include vegetables in breakfast, lunch, and dinner', 5, 30, 'medium', '🥗', 3),
+      ('nutrition', 'Prepare a healthy snack', 'Cut up fruits or vegetables for a snack', 10, 25, 'easy', '🍎', 4),
+      ('nutrition', 'No sugar today', 'Zero sweets, sugar in coffee, or sugary drinks today', 5, 40, 'hard', '🍬', 1),
+      ('nutrition', 'Drink 2L of water today', 'Track your water intake and make sure you drink 2 liters', 5, 30, 'medium', '💦', 3),
+      ('nutrition', 'Cook a meal at home', 'Instead of ordering, cook something yourself', 30, 35, 'medium', '🍳', 2),
+      ('nutrition', 'Eat protein with every meal', 'Add eggs, meat, fish, or legumes to your meals', 5, 25, 'medium', '🍗', 3),
+      ('nutrition', 'Read product labels', 'Check the label and see what you''re actually eating', 3, 20, 'easy', '🔬', 4),
+      ('nutrition', 'Replace soda with water', 'Today drink only water, tea, or coffee without sugar', 2, 25, 'easy', '🥤', 4),
+      ('nutrition', 'Plan tomorrow''s meals', 'Think ahead about what you''ll eat tomorrow', 10, 25, 'easy', '📋', 3),
+      ('nutrition', 'Eat slowly and mindfully', 'Spend at least 20 minutes on your main meal without rushing', 20, 30, 'medium', '⏱️', 2);
   `);
 
   // ===== ACHIEVEMENTS & BADGES SYSTEM =====

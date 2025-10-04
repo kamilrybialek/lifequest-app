@@ -436,3 +436,118 @@ export const unlockAchievementForUser = async (
   );
   await logAdminActivity(adminId, 'unlock_achievement', 'user_achievement', userId);
 };
+
+// ===== RANDOM ACTION TASKS MANAGEMENT =====
+
+export const getAllRandomActionTasksAdmin = async (): Promise<any[]> => {
+  const db = await getDatabase();
+  const result = await db.getAllAsync(`
+    SELECT *
+    FROM random_action_tasks
+    ORDER BY pillar, difficulty, title
+  `);
+  return result || [];
+};
+
+export const createRandomActionTaskAdmin = async (
+  adminId: number,
+  data: {
+    pillar: string;
+    title: string;
+    description: string;
+    duration_minutes: number;
+    xp_reward: number;
+    difficulty: string;
+    icon?: string;
+    weight?: number;
+  }
+) => {
+  const db = await getDatabase();
+  const result = await db.runAsync(
+    `INSERT INTO random_action_tasks
+     (pillar, title, description, duration_minutes, xp_reward, difficulty, icon, weight)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      data.pillar,
+      data.title,
+      data.description,
+      data.duration_minutes,
+      data.xp_reward,
+      data.difficulty,
+      data.icon || '⭐',
+      data.weight || 1,
+    ]
+  );
+
+  await logAdminActivity(adminId, 'create_random_task', 'random_action_task', result.lastInsertRowId);
+  return result.lastInsertRowId;
+};
+
+export const updateRandomActionTaskAdmin = async (
+  adminId: number,
+  taskId: number,
+  data: Partial<{
+    title: string;
+    description: string;
+    duration_minutes: number;
+    xp_reward: number;
+    difficulty: string;
+    icon: string;
+    weight: number;
+    is_active: boolean;
+  }>
+) => {
+  const db = await getDatabase();
+  const fields = [];
+  const values = [];
+
+  if (data.title !== undefined) {
+    fields.push('title = ?');
+    values.push(data.title);
+  }
+  if (data.description !== undefined) {
+    fields.push('description = ?');
+    values.push(data.description);
+  }
+  if (data.duration_minutes !== undefined) {
+    fields.push('duration_minutes = ?');
+    values.push(data.duration_minutes);
+  }
+  if (data.xp_reward !== undefined) {
+    fields.push('xp_reward = ?');
+    values.push(data.xp_reward);
+  }
+  if (data.difficulty !== undefined) {
+    fields.push('difficulty = ?');
+    values.push(data.difficulty);
+  }
+  if (data.icon !== undefined) {
+    fields.push('icon = ?');
+    values.push(data.icon);
+  }
+  if (data.weight !== undefined) {
+    fields.push('weight = ?');
+    values.push(data.weight);
+  }
+  if (data.is_active !== undefined) {
+    fields.push('is_active = ?');
+    values.push(data.is_active ? 1 : 0);
+  }
+
+  if (fields.length === 0) return;
+
+  values.push(taskId);
+
+  await db.runAsync(
+    `UPDATE random_action_tasks SET ${fields.join(', ')} WHERE id = ?`,
+    values
+  );
+
+  await logAdminActivity(adminId, 'update_random_task', 'random_action_task', taskId);
+};
+
+export const deleteRandomActionTaskAdmin = async (adminId: number, taskId: number) => {
+  const db = await getDatabase();
+  await db.runAsync('UPDATE random_action_tasks SET is_active = 0 WHERE id = ?', [taskId]);
+  await logAdminActivity(adminId, 'delete_random_task', 'random_action_task', taskId);
+};
