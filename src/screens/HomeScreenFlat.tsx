@@ -243,9 +243,14 @@ export const HomeScreenFlat = ({ navigation }: any) => {
             style={styles.dailyQuestCard}
             activeOpacity={0.9}
             onPress={() => {
-              const screen = dailyQuest.pillar === 'finance' ? 'ExpenseLogger' :
-                dailyQuest.pillar === 'mental' ? 'MorningSunlight' :
-                  dailyQuest.pillar === 'physical' ? 'Physical' : 'Nutrition';
+              // Navigate to the appropriate pillar screen
+              const screenMap = {
+                finance: 'Finance',
+                mental: 'Mental',
+                physical: 'Physical',
+                nutrition: 'Nutrition',
+              };
+              const screen = screenMap[dailyQuest.pillar as keyof typeof screenMap] || 'Finance';
               navigation.navigate(screen);
             }}
           >
@@ -304,11 +309,24 @@ export const HomeScreenFlat = ({ navigation }: any) => {
         <View style={styles.streaksSection}>
           <Text style={styles.sectionTitle}>Your Streaks</Text>
           <View style={styles.streaksGrid}>
-            {progress.streaks.map((streak) => (
+            {progress.streaks.map((streak) => {
+              const screenMap = {
+                finance: 'Finance',
+                mental: 'Mental',
+                physical: 'Physical',
+                nutrition: 'Nutrition',
+              };
+              const screen = screenMap[streak.pillar as keyof typeof screenMap] || 'Finance';
+
+              // Calculate progress for this pillar (streak current / 30 days max)
+              const progressPercent = Math.min((streak.current / 30) * 100, 100);
+
+              return (
               <TouchableOpacity
                 key={streak.pillar}
                 style={styles.streakCard}
-                onPress={() => navigation.navigate(streak.pillar.charAt(0).toUpperCase() + streak.pillar.slice(1))}
+                onPress={() => navigation.navigate(screen)}
+                activeOpacity={0.7}
               >
                 <View style={[styles.streakCardIcon, { backgroundColor: getPillarColor(streak.pillar) }]}>
                   <Text style={styles.streakCardEmoji}>{getPillarIcon(streak.pillar)}</Text>
@@ -317,11 +335,22 @@ export const HomeScreenFlat = ({ navigation }: any) => {
                   <Text style={styles.streakCardNumber}>{streak.current}</Text>
                   <Text style={styles.streakCardLabel}>day{streak.current !== 1 ? 's' : ''}</Text>
                 </View>
+
+                {/* Progress bar */}
+                <View style={styles.streakProgressBar}>
+                  <View style={[
+                    styles.streakProgressBarFill,
+                    { width: `${progressPercent}%`, backgroundColor: getPillarColor(streak.pillar) }
+                  ]} />
+                </View>
+
                 <View style={styles.streakCardFooter}>
                   <Text style={styles.streakCardBest}>Best: {streak.longest}</Text>
+                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
                 </View>
               </TouchableOpacity>
-            ))}
+              );
+            })}
           </View>
         </View>
 
@@ -865,7 +894,21 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
   },
+  streakProgressBar: {
+    height: 4,
+    backgroundColor: colors.border,
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginVertical: 8,
+  },
+  streakProgressBarFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
   streakCardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingTop: 8,
     borderTopWidth: 1,
     borderTopColor: colors.border,

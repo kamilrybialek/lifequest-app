@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: Add RPG-style Quick Actions with 50 random tasks\n\n- Add random_action_tasks table with 50 English tasks\n- Create 2x2 grid Quick Actions section on home screen\n- Remove Today''s Tasks section for cleaner dashboard\n- Add \"Take Action\" button that always generates new task\n- Implement Random Tasks management in Admin panel\n- Add database functions for random task CRUD operations\n- Translate all tasks to English for consistency\n\nTasks cover all 4 pillars: Finance (15), Mental (13), Physical (12), Nutrition (10)\nEach task includes: icon, difficulty, duration, XP reward, weight\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
+      "Bash(git commit -m \"$(cat <<''EOF''\nfeat: Integrate dashboard with paths & redesign Profile screen\n\nDashboard Integration:\n- Daily Quest now navigates to appropriate pillar screen (Finance/Mental/Physical/Nutrition)\n- Streak cards are now clickable and navigate to corresponding paths\n- Add progress bars to streak cards showing 30-day goal progress\n- Add chevron icons to indicate streak cards are tappable\n\nProfile Screen Redesign:\n- Complete RPG-style redesign matching HomeScreen aesthetic\n- New header with back button and logout in corner\n- Level card with XP progress bar and \"XP to next level\" display\n- 2x2 stats grid with icons: Total XP, Best Streak, Achievements, Current Streak\n- Horizontal scrollable achievements preview (first 5 unlocked)\n- Modern settings items with icons and proper spacing\n- Remove Dialog dependency, use native Alert for reset confirmation\n- Consistent color scheme and shadows throughout\n\nAll changes maintain English language consistency\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
