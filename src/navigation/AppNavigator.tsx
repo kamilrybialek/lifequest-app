@@ -37,6 +37,7 @@ import { MeditationTimer } from '../screens/mental/tools/MeditationTimer';
 import { PhysicalHealthPath } from '../screens/physical/PhysicalHealthPath';
 import { PhysicalLessonIntro } from '../screens/physical/PhysicalLessonIntro';
 import { PhysicalLessonContent } from '../screens/physical/PhysicalLessonContent';
+import { PhysicalLessonDuolingo } from '../screens/physical/PhysicalLessonDuolingo';
 import { WorkoutTrackerScreen } from '../screens/physical/tools/WorkoutTrackerScreen';
 
 // Other Paths
@@ -234,7 +235,7 @@ export const AppNavigator = () => {
             />
             <Stack.Screen
               name="PhysicalLessonContent"
-              component={PhysicalLessonContent}
+              component={PhysicalLessonDuolingo}
               options={{ headerShown: false }}
             />
             <Stack.Screen
