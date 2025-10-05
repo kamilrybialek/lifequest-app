@@ -156,7 +156,36 @@ export const updateRandomActionTask = async (
 // Delete random action task (admin)
 export const deleteRandomActionTask = async (id: number): Promise<void> => {
   const db = await getDatabase();
-  await db.runAsync('UPDATE random_action_tasks SET is_active = 0 WHERE id = ?', [id]);
+  await db.runAsync('DELETE FROM random_action_tasks WHERE id = ?', [id]);
+};
+
+// Delete ALL random action tasks (admin - for cleanup)
+export const deleteAllRandomActionTasks = async (): Promise<void> => {
+  const db = await getDatabase();
+  await db.runAsync('DELETE FROM random_action_tasks');
+  console.log('✅ All random action tasks deleted');
+};
+
+// Remove duplicate tasks (admin - cleanup utility)
+export const removeDuplicateRandomTasks = async (): Promise<number> => {
+  const db = await getDatabase();
+
+  // Keep only one instance of each unique title
+  await db.runAsync(`
+    DELETE FROM random_action_tasks
+    WHERE id NOT IN (
+      SELECT MIN(id)
+      FROM random_action_tasks
+      GROUP BY title, pillar
+    )
+  `);
+
+  // Get count of remaining tasks
+  const result = await db.getFirstAsync<{ count: number }>('SELECT COUNT(*) as count FROM random_action_tasks');
+  const remaining = result?.count || 0;
+
+  console.log(`✅ Duplicates removed. Remaining tasks: ${remaining}`);
+  return remaining;
 };
 
 // Complete a random action task (track for user)

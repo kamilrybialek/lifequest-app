@@ -27,6 +27,11 @@ import {
   updateRandomActionTaskAdmin,
   deleteRandomActionTaskAdmin,
 } from '../database/admin';
+import {
+  removeDuplicateRandomTasks,
+  deleteAllRandomActionTasks,
+  createRandomActionTask,
+} from '../database/randomTasks';
 
 export const AdminScreen = ({ navigation }: any) => {
   const { user } = useAuthStore();
@@ -151,6 +156,205 @@ export const AdminScreen = ({ navigation }: any) => {
     } catch (error) {
       console.error('Random tasks error:', error);
     }
+  };
+
+  const handleRemoveDuplicates = async () => {
+    Alert.alert(
+      'Remove Duplicates',
+      'This will remove all duplicate random action tasks (keeping one of each). Continue?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove Duplicates',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const remaining = await removeDuplicateRandomTasks();
+              Alert.alert('Success', `Duplicates removed! ${remaining} tasks remaining.`);
+              await loadRandomTasks();
+            } catch (error) {
+              console.error('Error removing duplicates:', error);
+              Alert.alert('Error', 'Failed to remove duplicates');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleReplaceAll = async () => {
+    Alert.alert(
+      'Replace All Tasks',
+      'This will DELETE ALL current tasks and create 100 new unique tasks. This action cannot be undone!',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Replace All',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // Delete all existing tasks
+              await deleteAllRandomActionTasks();
+
+              // Create 100 new tasks programmatically
+              const tasksToCreate = generate100UniqueTasks();
+
+              for (const task of tasksToCreate) {
+                await createRandomActionTask(task);
+              }
+
+              Alert.alert('Success', '100 new tasks created!');
+              await loadRandomTasks();
+            } catch (error) {
+              console.error('Error replacing tasks:', error);
+              Alert.alert('Error', 'Failed to replace tasks');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // Generate 100 unique tasks
+  const generate100UniqueTasks = () => {
+    const tasks = [
+      // Finance (25 tasks)
+      { pillar: 'finance', title: 'Track Expenses', description: 'Log 5 purchases from today', duration_minutes: 5, xp_reward: 15, difficulty: 'easy', icon: '💰', weight: 1 },
+      { pillar: 'finance', title: 'Review Budget', description: 'Check spending vs budget', duration_minutes: 10, xp_reward: 20, difficulty: 'medium', icon: '📊', weight: 1 },
+      { pillar: 'finance', title: 'Emergency Fund', description: 'Add $50 to savings', duration_minutes: 3, xp_reward: 25, difficulty: 'medium', icon: '🏦', weight: 1 },
+      { pillar: 'finance', title: 'Pay Bills', description: 'Pay at least one bill', duration_minutes: 10, xp_reward: 20, difficulty: 'medium', icon: '💸', weight: 1 },
+      { pillar: 'finance', title: 'Investment Check', description: 'Review portfolio performance', duration_minutes: 15, xp_reward: 25, difficulty: 'medium', icon: '📈', weight: 1 },
+      { pillar: 'finance', title: 'Cancel Subscription', description: 'Remove one unused service', duration_minutes: 10, xp_reward: 30, difficulty: 'medium', icon: '✂️', weight: 1 },
+      { pillar: 'finance', title: 'Meal Prep Budget', description: 'Plan week meals under $100', duration_minutes: 20, xp_reward: 25, difficulty: 'medium', icon: '🍱', weight: 1 },
+      { pillar: 'finance', title: 'Side Hustle Hour', description: 'Work 1 hour on side income', duration_minutes: 60, xp_reward: 40, difficulty: 'hard', icon: '💼', weight: 1 },
+      { pillar: 'finance', title: 'Debt Payment', description: 'Make extra payment on debt', duration_minutes: 5, xp_reward: 30, difficulty: 'hard', icon: '🎯', weight: 1 },
+      { pillar: 'finance', title: 'Price Compare', description: 'Compare prices on 3 items', duration_minutes: 15, xp_reward: 15, difficulty: 'easy', icon: '🔍', weight: 1 },
+      { pillar: 'finance', title: 'Net Worth Update', description: 'Calculate current net worth', duration_minutes: 20, xp_reward: 30, difficulty: 'hard', icon: '💎', weight: 1 },
+      { pillar: 'finance', title: 'Tax Prep', description: 'Organize receipts/documents', duration_minutes: 30, xp_reward: 35, difficulty: 'hard', icon: '📑', weight: 1 },
+      { pillar: 'finance', title: 'Negotiate Bill', description: 'Call to reduce one bill', duration_minutes: 20, xp_reward: 40, difficulty: 'hard', icon: '📞', weight: 1 },
+      { pillar: 'finance', title: 'Sell Item', description: 'List unused item for sale', duration_minutes: 15, xp_reward: 25, difficulty: 'medium', icon: '🏷️', weight: 1 },
+      { pillar: 'finance', title: 'Auto-Save Setup', description: 'Set up automatic transfers', duration_minutes: 10, xp_reward: 30, difficulty: 'medium', icon: '⚙️', weight: 1 },
+      { pillar: 'finance', title: 'Coupon Search', description: 'Find coupons for groceries', duration_minutes: 10, xp_reward: 15, difficulty: 'easy', icon: '🎫', weight: 1 },
+      { pillar: 'finance', title: 'Credit Score Check', description: 'Review credit report', duration_minutes: 15, xp_reward: 25, difficulty: 'medium', icon: '📊', weight: 1 },
+      { pillar: 'finance', title: 'No Spend Day', description: 'Spend $0 today', duration_minutes: 1, xp_reward: 35, difficulty: 'hard', icon: '🚫', weight: 1 },
+      { pillar: 'finance', title: 'Retirement Contrib', description: 'Increase 401k by 1%', duration_minutes: 10, xp_reward: 40, difficulty: 'hard', icon: '🏖️', weight: 1 },
+      { pillar: 'finance', title: 'Financial Goals', description: 'Write 3 money goals', duration_minutes: 10, xp_reward: 20, difficulty: 'easy', icon: '🎯', weight: 1 },
+      { pillar: 'finance', title: 'Insurance Review', description: 'Check policy coverage', duration_minutes: 20, xp_reward: 25, difficulty: 'medium', icon: '🛡️', weight: 1 },
+      { pillar: 'finance', title: 'Bank Fees Check', description: 'Review account fees', duration_minutes: 10, xp_reward: 20, difficulty: 'easy', icon: '🏦', weight: 1 },
+      { pillar: 'finance', title: 'DIY Project', description: 'Fix something vs buying', duration_minutes: 30, xp_reward: 30, difficulty: 'medium', icon: '🔧', weight: 1 },
+      { pillar: 'finance', title: 'Generic Brands', description: 'Try 3 generic products', duration_minutes: 5, xp_reward: 15, difficulty: 'easy', icon: '🏪', weight: 1 },
+      { pillar: 'finance', title: 'Money Affirmation', description: 'Repeat wealth affirmations', duration_minutes: 5, xp_reward: 10, difficulty: 'easy', icon: '✨', weight: 1 },
+
+      // Mental (25 tasks)
+      { pillar: 'mental', title: 'Morning Sunlight', description: 'Get 10min outdoor light', duration_minutes: 10, xp_reward: 15, difficulty: 'easy', icon: '☀️', weight: 1 },
+      { pillar: 'mental', title: 'Meditation', description: 'Meditate for 10 minutes', duration_minutes: 10, xp_reward: 20, difficulty: 'medium', icon: '🧘', weight: 1 },
+      { pillar: 'mental', title: 'Gratitude Journal', description: 'Write 3 grateful things', duration_minutes: 5, xp_reward: 15, difficulty: 'easy', icon: '📝', weight: 1 },
+      { pillar: 'mental', title: 'Deep Breathing', description: 'Box breathing 5 minutes', duration_minutes: 5, xp_reward: 15, difficulty: 'easy', icon: '💨', weight: 1 },
+      { pillar: 'mental', title: 'Digital Detox', description: '1 hour no phone/screens', duration_minutes: 60, xp_reward: 30, difficulty: 'hard', icon: '📵', weight: 1 },
+      { pillar: 'mental', title: 'Read Book', description: 'Read 20 pages', duration_minutes: 30, xp_reward: 20, difficulty: 'medium', icon: '📚', weight: 1 },
+      { pillar: 'mental', title: 'Learning Time', description: 'Learn something new 15min', duration_minutes: 15, xp_reward: 25, difficulty: 'medium', icon: '🎓', weight: 1 },
+      { pillar: 'mental', title: 'Nature Walk', description: 'Walk in nature 20 minutes', duration_minutes: 20, xp_reward: 20, difficulty: 'easy', icon: '🌲', weight: 1 },
+      { pillar: 'mental', title: 'Call Friend', description: 'Connect with loved one', duration_minutes: 20, xp_reward: 25, difficulty: 'medium', icon: '📞', weight: 1 },
+      { pillar: 'mental', title: 'Journaling', description: 'Free write for 10 minutes', duration_minutes: 10, xp_reward: 20, difficulty: 'easy', icon: '✍️', weight: 1 },
+      { pillar: 'mental', title: 'Podcast Learn', description: 'Educational podcast episode', duration_minutes: 30, xp_reward: 20, difficulty: 'easy', icon: '🎧', weight: 1 },
+      { pillar: 'mental', title: 'Creativity Time', description: 'Draw, paint, or create', duration_minutes: 30, xp_reward: 25, difficulty: 'medium', icon: '🎨', weight: 1 },
+      { pillar: 'mental', title: 'Positive Affirmation', description: 'Repeat 10 affirmations', duration_minutes: 5, xp_reward: 10, difficulty: 'easy', icon: '💭', weight: 1 },
+      { pillar: 'mental', title: 'Declutter Space', description: 'Organize one area', duration_minutes: 20, xp_reward: 20, difficulty: 'medium', icon: '🧹', weight: 1 },
+      { pillar: 'mental', title: 'Music Therapy', description: 'Listen mindfully 15min', duration_minutes: 15, xp_reward: 15, difficulty: 'easy', icon: '🎵', weight: 1 },
+      { pillar: 'mental', title: 'Plan Tomorrow', description: 'Set 3 priorities for tomorrow', duration_minutes: 10, xp_reward: 15, difficulty: 'easy', icon: '📅', weight: 1 },
+      { pillar: 'mental', title: 'Hobby Time', description: 'Practice favorite hobby', duration_minutes: 30, xp_reward: 25, difficulty: 'medium', icon: '⚽', weight: 1 },
+      { pillar: 'mental', title: 'Screen Time Limit', description: 'Set app usage limits', duration_minutes: 10, xp_reward: 20, difficulty: 'medium', icon: '⏱️', weight: 1 },
+      { pillar: 'mental', title: 'Kindness Act', description: 'Do one kind thing', duration_minutes: 10, xp_reward: 20, difficulty: 'easy', icon: '❤️', weight: 1 },
+      { pillar: 'mental', title: 'Morning Pages', description: 'Stream of consciousness writing', duration_minutes: 20, xp_reward: 25, difficulty: 'medium', icon: '📄', weight: 1 },
+      { pillar: 'mental', title: 'Compliment Give', description: 'Genuinely compliment 3 people', duration_minutes: 5, xp_reward: 15, difficulty: 'easy', icon: '🌟', weight: 1 },
+      { pillar: 'mental', title: 'Problem Solve', description: 'Work on one challenge', duration_minutes: 30, xp_reward: 30, difficulty: 'hard', icon: '🧩', weight: 1 },
+      { pillar: 'mental', title: 'Laugh Session', description: 'Watch/read comedy 15min', duration_minutes: 15, xp_reward: 15, difficulty: 'easy', icon: '😂', weight: 1 },
+      { pillar: 'mental', title: 'Vision Board', description: 'Add to goals visualization', duration_minutes: 20, xp_reward: 20, difficulty: 'medium', icon: '🎯', weight: 1 },
+      { pillar: 'mental', title: 'Mindful Shower', description: 'Present-focused bathing', duration_minutes: 10, xp_reward: 10, difficulty: 'easy', icon: '🚿', weight: 1 },
+
+      // Physical (25 tasks)
+      { pillar: 'physical', title: 'Morning Stretch', description: '10min full-body stretch', duration_minutes: 10, xp_reward: 15, difficulty: 'easy', icon: '🤸', weight: 1 },
+      { pillar: 'physical', title: 'Walk 8000 Steps', description: 'Hit daily step goal', duration_minutes: 60, xp_reward: 25, difficulty: 'medium', icon: '👟', weight: 1 },
+      { pillar: 'physical', title: 'Strength Training', description: '30min resistance exercise', duration_minutes: 30, xp_reward: 30, difficulty: 'hard', icon: '💪', weight: 1 },
+      { pillar: 'physical', title: 'Yoga Session', description: '20min yoga flow', duration_minutes: 20, xp_reward: 25, difficulty: 'medium', icon: '🧘', weight: 1 },
+      { pillar: 'physical', title: 'Cardio Blast', description: '20min elevated heart rate', duration_minutes: 20, xp_reward: 25, difficulty: 'medium', icon: '🏃', weight: 1 },
+      { pillar: 'physical', title: 'Posture Check', description: 'Maintain good posture 1hr', duration_minutes: 60, xp_reward: 15, difficulty: 'medium', icon: '🪑', weight: 1 },
+      { pillar: 'physical', title: 'Mobility Routine', description: 'Joint mobility exercises', duration_minutes: 15, xp_reward: 20, difficulty: 'medium', icon: '🔄', weight: 1 },
+      { pillar: 'physical', title: 'Active Break', description: 'Move every hour at work', duration_minutes: 5, xp_reward: 10, difficulty: 'easy', icon: '⏰', weight: 1 },
+      { pillar: 'physical', title: 'Cold Shower', description: '30sec cold water finish', duration_minutes: 1, xp_reward: 25, difficulty: 'hard', icon: '🧊', weight: 1 },
+      { pillar: 'physical', title: 'Dance Break', description: 'Dance to 3 songs', duration_minutes: 10, xp_reward: 15, difficulty: 'easy', icon: '💃', weight: 1 },
+      { pillar: 'physical', title: 'Core Workout', description: 'Plank + ab exercises', duration_minutes: 15, xp_reward: 20, difficulty: 'medium', icon: '🎯', weight: 1 },
+      { pillar: 'physical', title: 'Outdoor Exercise', description: 'Work out outside 20min', duration_minutes: 20, xp_reward: 25, difficulty: 'medium', icon: '🌳', weight: 1 },
+      { pillar: 'physical', title: 'Sleep 7+ Hours', description: 'Get quality sleep', duration_minutes: 420, xp_reward: 30, difficulty: 'medium', icon: '😴', weight: 1 },
+      { pillar: 'physical', title: 'Stairs Over Elevator', description: 'Take stairs 3+ times', duration_minutes: 5, xp_reward: 10, difficulty: 'easy', icon: '🪜', weight: 1 },
+      { pillar: 'physical', title: 'Bike Ride', description: '30min cycling', duration_minutes: 30, xp_reward: 25, difficulty: 'medium', icon: '🚴', weight: 1 },
+      { pillar: 'physical', title: 'Swim Session', description: 'Swim 20 minutes', duration_minutes: 20, xp_reward: 30, difficulty: 'hard', icon: '🏊', weight: 1 },
+      { pillar: 'physical', title: 'Foam Rolling', description: 'Self-massage 10min', duration_minutes: 10, xp_reward: 15, difficulty: 'easy', icon: '🎯', weight: 1 },
+      { pillar: 'physical', title: 'Bodyweight Circuit', description: '15min no-equipment workout', duration_minutes: 15, xp_reward: 20, difficulty: 'medium', icon: '🔥', weight: 1 },
+      { pillar: 'physical', title: 'Active Commute', description: 'Walk/bike to destination', duration_minutes: 30, xp_reward: 25, difficulty: 'medium', icon: '🚶', weight: 1 },
+      { pillar: 'physical', title: 'Sport Activity', description: 'Play any sport 30min', duration_minutes: 30, xp_reward: 30, difficulty: 'medium', icon: '⚽', weight: 1 },
+      { pillar: 'physical', title: 'Stretching Before Bed', description: 'Gentle evening stretch', duration_minutes: 10, xp_reward: 15, difficulty: 'easy', icon: '🌙', weight: 1 },
+      { pillar: 'physical', title: 'Push-up Challenge', description: 'Do 20 push-ups', duration_minutes: 5, xp_reward: 15, difficulty: 'medium', icon: '💪', weight: 1 },
+      { pillar: 'physical', title: 'Balance Practice', description: 'Single-leg stands 5min', duration_minutes: 5, xp_reward: 15, difficulty: 'easy', icon: '⚖️', weight: 1 },
+      { pillar: 'physical', title: 'HIIT Session', description: 'High-intensity intervals', duration_minutes: 20, xp_reward: 35, difficulty: 'hard', icon: '⚡', weight: 1 },
+      { pillar: 'physical', title: 'Recovery Day', description: 'Rest + light movement', duration_minutes: 10, xp_reward: 20, difficulty: 'easy', icon: '🛌', weight: 1 },
+
+      // Nutrition (25 tasks)
+      { pillar: 'nutrition', title: 'Drink 8 Glasses', description: 'Hydrate throughout day', duration_minutes: 1, xp_reward: 15, difficulty: 'easy', icon: '💧', weight: 1 },
+      { pillar: 'nutrition', title: 'Eat Protein', description: 'Have protein each meal', duration_minutes: 5, xp_reward: 20, difficulty: 'medium', icon: '🍗', weight: 1 },
+      { pillar: 'nutrition', title: 'Meal Prep', description: 'Prepare 3 healthy meals', duration_minutes: 60, xp_reward: 30, difficulty: 'hard', icon: '🍱', weight: 1 },
+      { pillar: 'nutrition', title: 'Veggie Serving', description: 'Eat 5 servings vegetables', duration_minutes: 5, xp_reward: 20, difficulty: 'medium', icon: '🥗', weight: 1 },
+      { pillar: 'nutrition', title: 'No Processed Food', description: 'Eat whole foods only', duration_minutes: 5, xp_reward: 25, difficulty: 'hard', icon: '🥕', weight: 1 },
+      { pillar: 'nutrition', title: 'Mindful Eating', description: 'Eat slowly, no screens', duration_minutes: 20, xp_reward: 20, difficulty: 'medium', icon: '🍽️', weight: 1 },
+      { pillar: 'nutrition', title: 'Fruit Snack', description: 'Choose fruit over junk', duration_minutes: 2, xp_reward: 10, difficulty: 'easy', icon: '🍎', weight: 1 },
+      { pillar: 'nutrition', title: 'Track Calories', description: 'Log all meals eaten', duration_minutes: 10, xp_reward: 20, difficulty: 'medium', icon: '📊', weight: 1 },
+      { pillar: 'nutrition', title: 'No Sugary Drinks', description: 'Avoid soda/juice today', duration_minutes: 1, xp_reward: 20, difficulty: 'medium', icon: '🚫', weight: 1 },
+      { pillar: 'nutrition', title: 'Breakfast Win', description: 'Eat healthy breakfast', duration_minutes: 15, xp_reward: 15, difficulty: 'easy', icon: '🥐', weight: 1 },
+      { pillar: 'nutrition', title: 'Healthy Recipe', description: 'Try new nutritious recipe', duration_minutes: 45, xp_reward: 25, difficulty: 'medium', icon: '👨‍🍳', weight: 1 },
+      { pillar: 'nutrition', title: 'Portion Control', description: 'Use smaller plates', duration_minutes: 5, xp_reward: 15, difficulty: 'easy', icon: '🍽️', weight: 1 },
+      { pillar: 'nutrition', title: 'Green Smoothie', description: 'Make veggie-packed smoothie', duration_minutes: 10, xp_reward: 20, difficulty: 'easy', icon: '🥤', weight: 1 },
+      { pillar: 'nutrition', title: 'Omega-3 Source', description: 'Eat fish or nuts', duration_minutes: 5, xp_reward: 20, difficulty: 'easy', icon: '🐟', weight: 1 },
+      { pillar: 'nutrition', title: 'No Late Snacking', description: 'Stop eating 2hrs before bed', duration_minutes: 1, xp_reward: 20, difficulty: 'medium', icon: '🌙', weight: 1 },
+      { pillar: 'nutrition', title: 'Read Labels', description: 'Check nutrition on 5 items', duration_minutes: 10, xp_reward: 15, difficulty: 'easy', icon: '🔍', weight: 1 },
+      { pillar: 'nutrition', title: 'Herbal Tea', description: 'Replace coffee with tea', duration_minutes: 5, xp_reward: 10, difficulty: 'easy', icon: '🍵', weight: 1 },
+      { pillar: 'nutrition', title: 'Grocery Smart', description: 'Shop perimeter of store', duration_minutes: 30, xp_reward: 20, difficulty: 'medium', icon: '🛒', weight: 1 },
+      { pillar: 'nutrition', title: 'Probiotic Food', description: 'Eat yogurt or fermented', duration_minutes: 5, xp_reward: 15, difficulty: 'easy', icon: '🥛', weight: 1 },
+      { pillar: 'nutrition', title: 'Fiber Boost', description: 'Eat high-fiber foods', duration_minutes: 5, xp_reward: 15, difficulty: 'easy', icon: '🌾', weight: 1 },
+      { pillar: 'nutrition', title: 'Cheat Meal Plan', description: 'Plan one indulgence wisely', duration_minutes: 10, xp_reward: 15, difficulty: 'medium', icon: '🍕', weight: 1 },
+      { pillar: 'nutrition', title: 'Cook at Home', description: 'Make dinner vs ordering', duration_minutes: 30, xp_reward: 25, difficulty: 'medium', icon: '🏠', weight: 1 },
+      { pillar: 'nutrition', title: 'Vitamin Check', description: 'Take daily supplements', duration_minutes: 1, xp_reward: 10, difficulty: 'easy', icon: '💊', weight: 1 },
+      { pillar: 'nutrition', title: 'Reduce Salt', description: 'Choose low-sodium options', duration_minutes: 5, xp_reward: 15, difficulty: 'medium', icon: '🧂', weight: 1 },
+      { pillar: 'nutrition', title: 'Hydration Schedule', description: 'Water every 2 hours', duration_minutes: 1, xp_reward: 15, difficulty: 'easy', icon: '⏰', weight: 1 },
+    ];
+
+    return tasks;
+  };
+
+  const handleToggleTaskActive = async (taskId: number, isActive: boolean) => {
+    try {
+      await updateRandomActionTaskAdmin(taskId, { is_active: !isActive });
+      await loadRandomTasks();
+    } catch (error) {
+      console.error('Error toggling task:', error);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: number) => {
+    Alert.alert('Delete Task', 'Are you sure you want to delete this task?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteRandomActionTaskAdmin(taskId);
+            await loadRandomTasks();
+          } catch (error) {
+            console.error('Error deleting task:', error);
+          }
+        },
+      },
+    ]);
   };
 
   const createTask = async () => {
@@ -425,6 +629,25 @@ export const AdminScreen = ({ navigation }: any) => {
               Tasks shown in Quick Actions on home screen
             </Text>
 
+            {/* Admin Actions */}
+            <View style={styles.adminActionsRow}>
+              <TouchableOpacity
+                style={[styles.adminActionButton, { backgroundColor: colors.warning }]}
+                onPress={handleRemoveDuplicates}
+              >
+                <Ionicons name="trash-outline" size={18} color="#FFFFFF" />
+                <Text style={styles.adminActionText}>Remove Duplicates</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.adminActionButton, { backgroundColor: colors.error }]}
+                onPress={handleReplaceAll}
+              >
+                <Ionicons name="refresh" size={18} color="#FFFFFF" />
+                <Text style={styles.adminActionText}>Replace All (100)</Text>
+              </TouchableOpacity>
+            </View>
+
             {randomTasks.map((task: any) => (
               <View key={task.id} style={styles.taskCard}>
                 <View style={styles.taskCardHeader}>
@@ -438,12 +661,24 @@ export const AdminScreen = ({ navigation }: any) => {
                       {task.description}
                     </Text>
                   </View>
-                  <Text style={[
-                    styles.activeStatusBadge,
-                    { backgroundColor: task.is_active ? colors.success : colors.textLight }
-                  ]}>
-                    {task.is_active ? 'Active' : 'Inactive'}
-                  </Text>
+                  <View style={styles.taskActions}>
+                    <TouchableOpacity
+                      onPress={() => handleToggleTaskActive(task.id, task.is_active)}
+                      style={styles.actionButton}
+                    >
+                      <Ionicons
+                        name={task.is_active ? 'eye' : 'eye-off'}
+                        size={20}
+                        color={task.is_active ? colors.success : colors.textLight}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => handleDeleteTask(task.id)}
+                      style={styles.actionButton}
+                    >
+                      <Ionicons name="trash-outline" size={20} color={colors.error} />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             ))}
@@ -797,5 +1032,34 @@ const styles = StyleSheet.create({
   notifDate: {
     fontSize: 12,
     color: colors.textSecondary,
+  },
+  adminActionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  adminActionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  adminActionText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  taskActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionButton: {
+    padding: 8,
+    backgroundColor: colors.backgroundGray,
+    borderRadius: 8,
   },
 });
