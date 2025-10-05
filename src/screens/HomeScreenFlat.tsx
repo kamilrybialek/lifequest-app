@@ -9,7 +9,8 @@ import { typography, shadows } from '../theme/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { getUserAchievements, getAchievementCount } from '../database/achievements';
 import { getRandomActionTasks, completeRandomActionTask, RandomActionTask } from '../database/randomTasks';
-import { calculateBMI, getBMICategory, getBMIColor } from '../utils/healthCalculations';
+import { calculateBMI, getBMICategory, getBMIColor, calculateBMR, calculateTDEE } from '../utils/healthCalculations';
+import { getAverageSleepDuration, getWeightTrend } from '../database/health';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width - 32;
@@ -26,10 +27,15 @@ export const HomeScreenFlat = ({ navigation }: any) => {
   const [showTakeActionModal, setShowTakeActionModal] = useState(false);
   const [selectedActionTask, setSelectedActionTask] = useState<RandomActionTask | null>(null);
 
+  // Health Stats
+  const [avgSleep, setAvgSleep] = useState<number>(0);
+  const [weightTrend, setWeightTrend] = useState<any>(null);
+
   useEffect(() => {
     loadAppData();
     loadAchievements();
     loadRandomTasks();
+    loadHealthStats();
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 600,
@@ -57,6 +63,20 @@ export const HomeScreenFlat = ({ navigation }: any) => {
       setRandomTasks(tasks);
     } catch (error) {
       console.error('Error loading random tasks:', error);
+    }
+  };
+
+  const loadHealthStats = async () => {
+    if (!user?.id) return;
+    try {
+      const [sleep, trend] = await Promise.all([
+        getAverageSleepDuration(user.id, 7),
+        getWeightTrend(user.id, 30),
+      ]);
+      setAvgSleep(sleep);
+      setWeightTrend(trend);
+    } catch (error) {
+      console.error('Error loading health stats:', error);
     }
   };
 
@@ -387,6 +407,18 @@ export const HomeScreenFlat = ({ navigation }: any) => {
                 const bmiCategory = getBMICategory(bmi);
                 const bmiColor = getBMIColor(bmi);
 
+                // Calculate TDEE if we have age and gender
+                let tdee = 0;
+                if (user?.age && user?.gender && (user.gender === 'male' || user.gender === 'female')) {
+                  const bmr = calculateBMR(
+                    physicalHealthData.weight!,
+                    physicalHealthData.height!,
+                    user.age,
+                    user.gender
+                  );
+                  tdee = calculateTDEE(bmr, 'moderate');
+                }
+
                 return (
                   <>
                     <View style={styles.healthStatItem}>
@@ -404,25 +436,45 @@ export const HomeScreenFlat = ({ navigation }: any) => {
                       <View style={[styles.healthStatBadge, { backgroundColor: colors.physical + '20' }]}>
                         <Ionicons name="scale" size={20} color={colors.physical} />
                       </View>
-                      <Text style={styles.healthStatValue}>{user.weight}</Text>
+                      <Text style={styles.healthStatValue}>
+                        {weightTrend?.currentWeight?.toFixed(1) || physicalHealthData.weight}
+                      </Text>
                       <Text style={styles.healthStatLabel}>Weight (kg)</Text>
-                    </View>
-
-                    <View style={styles.healthStatItem}>
-                      <View style={[styles.healthStatBadge, { backgroundColor: colors.primary + '20' }]}>
-                        <Ionicons name="resize" size={20} color={colors.primary} />
-                      </View>
-                      <Text style={styles.healthStatValue}>{user.height}</Text>
-                      <Text style={styles.healthStatLabel}>Height (cm)</Text>
+                      {weightTrend && weightTrend.trend !== 'stable' && (
+                        <Text style={[styles.healthStatCategory, {
+                          color: weightTrend.trend === 'down' ? '#4CAF50' : '#FF9800'
+                        }]}>
+                          {weightTrend.trend === 'down' ? '↓' : '↑'} {Math.abs(weightTrend.change).toFixed(1)}kg
+                        </Text>
+                      )}
                     </View>
 
                     <View style={styles.healthStatItem}>
                       <View style={[styles.healthStatBadge, { backgroundColor: colors.mental + '20' }]}>
-                        <Ionicons name="time" size={20} color={colors.mental} />
+                        <Ionicons name="moon" size={20} color={colors.mental} />
                       </View>
-                      <Text style={styles.healthStatValue}>--</Text>
-                      <Text style={styles.healthStatLabel}>Screen Time</Text>
-                      <Text style={styles.healthStatCategory}>Track in Mental</Text>
+                      <Text style={styles.healthStatValue}>
+                        {avgSleep > 0 ? avgSleep.toFixed(1) : '--'}
+                      </Text>
+                      <Text style={styles.healthStatLabel}>Avg Sleep (h)</Text>
+                      {avgSleep > 0 && (
+                        <Text style={[styles.healthStatCategory, {
+                          color: avgSleep >= 7 ? '#4CAF50' : '#FF9800'
+                        }]}>
+                          {avgSleep >= 7 ? 'Good' : 'Low'}
+                        </Text>
+                      )}
+                    </View>
+
+                    <View style={styles.healthStatItem}>
+                      <View style={[styles.healthStatBadge, { backgroundColor: colors.nutrition + '20' }]}>
+                        <Ionicons name="flame" size={20} color={colors.nutrition} />
+                      </View>
+                      <Text style={styles.healthStatValue}>{tdee > 0 ? tdee : '--'}</Text>
+                      <Text style={styles.healthStatLabel}>TDEE (cal)</Text>
+                      {tdee > 0 && (
+                        <Text style={styles.healthStatCategory}>Daily needs</Text>
+                      )}
                     </View>
                   </>
                 );
@@ -430,6 +482,24 @@ export const HomeScreenFlat = ({ navigation }: any) => {
             </View>
           </View>
         )}
+
+        {/* Apple Health / Google Fit Integration Placeholder */}
+        <View style={styles.healthIntegrationCard}>
+          <View style={styles.healthIntegrationHeader}>
+            <View style={styles.healthIntegrationIconRow}>
+              <Text style={styles.healthIntegrationIcon}>❤️</Text>
+              <Text style={styles.healthIntegrationTitle}>Connect Health App</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+          </View>
+          <Text style={styles.healthIntegrationSubtitle}>
+            Sync with Apple Health or Google Fit to track steps, sleep, and workouts automatically
+          </Text>
+          <TouchableOpacity style={styles.healthIntegrationButton}>
+            <Ionicons name="link" size={18} color="#FFFFFF" />
+            <Text style={styles.healthIntegrationButtonText}>Connect Now</Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Achievements Preview */}
         <View style={styles.achievementsSection}>
@@ -1329,5 +1399,58 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     marginTop: 2,
     textAlign: 'center',
+  },
+
+  // Health Integration Card
+  healthIntegrationCard: {
+    margin: 16,
+    marginTop: 0,
+    padding: 20,
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: colors.primary + '20',
+    borderStyle: 'dashed',
+    ...shadows.small,
+  },
+  healthIntegrationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  healthIntegrationIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  healthIntegrationIcon: {
+    fontSize: 24,
+  },
+  healthIntegrationTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  healthIntegrationSubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    marginBottom: 16,
+    lineHeight: 18,
+  },
+  healthIntegrationButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  healthIntegrationButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });

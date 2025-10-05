@@ -1,17 +1,50 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { Text, Card, Title, TextInput, Button, RadioButton, ProgressBar } from 'react-native-paper';
+import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../store/appStore';
+import { useAuthStore } from '../../store/authStore';
 import { calculateBMI, getBMICategory, getBMIColor, getIdealWeightRange } from '../../utils/healthCalculations';
+import { logSleep, getSleepLogs, logWeight, getWeightHistory } from '../../database/health';
 
 export const PhysicalHealthScreen = () => {
   const { physicalHealthData, updatePhysicalHealthData } = useAppStore();
+  const user = useAuthStore((state) => state.user);
   const [workoutType, setWorkoutType] = useState<'strength' | 'cardio' | 'mobility' | 'other'>('strength');
   const [duration, setDuration] = useState('');
   const [intensity, setIntensity] = useState('5');
   const [steps, setSteps] = useState('');
   const [weight, setWeight] = useState(physicalHealthData.weight?.toString() || '');
   const [height, setHeight] = useState(physicalHealthData.height?.toString() || '');
+
+  // Sleep tracking state
+  const [sleepDuration, setSleepDuration] = useState('');
+  const [sleepQuality, setSleepQuality] = useState('3');
+  const [sleepHistory, setSleepHistory] = useState<any[]>([]);
+
+  // Weight tracking state
+  const [newWeight, setNewWeight] = useState('');
+  const [weightNotes, setWeightNotes] = useState('');
+  const [weightHistory, setWeightHistory] = useState<any[]>([]);
+
+  // Load sleep and weight history
+  useEffect(() => {
+    loadHealthData();
+  }, [user?.id]);
+
+  const loadHealthData = async () => {
+    if (!user?.id) return;
+    try {
+      const [sleep, weights] = await Promise.all([
+        getSleepLogs(user.id, 7),
+        getWeightHistory(user.id, 30),
+      ]);
+      setSleepHistory(sleep);
+      setWeightHistory(weights);
+    } catch (error) {
+      console.error('Error loading health data:', error);
+    }
+  };
 
   const handleLogWorkout = () => {
     const durationNum = parseInt(duration);
@@ -54,6 +87,55 @@ export const PhysicalHealthScreen = () => {
     }
   };
 
+  const handleLogSleep = async () => {
+    if (!user?.id) {
+      Alert.alert('Error', 'Please log in to track sleep');
+      return;
+    }
+    const durationNum = parseFloat(sleepDuration);
+    const qualityNum = parseInt(sleepQuality);
+    if (!isNaN(durationNum) && durationNum > 0 && qualityNum >= 1 && qualityNum <= 5) {
+      try {
+        await logSleep(user.id, {
+          duration_hours: durationNum,
+          quality_rating: qualityNum,
+        });
+        setSleepDuration('');
+        setSleepQuality('3');
+        await loadHealthData();
+        Alert.alert('Success', '😴 Sleep logged successfully!');
+      } catch (error) {
+        console.error('Error logging sleep:', error);
+        Alert.alert('Error', 'Failed to log sleep');
+      }
+    } else {
+      Alert.alert('Invalid Input', 'Please enter valid sleep duration and quality (1-5)');
+    }
+  };
+
+  const handleLogWeight = async () => {
+    if (!user?.id) {
+      Alert.alert('Error', 'Please log in to track weight');
+      return;
+    }
+    const weightNum = parseFloat(newWeight);
+    const heightNum = physicalHealthData.height || parseFloat(height);
+    if (!isNaN(weightNum) && weightNum > 0) {
+      try {
+        await logWeight(user.id, weightNum, heightNum, weightNotes);
+        setNewWeight('');
+        setWeightNotes('');
+        await loadHealthData();
+        Alert.alert('Success', '⚖️ Weight logged successfully!');
+      } catch (error) {
+        console.error('Error logging weight:', error);
+        Alert.alert('Error', 'Failed to log weight');
+      }
+    } else {
+      Alert.alert('Invalid Input', 'Please enter a valid weight');
+    }
+  };
+
   const stepsProgress = physicalHealthData.dailySteps / physicalHealthData.stepsGoal;
 
   // Calculate BMI if weight and height are available
@@ -73,6 +155,154 @@ export const PhysicalHealthScreen = () => {
         <Title style={styles.title}>💪 Physical Health</Title>
         <Text style={styles.subtitle}>Build a strong, healthy body</Text>
       </View>
+
+      {/* Sleep Tracking */}
+      <Card style={styles.card}>
+        <Card.Content>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardTitleRow}>
+              <Ionicons name="moon" size={24} color="#9C27B0" />
+              <Title style={styles.cardTitle}>😴 Sleep Tracker</Title>
+            </View>
+          </View>
+          <Text style={styles.description}>
+            Track your sleep quality and duration
+          </Text>
+
+          <View style={styles.sleepInputRow}>
+            <View style={styles.sleepInputHalf}>
+              <TextInput
+                label="Duration (hours)"
+                value={sleepDuration}
+                onChangeText={setSleepDuration}
+                keyboardType="decimal-pad"
+                mode="outlined"
+                style={styles.input}
+                placeholder="7.5"
+              />
+            </View>
+            <View style={styles.sleepInputHalf}>
+              <TextInput
+                label="Quality (1-5)"
+                value={sleepQuality}
+                onChangeText={setSleepQuality}
+                keyboardType="number-pad"
+                mode="outlined"
+                style={styles.input}
+                placeholder="3"
+              />
+            </View>
+          </View>
+
+          <View style={styles.sleepQualityGuide}>
+            <Text style={styles.guideTitle}>Quality Guide:</Text>
+            <Text style={styles.guideText}>⭐ Poor • ⭐⭐ Fair • ⭐⭐⭐ Good • ⭐⭐⭐⭐ Great • ⭐⭐⭐⭐⭐ Excellent</Text>
+          </View>
+
+          <Button mode="contained" onPress={handleLogSleep} style={styles.button} buttonColor="#9C27B0">
+            Log Sleep
+          </Button>
+
+          {sleepHistory.length > 0 && (
+            <View style={styles.historySection}>
+              <Text style={styles.historyTitle}>Recent Sleep (Last 7 days):</Text>
+              {sleepHistory.slice(0, 5).map((log: any, index) => (
+                <View key={index} style={styles.historyItem}>
+                  <View style={styles.historyItemRow}>
+                    <Ionicons name="moon" size={16} color="#9C27B0" />
+                    <Text style={styles.historyDate}>
+                      {new Date(log.sleep_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                    </Text>
+                  </View>
+                  <View style={styles.historyStats}>
+                    <Text style={styles.historyValue}>{log.duration_hours}h</Text>
+                    <View style={styles.qualityBadge}>
+                      <Text style={styles.qualityText}>{'⭐'.repeat(log.quality_rating || 3)}</Text>
+                    </View>
+                  </View>
+                </View>
+              ))}
+              {sleepHistory.length > 0 && (
+                <View style={styles.averageSection}>
+                  <Text style={styles.averageLabel}>7-day average:</Text>
+                  <Text style={styles.averageValue}>
+                    {(sleepHistory.reduce((sum: number, log: any) => sum + (log.duration_hours || 0), 0) / sleepHistory.length).toFixed(1)}h
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+        </Card.Content>
+      </Card>
+
+      {/* Weight Tracking */}
+      <Card style={styles.card}>
+        <Card.Content>
+          <View style={styles.cardHeader}>
+            <View style={styles.cardTitleRow}>
+              <Ionicons name="fitness" size={24} color="#FF5722" />
+              <Title style={styles.cardTitle}>⚖️ Weight Tracker</Title>
+            </View>
+          </View>
+          <Text style={styles.description}>
+            Log your weight weekly to track progress
+          </Text>
+
+          <TextInput
+            label="Weight (kg)"
+            value={newWeight}
+            onChangeText={setNewWeight}
+            keyboardType="decimal-pad"
+            mode="outlined"
+            style={styles.input}
+            placeholder="70.5"
+          />
+
+          <TextInput
+            label="Notes (optional)"
+            value={weightNotes}
+            onChangeText={setWeightNotes}
+            mode="outlined"
+            style={styles.input}
+            placeholder="After morning workout"
+            multiline
+          />
+
+          <Button mode="contained" onPress={handleLogWeight} style={styles.button} buttonColor="#FF5722">
+            Log Weight
+          </Button>
+
+          {weightHistory.length > 0 && (
+            <View style={styles.historySection}>
+              <Text style={styles.historyTitle}>Weight History (Last 30 days):</Text>
+              {weightHistory.slice(0, 5).map((log: any, index) => {
+                const prevWeight = weightHistory[index + 1]?.weight_kg;
+                const change = prevWeight ? log.weight_kg - prevWeight : 0;
+                return (
+                  <View key={index} style={styles.historyItem}>
+                    <View style={styles.historyItemRow}>
+                      <Ionicons name="calendar" size={16} color="#FF5722" />
+                      <Text style={styles.historyDate}>
+                        {new Date(log.measurement_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </Text>
+                    </View>
+                    <View style={styles.historyStats}>
+                      <Text style={styles.historyValue}>{log.weight_kg.toFixed(1)} kg</Text>
+                      {change !== 0 && (
+                        <View style={[styles.changeBadge, { backgroundColor: change < 0 ? '#4CAF50' : '#FF9800' }]}>
+                          <Text style={styles.changeText}>
+                            {change > 0 ? '↑' : '↓'} {Math.abs(change).toFixed(1)}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          )}
+        </Card.Content>
+      </Card>
 
       {/* BMI Calculator */}
       <Card style={styles.card}>
@@ -490,5 +720,122 @@ const styles = StyleSheet.create({
     color: '#666',
     fontStyle: 'italic',
     marginTop: 4,
+  },
+  cardHeader: {
+    marginBottom: 8,
+  },
+  cardTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  cardTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginLeft: 8,
+  },
+  sleepInputRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  sleepInputHalf: {
+    flex: 1,
+  },
+  sleepQualityGuide: {
+    backgroundColor: '#F3E5F5',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+  },
+  guideTitle: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#9C27B0',
+    marginBottom: 4,
+  },
+  guideText: {
+    fontSize: 11,
+    color: '#666',
+  },
+  historySection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+  },
+  historyTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 12,
+    color: '#333',
+  },
+  historyItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  historyItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  historyDate: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+  },
+  historyStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  historyValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#333',
+  },
+  qualityBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    backgroundColor: '#FFF3E0',
+    borderRadius: 6,
+  },
+  qualityText: {
+    fontSize: 10,
+  },
+  changeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  changeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  averageSection: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  averageLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  averageValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#9C27B0',
   },
 });
