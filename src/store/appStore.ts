@@ -11,6 +11,8 @@ import {
   NutritionData,
   Pillar,
 } from '../types';
+import { getUserStats, getAllStreaks, getDailyProgress } from '../database/user';
+import { useAuthStore } from './authStore';
 
 interface AppState {
   // Progress
@@ -91,14 +93,41 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   loadAppData: async () => {
     try {
-      const progressData = await AsyncStorage.getItem('progress');
+      // Get user ID from auth store
+      const userId = useAuthStore.getState().user?.id;
+      if (!userId) {
+        console.log('No user logged in, skipping stats load');
+        return;
+      }
+
+      // Load user stats from database
+      const stats = await getUserStats(userId);
+      const streaks = await getAllStreaks(userId);
+      const dailyProgress = await getDailyProgress(userId);
+
+      // Update progress with database data
+      const updatedProgress: UserProgress = {
+        level: stats?.level || 1,
+        xp: stats?.total_xp || 0,
+        totalPoints: stats?.total_xp || 0,
+        streaks: [
+          { pillar: 'finance', current: streaks.finance, longest: streaks.finance },
+          { pillar: 'mental', current: streaks.mental, longest: streaks.mental },
+          { pillar: 'physical', current: streaks.physical, longest: streaks.physical },
+          { pillar: 'nutrition', current: streaks.nutrition, longest: streaks.nutrition },
+        ],
+        achievements: get().progress.achievements, // Keep existing achievements for now
+      };
+
+      set({ progress: updatedProgress });
+
+      // Load other data from AsyncStorage
       const tasksData = await AsyncStorage.getItem('dailyTasks');
       const financeData = await AsyncStorage.getItem('financeData');
       const mentalData = await AsyncStorage.getItem('mentalHealthData');
       const physicalData = await AsyncStorage.getItem('physicalHealthData');
       const nutritionData = await AsyncStorage.getItem('nutritionData');
 
-      if (progressData) set({ progress: JSON.parse(progressData) });
       if (tasksData) set({ dailyTasks: JSON.parse(tasksData) });
       if (financeData) set({ financeData: JSON.parse(financeData) });
       if (mentalData) set({ mentalHealthData: JSON.parse(mentalData) });

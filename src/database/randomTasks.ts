@@ -1,4 +1,5 @@
 import { getDatabase } from './init';
+import { addXP, updateStreak } from './user';
 
 // ===== RANDOM ACTION TASKS =====
 
@@ -174,13 +175,12 @@ export const completeRandomActionTask = async (
 
   if (!task) return;
 
-  // Add XP to user
-  await db.runAsync(`
-    UPDATE user_stats
-    SET total_xp = total_xp + ?,
-        level = (total_xp + ?) / 100 + 1
-    WHERE user_id = ?
-  `, [task.xp_reward, task.xp_reward, userId]);
+  // Add XP using proper function
+  const { totalXP, level } = await addXP(userId, task.xp_reward);
+
+  // Update streak for the pillar
+  const pillar = task.pillar as 'finance' | 'mental' | 'physical' | 'nutrition';
+  const { streak } = await updateStreak(userId, pillar);
 
   // Log activity
   await db.runAsync(`
@@ -189,8 +189,18 @@ export const completeRandomActionTask = async (
   `, [
     userId,
     'random_action_completed',
-    JSON.stringify({ task_id: taskId, title: task.title, xp: task.xp_reward })
+    JSON.stringify({
+      task_id: taskId,
+      title: task.title,
+      pillar: task.pillar,
+      xp: task.xp_reward,
+      new_total_xp: totalXP,
+      new_level: level,
+      new_streak: streak,
+    })
   ]);
+
+  console.log(`✅ Task completed: ${task.title} (+${task.xp_reward} XP, Level ${level}, ${pillar} streak: ${streak})`);
 };
 
 // Get task statistics
