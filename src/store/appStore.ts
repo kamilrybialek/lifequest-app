@@ -11,6 +11,7 @@ import {
   NutritionData,
   Pillar,
 } from '../types';
+import { getUserStats, getAllStreaks, getDailyProgress } from '../database/user';
 
 interface AppState {
   // Progress
@@ -91,19 +92,59 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   loadAppData: async () => {
     try {
-      const progressData = await AsyncStorage.getItem('progress');
+      // Load from AsyncStorage (pillar-specific data)
       const tasksData = await AsyncStorage.getItem('dailyTasks');
       const financeData = await AsyncStorage.getItem('financeData');
       const mentalData = await AsyncStorage.getItem('mentalHealthData');
       const physicalData = await AsyncStorage.getItem('physicalHealthData');
       const nutritionData = await AsyncStorage.getItem('nutritionData');
 
-      if (progressData) set({ progress: JSON.parse(progressData) });
       if (tasksData) set({ dailyTasks: JSON.parse(tasksData) });
       if (financeData) set({ financeData: JSON.parse(financeData) });
       if (mentalData) set({ mentalHealthData: JSON.parse(mentalData) });
       if (physicalData) set({ physicalHealthData: JSON.parse(physicalData) });
       if (nutritionData) set({ nutritionData: JSON.parse(nutritionData) });
+
+      // Load progress from SQLite (if user is logged in)
+      const { useAuthStore } = require('./authStore');
+      const authStore = useAuthStore.getState();
+      const userId = authStore.user?.id;
+
+      if (userId) {
+        try {
+          // Get XP, level, and streaks from SQLite database
+          const [userStats, streaks] = await Promise.all([
+            getUserStats(userId),
+            getAllStreaks(userId),
+          ]);
+
+          // Transform SQLite data into AppStore format
+          const updatedProgress: UserProgress = {
+            level: userStats?.level || 1,
+            xp: userStats?.total_xp || 0,
+            totalPoints: userStats?.total_xp || 0,
+            streaks: [
+              { pillar: 'finance', current: streaks.finance || 0, longest: streaks.finance || 0 },
+              { pillar: 'mental', current: streaks.mental || 0, longest: streaks.mental || 0 },
+              { pillar: 'physical', current: streaks.physical || 0, longest: streaks.physical || 0 },
+              { pillar: 'nutrition', current: streaks.nutrition || 0, longest: streaks.nutrition || 0 },
+            ],
+            achievements: get().progress.achievements, // Keep existing achievements
+          };
+
+          set({ progress: updatedProgress });
+          console.log('✅ Loaded progress from SQLite:', updatedProgress);
+        } catch (error) {
+          console.error('Error loading progress from SQLite:', error);
+          // Fall back to AsyncStorage if SQLite fails
+          const progressData = await AsyncStorage.getItem('progress');
+          if (progressData) set({ progress: JSON.parse(progressData) });
+        }
+      } else {
+        // No user logged in - use AsyncStorage
+        const progressData = await AsyncStorage.getItem('progress');
+        if (progressData) set({ progress: JSON.parse(progressData) });
+      }
 
       // Generate tasks if none exist or it's a new day
       const tasks = tasksData ? JSON.parse(tasksData) : [];
