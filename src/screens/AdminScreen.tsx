@@ -91,8 +91,6 @@ export const AdminScreen = ({ navigation }: any) => {
         await loadAnalytics();
       } else if (activeTab === 'users') {
         await loadUsers();
-      } else if (activeTab === 'tasks') {
-        await loadTaskTemplates();
       } else if (activeTab === 'random') {
         await loadRandomTasks();
       } else if (activeTab === 'notifications') {
@@ -222,6 +220,37 @@ export const AdminScreen = ({ navigation }: any) => {
     }
   };
 
+  const handleToggleTaskActive = async (taskId: number, isActive: boolean) => {
+    try {
+      await updateRandomActionTaskAdmin(taskId, { is_active: isActive });
+      loadRandomTasks();
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update task');
+    }
+  };
+
+  const handleDeleteRandomTask = async (taskId: number) => {
+    try {
+      Alert.alert(
+        'Delete Task',
+        'Are you sure you want to delete this task?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              await deleteRandomActionTaskAdmin(taskId);
+              loadRandomTasks();
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      Alert.alert('Error', 'Failed to delete task');
+    }
+  };
+
   const createTask = async () => {
     try {
       if (!user?.id) return;
@@ -321,14 +350,6 @@ export const AdminScreen = ({ navigation }: any) => {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'tasks' && styles.tabActive]}
-          onPress={() => setActiveTab('tasks')}
-        >
-          <Text style={[styles.tabText, activeTab === 'tasks' && styles.tabTextActive]}>
-            ✅ Tasks
-          </Text>
-        </TouchableOpacity>
-        <TouchableOpacity
           style={[styles.tab, activeTab === 'random' && styles.tabActive]}
           onPress={() => setActiveTab('random')}
         >
@@ -395,96 +416,6 @@ export const AdminScreen = ({ navigation }: any) => {
           </View>
         )}
 
-        {/* Tasks Tab */}
-        {activeTab === 'tasks' && (
-          <View>
-            <TouchableOpacity
-              style={styles.createButton}
-              onPress={() => setShowCreateTask(!showCreateTask)}
-            >
-              <Ionicons name="add-circle" size={20} color="#FFFFFF" />
-              <Text style={styles.createButtonText}>Create Task Template</Text>
-            </TouchableOpacity>
-
-            {showCreateTask && (
-              <View style={styles.createForm}>
-                <Text style={styles.formLabel}>Pillar</Text>
-                <View style={styles.pillarsRow}>
-                  {['finance', 'mental', 'physical', 'nutrition'].map((p) => (
-                    <TouchableOpacity
-                      key={p}
-                      style={[
-                        styles.pillarButton,
-                        newTask.pillar === p && styles.pillarButtonActive,
-                      ]}
-                      onPress={() => setNewTask({ ...newTask, pillar: p })}
-                    >
-                      <Text style={styles.pillarButtonText}>{p}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                <Text style={styles.formLabel}>Title</Text>
-                <TextInput
-                  style={styles.input}
-                  value={newTask.title}
-                  onChangeText={(text) => setNewTask({ ...newTask, title: text })}
-                  placeholder="Task title"
-                />
-
-                <Text style={styles.formLabel}>Description</Text>
-                <TextInput
-                  style={styles.input}
-                  value={newTask.description}
-                  onChangeText={(text) => setNewTask({ ...newTask, description: text })}
-                  placeholder="Task description"
-                />
-
-                <View style={styles.formRow}>
-                  <View style={{ flex: 1, marginRight: 8 }}>
-                    <Text style={styles.formLabel}>Duration (min)</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={String(newTask.duration)}
-                      onChangeText={(text) =>
-                        setNewTask({ ...newTask, duration: parseInt(text) || 5 })
-                      }
-                      keyboardType="numeric"
-                    />
-                  </View>
-                  <View style={{ flex: 1, marginLeft: 8 }}>
-                    <Text style={styles.formLabel}>XP Reward</Text>
-                    <TextInput
-                      style={styles.input}
-                      value={String(newTask.xp)}
-                      onChangeText={(text) => setNewTask({ ...newTask, xp: parseInt(text) || 10 })}
-                      keyboardType="numeric"
-                    />
-                  </View>
-                </View>
-
-                <TouchableOpacity style={styles.submitButton} onPress={createTask}>
-                  <Text style={styles.submitButtonText}>Create Task</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {taskTemplates.map((task: any) => (
-              <View key={task.id} style={styles.taskCard}>
-                <View style={styles.taskHeader}>
-                  <Text style={styles.taskPillar}>{task.pillar}</Text>
-                  <TouchableOpacity onPress={() => deleteTask(task.id)}>
-                    <Ionicons name="trash-outline" size={20} color={colors.error} />
-                  </TouchableOpacity>
-                </View>
-                <Text style={styles.taskTitle}>{task.title}</Text>
-                <Text style={styles.taskMeta}>
-                  {task.duration_minutes} min • {task.xp_reward} XP • {task.difficulty}
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
 
         {/* Random Tasks Tab */}
         {activeTab === 'random' && (
@@ -535,12 +466,24 @@ export const AdminScreen = ({ navigation }: any) => {
                       {task.description}
                     </Text>
                   </View>
-                  <Text style={[
-                    styles.activeStatusBadge,
-                    { backgroundColor: task.is_active ? colors.success : colors.textLight }
-                  ]}>
-                    {task.is_active ? 'Active' : 'Inactive'}
-                  </Text>
+                  <View style={styles.taskActions}>
+                    <TouchableOpacity
+                      style={styles.taskActionButton}
+                      onPress={() => handleToggleTaskActive(task.id, !task.is_active)}
+                    >
+                      <Ionicons
+                        name={task.is_active ? 'eye-off' : 'eye'}
+                        size={20}
+                        color={task.is_active ? '#666' : colors.primary}
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.taskActionButton}
+                      onPress={() => handleDeleteRandomTask(task.id)}
+                    >
+                      <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             ))}
@@ -924,5 +867,15 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  taskActions: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+  },
+  taskActionButton: {
+    padding: 8,
+    borderRadius: 6,
+    backgroundColor: '#F3F4F6',
   },
 });
