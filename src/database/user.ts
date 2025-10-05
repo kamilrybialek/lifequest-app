@@ -77,3 +77,71 @@ export const addXP = async (userId: number, xpAmount: number) => {
 
   return { totalXP: newTotalXP, level: newLevel };
 };
+
+export const updateStreak = async (
+  userId: number,
+  pillar: 'finance' | 'mental' | 'physical' | 'nutrition'
+) => {
+  const db = await getDatabase();
+  const stats: any = await getUserStats(userId);
+  const today = new Date().toISOString().split('T')[0];
+  const lastActiveDate = stats?.last_active_date;
+
+  const streakField = `${pillar}_streak`;
+  let newStreak = 1;
+  let isNewDay = true;
+
+  if (lastActiveDate) {
+    const lastDate = new Date(lastActiveDate);
+    const todayDate = new Date(today);
+    const diffTime = todayDate.getTime() - lastDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) {
+      // Same day - don't increment streak
+      newStreak = stats[streakField] || 0;
+      isNewDay = false;
+    } else if (diffDays === 1) {
+      // Next day - increment streak
+      newStreak = (stats[streakField] || 0) + 1;
+    } else {
+      // Missed days - reset to 1
+      newStreak = 1;
+    }
+  }
+
+  await updateUserStats(userId, {
+    [streakField]: newStreak,
+    last_active_date: today,
+  });
+
+  return { streak: newStreak, isNewDay };
+};
+
+export const getDailyProgress = async (userId: number) => {
+  const db = await getDatabase();
+  const today = new Date().toISOString().split('T')[0];
+
+  const progress = await db.getAllAsync(`
+    SELECT
+      SUM(CASE WHEN lesson_id LIKE 'finance%' THEN 1 ELSE 0 END) as finance,
+      SUM(CASE WHEN lesson_id LIKE 'mental%' THEN 1 ELSE 0 END) as mental,
+      SUM(CASE WHEN lesson_id LIKE 'physical%' THEN 1 ELSE 0 END) as physical,
+      SUM(CASE WHEN lesson_id LIKE 'nutrition%' THEN 1 ELSE 0 END) as nutrition
+    FROM lesson_progress
+    WHERE user_id = ? AND DATE(completed_at) = ?
+  `, [userId, today]);
+
+  return progress[0] || { finance: 0, mental: 0, physical: 0, nutrition: 0 };
+};
+
+export const getAllStreaks = async (userId: number) => {
+  const stats: any = await getUserStats(userId);
+
+  return {
+    finance: stats?.finance_streak || 0,
+    mental: stats?.mental_streak || 0,
+    physical: stats?.physical_streak || 0,
+    nutrition: stats?.nutrition_streak || 0,
+  };
+};
