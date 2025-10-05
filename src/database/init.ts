@@ -778,6 +778,17 @@ export const initDatabase = async () => {
     );
   `);
 
+  // Check if random_action_tasks is empty and seed if needed
+  const taskCount = await db.getFirstAsync<{ count: number }>(
+    'SELECT COUNT(*) as count FROM random_action_tasks'
+  );
+
+  if (taskCount && taskCount.count === 0) {
+    console.log('🌱 Seeding random action tasks (first time setup)...');
+    const { seedRandomActionTasks } = await import('./seedRandomTasks');
+    await seedRandomActionTasks();
+  }
+
   console.log('✅ Database initialized successfully');
   return db;
 };

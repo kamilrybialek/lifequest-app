@@ -149,3 +149,14 @@ export const clearRandomActionTasks = async () => {
   await db.runAsync('DELETE FROM random_action_tasks');
   console.log('🗑️ Cleared all random action tasks');
 };
+
+/**
+ * Replace all existing tasks with the 100 curated tasks
+ * Use this to fix duplicates and Polish language tasks
+ */
+export const replaceAllRandomActionTasks = async () => {
+  console.log('🔄 Replacing all random action tasks...');
+  await clearRandomActionTasks();
+  await seedRandomActionTasks();
+  console.log('✅ Successfully replaced all tasks with 100 curated English tasks');
+};

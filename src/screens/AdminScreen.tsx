@@ -27,7 +27,7 @@ import {
   updateRandomActionTaskAdmin,
   deleteRandomActionTaskAdmin,
 } from '../database/admin';
-import { seedRandomActionTasks, clearRandomActionTasks } from '../database/seedRandomTasks';
+import { seedRandomActionTasks, clearRandomActionTasks, replaceAllRandomActionTasks } from '../database/seedRandomTasks';
 
 export const AdminScreen = ({ navigation }: any) => {
   const { user } = useAuthStore();
@@ -196,6 +196,29 @@ export const AdminScreen = ({ navigation }: any) => {
       );
     } catch (error) {
       Alert.alert('Error', 'Failed to clear tasks');
+    }
+  };
+
+  const handleReplaceAllTasks = async () => {
+    try {
+      Alert.alert(
+        'Replace All Tasks',
+        `This will DELETE all ${randomTasks.length} existing tasks and replace them with 100 curated English tasks. Continue?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Replace All',
+            style: 'destructive',
+            onPress: async () => {
+              await replaceAllRandomActionTasks();
+              Alert.alert('Success', 'All tasks replaced with 100 new English tasks!');
+              loadRandomTasks();
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      Alert.alert('Error', 'Failed to replace tasks');
     }
   };
 
@@ -473,11 +496,21 @@ export const AdminScreen = ({ navigation }: any) => {
 
             <View style={styles.seedButtonsContainer}>
               <TouchableOpacity
+                style={[styles.seedButton, styles.seedButtonWarning]}
+                onPress={handleReplaceAllTasks}
+              >
+                <Ionicons name="refresh" size={18} color="#FFFFFF" />
+                <Text style={styles.seedButtonText}>Replace All (Fix)</Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.seedButtonsContainer}>
+              <TouchableOpacity
                 style={[styles.seedButton, styles.seedButtonPrimary]}
                 onPress={handleSeedTasks}
               >
                 <Ionicons name="download" size={18} color="#FFFFFF" />
-                <Text style={styles.seedButtonText}>Seed 100 Tasks</Text>
+                <Text style={styles.seedButtonText}>Add 100 Tasks</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -883,6 +916,9 @@ const styles = StyleSheet.create({
   },
   seedButtonDanger: {
     backgroundColor: '#EF4444',
+  },
+  seedButtonWarning: {
+    backgroundColor: '#F59E0B',
   },
   seedButtonText: {
     fontSize: 14,
