@@ -49,6 +49,9 @@ import { AdminScreen } from '../screens/AdminScreen';
 // Achievements
 import { AchievementsScreen } from '../screens/AchievementsScreen';
 
+// Streaks
+import { StreaksScreen } from '../screens/StreaksScreen';
+
 // Task screens
 import { TrackExpensesScreen } from '../screens/tasks/TrackExpensesScreen';
 import { MorningSunlightScreen } from '../screens/tasks/MorningSunlightScreen';
@@ -260,6 +263,13 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="Achievements"
               component={AchievementsScreen}
+              options={{ headerShown: false }}
+            />
+
+            {/* Streaks Screen */}
+            <Stack.Screen
+              name="Streaks"
+              component={StreaksScreen}
               options={{ headerShown: false }}
             />
           </>

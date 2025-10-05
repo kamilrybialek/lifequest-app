@@ -19,6 +19,8 @@ import { getPhysicalLessonContent, PhysicalLessonSection } from '../../data/phys
 import { useAuthStore } from '../../store/authStore';
 import { saveLessonProgress } from '../../database/lessons';
 import { checkAndUnlockNextFoundation } from '../../database/physical';
+import { addXP, updateStreak } from '../../database/user';
+import { useAppStore } from '../../store/appStore';
 
 const { width } = Dimensions.get('window');
 
@@ -39,6 +41,7 @@ export const PhysicalLessonDuolingo = ({ route, navigation }: any) => {
   const { lessonId, lessonTitle, foundationId } = route.params;
   const content = getPhysicalLessonContent(lessonId);
   const { user } = useAuthStore();
+  const { loadAppData } = useAppStore();
 
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
   const [userAnswer, setUserAnswer] = useState<string>('');
@@ -131,18 +134,31 @@ export const PhysicalLessonDuolingo = ({ route, navigation }: any) => {
 
     try {
       const answer = selectedChoice || userAnswer;
+      const xpEarned = 50;
 
+      // Save lesson progress
       await saveLessonProgress(user.id, {
         lessonId,
         stepId: foundationId,
         completed: true,
         answer: answer || undefined,
-        xpEarned: 50,
+        xpEarned,
         completedAt: new Date().toISOString(),
       });
 
+      // Add XP to user stats
+      await addXP(user.id, xpEarned);
+
+      // Update physical streak
+      await updateStreak(user.id, 'physical');
+
+      // Check and unlock next foundation
       await checkAndUnlockNextFoundation(user.id);
-      console.log('✅ Physical lesson completed:', lessonId);
+
+      // Reload app data to update dashboard
+      await loadAppData();
+
+      console.log('✅ Physical lesson completed:', lessonId, `+${xpEarned} XP`);
 
       setShowSuccessModal(true);
     } catch (error) {
@@ -225,8 +241,8 @@ export const PhysicalLessonDuolingo = ({ route, navigation }: any) => {
 
   const renderQuizSlide = (question: NonNullable<LessonSlide['question']>) => {
     return (
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.slideContainer}>
+      <View style={styles.slideContainer}>
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
           <View style={styles.quizContent}>
             <View style={styles.quizHeader}>
               <Ionicons name="help-circle" size={40} color={colors.physical} />
@@ -243,7 +259,10 @@ export const PhysicalLessonDuolingo = ({ route, navigation }: any) => {
                     styles.choiceButton,
                     selectedChoice === choice && styles.choiceButtonSelected,
                   ]}
-                  onPress={() => setSelectedChoice(choice)}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setSelectedChoice(choice);
+                  }}
                   activeOpacity={0.7}
                 >
                   <View style={styles.choiceContent}>
@@ -275,7 +294,10 @@ export const PhysicalLessonDuolingo = ({ route, navigation }: any) => {
                   selectedChoice === 'true' && styles.trueFalseButtonSelected,
                   { backgroundColor: '#58CC02' + '20' }
                 ]}
-                onPress={() => setSelectedChoice('true')}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setSelectedChoice('true');
+                }}
               >
                 <Ionicons name="checkmark-circle" size={48} color="#58CC02" />
                 <Text style={styles.trueFalseText}>True</Text>
@@ -287,7 +309,10 @@ export const PhysicalLessonDuolingo = ({ route, navigation }: any) => {
                   selectedChoice === 'false' && styles.trueFalseButtonSelected,
                   { backgroundColor: '#FF4B4B' + '20' }
                 ]}
-                onPress={() => setSelectedChoice('false')}
+                onPress={() => {
+                  Keyboard.dismiss();
+                  setSelectedChoice('false');
+                }}
               >
                 <Ionicons name="close-circle" size={48} color="#FF4B4B" />
                 <Text style={styles.trueFalseText}>False</Text>
@@ -304,6 +329,9 @@ export const PhysicalLessonDuolingo = ({ route, navigation }: any) => {
                 placeholder={question.placeholder}
                 placeholderTextColor={colors.textLight}
                 keyboardType="numeric"
+                returnKeyType="done"
+                onSubmitEditing={Keyboard.dismiss}
+                blurOnSubmit={true}
               />
               {question.unit && (
                 <Text style={styles.unitText}>{question.unit}</Text>
@@ -319,11 +347,14 @@ export const PhysicalLessonDuolingo = ({ route, navigation }: any) => {
               placeholder={question.placeholder}
               placeholderTextColor={colors.textLight}
               multiline
+              returnKeyType="done"
+              onSubmitEditing={Keyboard.dismiss}
+              blurOnSubmit={true}
             />
           )}
         </View>
-        </View>
-      </TouchableWithoutFeedback>
+        </TouchableWithoutFeedback>
+      </View>
     );
   };
 
@@ -466,14 +497,14 @@ export const PhysicalLessonDuolingo = ({ route, navigation }: any) => {
 function generateQuizSlides(content: any): LessonSlide[] {
   const quizSlides: LessonSlide[] = [];
 
-  // Add a quiz after every 2-3 content sections
-  // For demo, adding simple comprehension questions
+  // Add quiz questions based on lesson content - mixed throughout lessons
 
+  // Foundation 1: Holistic Health
   if (content.lessonId === 'foundation1-lesson1') {
     quizSlides.push({
       type: 'quiz',
       question: {
-        question: 'Does BMI distinguish between muscle and fat?',
+        question: 'True or False: Holistic health focuses only on physical fitness.',
         type: 'true-false',
         correctAnswer: 'false',
       },
@@ -484,15 +515,242 @@ function generateQuizSlides(content: any): LessonSlide[] {
     quizSlides.push({
       type: 'quiz',
       question: {
-        question: 'What does TDEE stand for?',
+        question: 'What percentage of serotonin (happy chemical) is produced in your gut?',
+        type: 'multiple-choice',
+        choices: ['30%', '50%', '70%', '90%'],
+        correctAnswer: '90%',
+      },
+    });
+  }
+
+  if (content.lessonId === 'foundation1-lesson3') {
+    quizSlides.push({
+      type: 'quiz',
+      question: {
+        question: 'True health means having energy, mental clarity, and the ability to thrive.',
+        type: 'true-false',
+        correctAnswer: 'true',
+      },
+    });
+  }
+
+  // Foundation 2: Sleep
+  if (content.lessonId === 'foundation2-lesson1') {
+    quizSlides.push({
+      type: 'quiz',
+      question: {
+        question: 'Can you catch up on sleep debt over the weekend?',
+        type: 'true-false',
+        correctAnswer: 'false',
+      },
+    });
+  }
+
+  if (content.lessonId === 'foundation2-lesson2') {
+    quizSlides.push({
+      type: 'quiz',
+      question: {
+        question: 'What controls your sleep-wake cycle?',
+        type: 'multiple-choice',
+        choices: ['Insulin', 'Circadian rhythm', 'Cortisol', 'Serotonin'],
+        correctAnswer: 'Circadian rhythm',
+      },
+    });
+  }
+
+  // Foundation 3: Stress
+  if (content.lessonId === 'foundation3-lesson1') {
+    quizSlides.push({
+      type: 'quiz',
+      question: {
+        question: 'What is the main stress hormone in your body?',
+        type: 'multiple-choice',
+        choices: ['Insulin', 'Cortisol', 'Melatonin', 'Dopamine'],
+        correctAnswer: 'Cortisol',
+      },
+    });
+  }
+
+  if (content.lessonId === 'foundation3-lesson2') {
+    quizSlides.push({
+      type: 'quiz',
+      question: {
+        question: 'Chronic inflammation can cause fatigue and brain fog.',
+        type: 'true-false',
+        correctAnswer: 'true',
+      },
+    });
+  }
+
+  // Foundation 4: Nutrition
+  if (content.lessonId === 'foundation4-lesson1') {
+    quizSlides.push({
+      type: 'quiz',
+      question: {
+        question: 'Whole foods feed good gut bacteria.',
+        type: 'true-false',
+        correctAnswer: 'true',
+      },
+    });
+  }
+
+  if (content.lessonId === 'foundation4-lesson2') {
+    quizSlides.push({
+      type: 'quiz',
+      question: {
+        question: 'Which of these is a hidden source of sugar?',
+        type: 'multiple-choice',
+        choices: ['Broccoli', 'Yogurt', 'Eggs', 'Almonds'],
+        correctAnswer: 'Yogurt',
+      },
+    });
+  }
+
+  // Foundation 5: Movement
+  if (content.lessonId === 'foundation5-lesson1') {
+    quizSlides.push({
+      type: 'quiz',
+      question: {
+        question: 'Sitting for 8+ hours daily increases health risks even if you exercise.',
+        type: 'true-false',
+        correctAnswer: 'true',
+      },
+    });
+  }
+
+  if (content.lessonId === 'foundation5-lesson2') {
+    quizSlides.push({
+      type: 'quiz',
+      question: {
+        question: 'What are the four types of exercise for complete fitness?',
         type: 'multiple-choice',
         choices: [
-          'Total Daily Energy Expenditure',
-          'Total Diet Energy Estimate',
-          'Total Daily Exercise Effort',
-          'Total Dietary Energy Equation',
+          'Running, swimming, cycling, walking',
+          'Cardio, strength, flexibility, balance',
+          'HIIT, yoga, weights, sports',
+          'Aerobic, anaerobic, functional, core',
         ],
-        correctAnswer: 'Total Daily Energy Expenditure',
+        correctAnswer: 'Cardio, strength, flexibility, balance',
+      },
+    });
+  }
+
+  // Foundation 6: Preventive Health
+  if (content.lessonId === 'foundation6-lesson1') {
+    quizSlides.push({
+      type: 'quiz',
+      question: {
+        question: 'High blood pressure has no symptoms, which is why it\'s called the "silent killer."',
+        type: 'true-false',
+        correctAnswer: 'true',
+      },
+    });
+  }
+
+  if (content.lessonId === 'foundation6-lesson2') {
+    quizSlides.push({
+      type: 'quiz',
+      question: {
+        question: 'What is a healthy blood pressure reading?',
+        type: 'multiple-choice',
+        choices: ['Below 120/80', '130/85', '140/90', '150/95'],
+        correctAnswer: 'Below 120/80',
+      },
+    });
+  }
+
+  // Foundation 7: Gut Health
+  if (content.lessonId === 'foundation7-lesson1') {
+    quizSlides.push({
+      type: 'quiz',
+      question: {
+        question: 'How many neurons are in your gut?',
+        type: 'multiple-choice',
+        choices: ['100 million', '500 million', '1 billion', '5 billion'],
+        correctAnswer: '500 million',
+      },
+    });
+  }
+
+  if (content.lessonId === 'foundation7-lesson2') {
+    quizSlides.push({
+      type: 'quiz',
+      question: {
+        question: 'Eating 30+ different plant foods weekly improves microbiome diversity.',
+        type: 'true-false',
+        correctAnswer: 'true',
+      },
+    });
+  }
+
+  // Foundation 8: Hormones
+  if (content.lessonId === 'foundation8-lesson1') {
+    quizSlides.push({
+      type: 'quiz',
+      question: {
+        question: 'Hormones work independently and don\'t affect each other.',
+        type: 'true-false',
+        correctAnswer: 'false',
+      },
+    });
+  }
+
+  if (content.lessonId === 'foundation8-lesson2') {
+    quizSlides.push({
+      type: 'quiz',
+      question: {
+        question: 'What percentage of adults have insulin resistance?',
+        type: 'multiple-choice',
+        choices: ['1 in 10', '1 in 5', '1 in 3', '1 in 2'],
+        correctAnswer: '1 in 3',
+      },
+    });
+  }
+
+  // Foundation 9: Hydration
+  if (content.lessonId === 'foundation9-lesson1') {
+    quizSlides.push({
+      type: 'quiz',
+      question: {
+        question: 'What percentage of your body is water?',
+        type: 'multiple-choice',
+        choices: ['40%', '50%', '60%', '70%'],
+        correctAnswer: '60%',
+      },
+    });
+  }
+
+  if (content.lessonId === 'foundation9-lesson2') {
+    quizSlides.push({
+      type: 'quiz',
+      question: {
+        question: 'The liver detoxifies your body in how many phases?',
+        type: 'multiple-choice',
+        choices: ['1 phase', '2 phases', '3 phases', '4 phases'],
+        correctAnswer: '2 phases',
+      },
+    });
+  }
+
+  // Foundation 10: Mindset
+  if (content.lessonId === 'foundation10-lesson1') {
+    quizSlides.push({
+      type: 'quiz',
+      question: {
+        question: 'The 80/20 rule means making healthy choices 80% of the time.',
+        type: 'true-false',
+        correctAnswer: 'true',
+      },
+    });
+  }
+
+  if (content.lessonId === 'foundation10-lesson2') {
+    quizSlides.push({
+      type: 'quiz',
+      question: {
+        question: 'Small daily actions compound over time to transform your health.',
+        type: 'true-false',
+        correctAnswer: 'true',
       },
     });
   }

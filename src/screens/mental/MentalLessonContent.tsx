@@ -18,11 +18,14 @@ import { getMentalLessonContent, MentalLessonSection } from '../../data/mentalLe
 import { useAuthStore } from '../../store/authStore';
 import { saveLessonProgress } from '../../database/lessons';
 import { checkAndUnlockNextFoundation } from '../../database/mental';
+import { addXP, updateStreak } from '../../database/user';
+import { useAppStore } from '../../store/appStore';
 
 export const MentalLessonContent = ({ route, navigation }: any) => {
   const { lessonId, lessonTitle, foundationId } = route.params;
   const content = getMentalLessonContent(lessonId);
   const { user } = useAuthStore();
+  const { loadAppData } = useAppStore();
 
   const [answerValue, setAnswerValue] = useState('');
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
@@ -54,20 +57,31 @@ export const MentalLessonContent = ({ route, navigation }: any) => {
     // Save answer and progress to database
     try {
       const answer = content.actionQuestion.type === 'choice' ? selectedChoice : answerValue;
+      const xpEarned = 50;
 
+      // Save lesson progress
       await saveLessonProgress(user.id, {
         lessonId,
         stepId: foundationId,
         completed: true,
         answer: answer || undefined,
-        xpEarned: 50,
+        xpEarned,
         completedAt: new Date().toISOString(),
       });
+
+      // Add XP to user stats
+      await addXP(user.id, xpEarned);
+
+      // Update mental streak
+      await updateStreak(user.id, 'mental');
 
       // Check if we should unlock next foundation
       await checkAndUnlockNextFoundation(user.id);
 
-      console.log('✅ Mental lesson completed:', lessonId);
+      // Reload app data to update dashboard
+      await loadAppData();
+
+      console.log('✅ Mental lesson completed:', lessonId, `+${xpEarned} XP`);
     } catch (error) {
       console.error('Error saving lesson progress:', error);
     }

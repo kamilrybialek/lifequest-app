@@ -19,11 +19,14 @@ import { getLessonContent, LessonSection } from '../../data/lessonContent';
 import { useAuthStore } from '../../store/authStore';
 import { saveLessonProgress, getStepCompletionCount } from '../../database/lessons';
 import { addEmergencyFundContribution } from '../../database/finance';
+import { addXP, updateStreak } from '../../database/user';
+import { useAppStore } from '../../store/appStore';
 
 export const LessonContentScreen = ({ route, navigation }: any) => {
   const { lessonId, lessonTitle, stepId } = route.params;
   const content = getLessonContent(lessonId);
   const { user } = useAuthStore();
+  const { loadAppData } = useAppStore();
 
   const [answerValue, setAnswerValue] = useState('');
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null);
@@ -70,15 +73,23 @@ export const LessonContentScreen = ({ route, navigation }: any) => {
     // Save answer and progress to database
     try {
       const answer = content.actionQuestion.type === 'choice' ? selectedChoice : answerValue;
+      const xpEarned = 50;
 
+      // Save lesson progress
       await saveLessonProgress(user.id, {
         lessonId,
         stepId,
         completed: true,
         answer: answer || undefined,
-        xpEarned: 50, // Fixed XP per lesson for now
+        xpEarned,
         completedAt: new Date().toISOString(),
       });
+
+      // Add XP to user stats
+      await addXP(user.id, xpEarned);
+
+      // Update finance streak
+      await updateStreak(user.id, 'finance');
 
       // If this is a Baby Step 1 lesson with a number answer, save to emergency fund
       if (stepId === 'step1' && content.actionQuestion.type === 'number' && answerValue) {
@@ -89,7 +100,10 @@ export const LessonContentScreen = ({ route, navigation }: any) => {
         }
       }
 
-      console.log('✅ Lesson completed and saved:', lessonId);
+      // Reload app data to update dashboard
+      await loadAppData();
+
+      console.log('✅ Finance lesson completed:', lessonId, `+${xpEarned} XP`);
 
       // Update lesson progress count after saving
       const updatedProgress = await getStepCompletionCount(user.id, stepId);

@@ -9,7 +9,7 @@ import { typography, shadows } from '../theme/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { getUserAchievements, getAchievementCount } from '../database/achievements';
 import { getRandomActionTasks, completeRandomActionTask, RandomActionTask } from '../database/randomTasks';
-import { calculateBMI, getBMICategory, getBMIColor, calculateBMR, calculateTDEE } from '../utils/healthCalculations';
+import { calculateBMI, getBMICategory, getBMIColor, calculateBMR, calculateTDEE, getIdealWeightRange } from '../utils/healthCalculations';
 import { getAverageSleepDuration, getWeightTrend } from '../database/health';
 
 const { width } = Dimensions.get('window');
@@ -149,8 +149,12 @@ export const HomeScreenFlat = ({ navigation }: any) => {
       </View>
 
       <Animated.View style={{ opacity: fadeAnim }}>
-        {/* Streak Banner - Duolingo Style */}
-        <View style={styles.streakBanner}>
+        {/* Streak Banner - Duolingo Style - Clickable */}
+        <TouchableOpacity
+          style={styles.streakBanner}
+          onPress={() => navigation.navigate('Streaks')}
+          activeOpacity={0.8}
+        >
           <View style={styles.streakFlameContainer}>
             <Text style={styles.streakFlame}>🔥</Text>
             <View style={styles.streakBadge}>
@@ -168,7 +172,7 @@ export const HomeScreenFlat = ({ navigation }: any) => {
             </Text>
           </View>
           <Ionicons name="chevron-forward" size={24} color={colors.textLight} />
-        </View>
+        </TouchableOpacity>
 
         {/* XP Progress Circle */}
         <View style={styles.xpCard}>
@@ -325,56 +329,6 @@ export const HomeScreenFlat = ({ navigation }: any) => {
           </View>
         </View>
 
-
-        {/* Pillar Streaks Grid */}
-        <View style={styles.streaksSection}>
-          <Text style={styles.sectionTitle}>Your Streaks</Text>
-          <View style={styles.streaksGrid}>
-            {progress.streaks.map((streak) => {
-              const screenMap = {
-                finance: 'Finance',
-                mental: 'Mental',
-                physical: 'Physical',
-                nutrition: 'Nutrition',
-              };
-              const screen = screenMap[streak.pillar as keyof typeof screenMap] || 'Finance';
-
-              // Calculate progress for this pillar (streak current / 30 days max)
-              const progressPercent = Math.min((streak.current / 30) * 100, 100);
-
-              return (
-              <TouchableOpacity
-                key={streak.pillar}
-                style={styles.streakCard}
-                onPress={() => navigation.navigate(screen)}
-                activeOpacity={0.7}
-              >
-                <View style={[styles.streakCardIcon, { backgroundColor: getPillarColor(streak.pillar) }]}>
-                  <Text style={styles.streakCardEmoji}>{getPillarIcon(streak.pillar)}</Text>
-                </View>
-                <View style={styles.streakCardContent}>
-                  <Text style={styles.streakCardNumber}>{streak.current}</Text>
-                  <Text style={styles.streakCardLabel}>day{streak.current !== 1 ? 's' : ''}</Text>
-                </View>
-
-                {/* Progress bar */}
-                <View style={styles.streakProgressBar}>
-                  <View style={[
-                    styles.streakProgressBarFill,
-                    { width: `${progressPercent}%`, backgroundColor: getPillarColor(streak.pillar) }
-                  ]} />
-                </View>
-
-                <View style={styles.streakCardFooter}>
-                  <Text style={styles.streakCardBest}>Best: {streak.longest}</Text>
-                  <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
-                </View>
-              </TouchableOpacity>
-              );
-            })}
-          </View>
-        </View>
-
         {/* Stats Cards */}
         <View style={styles.statsSection}>
           <View style={[styles.statCard, { backgroundColor: colors.xpGold + '15' }]}>
@@ -395,7 +349,7 @@ export const HomeScreenFlat = ({ navigation }: any) => {
         {physicalHealthData?.weight && physicalHealthData?.height && (
           <View style={styles.healthStatsCard}>
             <View style={styles.healthStatsHeader}>
-              <Text style={styles.healthStatsTitle}>Health Stats</Text>
+              <Text style={styles.healthStatsTitle}>📊 Health Dashboard</Text>
               <TouchableOpacity onPress={() => navigation.navigate('Physical')}>
                 <Ionicons name="arrow-forward-circle" size={24} color={colors.primary} />
               </TouchableOpacity>
@@ -406,11 +360,13 @@ export const HomeScreenFlat = ({ navigation }: any) => {
                 const bmi = calculateBMI(physicalHealthData.weight!, physicalHealthData.height!);
                 const bmiCategory = getBMICategory(bmi);
                 const bmiColor = getBMIColor(bmi);
+                const idealWeight = getIdealWeightRange(physicalHealthData.height!);
 
-                // Calculate TDEE if we have age and gender
+                // Calculate BMR and TDEE if we have age and gender
+                let bmr = 0;
                 let tdee = 0;
                 if (user?.age && user?.gender && (user.gender === 'male' || user.gender === 'female')) {
-                  const bmr = calculateBMR(
+                  bmr = calculateBMR(
                     physicalHealthData.weight!,
                     physicalHealthData.height!,
                     user.age,
@@ -450,6 +406,17 @@ export const HomeScreenFlat = ({ navigation }: any) => {
                     </View>
 
                     <View style={styles.healthStatItem}>
+                      <View style={[styles.healthStatBadge, { backgroundColor: colors.primary + '20' }]}>
+                        <Ionicons name="body" size={20} color={colors.primary} />
+                      </View>
+                      <Text style={styles.healthStatValue}>{idealWeight.min}-{idealWeight.max}</Text>
+                      <Text style={styles.healthStatLabel}>Ideal Weight</Text>
+                      <Text style={styles.healthStatCategory}>
+                        {physicalHealthData.weight! >= idealWeight.min && physicalHealthData.weight! <= idealWeight.max ? 'On target' : 'Goal range'}
+                      </Text>
+                    </View>
+
+                    <View style={styles.healthStatItem}>
                       <View style={[styles.healthStatBadge, { backgroundColor: colors.mental + '20' }]}>
                         <Ionicons name="moon" size={20} color={colors.mental} />
                       </View>
@@ -475,6 +442,43 @@ export const HomeScreenFlat = ({ navigation }: any) => {
                       {tdee > 0 && (
                         <Text style={styles.healthStatCategory}>Daily needs</Text>
                       )}
+                    </View>
+
+                    <View style={styles.healthStatItem}>
+                      <View style={[styles.healthStatBadge, { backgroundColor: '#FF6B6B' + '20' }]}>
+                        <Ionicons name="heart" size={20} color="#FF6B6B" />
+                      </View>
+                      <Text style={styles.healthStatValue}>{bmr > 0 ? bmr : '--'}</Text>
+                      <Text style={styles.healthStatLabel}>BMR (cal)</Text>
+                      {bmr > 0 && (
+                        <Text style={styles.healthStatCategory}>Resting</Text>
+                      )}
+                    </View>
+
+                    <View style={styles.healthStatItem}>
+                      <View style={[styles.healthStatBadge, { backgroundColor: '#3498DB' + '20' }]}>
+                        <Ionicons name="water" size={20} color="#3498DB" />
+                      </View>
+                      <Text style={styles.healthStatValue}>
+                        {Math.round((physicalHealthData.weight || 0) * 0.033)}
+                      </Text>
+                      <Text style={styles.healthStatLabel}>Water (L)</Text>
+                      <Text style={styles.healthStatCategory}>Daily goal</Text>
+                    </View>
+
+                    <View style={styles.healthStatItem}>
+                      <View style={[styles.healthStatBadge, { backgroundColor: colors.physical + '20' }]}>
+                        <Ionicons name="footsteps" size={20} color={colors.physical} />
+                      </View>
+                      <Text style={styles.healthStatValue}>
+                        {physicalHealthData.dailySteps || 0}
+                      </Text>
+                      <Text style={styles.healthStatLabel}>Steps</Text>
+                      <Text style={[styles.healthStatCategory, {
+                        color: (physicalHealthData.dailySteps || 0) >= 8000 ? '#4CAF50' : '#FF9800'
+                      }]}>
+                        {(physicalHealthData.dailySteps || 0) >= 8000 ? 'Goal met!' : `of ${physicalHealthData.stepsGoal || 8000}`}
+                      </Text>
                     </View>
                   </>
                 );
@@ -543,6 +547,26 @@ export const HomeScreenFlat = ({ navigation }: any) => {
 
       <View style={styles.bottomSpacer} />
     </ScrollView>
+
+      {/* Sticky Take Action Button */}
+      <View style={styles.stickyButtonContainer}>
+        <TouchableOpacity
+          style={styles.stickyTakeActionButton}
+          onPress={async () => {
+            // Always generate a new random task
+            const newTasks = await getRandomActionTasks(1);
+            if (newTasks.length > 0) {
+              setSelectedActionTask(newTasks[0]);
+              setShowTakeActionModal(true);
+            }
+          }}
+          activeOpacity={0.9}
+        >
+          <Ionicons name="flash" size={28} color="#FFFFFF" />
+          <Text style={styles.stickyTakeActionButtonText}>TAKE ACTION NOW</Text>
+          <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
 
       {/* Take Action Modal */}
       <Modal
@@ -1141,7 +1165,7 @@ const styles = StyleSheet.create({
   },
 
   bottomSpacer: {
-    height: 20,
+    height: 100, // Extra space for sticky button
   },
 
   // Quick Actions Section
@@ -1452,5 +1476,35 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
+  },
+  // Sticky Take Action Button
+  stickyButtonContainer: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    paddingBottom: 24,
+    backgroundColor: colors.backgroundGray,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    ...shadows.medium,
+  },
+  stickyTakeActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    backgroundColor: colors.primary,
+    paddingVertical: 16,
+    borderRadius: 12,
+    ...shadows.medium,
+  },
+  stickyTakeActionButtonText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
 });

@@ -4,7 +4,7 @@ import { Text, Card, Title, TextInput, Button, RadioButton, ProgressBar } from '
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../store/appStore';
 import { useAuthStore } from '../../store/authStore';
-import { calculateBMI, getBMICategory, getBMIColor, getIdealWeightRange } from '../../utils/healthCalculations';
+import { calculateBMI, getBMICategory, getBMIColor, getIdealWeightRange, calculateBMR, calculateTDEE } from '../../utils/healthCalculations';
 import { logSleep, getSleepLogs, logWeight, getWeightHistory } from '../../database/health';
 
 export const PhysicalHealthScreen = () => {
@@ -149,12 +149,118 @@ export const PhysicalHealthScreen = () => {
     (w) => new Date(w.date).toDateString() === new Date().toDateString()
   );
 
+  // Calculate comprehensive health stats
+  const avgSleepDuration = sleepHistory.length > 0
+    ? sleepHistory.reduce((sum, log) => sum + (log.duration_hours || 0), 0) / sleepHistory.length
+    : 0;
+
+  let bmr = 0;
+  let tdee = 0;
+  if (weightNum && heightNum && user?.age && user?.gender && (user.gender === 'male' || user.gender === 'female')) {
+    bmr = calculateBMR(weightNum, heightNum, user.age, user.gender);
+    tdee = calculateTDEE(bmr, 'moderate');
+  }
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.header}>
         <Title style={styles.title}>💪 Physical Health</Title>
         <Text style={styles.subtitle}>Build a strong, healthy body</Text>
       </View>
+
+      {/* Health Stats Dashboard */}
+      {weightNum && heightNum && (
+        <Card style={styles.statsCard}>
+          <Card.Content>
+            <Title style={styles.cardTitle}>📊 Your Health Stats</Title>
+            <View style={styles.statsGrid}>
+              <View style={styles.statBox}>
+                <View style={[styles.statBadge, { backgroundColor: bmiColor + '20' }]}>
+                  <Ionicons name="fitness" size={24} color={bmiColor} />
+                </View>
+                <Text style={styles.statValue}>{bmi.toFixed(1)}</Text>
+                <Text style={styles.statLabel}>BMI</Text>
+                <Text style={[styles.statCategory, { color: bmiColor }]}>{bmiCategory}</Text>
+              </View>
+
+              <View style={styles.statBox}>
+                <View style={[styles.statBadge, { backgroundColor: '#FF6B6B20' }]}>
+                  <Ionicons name="heart" size={24} color="#FF6B6B" />
+                </View>
+                <Text style={styles.statValue}>{bmr > 0 ? bmr : '--'}</Text>
+                <Text style={styles.statLabel}>BMR (cal)</Text>
+                <Text style={styles.statCategory}>Resting</Text>
+              </View>
+
+              <View style={styles.statBox}>
+                <View style={[styles.statBadge, { backgroundColor: '#FF572220' }]}>
+                  <Ionicons name="flame" size={24} color="#FF5722" />
+                </View>
+                <Text style={styles.statValue}>{tdee > 0 ? tdee : '--'}</Text>
+                <Text style={styles.statLabel}>TDEE (cal)</Text>
+                <Text style={styles.statCategory}>Daily needs</Text>
+              </View>
+
+              <View style={styles.statBox}>
+                <View style={[styles.statBadge, { backgroundColor: '#4CAF5020' }]}>
+                  <Ionicons name="body" size={24} color="#4CAF50" />
+                </View>
+                <Text style={styles.statValue}>
+                  {idealWeight ? `${idealWeight.min}-${idealWeight.max}` : '--'}
+                </Text>
+                <Text style={styles.statLabel}>Ideal (kg)</Text>
+                <Text style={styles.statCategory}>
+                  {idealWeight && weightNum >= idealWeight.min && weightNum <= idealWeight.max ? 'On target ✓' : 'Goal range'}
+                </Text>
+              </View>
+
+              <View style={styles.statBox}>
+                <View style={[styles.statBadge, { backgroundColor: '#9C27B020' }]}>
+                  <Ionicons name="moon" size={24} color="#9C27B0" />
+                </View>
+                <Text style={styles.statValue}>{avgSleepDuration > 0 ? avgSleepDuration.toFixed(1) : '--'}</Text>
+                <Text style={styles.statLabel}>Sleep (h)</Text>
+                <Text style={[styles.statCategory, {
+                  color: avgSleepDuration >= 7 ? '#4CAF50' : '#FF9800'
+                }]}>
+                  {avgSleepDuration >= 7 ? 'Good ✓' : avgSleepDuration > 0 ? 'Low' : 'No data'}
+                </Text>
+              </View>
+
+              <View style={styles.statBox}>
+                <View style={[styles.statBadge, { backgroundColor: '#3498DB20' }]}>
+                  <Ionicons name="water" size={24} color="#3498DB" />
+                </View>
+                <Text style={styles.statValue}>{Math.round((weightNum || 0) * 0.033)}</Text>
+                <Text style={styles.statLabel}>Water (L)</Text>
+                <Text style={styles.statCategory}>Daily goal</Text>
+              </View>
+
+              <View style={styles.statBox}>
+                <View style={[styles.statBadge, { backgroundColor: '#2196F320' }]}>
+                  <Ionicons name="footsteps" size={24} color="#2196F3" />
+                </View>
+                <Text style={styles.statValue}>{physicalHealthData.dailySteps || 0}</Text>
+                <Text style={styles.statLabel}>Steps</Text>
+                <Text style={[styles.statCategory, {
+                  color: (physicalHealthData.dailySteps || 0) >= 8000 ? '#4CAF50' : '#FF9800'
+                }]}>
+                  {(physicalHealthData.dailySteps || 0) >= 8000 ? 'Goal met! ✓' : `of ${physicalHealthData.stepsGoal || 8000}`}
+                </Text>
+              </View>
+
+              <View style={styles.statBox}>
+                <View style={[styles.statBadge, { backgroundColor: '#FF980020' }]}>
+                  <Ionicons name="barbell" size={24} color="#FF9800" />
+                </View>
+                <Text style={styles.statValue}>{todayWorkouts.length}</Text>
+                <Text style={styles.statLabel}>Workouts</Text>
+                <Text style={styles.statCategory}>Today</Text>
+              </View>
+            </View>
+          </Card.Content>
+        </Card>
+      )}
 
       {/* Sleep Tracking */}
       <Card style={styles.card}>
@@ -563,6 +669,48 @@ const styles = StyleSheet.create({
   card: {
     margin: 16,
     elevation: 2,
+  },
+  statsCard: {
+    margin: 16,
+    elevation: 2,
+    backgroundColor: '#fff',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginTop: 16,
+  },
+  statBox: {
+    width: '47%',
+    backgroundColor: '#f9f9f9',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  statBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  statValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#333',
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 4,
+  },
+  statCategory: {
+    fontSize: 11,
+    color: '#999',
+    fontWeight: '600',
   },
   description: {
     fontSize: 14,
