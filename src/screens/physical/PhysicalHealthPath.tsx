@@ -9,6 +9,8 @@ import { useAuthStore } from '../../store/authStore';
 import { getCompletedLessons } from '../../database/lessons';
 import { getPhysicalProgress } from '../../database/physical';
 import { useFocusEffect } from '@react-navigation/native';
+import { calculateBMI, getBMICategory, getBMIColor, calculateBMR, calculateTDEE } from '../../utils/healthCalculations';
+import { useAppStore } from '../../store/appStore';
 
 const { width } = Dimensions.get('window');
 
@@ -52,6 +54,7 @@ export const PhysicalHealthPath = ({ navigation }: any) => {
   const [expandedFoundations, setExpandedFoundations] = useState<{ [key: string]: boolean }>({});
   const [nextLesson, setNextLesson] = useState<any>(null);
   const { user } = useAuthStore();
+  const { physicalHealthData } = useAppStore();
 
   const loadLessonProgress = async () => {
     if (!user?.id) return;
@@ -174,6 +177,132 @@ export const PhysicalHealthPath = ({ navigation }: any) => {
           <Text style={styles.headerTitle}>💪 Physical Wellness Path</Text>
           <Text style={styles.headerSubtitle}>5 Foundations of Physical Health</Text>
         </View>
+
+        {/* Health Stats & BMI Calculator */}
+        {physicalHealthData?.weight && physicalHealthData?.height && user?.age && user?.gender && (
+          <View style={styles.healthStatsCard}>
+            <View style={styles.healthStatsHeader}>
+              <Ionicons name="stats-chart" size={24} color={colors.physical} />
+              <Text style={styles.healthStatsTitle}>Your Health Metrics</Text>
+            </View>
+
+            <View style={styles.healthMetricsGrid}>
+              {(() => {
+                const bmi = calculateBMI(physicalHealthData.weight, physicalHealthData.height);
+                const bmiCategory = getBMICategory(bmi);
+                const bmiColor = getBMIColor(bmi);
+
+                const bmr = calculateBMR(
+                  physicalHealthData.weight,
+                  physicalHealthData.height,
+                  user.age,
+                  user.gender as 'male' | 'female'
+                );
+                const tdee = calculateTDEE(bmr, 'moderate');
+                const calorieDeficit = Math.round(tdee - 500); // For weight loss
+                const calorieSurplus = Math.round(tdee + 300); // For muscle gain
+
+                return (
+                  <>
+                    {/* BMI */}
+                    <View style={styles.healthMetricCard}>
+                      <View style={[styles.healthMetricBadge, { backgroundColor: bmiColor + '20' }]}>
+                        <Ionicons name="fitness" size={28} color={bmiColor} />
+                      </View>
+                      <Text style={styles.healthMetricValue}>{bmi}</Text>
+                      <Text style={styles.healthMetricLabel}>BMI</Text>
+                      <Text style={[styles.healthMetricCategory, { color: bmiColor }]}>
+                        {bmiCategory}
+                      </Text>
+                    </View>
+
+                    {/* BMR */}
+                    <View style={styles.healthMetricCard}>
+                      <View style={[styles.healthMetricBadge, { backgroundColor: colors.finance + '20' }]}>
+                        <Ionicons name="flame-outline" size={28} color={colors.finance} />
+                      </View>
+                      <Text style={styles.healthMetricValue}>{Math.round(bmr)}</Text>
+                      <Text style={styles.healthMetricLabel}>BMR</Text>
+                      <Text style={styles.healthMetricCategory}>Base calories</Text>
+                    </View>
+
+                    {/* TDEE */}
+                    <View style={styles.healthMetricCard}>
+                      <View style={[styles.healthMetricBadge, { backgroundColor: colors.nutrition + '20' }]}>
+                        <Ionicons name="flame" size={28} color={colors.nutrition} />
+                      </View>
+                      <Text style={styles.healthMetricValue}>{Math.round(tdee)}</Text>
+                      <Text style={styles.healthMetricLabel}>TDEE</Text>
+                      <Text style={styles.healthMetricCategory}>Daily needs</Text>
+                    </View>
+
+                    {/* Weight */}
+                    <View style={styles.healthMetricCard}>
+                      <View style={[styles.healthMetricBadge, { backgroundColor: colors.physical + '20' }]}>
+                        <Ionicons name="scale" size={28} color={colors.physical} />
+                      </View>
+                      <Text style={styles.healthMetricValue}>{physicalHealthData.weight}</Text>
+                      <Text style={styles.healthMetricLabel}>Weight (kg)</Text>
+                      <Text style={styles.healthMetricCategory}>{physicalHealthData.height} cm</Text>
+                    </View>
+                  </>
+                );
+              })()}
+            </View>
+
+            {/* Calorie Goals */}
+            <View style={styles.calorieGoalsSection}>
+              <Text style={styles.calorieGoalsTitle}>📊 Calorie Goals</Text>
+              <View style={styles.calorieGoalsRow}>
+                <View style={styles.calorieGoalItem}>
+                  <Ionicons name="remove-circle" size={20} color="#F44336" />
+                  <Text style={styles.calorieGoalLabel}>Weight Loss</Text>
+                  <Text style={styles.calorieGoalValue}>
+                    {Math.round(calculateTDEE(
+                      calculateBMR(
+                        physicalHealthData.weight!,
+                        physicalHealthData.height!,
+                        user.age!,
+                        user.gender as 'male' | 'female'
+                      ),
+                      'moderate'
+                    ) - 500)} cal
+                  </Text>
+                </View>
+                <View style={styles.calorieGoalItem}>
+                  <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+                  <Text style={styles.calorieGoalLabel}>Maintain</Text>
+                  <Text style={styles.calorieGoalValue}>
+                    {Math.round(calculateTDEE(
+                      calculateBMR(
+                        physicalHealthData.weight!,
+                        physicalHealthData.height!,
+                        user.age!,
+                        user.gender as 'male' | 'female'
+                      ),
+                      'moderate'
+                    ))} cal
+                  </Text>
+                </View>
+                <View style={styles.calorieGoalItem}>
+                  <Ionicons name="add-circle" size={20} color="#2196F3" />
+                  <Text style={styles.calorieGoalLabel}>Muscle Gain</Text>
+                  <Text style={styles.calorieGoalValue}>
+                    {Math.round(calculateTDEE(
+                      calculateBMR(
+                        physicalHealthData.weight!,
+                        physicalHealthData.height!,
+                        user.age!,
+                        user.gender as 'male' | 'female'
+                      ),
+                      'moderate'
+                    ) + 300)} cal
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Physical Tools Section */}
         <View style={styles.toolsSection}>
@@ -434,6 +563,97 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     ...typography.caption,
+  },
+  // Health Stats Card
+  healthStatsCard: {
+    backgroundColor: colors.background,
+    marginHorizontal: 16,
+    marginVertical: 12,
+    padding: 20,
+    borderRadius: 16,
+    ...shadows.medium,
+  },
+  healthStatsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 8,
+  },
+  healthStatsTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  healthMetricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 20,
+  },
+  healthMetricCard: {
+    backgroundColor: colors.backgroundGray,
+    width: (width - 76) / 2,
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  healthMetricBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  healthMetricValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  healthMetricLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 4,
+  },
+  healthMetricCategory: {
+    fontSize: 11,
+    color: colors.textLight,
+  },
+  calorieGoalsSection: {
+    marginTop: 12,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  calorieGoalsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  calorieGoalsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  calorieGoalItem: {
+    flex: 1,
+    backgroundColor: colors.backgroundGray,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  calorieGoalLabel: {
+    fontSize: 11,
+    color: colors.textSecondary,
+    marginTop: 4,
+    marginBottom: 4,
+  },
+  calorieGoalValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
   },
   // Tools Section
   toolsSection: {

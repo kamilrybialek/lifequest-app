@@ -10,6 +10,8 @@ import {
   Modal,
   Animated,
   Dimensions,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
@@ -223,13 +225,14 @@ export const PhysicalLessonDuolingo = ({ route, navigation }: any) => {
 
   const renderQuizSlide = (question: NonNullable<LessonSlide['question']>) => {
     return (
-      <View style={styles.slideContainer}>
-        <View style={styles.quizContent}>
-          <View style={styles.quizHeader}>
-            <Ionicons name="help-circle" size={40} color={colors.physical} />
-          </View>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <View style={styles.slideContainer}>
+          <View style={styles.quizContent}>
+            <View style={styles.quizHeader}>
+              <Ionicons name="help-circle" size={40} color={colors.physical} />
+            </View>
 
-          <Text style={styles.quizQuestion}>{question.question}</Text>
+            <Text style={styles.quizQuestion}>{question.question}</Text>
 
           {question.type === 'multiple-choice' && question.choices && (
             <View style={styles.choicesContainer}>
@@ -319,7 +322,8 @@ export const PhysicalLessonDuolingo = ({ route, navigation }: any) => {
             />
           )}
         </View>
-      </View>
+        </View>
+      </TouchableWithoutFeedback>
     );
   };
 
