@@ -293,6 +293,20 @@ export const initDatabase = async () => {
     );
   `);
 
+  // Weight History (for weekly tracking)
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS weight_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      weight_kg REAL NOT NULL,
+      measurement_date DATE NOT NULL,
+      bmi REAL,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+
   // ===== ADMIN TABLES =====
 
   // Admin Users
