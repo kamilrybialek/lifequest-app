@@ -27,6 +27,7 @@ import {
   updateRandomActionTaskAdmin,
   deleteRandomActionTaskAdmin,
 } from '../database/admin';
+import { seedRandomActionTasks, clearRandomActionTasks } from '../database/seedRandomTasks';
 
 export const AdminScreen = ({ navigation }: any) => {
   const { user } = useAuthStore();
@@ -150,6 +151,51 @@ export const AdminScreen = ({ navigation }: any) => {
       setRandomTasks(data);
     } catch (error) {
       console.error('Random tasks error:', error);
+    }
+  };
+
+  const handleSeedTasks = async () => {
+    try {
+      Alert.alert(
+        'Seed Random Tasks',
+        'This will add 100 unique tasks to the database. Continue?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Seed',
+            onPress: async () => {
+              await seedRandomActionTasks();
+              Alert.alert('Success', '100 tasks successfully added!');
+              loadRandomTasks();
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      Alert.alert('Error', 'Failed to seed tasks');
+    }
+  };
+
+  const handleClearTasks = async () => {
+    try {
+      Alert.alert(
+        'Clear All Tasks',
+        'This will delete ALL random action tasks. This cannot be undone!',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete All',
+            style: 'destructive',
+            onPress: async () => {
+              await clearRandomActionTasks();
+              Alert.alert('Success', 'All tasks cleared');
+              loadRandomTasks();
+            },
+          },
+        ]
+      );
+    } catch (error) {
+      Alert.alert('Error', 'Failed to clear tasks');
     }
   };
 
@@ -424,6 +470,24 @@ export const AdminScreen = ({ navigation }: any) => {
             <Text style={styles.sectionSubtitle}>
               Tasks shown in Quick Actions on home screen
             </Text>
+
+            <View style={styles.seedButtonsContainer}>
+              <TouchableOpacity
+                style={[styles.seedButton, styles.seedButtonPrimary]}
+                onPress={handleSeedTasks}
+              >
+                <Ionicons name="download" size={18} color="#FFFFFF" />
+                <Text style={styles.seedButtonText}>Seed 100 Tasks</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.seedButton, styles.seedButtonDanger]}
+                onPress={handleClearTasks}
+              >
+                <Ionicons name="trash" size={18} color="#FFFFFF" />
+                <Text style={styles.seedButtonText}>Clear All</Text>
+              </TouchableOpacity>
+            </View>
 
             {randomTasks.map((task: any) => (
               <View key={task.id} style={styles.taskCard}>
@@ -797,5 +861,32 @@ const styles = StyleSheet.create({
   notifDate: {
     fontSize: 12,
     color: colors.textSecondary,
+  },
+  seedButtonsContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginVertical: 16,
+  },
+  seedButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    ...shadows.small,
+  },
+  seedButtonPrimary: {
+    backgroundColor: colors.primary,
+  },
+  seedButtonDanger: {
+    backgroundColor: '#EF4444',
+  },
+  seedButtonText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
