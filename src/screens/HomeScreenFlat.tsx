@@ -244,22 +244,6 @@ export const HomeScreenFlat = ({ navigation }: any) => {
               </TouchableOpacity>
             ))}
           </View>
-
-          <TouchableOpacity
-            style={styles.takeActionButton}
-            onPress={async () => {
-              // Always generate a new random task
-              const newTasks = await getRandomActionTasks(1);
-              if (newTasks.length > 0) {
-                setSelectedActionTask(newTasks[0]);
-                setShowTakeActionModal(true);
-              }
-            }}
-          >
-            <Ionicons name="flash" size={24} color="#FFFFFF" />
-            <Text style={styles.takeActionButtonText}>TAKE ACTION NOW</Text>
-            <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
         </View>
 
         {/* Daily Quest - Main Task */}
@@ -1254,22 +1238,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     color: colors.xpGold,
-  },
-  takeActionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.primary,
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-    ...shadows.large,
-  },
-  takeActionButtonText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
   },
 
   // Modal Styles
