@@ -63,8 +63,9 @@ export const MentalLessonContent = ({ route, navigation }: any) => {
       await saveLessonProgress(user.id, {
         lessonId,
         stepId: foundationId,
+        pillar: 'mental',
         completed: true,
-        answer: answer || undefined,
+        actionAnswer: answer || undefined,
         xpEarned,
         completedAt: new Date().toISOString(),
       });

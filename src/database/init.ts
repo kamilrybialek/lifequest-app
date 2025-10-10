@@ -20,17 +20,33 @@ export const initDatabase = async () => {
     );
   `);
 
-  // Finance Progress (main user finance data)
+  // Finance Progress (main user finance data - 10 Steps Method)
   await db.execAsync(`
     CREATE TABLE IF NOT EXISTS finance_progress (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
-      current_baby_step INTEGER DEFAULT 1,
+      current_step INTEGER DEFAULT 1,
       monthly_income REAL DEFAULT 0,
       monthly_expenses REAL DEFAULT 0,
+      net_worth REAL DEFAULT 0,
       emergency_fund_goal REAL DEFAULT 1000,
       emergency_fund_current REAL DEFAULT 0,
+      full_emergency_fund_goal REAL DEFAULT 0,
+      full_emergency_fund_current REAL DEFAULT 0,
       total_debt REAL DEFAULT 0,
+      debt_paid_off REAL DEFAULT 0,
+      step1_completed INTEGER DEFAULT 0,
+      step2_completed INTEGER DEFAULT 0,
+      step3_completed INTEGER DEFAULT 0,
+      step4_completed INTEGER DEFAULT 0,
+      step5_completed INTEGER DEFAULT 0,
+      step6_completed INTEGER DEFAULT 0,
+      step7_completed INTEGER DEFAULT 0,
+      step8_completed INTEGER DEFAULT 0,
+      step9_completed INTEGER DEFAULT 0,
+      step10_completed INTEGER DEFAULT 0,
+      total_lessons_completed INTEGER DEFAULT 0,
+      total_xp_earned INTEGER DEFAULT 0,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
@@ -139,20 +155,45 @@ export const initDatabase = async () => {
     );
   `);
 
-  // Lesson Progress
+  // Lesson Progress (Enhanced for new Duolingo-style lessons)
   await db.execAsync(`
     CREATE TABLE IF NOT EXISTS lesson_progress (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
       lesson_id TEXT NOT NULL,
       step_id TEXT NOT NULL,
+      pillar TEXT DEFAULT 'finance',
       completed INTEGER DEFAULT 0,
-      answer TEXT,
+      current_phase TEXT DEFAULT 'intro',
+      sections_completed INTEGER DEFAULT 0,
+      total_sections INTEGER DEFAULT 0,
+      quiz_score INTEGER DEFAULT 0,
+      quiz_total INTEGER DEFAULT 0,
+      action_answer TEXT,
       xp_earned INTEGER DEFAULT 0,
+      started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       completed_at DATETIME,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id),
       UNIQUE(user_id, lesson_id)
+    );
+  `);
+
+  // Quiz Question Results (for detailed analytics)
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS quiz_question_results (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      lesson_id TEXT NOT NULL,
+      question_id TEXT NOT NULL,
+      question_type TEXT NOT NULL,
+      user_answer TEXT,
+      is_correct INTEGER DEFAULT 0,
+      xp_earned INTEGER DEFAULT 0,
+      time_spent_seconds INTEGER,
+      attempt_number INTEGER DEFAULT 1,
+      answered_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
     );
   `);
 
@@ -288,6 +329,215 @@ export const initDatabase = async () => {
       duration_hours REAL,
       quality_rating INTEGER,
       notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+
+  // ===== NUTRITION TABLES =====
+
+  // Nutrition Progress
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS nutrition_progress (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      current_foundation INTEGER DEFAULT 1,
+      total_lessons_completed INTEGER DEFAULT 0,
+      total_meals_logged INTEGER DEFAULT 0,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+
+  // Food Items Database (Admin-manageable + user-custom)
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS food_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      brand TEXT,
+      serving_size TEXT,
+      serving_unit TEXT,
+      calories REAL NOT NULL,
+      protein REAL DEFAULT 0,
+      carbs REAL DEFAULT 0,
+      fat REAL DEFAULT 0,
+      fiber REAL DEFAULT 0,
+      sugar REAL DEFAULT 0,
+      sodium REAL DEFAULT 0,
+      category TEXT,
+      barcode TEXT,
+      is_verified INTEGER DEFAULT 0,
+      is_admin_created INTEGER DEFAULT 0,
+      created_by INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (created_by) REFERENCES users(id)
+    );
+  `);
+
+  // Meals (individual eating occasions)
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS meals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      meal_type TEXT CHECK(meal_type IN ('breakfast', 'lunch', 'dinner', 'snack', 'other')),
+      meal_date DATE NOT NULL,
+      meal_time TIME,
+      total_calories REAL DEFAULT 0,
+      total_protein REAL DEFAULT 0,
+      total_carbs REAL DEFAULT 0,
+      total_fat REAL DEFAULT 0,
+      notes TEXT,
+      photo_url TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+
+  // Meal Food Items (junction table with quantities)
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS meal_food_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      meal_id INTEGER NOT NULL,
+      food_item_id INTEGER NOT NULL,
+      quantity REAL DEFAULT 1,
+      servings REAL DEFAULT 1,
+      notes TEXT,
+      FOREIGN KEY (meal_id) REFERENCES meals(id),
+      FOREIGN KEY (food_item_id) REFERENCES food_items(id)
+    );
+  `);
+
+  // Meal Plans (weekly/daily plans)
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS meal_plans (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      plan_name TEXT NOT NULL,
+      start_date DATE NOT NULL,
+      end_date DATE,
+      goal_type TEXT CHECK(goal_type IN ('weight_loss', 'muscle_gain', 'maintenance', 'general_health')),
+      target_calories REAL,
+      target_protein REAL,
+      target_carbs REAL,
+      target_fat REAL,
+      is_active INTEGER DEFAULT 1,
+      is_ai_generated INTEGER DEFAULT 0,
+      notes TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+
+  // Planned Meals (meals in a meal plan)
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS planned_meals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      meal_plan_id INTEGER NOT NULL,
+      day_of_week INTEGER,
+      meal_date DATE,
+      meal_type TEXT CHECK(meal_type IN ('breakfast', 'lunch', 'dinner', 'snack')),
+      meal_name TEXT NOT NULL,
+      description TEXT,
+      recipe_url TEXT,
+      estimated_calories REAL,
+      estimated_protein REAL,
+      estimated_carbs REAL,
+      estimated_fat REAL,
+      prep_time_minutes INTEGER,
+      is_completed INTEGER DEFAULT 0,
+      completed_at DATETIME,
+      FOREIGN KEY (meal_plan_id) REFERENCES meal_plans(id)
+    );
+  `);
+
+  // Recipes (user & admin created)
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS recipes (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT,
+      category TEXT,
+      cuisine_type TEXT,
+      servings INTEGER DEFAULT 1,
+      prep_time_minutes INTEGER,
+      cook_time_minutes INTEGER,
+      difficulty TEXT CHECK(difficulty IN ('easy', 'medium', 'hard')),
+      instructions TEXT,
+      photo_url TEXT,
+      total_calories REAL,
+      total_protein REAL,
+      total_carbs REAL,
+      total_fat REAL,
+      is_public INTEGER DEFAULT 0,
+      is_admin_created INTEGER DEFAULT 0,
+      created_by INTEGER,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (created_by) REFERENCES users(id)
+    );
+  `);
+
+  // Recipe Ingredients
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS recipe_ingredients (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      recipe_id INTEGER NOT NULL,
+      food_item_id INTEGER,
+      ingredient_name TEXT,
+      quantity REAL,
+      unit TEXT,
+      notes TEXT,
+      FOREIGN KEY (recipe_id) REFERENCES recipes(id),
+      FOREIGN KEY (food_item_id) REFERENCES food_items(id)
+    );
+  `);
+
+  // Daily Nutrition Summary
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS daily_nutrition_summary (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      summary_date DATE NOT NULL,
+      total_calories REAL DEFAULT 0,
+      total_protein REAL DEFAULT 0,
+      total_carbs REAL DEFAULT 0,
+      total_fat REAL DEFAULT 0,
+      total_fiber REAL DEFAULT 0,
+      water_intake_ml INTEGER DEFAULT 0,
+      water_goal_ml INTEGER DEFAULT 2000,
+      meals_logged INTEGER DEFAULT 0,
+      goal_met INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      UNIQUE(user_id, summary_date)
+    );
+  `);
+
+  // Water Intake Enhanced (separate from nutrition summary for flexibility)
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS nutrition_water_intake (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      intake_date DATE NOT NULL,
+      amount_ml INTEGER NOT NULL,
+      intake_time TIME,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+
+  // Macro Goals (user-defined macro targets)
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS macro_goals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      goal_name TEXT NOT NULL,
+      calories_target REAL NOT NULL,
+      protein_target REAL NOT NULL,
+      carbs_target REAL NOT NULL,
+      fat_target REAL NOT NULL,
+      is_active INTEGER DEFAULT 1,
+      start_date DATE,
+      end_date DATE,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       FOREIGN KEY (user_id) REFERENCES users(id)
     );

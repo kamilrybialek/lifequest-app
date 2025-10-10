@@ -305,6 +305,7 @@
             <div class="tabs">
                 <button class="tab active" onclick="showTab('users')">👥 Users</button>
                 <button class="tab" onclick="showTab('tasks')">✅ Task Templates</button>
+                <button class="tab" onclick="showTab('nutrition')">🥗 Nutrition Database</button>
                 <button class="tab" onclick="showTab('content')">📝 Content</button>
                 <button class="tab" onclick="showTab('notifications')">🔔 Notifications</button>
                 <button class="tab" onclick="showTab('logs')">📜 Activity Logs</button>
@@ -350,6 +351,59 @@
                         <tr><td colspan="6" style="text-align:center">Loading...</td></tr>
                     </tbody>
                 </table>
+            </div>
+
+            <!-- Nutrition Database Section -->
+            <div id="nutritionSection" class="content-section">
+                <h2>Nutrition Database Management</h2>
+
+                <div style="margin-bottom: 24px;">
+                    <h3 style="margin-bottom: 12px;">Food Items</h3>
+                    <button class="btn" onclick="showCreateFoodModal()">+ Add Food Item</button>
+                    <br><br>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Brand</th>
+                                <th>Serving</th>
+                                <th>Calories</th>
+                                <th>Protein</th>
+                                <th>Carbs</th>
+                                <th>Fat</th>
+                                <th>Category</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="foodItemsTableBody">
+                            <tr><td colspan="10" style="text-align:center">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div>
+                    <h3 style="margin-bottom: 12px;">Recipes</h3>
+                    <button class="btn" onclick="showCreateRecipeModal()">+ Add Recipe</button>
+                    <br><br>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Servings</th>
+                                <th>Difficulty</th>
+                                <th>Prep Time</th>
+                                <th>Calories</th>
+                                <th>Visibility</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recipesTableBody">
+                            <tr><td colspan="8" style="text-align:center">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- Content Section -->
@@ -482,6 +536,129 @@
         </div>
     </div>
 
+    <!-- Create Food Item Modal -->
+    <div id="createFoodModal" class="modal">
+        <div class="modal-content">
+            <h2>Add Food Item</h2>
+            <div class="form-group">
+                <label>Name</label>
+                <input type="text" id="foodName" placeholder="Chicken Breast">
+            </div>
+            <div class="form-group">
+                <label>Brand (optional)</label>
+                <input type="text" id="foodBrand" placeholder="Perdue">
+            </div>
+            <div class="form-group">
+                <label>Serving Size</label>
+                <input type="text" id="foodServing" placeholder="100" value="100">
+            </div>
+            <div class="form-group">
+                <label>Serving Unit</label>
+                <select id="foodUnit" style="width:100%; padding:12px; border:2px solid #E5E5E5; border-radius:8px;">
+                    <option value="g">grams (g)</option>
+                    <option value="ml">milliliters (ml)</option>
+                    <option value="oz">ounces (oz)</option>
+                    <option value="cup">cup</option>
+                    <option value="tbsp">tablespoon</option>
+                    <option value="tsp">teaspoon</option>
+                    <option value="piece">piece</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Calories</label>
+                <input type="number" id="foodCalories" placeholder="165">
+            </div>
+            <div class="form-group">
+                <label>Protein (g)</label>
+                <input type="number" id="foodProtein" placeholder="31" step="0.1">
+            </div>
+            <div class="form-group">
+                <label>Carbs (g)</label>
+                <input type="number" id="foodCarbs" placeholder="0" step="0.1">
+            </div>
+            <div class="form-group">
+                <label>Fat (g)</label>
+                <input type="number" id="foodFat" placeholder="3.6" step="0.1">
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <select id="foodCategory" style="width:100%; padding:12px; border:2px solid #E5E5E5; border-radius:8px;">
+                    <option value="protein">Protein</option>
+                    <option value="carbs">Carbs</option>
+                    <option value="vegetables">Vegetables</option>
+                    <option value="fruits">Fruits</option>
+                    <option value="dairy">Dairy</option>
+                    <option value="fats">Fats & Oils</option>
+                    <option value="snacks">Snacks</option>
+                    <option value="beverages">Beverages</option>
+                </select>
+            </div>
+            <button class="btn" onclick="createFoodItem()">Add Food Item</button>
+            <button class="btn btn-secondary" onclick="closeModal('createFoodModal')" style="margin-top:12px;">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Create Recipe Modal -->
+    <div id="createRecipeModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <h2>Add Recipe</h2>
+            <div class="form-group">
+                <label>Recipe Name</label>
+                <input type="text" id="recipeName" placeholder="Grilled Chicken Salad">
+            </div>
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="recipeDescription" placeholder="A healthy protein-packed salad..." style="width:100%; padding:12px; border:2px solid #E5E5E5; border-radius:8px; min-height:60px;"></textarea>
+            </div>
+            <div class="form-group">
+                <label>Category</label>
+                <select id="recipeCategory" style="width:100%; padding:12px; border:2px solid #E5E5E5; border-radius:8px;">
+                    <option value="breakfast">Breakfast</option>
+                    <option value="lunch">Lunch</option>
+                    <option value="dinner">Dinner</option>
+                    <option value="snack">Snack</option>
+                    <option value="dessert">Dessert</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Cuisine Type</label>
+                <input type="text" id="recipeCuisine" placeholder="American, Italian, Asian...">
+            </div>
+            <div class="form-group">
+                <label>Servings</label>
+                <input type="number" id="recipeServings" placeholder="4" value="4">
+            </div>
+            <div class="form-group">
+                <label>Prep Time (minutes)</label>
+                <input type="number" id="recipePrepTime" placeholder="15">
+            </div>
+            <div class="form-group">
+                <label>Cook Time (minutes)</label>
+                <input type="number" id="recipeCookTime" placeholder="20">
+            </div>
+            <div class="form-group">
+                <label>Difficulty</label>
+                <select id="recipeDifficulty" style="width:100%; padding:12px; border:2px solid #E5E5E5; border-radius:8px;">
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Instructions</label>
+                <textarea id="recipeInstructions" placeholder="1. Step one&#10;2. Step two..." style="width:100%; padding:12px; border:2px solid #E5E5E5; border-radius:8px; min-height:100px;"></textarea>
+            </div>
+            <div class="form-group">
+                <label style="display: flex; align-items: center;">
+                    <input type="checkbox" id="recipePublic" style="width: auto; margin-right: 8px;">
+                    Make Public (visible to all users)
+                </label>
+            </div>
+            <button class="btn" onclick="createRecipe()">Add Recipe</button>
+            <button class="btn btn-secondary" onclick="closeModal('createRecipeModal')" style="margin-top:12px;">Cancel</button>
+        </div>
+    </div>
+
     <script>
         const API_URL = 'http://localhost:3001';
         let adminEmail = '';
@@ -524,6 +701,8 @@
             loadAnalytics();
             loadUsers();
             loadTaskTemplates();
+            loadFoodItems();
+            loadRecipes();
             loadNotifications();
             loadActivityLogs();
         }
@@ -687,6 +866,176 @@
 
             closeModal('createNotificationModal');
             loadNotifications();
+        }
+
+        // Nutrition Functions
+        async function loadFoodItems() {
+            try {
+                const response = await fetch(`${API_URL}/api/admin/food-items`, {
+                    headers: { 'x-admin-email': adminEmail }
+                });
+                const data = await response.json();
+
+                const tbody = document.getElementById('foodItemsTableBody');
+                tbody.innerHTML = data.foods.map(f => `
+                    <tr>
+                        <td><strong>${f.name}</strong></td>
+                        <td>${f.brand || '-'}</td>
+                        <td>${f.serving_size} ${f.serving_unit}</td>
+                        <td>${f.calories}</td>
+                        <td>${f.protein}g</td>
+                        <td>${f.carbs}g</td>
+                        <td>${f.fat}g</td>
+                        <td><span class="badge badge-info">${f.category || 'N/A'}</span></td>
+                        <td>${f.is_verified ? '<span class="badge badge-success">Verified</span>' : '<span class="badge badge-warning">Unverified</span>'}</td>
+                        <td><button onclick="deleteFoodItem(${f.id})" style="color:red;border:none;background:none;cursor:pointer;">Delete</button></td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading food items:', error);
+            }
+        }
+
+        async function loadRecipes() {
+            try {
+                const response = await fetch(`${API_URL}/api/admin/recipes`, {
+                    headers: { 'x-admin-email': adminEmail }
+                });
+                const data = await response.json();
+
+                const tbody = document.getElementById('recipesTableBody');
+                tbody.innerHTML = data.recipes.map(r => `
+                    <tr>
+                        <td><strong>${r.name}</strong></td>
+                        <td><span class="badge badge-info">${r.category || 'N/A'}</span></td>
+                        <td>${r.servings}</td>
+                        <td><span class="badge badge-${r.difficulty === 'easy' ? 'success' : r.difficulty === 'medium' ? 'warning' : 'info'}">${r.difficulty || 'N/A'}</span></td>
+                        <td>${r.prep_time_minutes || 0}m</td>
+                        <td>${r.total_calories || 0} cal</td>
+                        <td>${r.is_public ? '<span class="badge badge-success">Public</span>' : '<span class="badge badge-warning">Private</span>'}</td>
+                        <td><button onclick="deleteRecipe(${r.id})" style="color:red;border:none;background:none;cursor:pointer;">Delete</button></td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Error loading recipes:', error);
+            }
+        }
+
+        function showCreateFoodModal() {
+            document.getElementById('createFoodModal').classList.add('active');
+        }
+
+        function showCreateRecipeModal() {
+            document.getElementById('createRecipeModal').classList.add('active');
+        }
+
+        async function createFoodItem() {
+            const data = {
+                name: document.getElementById('foodName').value,
+                brand: document.getElementById('foodBrand').value || null,
+                serving_size: document.getElementById('foodServing').value,
+                serving_unit: document.getElementById('foodUnit').value,
+                calories: parseFloat(document.getElementById('foodCalories').value),
+                protein: parseFloat(document.getElementById('foodProtein').value) || 0,
+                carbs: parseFloat(document.getElementById('foodCarbs').value) || 0,
+                fat: parseFloat(document.getElementById('foodFat').value) || 0,
+                category: document.getElementById('foodCategory').value,
+                is_verified: true,
+                is_admin_created: true
+            };
+
+            try {
+                await fetch(`${API_URL}/api/admin/food-items`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-admin-email': adminEmail
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                closeModal('createFoodModal');
+                loadFoodItems();
+
+                // Clear form
+                document.getElementById('foodName').value = '';
+                document.getElementById('foodBrand').value = '';
+                document.getElementById('foodCalories').value = '';
+                document.getElementById('foodProtein').value = '';
+                document.getElementById('foodCarbs').value = '';
+                document.getElementById('foodFat').value = '';
+            } catch (error) {
+                alert('Error creating food item: ' + error.message);
+            }
+        }
+
+        async function createRecipe() {
+            const data = {
+                name: document.getElementById('recipeName').value,
+                description: document.getElementById('recipeDescription').value || null,
+                category: document.getElementById('recipeCategory').value,
+                cuisine_type: document.getElementById('recipeCuisine').value || null,
+                servings: parseInt(document.getElementById('recipeServings').value),
+                prep_time_minutes: parseInt(document.getElementById('recipePrepTime').value) || null,
+                cook_time_minutes: parseInt(document.getElementById('recipeCookTime').value) || null,
+                difficulty: document.getElementById('recipeDifficulty').value,
+                instructions: document.getElementById('recipeInstructions').value || null,
+                is_public: document.getElementById('recipePublic').checked,
+                is_admin_created: true
+            };
+
+            try {
+                await fetch(`${API_URL}/api/admin/recipes`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-admin-email': adminEmail
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                closeModal('createRecipeModal');
+                loadRecipes();
+
+                // Clear form
+                document.getElementById('recipeName').value = '';
+                document.getElementById('recipeDescription').value = '';
+                document.getElementById('recipeCuisine').value = '';
+                document.getElementById('recipeInstructions').value = '';
+                document.getElementById('recipePublic').checked = false;
+            } catch (error) {
+                alert('Error creating recipe: ' + error.message);
+            }
+        }
+
+        async function deleteFoodItem(id) {
+            if (!confirm('Delete this food item?')) return;
+
+            try {
+                await fetch(`${API_URL}/api/admin/food-items/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'x-admin-email': adminEmail }
+                });
+
+                loadFoodItems();
+            } catch (error) {
+                alert('Error deleting food item: ' + error.message);
+            }
+        }
+
+        async function deleteRecipe(id) {
+            if (!confirm('Delete this recipe?')) return;
+
+            try {
+                await fetch(`${API_URL}/api/admin/recipes/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'x-admin-email': adminEmail }
+                });
+
+                loadRecipes();
+            } catch (error) {
+                alert('Error deleting recipe: ' + error.message);
+            }
         }
 
         function showError(elementId, message) {

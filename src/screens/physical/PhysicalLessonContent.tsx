@@ -58,8 +58,9 @@ export const PhysicalLessonContent = ({ route, navigation }: any) => {
       await saveLessonProgress(user.id, {
         lessonId,
         stepId: foundationId,
+        pillar: 'physical',
         completed: true,
-        answer: answer || undefined,
+        actionAnswer: answer || undefined,
         xpEarned: 50,
         completedAt: new Date().toISOString(),
       });

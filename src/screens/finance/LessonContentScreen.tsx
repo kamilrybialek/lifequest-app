@@ -80,7 +80,7 @@ export const LessonContentScreen = ({ route, navigation }: any) => {
         lessonId,
         stepId,
         completed: true,
-        answer: answer || undefined,
+        actionAnswer: answer || undefined,
         xpEarned,
         completedAt: new Date().toISOString(),
       });

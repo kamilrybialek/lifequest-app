@@ -8,7 +8,15 @@
       "Bash(git commit -m \"$(cat <<''EOF''\nfeat: Add health tracking & improve path navigation consistency\n\nHealth Statistics & Tracking:\n- Create comprehensive health calculation utilities (BMI, BMR, TDEE, calorie goals)\n- Add Health Stats card to HomeScreen showing BMI, weight, height, screen time\n- Implement BMI calculator in Physical screen with ideal weight range and personalized advice\n- Add calorie tracker to Nutrition screen with BMR/TDEE display and progress tracking\n- Update TypeScript types to support weight/height in PhysicalHealthData and calories in NutritionData\n\nPath Navigation Improvements:\n- Add \"Continue Your Journey\" card to Mental and Physical paths (Duolingo-style)\n- Implement collapsible foundation sections for Mental and Physical paths\n- Auto-expand current foundation, collapse completed ones\n- Add chevron icons to indicate expandable/collapsible sections\n- Track next lesson progress and highlight it prominently\n- Consistent navigation flow across all learning paths\n\nAll health calculations use industry-standard formulas:\n- BMI: weight(kg) / height(m)²\n- BMR: Mifflin-St Jeor equation\n- TDEE: BMR × activity multiplier\n- Ideal weight: Based on BMI 18.5-25 range\n\n🤖 Generated with [Claude Code](https://claude.com/claude-code)\n\nCo-Authored-By: Claude <noreply@anthropic.com>\nEOF\n)\")",
       "Bash(npx tsc:*)",
       "Bash(git commit:*)",
-      "Bash(git merge:*)"
+      "Bash(git merge:*)",
+      "WebSearch",
+      "Bash(npm start:*)",
+      "Bash(find:*)",
+      "Bash(lsof:*)",
+      "Bash(xargs kill:*)",
+      "Bash(awk:*)",
+      "Bash(git push:*)",
+      "WebFetch(domain:marciniwuc.com)"
     ],
     "deny": [],
     "ask": []

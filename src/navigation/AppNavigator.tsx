@@ -15,6 +15,8 @@ import { ProfileScreen } from '../screens/ProfileScreen';
 
 // Finance Path & Integrated Tools
 import { FinanceScreenPath } from '../screens/finance/FinanceScreenPath';
+import { FinancePathNew } from '../screens/finance/FinancePathNew';
+import { FinanceLessonContentScreen } from '../screens/finance/FinanceLessonContentScreen';
 import { LessonIntroductionScreen } from '../screens/finance/LessonIntroductionScreen';
 import { LessonContentScreen } from '../screens/finance/LessonContentScreen';
 import { EmergencyFundScreen } from '../screens/finance/EmergencyFundScreen';
@@ -40,8 +42,10 @@ import { PhysicalLessonContent } from '../screens/physical/PhysicalLessonContent
 import { PhysicalLessonDuolingo } from '../screens/physical/PhysicalLessonDuolingo';
 import { WorkoutTrackerScreen } from '../screens/physical/tools/WorkoutTrackerScreen';
 
-// Other Paths
-import { NutritionScreen } from '../screens/nutrition/NutritionScreen';
+// Nutrition Path & Screens
+import { NutritionPath } from '../screens/nutrition/NutritionPath';
+import { NutritionLessonIntro } from '../screens/nutrition/NutritionLessonIntro';
+import { NutritionLessonContent } from '../screens/nutrition/NutritionLessonContent';
 
 // Admin
 import { AdminScreen } from '../screens/AdminScreen';
@@ -123,10 +127,10 @@ const MainTabs = () => {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreenFlat} options={{ tabBarLabel: 'Home' }} />
-      <Tab.Screen name="Finance" component={FinanceScreenPath} options={{ tabBarLabel: 'Finance' }} />
+      <Tab.Screen name="Finance" component={FinancePathNew} options={{ tabBarLabel: 'Finance' }} />
       <Tab.Screen name="Mental" component={MentalHealthPath} options={{ tabBarLabel: 'Mental' }} />
       <Tab.Screen name="Physical" component={PhysicalHealthPath} options={{ tabBarLabel: 'Physical' }} />
-      <Tab.Screen name="Nutrition" component={NutritionScreen} options={{ tabBarLabel: 'Nutrition' }} />
+      <Tab.Screen name="Nutrition" component={NutritionPath} options={{ tabBarLabel: 'Nutrition' }} />
 
       {/* Admin Tab - Only visible for kamil.rybialek@gmail.com */}
       {isAdmin && (
@@ -165,6 +169,11 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="LessonContent"
               component={LessonContentScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="FinanceLessonContent"
+              component={FinanceLessonContentScreen}
               options={{ headerShown: false }}
             />
             <Stack.Screen
@@ -244,6 +253,18 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="WorkoutTracker"
               component={WorkoutTrackerScreen}
+              options={{ headerShown: false }}
+            />
+
+            {/* Nutrition Lessons & Tools */}
+            <Stack.Screen
+              name="NutritionLessonIntro"
+              component={NutritionLessonIntro}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="NutritionLessonContent"
+              component={NutritionLessonContent}
               options={{ headerShown: false }}
             />
 
