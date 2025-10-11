@@ -1028,6 +1028,20 @@ export const initDatabase = async () => {
     );
   `);
 
+  // ===== DATABASE MIGRATIONS =====
+  // Migration: Add pillar column to lesson_progress if it doesn't exist
+  try {
+    await db.execAsync(`
+      ALTER TABLE lesson_progress ADD COLUMN pillar TEXT DEFAULT 'finance';
+    `);
+    console.log('✅ Migration: Added pillar column to lesson_progress');
+  } catch (error: any) {
+    // Column already exists or other error - ignore
+    if (!error.message.includes('duplicate column name')) {
+      console.log('ℹ️ pillar column already exists or migration not needed');
+    }
+  }
+
   console.log('✅ Database initialized successfully');
   return db;
 };
