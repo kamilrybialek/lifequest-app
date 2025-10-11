@@ -67,23 +67,41 @@ export const saveLessonProgress = async (
 export const completeLesson = async (
   userId: number,
   lessonId: string,
-  xpEarned: number
+  xpEarned: number,
+  pillar: string = 'nutrition'
 ): Promise<void> => {
   const db = await getDatabase();
 
-  await db.runAsync(
-    `INSERT OR REPLACE INTO lesson_progress
-     (user_id, lesson_id, step_id, pillar, completed, xp_earned, completed_at)
-     VALUES (?, ?, ?, ?, 1, ?, ?)`,
-    [
-      userId,
-      lessonId,
-      lessonId.split('-')[0], // Extract step_id from lesson_id (e.g., "foundation1" from "foundation1-lesson1")
-      'nutrition',
-      xpEarned,
-      new Date().toISOString(),
-    ]
+  // Check if lesson already exists
+  const existing = await db.getFirstAsync<any>(
+    'SELECT * FROM lesson_progress WHERE user_id = ? AND lesson_id = ?',
+    [userId, lessonId]
   );
+
+  if (existing) {
+    // Update existing record
+    await db.runAsync(
+      `UPDATE lesson_progress
+       SET completed = 1, xp_earned = ?, completed_at = ?
+       WHERE user_id = ? AND lesson_id = ?`,
+      [xpEarned, new Date().toISOString(), userId, lessonId]
+    );
+  } else {
+    // Insert new record with all required fields
+    await db.runAsync(
+      `INSERT INTO lesson_progress
+       (user_id, lesson_id, step_id, pillar, completed, xp_earned, completed_at)
+       VALUES (?, ?, ?, ?, 1, ?, ?)`,
+      [
+        userId,
+        lessonId,
+        lessonId.split('-')[0], // Extract step_id from lesson_id (e.g., "foundation1" from "foundation1-lesson1")
+        pillar,
+        xpEarned,
+        new Date().toISOString(),
+      ]
+    );
+  }
 
   console.log(`✅ Lesson completed: ${lessonId} (+${xpEarned} XP)`);
 };

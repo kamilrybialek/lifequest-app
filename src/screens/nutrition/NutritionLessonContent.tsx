@@ -8,7 +8,7 @@ import { NUTRITION_FOUNDATIONS } from '../../types/nutrition';
 import { useAuthStore } from '../../store/authStore';
 import { completeLesson } from '../../database/lessons';
 import { updateNutritionProgress } from '../../database/nutrition';
-import { addXP } from '../../database/user';
+import { addXP, updateStreak } from '../../database/user';
 
 export const NutritionLessonContent = ({ route, navigation }: any) => {
   const { lessonId, foundationId } = route.params;
@@ -67,10 +67,13 @@ export const NutritionLessonContent = ({ route, navigation }: any) => {
 
     try {
       // Mark lesson as completed
-      await completeLesson(user.id, lessonId, lesson.xp);
+      await completeLesson(user.id, lessonId, lesson.xp, 'nutrition');
 
       // Add XP to user
       await addXP(user.id, lesson.xp);
+
+      // Update nutrition streak
+      await updateStreak(user.id, 'nutrition');
 
       // Check if this was the last lesson in the foundation
       const lessonIndex = foundation.lessons.findIndex(l => l.id === lessonId);
@@ -82,6 +85,8 @@ export const NutritionLessonContent = ({ route, navigation }: any) => {
           current_foundation: foundation.number + 1,
         });
       }
+
+      console.log('✅ Nutrition lesson completed:', lessonId, `+${lesson.xp} XP`);
 
       // Navigate to success screen or back to path
       navigation.navigate('Nutrition', {
