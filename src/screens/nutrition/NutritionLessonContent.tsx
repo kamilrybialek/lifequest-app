@@ -88,11 +88,8 @@ export const NutritionLessonContent = ({ route, navigation }: any) => {
 
       console.log('✅ Nutrition lesson completed:', lessonId, `+${lesson.xp} XP`);
 
-      // Navigate to success screen or back to path
-      navigation.navigate('Nutrition', {
-        screen: 'NutritionPath',
-        params: { lessonCompleted: true },
-      });
+      // Navigate back to Nutrition tab
+      navigation.navigate('MainTabs', { screen: 'Nutrition' });
     } catch (error) {
       console.error('Error completing lesson:', error);
     }
