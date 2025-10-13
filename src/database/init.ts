@@ -1064,6 +1064,61 @@ export const getDatabase = async () => {
   return await SQLite.openDatabaseAsync(DB_NAME);
 };
 
+export const resetUserData = async (userId: number) => {
+  const db = await SQLite.openDatabaseAsync(DB_NAME);
+
+  try {
+    console.log(`🗑️ Resetting data for user ${userId}...`);
+
+    // Delete user-specific data from all tables (but keep the tables)
+    await db.runAsync(`DELETE FROM finance_progress WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM user_budgets WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM budget_categories WHERE budget_id IN (SELECT id FROM user_budgets WHERE user_id = ?)`, [userId]);
+    await db.runAsync(`DELETE FROM user_debts WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM debt_payments WHERE debt_id IN (SELECT id FROM user_debts WHERE user_id = ?)`, [userId]);
+    await db.runAsync(`DELETE FROM user_expenses WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM daily_tasks WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM user_stats WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM lesson_progress WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM mental_progress WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM screen_time_logs WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM dopamine_detox_sessions WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM morning_routines WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM meditation_sessions WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM physical_progress WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM workout_sessions WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM water_intake_logs WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM sleep_logs WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM pillar_assessments WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM user_achievements WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM user_challenges WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM user_milestones WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM recurring_transactions WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM transaction_categories WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM merchant_patterns WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM savings_goals WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM goal_contributions WHERE goal_id IN (SELECT id FROM savings_goals WHERE user_id = ?)`, [userId]);
+    await db.runAsync(`DELETE FROM bill_reminders WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM financial_insights WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM net_worth_snapshots WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM account_balances WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM spending_trends WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM nutrition_progress WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM meals WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM meal_plans WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM macro_goals WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM nutrition_water_intake WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM daily_nutrition_summary WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM user_activity WHERE user_id = ?`, [userId]);
+    await db.runAsync(`DELETE FROM user_feedback WHERE user_id = ?`, [userId]);
+
+    console.log('✅ User data reset complete');
+  } catch (error) {
+    console.error('Error resetting user data:', error);
+    throw error;
+  }
+};
+
 export const resetDatabase = async () => {
   const db = await SQLite.openDatabaseAsync(DB_NAME);
 
@@ -1087,6 +1142,22 @@ export const resetDatabase = async () => {
   await db.execAsync(`DROP TABLE IF EXISTS workout_sessions;`);
   await db.execAsync(`DROP TABLE IF EXISTS water_intake_logs;`);
   await db.execAsync(`DROP TABLE IF EXISTS sleep_logs;`);
+  await db.execAsync(`DROP TABLE IF EXISTS pillar_assessments;`);
+  await db.execAsync(`DROP TABLE IF EXISTS achievements;`);
+  await db.execAsync(`DROP TABLE IF EXISTS user_achievements;`);
+  await db.execAsync(`DROP TABLE IF EXISTS daily_challenges;`);
+  await db.execAsync(`DROP TABLE IF EXISTS user_challenges;`);
+  await db.execAsync(`DROP TABLE IF EXISTS user_milestones;`);
+  await db.execAsync(`DROP TABLE IF EXISTS recurring_transactions;`);
+  await db.execAsync(`DROP TABLE IF EXISTS transaction_categories;`);
+  await db.execAsync(`DROP TABLE IF EXISTS merchant_patterns;`);
+  await db.execAsync(`DROP TABLE IF EXISTS savings_goals;`);
+  await db.execAsync(`DROP TABLE IF EXISTS goal_contributions;`);
+  await db.execAsync(`DROP TABLE IF EXISTS bill_reminders;`);
+  await db.execAsync(`DROP TABLE IF EXISTS financial_insights;`);
+  await db.execAsync(`DROP TABLE IF EXISTS net_worth_snapshots;`);
+  await db.execAsync(`DROP TABLE IF EXISTS account_balances;`);
+  await db.execAsync(`DROP TABLE IF EXISTS spending_trends;`);
 
   console.log('🗑️ All tables dropped');
 

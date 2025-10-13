@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../store/authStore';
 import { useAppStore } from '../store/appStore';
 import { useFinanceStore } from '../store/financeStore';
-import { resetDatabase } from '../database/init';
+import { resetUserData } from '../database/init';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../theme/colors';
 import { shadows } from '../theme/theme';
@@ -21,14 +21,19 @@ export const ProfileScreen = ({ navigation }: any) => {
     await logout();
   };
 
-  const handleResetDatabase = () => {
+  const handleResetUserData = () => {
+    if (!user?.id) {
+      Alert.alert('Error', 'No user logged in');
+      return;
+    }
+
     Alert.alert(
-      'Reset Database?',
-      'This will delete all your progress, tasks, and data. This action cannot be undone.',
+      'Reset Your Data?',
+      'This will delete all YOUR progress, tasks, and data. This action cannot be undone.\n\nOther users\' data will not be affected.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Reset',
+          text: 'Reset My Data',
           style: 'destructive',
           onPress: async () => {
             try {
@@ -42,8 +47,8 @@ export const ProfileScreen = ({ navigation }: any) => {
                 'nutritionData',
               ]);
 
-              // Reset SQLite database
-              await resetDatabase();
+              // Reset user data in SQLite database
+              await resetUserData(user.id);
 
               // Reset all Zustand stores
               resetFinanceStore();
@@ -51,10 +56,10 @@ export const ProfileScreen = ({ navigation }: any) => {
               // Reload app data (will reset to defaults)
               await loadAppData();
 
-              Alert.alert('Success! 🗑️', 'Database and all app data have been reset successfully!');
+              Alert.alert('Success! 🗑️', 'Your data has been reset successfully!\n\nYou can start fresh now.');
             } catch (error) {
               console.error('Reset error:', error);
-              Alert.alert('Error', 'Failed to reset database');
+              Alert.alert('Error', 'Failed to reset your data. Please try again.');
             }
           },
         },
@@ -200,13 +205,13 @@ export const ProfileScreen = ({ navigation }: any) => {
 
           <TouchableOpacity
             style={[styles.settingsItem, styles.dangerItem]}
-            onPress={handleResetDatabase}
+            onPress={handleResetUserData}
           >
             <View style={styles.settingsItemLeft}>
               <Ionicons name="refresh-outline" size={24} color={colors.error} />
               <View>
-                <Text style={[styles.settingsItemText, { color: colors.error }]}>Reset Database</Text>
-                <Text style={styles.settingsItemSubtext}>Clear all app data</Text>
+                <Text style={[styles.settingsItemText, { color: colors.error }]}>Reset My Data</Text>
+                <Text style={styles.settingsItemSubtext}>Clear only your progress and start fresh</Text>
               </View>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textSecondary} />
