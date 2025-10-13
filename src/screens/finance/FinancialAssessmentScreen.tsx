@@ -167,12 +167,8 @@ export const FinancialAssessmentScreen = ({ navigation }: any) => {
       console.log('✅ Assessment complete:', finalAnswers);
       console.log('✅ Recommended starting step:', recommendedStep);
 
-      // Navigate back with results
-      navigation.navigate('Finance', {
-        assessmentComplete: true,
-        recommendedStep,
-        assessmentResults: finalAnswers,
-      });
+      // Navigate back to Finance tab (it will detect assessment completion via database)
+      navigation.goBack();
     } catch (error) {
       console.error('Error saving assessment:', error);
     }

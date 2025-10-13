@@ -34,9 +34,12 @@ export const FinancePathNew = ({ navigation, route }: any) => {
       const completed = await hasCompletedAssessment(user.id, 'finance');
       setAssessmentCompleted(completed);
 
-      // If assessment completed, check for recommended step from route params
-      if (route?.params?.assessmentComplete && route?.params?.recommendedStep) {
-        console.log('✅ Assessment completed! Recommended step:', route.params.recommendedStep);
+      // If assessment was just completed, get the recommended step
+      if (completed) {
+        const assessment = await getAssessment(user.id, 'finance');
+        if (assessment) {
+          console.log('✅ Assessment found! Recommended step:', assessment.recommendedLevel);
+        }
       }
 
       setIsCheckingAssessment(false);
@@ -57,9 +60,10 @@ export const FinancePathNew = ({ navigation, route }: any) => {
 
       let currentStep = (financeProgress as any)?.current_step || 1;
 
-      // If assessment was just completed, use recommended step
-      if (route?.params?.assessmentComplete && route?.params?.recommendedStep) {
-        currentStep = route.params.recommendedStep;
+      // If assessment exists and user has no progress, use recommended step
+      const assessment = await getAssessment(user.id, 'finance');
+      if (assessment && !financeProgress) {
+        currentStep = assessment.recommendedLevel;
         console.log('Using recommended step from assessment:', currentStep);
       }
       let foundNextLesson: any = null;
@@ -127,7 +131,7 @@ export const FinancePathNew = ({ navigation, route }: any) => {
     React.useCallback(() => {
       checkAssessment();
       loadProgress();
-    }, [user?.id, route?.params?.assessmentComplete])
+    }, [user?.id])
   );
 
   const handleUnlock = () => {
