@@ -848,6 +848,20 @@ export const initDatabase = async () => {
     );
   `);
 
+  // ===== PILLAR ASSESSMENTS =====
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS pillar_assessments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      pillar TEXT NOT NULL CHECK(pillar IN ('finance', 'mental', 'physical', 'nutrition')),
+      assessment_data TEXT NOT NULL,
+      recommended_level INTEGER NOT NULL,
+      completed_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      UNIQUE(user_id, pillar)
+    );
+  `);
+
   // ===== ENHANCED FINANCE FEATURES =====
 
   // Recurring Transactions (subscriptions, bills, income)

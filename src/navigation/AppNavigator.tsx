@@ -19,6 +19,7 @@ import { FinancePathNew } from '../screens/finance/FinancePathNew';
 import { FinanceLessonContentScreen } from '../screens/finance/FinanceLessonContentScreen';
 import { LessonIntroductionScreen } from '../screens/finance/LessonIntroductionScreen';
 import { LessonContentScreen } from '../screens/finance/LessonContentScreen';
+import { FinancialAssessmentScreen } from '../screens/finance/FinancialAssessmentScreen';
 import { EmergencyFundScreen } from '../screens/finance/EmergencyFundScreen';
 import { BudgetManagerScreen } from '../screens/finance/BudgetManagerScreen';
 import { DebtTrackerScreen } from '../screens/finance/DebtTrackerScreen';
@@ -161,6 +162,11 @@ export const AppNavigator = () => {
             <Stack.Screen name="MainTabs" component={MainTabs} />
 
             {/* Finance Lessons & Tools */}
+            <Stack.Screen
+              name="FinancialAssessment"
+              component={FinancialAssessmentScreen}
+              options={{ headerShown: false }}
+            />
             <Stack.Screen
               name="LessonIntroduction"
               component={LessonIntroductionScreen}

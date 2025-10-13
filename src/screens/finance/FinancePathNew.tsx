@@ -7,21 +7,44 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { Text } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../theme/colors';
 import { typography, shadows } from '../../theme/theme';
 import { FinanceStep, FinanceLesson, FINANCE_STEPS, INTEGRATED_TOOLS } from '../../types/financeNew';
 import { useAuthStore } from '../../store/authStore';
 import { getCompletedLessons } from '../../database/lessons';
 import { getFinanceProgress } from '../../database/finance';
+import { hasCompletedAssessment, getAssessment } from '../../database/assessments';
 import { useFocusEffect } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 
-export const FinancePathNew = ({ navigation }: any) => {
+export const FinancePathNew = ({ navigation, route }: any) => {
   const [steps, setSteps] = useState<FinanceStep[]>(FINANCE_STEPS);
   const [expandedSteps, setExpandedSteps] = useState<{ [key: string]: boolean }>({});
   const [nextLesson, setNextLesson] = useState<any>(null);
+  const [assessmentCompleted, setAssessmentCompleted] = useState<boolean>(false);
+  const [isCheckingAssessment, setIsCheckingAssessment] = useState<boolean>(true);
   const { user } = useAuthStore();
+
+  const checkAssessment = async () => {
+    if (!user?.id) return;
+
+    try {
+      const completed = await hasCompletedAssessment(user.id, 'finance');
+      setAssessmentCompleted(completed);
+
+      // If assessment completed, check for recommended step from route params
+      if (route?.params?.assessmentComplete && route?.params?.recommendedStep) {
+        console.log('✅ Assessment completed! Recommended step:', route.params.recommendedStep);
+      }
+
+      setIsCheckingAssessment(false);
+    } catch (error) {
+      console.error('Error checking assessment:', error);
+      setIsCheckingAssessment(false);
+    }
+  };
 
   const loadProgress = async () => {
     if (!user?.id) return;
@@ -32,7 +55,13 @@ export const FinancePathNew = ({ navigation }: any) => {
       console.log('Completed lessons:', completedLessonIds);
       const financeProgress = await getFinanceProgress(user.id);
 
-      const currentStep = (financeProgress as any)?.current_step || 1;
+      let currentStep = (financeProgress as any)?.current_step || 1;
+
+      // If assessment was just completed, use recommended step
+      if (route?.params?.assessmentComplete && route?.params?.recommendedStep) {
+        currentStep = route.params.recommendedStep;
+        console.log('Using recommended step from assessment:', currentStep);
+      }
       let foundNextLesson: any = null;
 
       // Update steps with progress
@@ -96,9 +125,14 @@ export const FinancePathNew = ({ navigation }: any) => {
 
   useFocusEffect(
     React.useCallback(() => {
+      checkAssessment();
       loadProgress();
-    }, [user?.id])
+    }, [user?.id, route?.params?.assessmentComplete])
   );
+
+  const handleUnlock = () => {
+    navigation.navigate('FinancialAssessment');
+  };
 
   const toggleStepExpanded = (stepId: string) => {
     setExpandedSteps((prev) => ({
@@ -120,6 +154,15 @@ export const FinancePathNew = ({ navigation }: any) => {
   const handleToolPress = (toolScreen: string) => {
     navigation.navigate(toolScreen);
   };
+
+  // Show loading state while checking assessment
+  if (isCheckingAssessment) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -239,6 +282,48 @@ export const FinancePathNew = ({ navigation }: any) => {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
+
+      {/* Locked Overlay - Show when assessment not completed */}
+      {!assessmentCompleted && (
+        <View style={styles.lockedOverlay}>
+          <LinearGradient
+            colors={['rgba(0,0,0,0.85)', 'rgba(0,0,0,0.90)']}
+            style={styles.lockedGradient}
+          >
+            <View style={styles.lockedContent}>
+              <View style={styles.lockIconContainer}>
+                <Ionicons name="lock-closed" size={64} color="#FFFFFF" />
+              </View>
+              <Text style={styles.lockedTitle}>Unlock Your Financial Journey</Text>
+              <Text style={styles.lockedDescription}>
+                Before starting, we need to understand your current financial situation.
+                This quick assessment will help us personalize your learning path.
+              </Text>
+              <Text style={styles.lockedBullets}>
+                📊 Takes only 2-3 minutes{'\n'}
+                🎯 Get personalized recommendations{'\n'}
+                🔓 Unlock lessons at your level
+              </Text>
+              <TouchableOpacity
+                style={styles.unlockButton}
+                onPress={handleUnlock}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={[colors.finance, '#357ABD']}
+                  style={styles.unlockButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Ionicons name="unlock" size={24} color="#FFFFFF" style={styles.unlockButtonIcon} />
+                  <Text style={styles.unlockButtonText}>Start Assessment</Text>
+                  <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
+        </View>
+      )}
     </View>
   );
 };
@@ -701,5 +786,89 @@ const styles = StyleSheet.create({
 
   bottomSpacer: {
     height: 40,
+  },
+
+  // Loading
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
+
+  // Locked Overlay
+  lockedOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999,
+  },
+  lockedGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  lockedContent: {
+    alignItems: 'center',
+    maxWidth: 400,
+  },
+  lockIconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  lockedTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  lockedDescription: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    lineHeight: 24,
+    marginBottom: 24,
+    opacity: 0.9,
+  },
+  lockedBullets: {
+    fontSize: 15,
+    color: '#FFFFFF',
+    textAlign: 'left',
+    lineHeight: 28,
+    marginBottom: 40,
+    opacity: 0.95,
+  },
+  unlockButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    ...shadows.medium,
+  },
+  unlockButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 18,
+    gap: 12,
+  },
+  unlockButtonIcon: {
+    marginRight: 4,
+  },
+  unlockButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
 });
