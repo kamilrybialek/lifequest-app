@@ -7,6 +7,7 @@ import { useAppStore } from './src/store/appStore';
 import { theme } from './src/theme/theme';
 import { initDatabase } from './src/database/init';
 import { initializeNotifications } from './src/utils/notifications';
+import Toast from 'react-native-toast-message';
 
 export default function App() {
   const [isInitializing, setIsInitializing] = useState(true);
@@ -50,6 +51,7 @@ export default function App() {
   return (
     <PaperProvider theme={theme}>
       <AppNavigator />
+      <Toast />
     </PaperProvider>
   );
 }
