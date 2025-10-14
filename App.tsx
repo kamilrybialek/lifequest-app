@@ -6,6 +6,7 @@ import { useAuthStore } from './src/store/authStore';
 import { useAppStore } from './src/store/appStore';
 import { theme } from './src/theme/theme';
 import { initDatabase } from './src/database/init';
+import { initializeNotifications } from './src/utils/notifications';
 
 export default function App() {
   const [isInitializing, setIsInitializing] = useState(true);
@@ -23,6 +24,11 @@ export default function App() {
         // Load user and app data
         await loadUser();
         await loadAppData();
+
+        // Initialize push notifications
+        console.log('Initializing push notifications...');
+        await initializeNotifications();
+        console.log('Push notifications initialized');
       } catch (error) {
         console.error('Initialization error:', error);
       } finally {

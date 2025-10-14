@@ -14,6 +14,12 @@ import {
 import { getUserStats, getAllStreaks, getDailyProgress } from '../database/user';
 import { checkAndGenerateTasks } from '../utils/taskGenerator';
 import { getDatabase } from '../database/init';
+import {
+  scheduleStreakProtectionNotification,
+  sendAchievementNotification,
+  sendLevelUpNotification,
+  sendTaskCompletedNotification,
+} from '../utils/notifications';
 
 interface AppState {
   // Progress
@@ -34,12 +40,12 @@ interface AppState {
   generateDailyTasks: () => void;
   completeTask: (taskId: string) => Promise<void>;
   updateStreak: (pillar: Pillar) => void;
-  addPoints: (points: number) => void;
+  addPoints: (points: number) => Promise<void>;
   updateFinanceData: (data: Partial<FinanceData>) => Promise<void>;
   updateMentalHealthData: (data: Partial<MentalHealthData>) => Promise<void>;
   updatePhysicalHealthData: (data: Partial<PhysicalHealthData>) => Promise<void>;
   updateNutritionData: (data: Partial<NutritionData>) => Promise<void>;
-  unlockAchievement: (achievementId: string) => void;
+  unlockAchievement: (achievementId: string) => Promise<void>;
 }
 
 const initialProgress: UserProgress = {
@@ -277,12 +283,23 @@ export const useAppStore = create<AppState>((set, get) => ({
     get().addPoints(task.points);
     get().updateStreak(task.pillar);
 
-    // Check for achievements
+    // Send task completion notification
     const completedCount = updatedTasks.filter(t => t.completed).length;
+    const totalCount = updatedTasks.length;
+    await sendTaskCompletedNotification(task.title, task.points, completedCount, totalCount);
+
+    // Schedule streak protection if tasks remain
+    const remainingTasks = totalCount - completedCount;
+    if (remainingTasks > 0) {
+      const currentStreak = Math.max(...get().progress.streaks.map(s => s.current), 0);
+      await scheduleStreakProtectionNotification(currentStreak, remainingTasks);
+    }
+
+    // Check for achievements
     if (completedCount === 1) {
       get().unlockAchievement('first_task');
     }
-    if (completedCount === 4) {
+    if (completedCount === totalCount) {
       get().unlockAchievement('all_pillars');
     }
   },
@@ -320,8 +337,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  addPoints: (points: number) => {
+  addPoints: async (points: number) => {
     const progress = get().progress;
+    const oldLevel = progress.level;
     const newTotalPoints = progress.totalPoints + points;
     const newXP = progress.xp + points;
     const newLevel = Math.floor(newXP / 100) + 1;
@@ -334,7 +352,12 @@ export const useAppStore = create<AppState>((set, get) => ({
     };
 
     set({ progress: updatedProgress });
-    AsyncStorage.setItem('progress', JSON.stringify(updatedProgress));
+    await AsyncStorage.setItem('progress', JSON.stringify(updatedProgress));
+
+    // Send level up notification if level changed
+    if (newLevel > oldLevel) {
+      await sendLevelUpNotification(newLevel);
+    }
 
     // Check for level achievements
     if (newLevel >= 5) {
@@ -369,7 +392,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     await AsyncStorage.setItem('nutritionData', JSON.stringify(updated));
   },
 
-  unlockAchievement: (achievementId: string) => {
+  unlockAchievement: async (achievementId: string) => {
     const progress = get().progress;
     const achievementIndex = progress.achievements.findIndex(a => a.id === achievementId);
 
@@ -387,6 +410,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     const updatedProgress = { ...progress, achievements: updatedAchievements };
     set({ progress: updatedProgress });
-    AsyncStorage.setItem('progress', JSON.stringify(updatedProgress));
+    await AsyncStorage.setItem('progress', JSON.stringify(updatedProgress));
+
+    // Send achievement notification
+    const xpReward = 50; // Default XP for achievements
+    await sendAchievementNotification(achievement.name, xpReward);
   },
 }));
