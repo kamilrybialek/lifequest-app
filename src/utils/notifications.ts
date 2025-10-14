@@ -95,8 +95,8 @@ export const scheduleMorningMotivation = async (): Promise<void> => {
       '☀️ Good morning! Start your day with 3 quick wins',
       '🌅 New day, new opportunities! Check your daily tasks',
       '💪 Rise and shine! Your daily quests await',
-      '🎯 Today's the day! Complete your first task now',
-      '🚀 Good morning, champion! Let's make today count',
+      '🎯 Today is the day! Complete your first task now',
+      '🚀 Good morning, champion! Make today count',
     ];
 
     const randomMessage = messages[Math.floor(Math.random() * messages.length)];
