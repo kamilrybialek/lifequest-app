@@ -12,6 +12,8 @@ import {
   Pillar,
 } from '../types';
 import { getUserStats, getAllStreaks, getDailyProgress } from '../database/user';
+import { checkAndGenerateTasks } from '../utils/taskGenerator';
+import { getDatabase } from '../database/init';
 
 interface AppState {
   // Progress
@@ -28,6 +30,7 @@ interface AppState {
 
   // Actions
   loadAppData: () => Promise<void>;
+  loadDailyTasksFromDB: (userId: number) => Promise<void>;
   generateDailyTasks: () => void;
   completeTask: (taskId: string) => Promise<void>;
   updateStreak: (pillar: Pillar) => void;
@@ -93,13 +96,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   loadAppData: async () => {
     try {
       // Load from AsyncStorage (pillar-specific data)
-      const tasksData = await AsyncStorage.getItem('dailyTasks');
       const financeData = await AsyncStorage.getItem('financeData');
       const mentalData = await AsyncStorage.getItem('mentalHealthData');
       const physicalData = await AsyncStorage.getItem('physicalHealthData');
       const nutritionData = await AsyncStorage.getItem('nutritionData');
 
-      if (tasksData) set({ dailyTasks: JSON.parse(tasksData) });
       if (financeData) set({ financeData: JSON.parse(financeData) });
       if (mentalData) set({ mentalHealthData: JSON.parse(mentalData) });
       if (physicalData) set({ physicalHealthData: JSON.parse(physicalData) });
@@ -134,6 +135,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
           set({ progress: updatedProgress });
           console.log('✅ Loaded progress from SQLite:', updatedProgress);
+
+          // Generate daily tasks from database (new intelligent system)
+          await checkAndGenerateTasks(userId);
+          await get().loadDailyTasksFromDB(userId);
         } catch (error) {
           console.error('Error loading progress from SQLite:', error);
           // Fall back to AsyncStorage if SQLite fails
@@ -141,18 +146,52 @@ export const useAppStore = create<AppState>((set, get) => ({
           if (progressData) set({ progress: JSON.parse(progressData) });
         }
       } else {
-        // No user logged in - use AsyncStorage
+        // No user logged in - use AsyncStorage fallback
         const progressData = await AsyncStorage.getItem('progress');
         if (progressData) set({ progress: JSON.parse(progressData) });
-      }
 
-      // Generate tasks if none exist or it's a new day
-      const tasks = tasksData ? JSON.parse(tasksData) : [];
-      if (tasks.length === 0) {
-        get().generateDailyTasks();
+        const tasksData = await AsyncStorage.getItem('dailyTasks');
+        const tasks = tasksData ? JSON.parse(tasksData) : [];
+        if (tasks.length === 0) {
+          get().generateDailyTasks(); // Fallback to old random task generation
+        } else {
+          set({ dailyTasks: tasks });
+        }
       }
     } catch (error) {
       console.error('Error loading app data:', error);
+    }
+  },
+
+  loadDailyTasksFromDB: async (userId: number) => {
+    try {
+      const db = await getDatabase();
+      const today = new Date().toISOString().split('T')[0];
+
+      // Load tasks from database
+      const tasks = await db.getAllAsync<any>(
+        `SELECT id, pillar, title, description, completed, xp_reward
+         FROM daily_tasks
+         WHERE user_id = ? AND task_date = ?
+         ORDER BY id ASC`,
+        [userId, today]
+      );
+
+      // Transform database tasks to app format
+      const formattedTasks: Task[] = tasks.map((task: any) => ({
+        id: String(task.id),
+        pillar: task.pillar as Pillar,
+        title: task.title,
+        description: task.description || '',
+        duration: 5, // Default duration
+        completed: task.completed === 1,
+        points: task.xp_reward || 10,
+      }));
+
+      set({ dailyTasks: formattedTasks });
+      console.log(`✅ Loaded ${formattedTasks.length} daily tasks from database`);
+    } catch (error) {
+      console.error('Error loading daily tasks from DB:', error);
     }
   },
 
