@@ -10,9 +10,29 @@ export interface LessonSection {
   items?: string[];
 }
 
+export interface QuizQuestion {
+  id: string;
+  type: 'multiple-choice' | 'true-false';
+  question: string;
+  choices: {
+    id: string;
+    text: string;
+    isCorrect: boolean;
+    explanation: string;
+  }[];
+  explanation: string;
+  xp: number;
+}
+
+export interface ContentBlock {
+  blockType: 'section' | 'quiz';
+  section?: LessonSection;
+  quiz?: QuizQuestion;
+}
+
 export interface LessonContent {
   lessonId: string;
-  sections: LessonSection[];
+  content: ContentBlock[]; // Interleaved sections and quizzes
   actionQuestion: {
     question: string;
     type: 'number' | 'text' | 'checkbox' | 'choice';
@@ -23,12 +43,298 @@ export interface LessonContent {
   navigateToTool?: string; // Optional: navigate to specific tool after completion
 }
 
-export const LESSON_CONTENTS: { [key: string]: LessonContent } = {
+// Old structure for backward compatibility
+export interface OldLessonContent {
+  lessonId: string;
+  sections: LessonSection[];
+  actionQuestion: {
+    question: string;
+    type: 'number' | 'text' | 'checkbox' | 'choice';
+    placeholder?: string;
+    choices?: string[];
+    unit?: string;
+  };
+  navigateToTool?: string;
+}
+
+export const LESSON_CONTENTS: { [key: string]: LessonContent | OldLessonContent } = {
+  // ============================================
+  // STEP 1: Know Your Starting Point
+  // ============================================
+
+  'step1-lesson1': {
+    lessonId: 'step1-lesson1',
+    content: [
+      // Intro sections
+      {
+        blockType: 'section',
+        section: {
+          type: 'text',
+          title: 'Your Financial GPS',
+          content: 'Imagine driving to a new city without knowing where you\'re starting from. GPS won\'t work. Same with money - you can\'t reach financial freedom without knowing your starting point.',
+        },
+      },
+      {
+        blockType: 'section',
+        section: {
+          type: 'text',
+          title: 'What is Net Worth?',
+          content: 'Net worth is simple: Everything you OWN minus everything you OWE. It\'s the truest measure of your financial health - not your salary, not your car, not your house. Just: Assets - Debts = Net Worth.',
+        },
+      },
+      {
+        blockType: 'section',
+        section: {
+          type: 'example',
+          title: 'Real Example',
+          content: 'Sarah owns:\n• Car worth $8,000\n• Savings $2,500\n• Checking $800\nTotal: $11,300\n\nSarah owes:\n• Car loan $5,000\n• Credit cards $3,200\nTotal: $8,200\n\nNet Worth: $11,300 - $8,200 = $3,100',
+        },
+      },
+      {
+        blockType: 'section',
+        section: {
+          type: 'tip',
+          title: 'Don\'t Be Discouraged',
+          content: 'If your net worth is negative (you owe more than you own), you\'re not alone. 30% of Americans have negative net worth. The key is knowing the number so you can improve it.',
+        },
+      },
+      // First quiz
+      {
+        blockType: 'quiz',
+        quiz: {
+          id: 'q1',
+          type: 'multiple-choice',
+          question: 'Which of these counts as an ASSET (something you own)?',
+          choices: [
+            {
+              id: 'a',
+              text: 'Credit card debt',
+              isCorrect: false,
+              explanation: 'Credit card debt is a liability - something you OWE, not something you OWN.',
+            },
+            {
+              id: 'b',
+              text: 'Money in your savings account',
+              isCorrect: true,
+              explanation: 'Correct! Cash savings is an asset - it\'s money YOU own.',
+            },
+            {
+              id: 'c',
+              text: 'Monthly rent payment',
+              isCorrect: false,
+              explanation: 'Rent is an expense, not an asset. You don\'t own the apartment.',
+            },
+            {
+              id: 'd',
+              text: 'Car loan',
+              isCorrect: false,
+              explanation: 'A car loan is a liability - debt you owe to the bank.',
+            },
+          ],
+          explanation: 'Assets are things you OWN that have value: cash, investments, property you own (not rent), vehicles, etc.',
+          xp: 10,
+        },
+      },
+      // Continue with assets
+      {
+        blockType: 'section',
+        section: {
+          type: 'list',
+          title: 'Common Assets (What You Own)',
+          content: 'Things that count toward your net worth:',
+          items: [
+            '💵 Cash in checking/savings accounts',
+            '🏠 Home value (if you own it)',
+            '🚗 Vehicle value (not what you paid - current worth)',
+            '📈 Investments (401k, stocks, mutual funds)',
+            '💎 Valuable items (jewelry, art, collectibles)',
+            '🏢 Business value (if you own one)',
+          ],
+        },
+      },
+      {
+        blockType: 'section',
+        section: {
+          type: 'warning',
+          title: 'Don\'t Include These',
+          content: 'Don\'t count: personal items (clothes, furniture), items you can\'t easily sell, or inflated values. Be realistic - use what you could sell it for TODAY, not what you paid.',
+        },
+      },
+      // Second quiz
+      {
+        blockType: 'quiz',
+        quiz: {
+          id: 'q2',
+          type: 'true-false',
+          question: 'True or False: Your salary is the best measure of your financial health.',
+          choices: [
+            {
+              id: 'true',
+              text: 'True',
+              isCorrect: false,
+              explanation: 'False! You can make $100,000/year and still be broke if you spend $110,000. Net worth is what matters.',
+            },
+            {
+              id: 'false',
+              text: 'False',
+              isCorrect: true,
+              explanation: 'Correct! High income doesn\'t mean wealth. Someone making $50k with $100k saved is wealthier than someone making $150k with $200k in debt.',
+            },
+          ],
+          explanation: 'It\'s not what you MAKE, it\'s what you KEEP. Net worth shows if you\'re building wealth or just treading water.',
+          xp: 10,
+        },
+      },
+      // Liabilities section
+      {
+        blockType: 'section',
+        section: {
+          type: 'list',
+          title: 'Common Liabilities (What You Owe)',
+          content: 'Debts that reduce your net worth:',
+          items: [
+            '💳 Credit card balances',
+            '🏦 Personal loans',
+            '🎓 Student loans',
+            '🚗 Car loans',
+            '🏠 Mortgage (if you own a home)',
+            '👨‍⚕️ Medical bills',
+            '👨‍👩‍👧 Money owed to family/friends',
+          ],
+        },
+      },
+      {
+        blockType: 'section',
+        section: {
+          type: 'tip',
+          title: 'Don\'t Include Monthly Bills',
+          content: 'Rent, utilities, phone bills - these are monthly expenses, not debts. Only count actual LOANS and DEBT you owe.',
+        },
+      },
+      // Third quiz
+      {
+        blockType: 'quiz',
+        quiz: {
+          id: 'q3',
+          type: 'multiple-choice',
+          question: 'Mike has $500 in savings and $2,000 in credit card debt. What is his net worth?',
+          choices: [
+            {
+              id: 'a',
+              text: '$2,500',
+              isCorrect: false,
+              explanation: 'No - you don\'t ADD debt to assets. Debt SUBTRACTS from your net worth.',
+            },
+            {
+              id: 'b',
+              text: '$500',
+              isCorrect: false,
+              explanation: 'Close, but you need to subtract the debt too!',
+            },
+            {
+              id: 'c',
+              text: '-$1,500',
+              isCorrect: true,
+              explanation: 'Correct! $500 (assets) - $2,000 (debt) = -$1,500. He has negative net worth.',
+            },
+            {
+              id: 'd',
+              text: '$0',
+              isCorrect: false,
+              explanation: 'Not quite - he has debt that needs to be subtracted.',
+            },
+          ],
+          explanation: 'Negative net worth means you owe more than you own. It\'s common - and fixable! The key is knowing where you stand.',
+          xp: 15,
+        },
+      },
+      // Why it matters
+      {
+        blockType: 'section',
+        section: {
+          type: 'text',
+          title: 'Why This Number Matters',
+          content: 'Your net worth is your financial report card. Track it quarterly. As you pay off debt and build savings, this number will grow. It\'s the ONLY number that shows true financial progress.',
+        },
+      },
+      {
+        blockType: 'section',
+        section: {
+          type: 'list',
+          title: 'What Your Net Worth Tells You',
+          content: 'This one number reveals:',
+          items: [
+            '📊 Your true financial position (not just income)',
+            '📈 Whether you\'re building wealth or just surviving',
+            '🎯 How far you are from financial goals',
+            '⏱️ Progress over time (track quarterly)',
+            '💪 If your money habits are working',
+          ],
+        },
+      },
+      {
+        blockType: 'section',
+        section: {
+          type: 'example',
+          title: 'The Power of Tracking',
+          content: 'Jennifer started with -$15,000 net worth (lots of debt). She tracked it quarterly:\n\nQ1: -$15,000\nQ2: -$10,500 (paid off $4,500 debt!)\nQ3: -$6,200 (another $4,300 gone!)\nQ4: -$1,500 (almost there!)\n\nSeeing the progress kept her motivated. 16 months later: $0 debt, $8,000 saved = $8,000 net worth!',
+        },
+      },
+      // Final quiz
+      {
+        blockType: 'quiz',
+        quiz: {
+          id: 'q4',
+          type: 'multiple-choice',
+          question: 'What\'s the BEST way to improve your net worth?',
+          choices: [
+            {
+              id: 'a',
+              text: 'Get a raise at work',
+              isCorrect: false,
+              explanation: 'A raise helps, but if you spend it all, your net worth doesn\'t improve. You need to save or pay debt.',
+            },
+            {
+              id: 'b',
+              text: 'Buy expensive things to increase assets',
+              isCorrect: false,
+              explanation: 'Buying stuff usually involves debt! That actually DECREASES net worth.',
+            },
+            {
+              id: 'c',
+              text: 'Pay off debt AND increase savings',
+              isCorrect: true,
+              explanation: 'Correct! Paying debt reduces liabilities, saving increases assets. Both improve net worth!',
+            },
+            {
+              id: 'd',
+              text: 'Just wait for inheritance',
+              isCorrect: false,
+              explanation: 'Relying on inheritance is not a plan! YOU control your financial destiny.',
+            },
+          ],
+          explanation: 'Two ways to grow net worth: reduce what you OWE (pay debt) and increase what you OWN (save money). Best strategy? Do both!',
+          xp: 15,
+        },
+      },
+    ],
+    actionQuestion: {
+      question: 'Are you ready to calculate your net worth?',
+      type: 'choice',
+      choices: [
+        'Yes, I\'ll calculate it today',
+        'I already know my net worth',
+        'I need help calculating it',
+        'I\'ll do it this week',
+      ],
+    },
+  },
+
   // ============================================
   // BABY STEP 1: $1,000 Emergency Fund
   // ============================================
 
-  'step1-lesson1': {
+  'old-step1-lesson1': {
     lessonId: 'step1-lesson1',
     sections: [
       {
@@ -796,6 +1102,6 @@ export const LESSON_CONTENTS: { [key: string]: LessonContent } = {
 };
 
 // Helper function to get lesson content by ID
-export const getLessonContent = (lessonId: string): LessonContent | null => {
+export const getLessonContent = (lessonId: string): LessonContent | OldLessonContent | null => {
   return LESSON_CONTENTS[lessonId] || null;
 };

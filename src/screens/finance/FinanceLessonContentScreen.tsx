@@ -16,15 +16,14 @@ import { Text } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { typography, shadows } from '../../theme/theme';
-import { getLessonContent } from '../../data/financeLessons';
-import { LessonSection, QuizQuestion } from '../../types/financeNew';
+import { getLessonContent, LessonSection, QuizQuestion, ContentBlock } from '../../data/lessonContent';
 import { useAuthStore } from '../../store/authStore';
 import { saveLessonProgress } from '../../database/lessons';
 import { addXP } from '../../database/user';
 
 const { width } = Dimensions.get('window');
 
-type ScreenPhase = 'intro' | 'content' | 'quiz' | 'action' | 'complete';
+type ScreenPhase = 'intro' | 'content' | 'action' | 'complete';
 
 export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
   const { lessonId, stepId, lessonTitle } = route.params;
@@ -34,10 +33,16 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
 
   const [phase, setPhase] = useState<ScreenPhase>('intro');
   const [contentIndex, setContentIndex] = useState(0);
-  const [quizIndex, setQuizIndex] = useState(0);
   const [quizAnswers, setQuizAnswers] = useState<{ [key: string]: any }>({});
   const [earnedXP, setEarnedXP] = useState(0);
   const [actionAnswer, setActionAnswer] = useState<any>(null);
+
+  // Check if this lesson uses the new interleaved structure
+  const isNewStructure = lessonContent && 'content' in lessonContent;
+  const contentBlocks = isNewStructure ? lessonContent.content : [];
+  const totalQuizzes = isNewStructure
+    ? contentBlocks.filter((block: ContentBlock) => block.blockType === 'quiz').length
+    : 0; // Old lessons don't have quizzes in this flow
 
   if (!lessonContent) {
     return (
@@ -61,11 +66,30 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
   };
 
   const handleNextContent = () => {
-    if (contentIndex < lessonContent.sections.length - 1) {
-      setContentIndex(contentIndex + 1);
+    if (isNewStructure) {
+      // New structure: iterate through ContentBlock[]
+      if (contentIndex < contentBlocks.length - 1) {
+        setContentIndex(contentIndex + 1);
+      } else {
+        // All content done, move to action question
+        if (lessonContent.actionQuestion) {
+          setPhase('action');
+        } else {
+          completeLesson();
+        }
+      }
     } else {
-      // Move to quiz phase
-      setPhase('quiz');
+      // Old structure: backward compatibility
+      if (contentIndex < lessonContent.sections.length - 1) {
+        setContentIndex(contentIndex + 1);
+      } else {
+        // Move to action phase (old lessons don't have quizzes in this flow)
+        if (lessonContent.actionQuestion) {
+          setPhase('action');
+        } else {
+          completeLesson();
+        }
+      }
     }
   };
 
@@ -75,52 +99,40 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
     }
   };
 
-  const handleQuizAnswer = (questionId: string, answer: any, isCorrect: boolean) => {
-    const question = lessonContent.quiz[quizIndex];
-
+  const handleQuizAnswer = (questionId: string, answer: any, isCorrect: boolean, xpReward: number) => {
     setQuizAnswers({
       ...quizAnswers,
       [questionId]: { answer, isCorrect },
     });
 
     if (isCorrect) {
-      setEarnedXP(earnedXP + question.xp);
+      setEarnedXP(earnedXP + xpReward);
     }
   };
 
-  const handleNextQuiz = async () => {
-    if (quizIndex < lessonContent.quiz.length - 1) {
-      setQuizIndex(quizIndex + 1);
-    } else {
-      // Quiz complete, move to action question or complete
-      if (lessonContent.actionQuestion) {
-        setPhase('action');
-      } else {
-        // No action question - save progress and complete
-        if (user?.id) {
-          try {
-            console.log('Saving lesson progress:', lessonId);
-            await saveLessonProgress(user.id, {
-              lessonId: lessonId,
-              stepId: stepId,
-              completed: true,
-              quizScore: Object.values(quizAnswers).filter((a: any) => a.isCorrect).length,
-              quizTotal: lessonContent.quiz.length,
-              xpEarned: earnedXP,
-              completedAt: new Date().toISOString(),
-            });
+  const completeLesson = async () => {
+    if (user?.id) {
+      try {
+        console.log('Saving lesson progress:', lessonId);
+        await saveLessonProgress(user.id, {
+          lessonId: lessonId,
+          stepId: stepId,
+          completed: true,
+          quizScore: Object.values(quizAnswers).filter((a: any) => a.isCorrect).length,
+          quizTotal: totalQuizzes,
+          xpEarned: earnedXP,
+          completedAt: new Date().toISOString(),
+        });
 
-            // Award XP to user
-            console.log('Awarding XP:', earnedXP);
-            await addXP(user.id, earnedXP);
-            console.log('Lesson progress saved successfully');
-          } catch (error) {
-            console.error('Error saving lesson progress:', error);
-          }
-        }
-        setPhase('complete');
+        // Award XP to user
+        console.log('Awarding XP:', earnedXP);
+        await addXP(user.id, earnedXP);
+        console.log('Lesson progress saved successfully');
+      } catch (error) {
+        console.error('Error saving lesson progress:', error);
       }
     }
+    setPhase('complete');
   };
 
   const handleActionSubmit = async (answer: any) => {
@@ -135,7 +147,7 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
           stepId: stepId,
           completed: true,
           quizScore: Object.values(quizAnswers).filter((a: any) => a.isCorrect).length,
-          quizTotal: lessonContent.quiz.length,
+          quizTotal: totalQuizzes,
           actionAnswer: answer?.toString(),
           xpEarned: earnedXP,
           completedAt: new Date().toISOString(),
@@ -158,6 +170,13 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
     // Navigate back to main finance path
     navigation.goBack();
   };
+
+  // Calculate total XP available
+  const totalXP = isNewStructure
+    ? contentBlocks
+        .filter((block: ContentBlock) => block.blockType === 'quiz')
+        .reduce((sum: number, block: ContentBlock) => sum + (block.quiz?.xp || 0), 0)
+    : 0; // Old lessons don't have quizzes
 
   // ============================================
   // RENDER INTRO PHASE
@@ -182,13 +201,13 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
               <View style={styles.statItem}>
                 <Ionicons name="time-outline" size={24} color={colors.finance} />
                 <Text style={styles.statText}>
-                  {lessonContent.sections.length + lessonContent.quiz.length} min
+                  {isNewStructure ? contentBlocks.length : lessonContent.sections.length} min
                 </Text>
               </View>
               <View style={styles.statItem}>
                 <Ionicons name="star-outline" size={24} color={colors.finance} />
                 <Text style={styles.statText}>
-                  +{lessonContent.quiz.reduce((sum, q) => sum + q.xp, 0)} XP
+                  +{totalXP} XP
                 </Text>
               </View>
             </View>
@@ -215,129 +234,173 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
   // RENDER CONTENT PHASE
   // ============================================
   if (phase === 'content') {
-    const section = lessonContent.sections[contentIndex];
+    if (isNewStructure) {
+      // New structure: render current ContentBlock (section or quiz)
+      const currentBlock = contentBlocks[contentIndex];
+      const isQuizBlock = currentBlock?.blockType === 'quiz';
+      const quiz = isQuizBlock ? currentBlock.quiz : null;
+      const section = !isQuizBlock ? currentBlock.section : null;
+      const hasAnswered = quiz ? quiz.id in quizAnswers : false;
+      const totalBlocks = contentBlocks.length;
 
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="close" size={28} color={colors.text} />
-          </TouchableOpacity>
-          <View style={styles.progressBarContainer}>
-            <View
-              style={[
-                styles.progressBar,
-                {
-                  width: `${((contentIndex + 1) / lessonContent.sections.length) * 100}%`,
-                },
-              ]}
-            />
-          </View>
-        </View>
-
-        <View style={styles.contentScroll}>
-          <View style={styles.contentContainer}>
-            <SectionRenderer section={section} />
-          </View>
-        </View>
-
-        <View style={styles.navigation}>
-          {contentIndex > 0 && (
-            <TouchableOpacity
-              style={styles.navButton}
-              onPress={handlePreviousContent}
-            >
-              <Ionicons name="arrow-back" size={24} color={colors.finance} />
-              <Text style={styles.navButtonText}>Previous</Text>
+      return (
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Ionicons name="close" size={28} color={colors.text} />
             </TouchableOpacity>
-          )}
-          <View style={{ flex: 1 }} />
-          <TouchableOpacity
-            style={[styles.navButton, styles.navButtonPrimary]}
-            onPress={handleNextContent}
-          >
-            <Text style={styles.navButtonTextPrimary}>
-              {contentIndex === lessonContent.sections.length - 1 ? 'Start Quiz' : 'Next'}
-            </Text>
-            <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  }
-
-  // ============================================
-  // RENDER QUIZ PHASE
-  // ============================================
-  if (phase === 'quiz') {
-    const question = lessonContent.quiz[quizIndex];
-    const hasAnswered = question.id in quizAnswers;
-
-    return (
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="close" size={28} color={colors.text} />
-          </TouchableOpacity>
-          <View style={styles.progressBarContainer}>
-            <View
-              style={[
-                styles.progressBar,
-                {
-                  width: `${((quizIndex + 1) / lessonContent.quiz.length) * 100}%`,
-                },
-              ]}
-            />
+            <View style={styles.progressBarContainer}>
+              <View
+                style={[
+                  styles.progressBar,
+                  {
+                    width: `${((contentIndex + 1) / totalBlocks) * 100}%`,
+                  },
+                ]}
+              />
+            </View>
           </View>
-        </View>
 
-        <View style={styles.quizScroll}>
-          <View style={styles.quizContainer}>
-            <Text style={styles.quizQuestion}>{question.question}</Text>
+          {isQuizBlock && quiz ? (
+            // Render Quiz
+            <View style={styles.quizScroll}>
+              <View style={styles.quizContainer}>
+                <Text style={styles.quizQuestion}>{quiz.question}</Text>
 
-            <QuizQuestionRenderer
-              question={question}
-              onAnswer={handleQuizAnswer}
-              hasAnswered={hasAnswered}
-              userAnswer={quizAnswers[question.id]}
-            />
+                <QuizQuestionRenderer
+                  question={quiz}
+                  onAnswer={(qId, answer, isCorrect) => handleQuizAnswer(qId, answer, isCorrect, quiz.xp)}
+                  hasAnswered={hasAnswered}
+                  userAnswer={quizAnswers[quiz.id]}
+                />
 
-            {hasAnswered && (
-              <>
-                <View
-                  style={[
-                    styles.feedbackContainer,
-                    quizAnswers[question.id].isCorrect
-                      ? styles.feedbackCorrect
-                      : styles.feedbackIncorrect,
-                  ]}
-                >
-                  <Ionicons
-                    name={quizAnswers[question.id].isCorrect ? 'checkmark-circle' : 'close-circle'}
-                    size={32}
-                    color={quizAnswers[question.id].isCorrect ? colors.success : colors.error}
-                  />
-                  <Text style={styles.feedbackText}>
-                    {quizAnswers[question.id].isCorrect ? 'Correct!' : 'Not quite!'}
-                  </Text>
-                  <Text style={styles.explanationText}>{question.explanation}</Text>
+                {hasAnswered && (
+                  <>
+                    <View
+                      style={[
+                        styles.feedbackContainer,
+                        quizAnswers[quiz.id].isCorrect
+                          ? styles.feedbackCorrect
+                          : styles.feedbackIncorrect,
+                      ]}
+                    >
+                      <Ionicons
+                        name={quizAnswers[quiz.id].isCorrect ? 'checkmark-circle' : 'close-circle'}
+                        size={32}
+                        color={quizAnswers[quiz.id].isCorrect ? colors.success : colors.error}
+                      />
+                      <Text style={styles.feedbackText}>
+                        {quizAnswers[quiz.id].isCorrect ? 'Correct!' : 'Not quite!'}
+                      </Text>
+                      {/* Show the selected choice's explanation */}
+                      {quiz.choices && (
+                        <Text style={styles.explanationText}>
+                          {quiz.choices.find(c => c.id === quizAnswers[quiz.id].answer)?.explanation || quiz.explanation}
+                        </Text>
+                      )}
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.continueButton}
+                      onPress={handleNextContent}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.continueButtonText}>Continue</Text>
+                      <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            </View>
+          ) : (
+            // Render Section
+            <>
+              <View style={styles.contentScroll}>
+                <View style={styles.contentContainer}>
+                  <SectionRenderer section={section!} />
                 </View>
+              </View>
 
+              <View style={styles.navigation}>
+                {contentIndex > 0 && (
+                  <TouchableOpacity
+                    style={styles.navButton}
+                    onPress={handlePreviousContent}
+                  >
+                    <Ionicons name="arrow-back" size={24} color={colors.finance} />
+                    <Text style={styles.navButtonText}>Previous</Text>
+                  </TouchableOpacity>
+                )}
+                <View style={{ flex: 1 }} />
                 <TouchableOpacity
-                  style={styles.continueButton}
-                  onPress={handleNextQuiz}
-                  activeOpacity={0.8}
+                  style={[styles.navButton, styles.navButtonPrimary]}
+                  onPress={handleNextContent}
                 >
-                  <Text style={styles.continueButtonText}>Continue</Text>
+                  <Text style={styles.navButtonTextPrimary}>
+                    {contentIndex === totalBlocks - 1 ? 'Finish' : 'Next'}
+                  </Text>
                   <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
                 </TouchableOpacity>
-              </>
+              </View>
+            </>
+          )}
+        </View>
+      );
+    } else {
+      // Old structure: backward compatibility (just render sections)
+      const section = lessonContent.sections[contentIndex];
+
+      return (
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Ionicons name="close" size={28} color={colors.text} />
+            </TouchableOpacity>
+            <View style={styles.progressBarContainer}>
+              <View
+                style={[
+                  styles.progressBar,
+                  {
+                    width: `${((contentIndex + 1) / lessonContent.sections.length) * 100}%`,
+                  },
+                ]}
+              />
+            </View>
+          </View>
+
+          <View style={styles.contentScroll}>
+            <View style={styles.contentContainer}>
+              <SectionRenderer section={section} />
+            </View>
+          </View>
+
+          <View style={styles.navigation}>
+            {contentIndex > 0 && (
+              <TouchableOpacity
+                style={styles.navButton}
+                onPress={handlePreviousContent}
+              >
+                <Ionicons name="arrow-back" size={24} color={colors.finance} />
+                <Text style={styles.navButtonText}>Previous</Text>
+              </TouchableOpacity>
             )}
+            <View style={{ flex: 1 }} />
+            <TouchableOpacity
+              style={[styles.navButton, styles.navButtonPrimary]}
+              onPress={handleNextContent}
+            >
+              <Text style={styles.navButtonTextPrimary}>
+                {contentIndex === lessonContent.sections.length - 1 ? 'Complete' : 'Next'}
+              </Text>
+              <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
           </View>
         </View>
-      </View>
-    );
+      );
+    }
   }
+
+  // Note: Quiz phase is now integrated into content phase for new lesson structure
 
   // ============================================
   // RENDER ACTION PHASE
@@ -378,7 +441,7 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
             <View style={styles.statsCard}>
               <Text style={styles.statsTitle}>Your Progress:</Text>
               <Text style={styles.statsText}>
-                • Answered {lessonContent.quiz.length} questions
+                • Answered {totalQuizzes} questions
               </Text>
               <Text style={styles.statsText}>
                 • Got {Object.values(quizAnswers).filter((a: any) => a.isCorrect).length} correct
@@ -412,7 +475,6 @@ const SectionRenderer: React.FC<{ section: LessonSection }> = ({ section }) => {
     if (section.type === 'tip') return 'bulb';
     if (section.type === 'warning') return 'warning';
     if (section.type === 'example') return 'newspaper';
-    if (section.type === 'quote') return 'chatbox-ellipses';
     return 'document-text';
   };
 
@@ -420,7 +482,6 @@ const SectionRenderer: React.FC<{ section: LessonSection }> = ({ section }) => {
     if (section.type === 'tip') return colors.success;
     if (section.type === 'warning') return colors.error;
     if (section.type === 'example') return colors.physical;
-    if (section.type === 'quote') return colors.mental;
     return colors.text;
   };
 
@@ -446,10 +507,6 @@ const SectionRenderer: React.FC<{ section: LessonSection }> = ({ section }) => {
             </View>
           ))}
         </View>
-      )}
-
-      {section.author && (
-        <Text style={styles.quoteAuthor}>— {section.author}</Text>
       )}
     </View>
   );
@@ -495,21 +552,7 @@ const QuizQuestionRenderer: React.FC<{
     );
   }
 
-  if (question.type === 'reflection') {
-    return (
-      <View style={styles.reflectionContainer}>
-        <Text style={styles.reflectionPrompt}>Take a moment to reflect on this...</Text>
-        <TouchableOpacity
-          style={styles.reflectionButton}
-          onPress={() => onAnswer(question.id, 'reflected', true)}
-        >
-          <Text style={styles.reflectionButtonText}>I've Reflected</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
-
-  // Placeholder for other question types
+  // Placeholder for other question types (not used in new structure)
   return (
     <View style={styles.placeholderContainer}>
       <Text style={styles.placeholderText}>
