@@ -20,6 +20,7 @@ import { FinanceLessonContentScreen } from '../screens/finance/FinanceLessonCont
 import { LessonIntroductionScreen } from '../screens/finance/LessonIntroductionScreen';
 import { LessonContentScreen } from '../screens/finance/LessonContentScreen';
 import { FinancialAssessmentScreen } from '../screens/finance/FinancialAssessmentScreen';
+import { FinanceManagerScreen } from '../screens/finance/FinanceManagerScreen';
 import { EmergencyFundScreen } from '../screens/finance/EmergencyFundScreen';
 import { BudgetManagerScreen } from '../screens/finance/BudgetManagerScreen';
 import { DebtTrackerScreen } from '../screens/finance/DebtTrackerScreen';
@@ -180,6 +181,11 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="FinanceLessonContent"
               component={FinanceLessonContentScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="FinanceManager"
+              component={FinanceManagerScreen}
               options={{ headerShown: false }}
             />
             <Stack.Screen
