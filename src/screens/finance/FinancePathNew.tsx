@@ -14,7 +14,6 @@ import { FinanceStep, FinanceLesson, FINANCE_STEPS, INTEGRATED_TOOLS } from '../
 import { useAuthStore } from '../../store/authStore';
 import { getCompletedLessons } from '../../database/lessons';
 import { getFinanceProgress } from '../../database/finance';
-import { hasCompletedAssessment, getAssessment } from '../../database/assessments';
 import { useFocusEffect } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
@@ -23,31 +22,7 @@ export const FinancePathNew = ({ navigation, route }: any) => {
   const [steps, setSteps] = useState<FinanceStep[]>(FINANCE_STEPS);
   const [expandedSteps, setExpandedSteps] = useState<{ [key: string]: boolean }>({});
   const [nextLesson, setNextLesson] = useState<any>(null);
-  const [assessmentCompleted, setAssessmentCompleted] = useState<boolean>(false);
-  const [isCheckingAssessment, setIsCheckingAssessment] = useState<boolean>(true);
   const { user } = useAuthStore();
-
-  const checkAssessment = async () => {
-    if (!user?.id) return;
-
-    try {
-      const completed = await hasCompletedAssessment(user.id, 'finance');
-      setAssessmentCompleted(completed);
-
-      // If assessment was just completed, get the recommended step
-      if (completed) {
-        const assessment = await getAssessment(user.id, 'finance');
-        if (assessment) {
-          console.log('✅ Assessment found! Recommended step:', assessment.recommendedLevel);
-        }
-      }
-
-      setIsCheckingAssessment(false);
-    } catch (error) {
-      console.error('Error checking assessment:', error);
-      setIsCheckingAssessment(false);
-    }
-  };
 
   const loadProgress = async () => {
     if (!user?.id) return;
@@ -59,13 +34,6 @@ export const FinancePathNew = ({ navigation, route }: any) => {
       const financeProgress = await getFinanceProgress(user.id);
 
       let currentStep = (financeProgress as any)?.current_step || 1;
-
-      // If assessment exists and user has no progress, use recommended step
-      const assessment = await getAssessment(user.id, 'finance');
-      if (assessment && !financeProgress) {
-        currentStep = assessment.recommendedLevel;
-        console.log('Using recommended step from assessment:', currentStep);
-      }
       let foundNextLesson: any = null;
 
       // Update steps with progress
@@ -129,14 +97,9 @@ export const FinancePathNew = ({ navigation, route }: any) => {
 
   useFocusEffect(
     React.useCallback(() => {
-      checkAssessment();
       loadProgress();
     }, [user?.id])
   );
-
-  const handleUnlock = () => {
-    navigation.navigate('FinancialAssessment');
-  };
 
   const toggleStepExpanded = (stepId: string) => {
     setExpandedSteps((prev) => ({
@@ -158,15 +121,6 @@ export const FinancePathNew = ({ navigation, route }: any) => {
   const handleToolPress = (toolScreen: string) => {
     navigation.navigate(toolScreen);
   };
-
-  // Show loading state while checking assessment
-  if (isCheckingAssessment) {
-    return (
-      <View style={[styles.container, styles.centerContent]}>
-        <Text style={styles.loadingText}>Loading...</Text>
-      </View>
-    );
-  }
 
   return (
     <View style={styles.container}>
@@ -286,48 +240,6 @@ export const FinancePathNew = ({ navigation, route }: any) => {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
-
-      {/* Locked Overlay - Show when assessment not completed */}
-      {!assessmentCompleted && (
-        <View style={styles.lockedOverlay}>
-          <LinearGradient
-            colors={['rgba(0,0,0,0.85)', 'rgba(0,0,0,0.90)']}
-            style={styles.lockedGradient}
-          >
-            <View style={styles.lockedContent}>
-              <View style={styles.lockIconContainer}>
-                <Ionicons name="lock-closed" size={64} color="#FFFFFF" />
-              </View>
-              <Text style={styles.lockedTitle}>Unlock Your Financial Journey</Text>
-              <Text style={styles.lockedDescription}>
-                Before starting, we need to understand your current financial situation.
-                This quick assessment will help us personalize your learning path.
-              </Text>
-              <Text style={styles.lockedBullets}>
-                📊 Takes only 2-3 minutes{'\n'}
-                🎯 Get personalized recommendations{'\n'}
-                🔓 Unlock lessons at your level
-              </Text>
-              <TouchableOpacity
-                style={styles.unlockButton}
-                onPress={handleUnlock}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={[colors.finance, '#357ABD']}
-                  style={styles.unlockButtonGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <Ionicons name="unlock" size={24} color="#FFFFFF" style={styles.unlockButtonIcon} />
-                  <Text style={styles.unlockButtonText}>Start Assessment</Text>
-                  <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          </LinearGradient>
-        </View>
-      )}
     </View>
   );
 };
