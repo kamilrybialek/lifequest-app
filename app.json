@@ -25,8 +25,9 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "name": "LifeQuest",
+      "name": "LifeQuest - Personal Growth",
       "shortName": "LifeQuest",
+      "description": "4 Pillars. One Journey. Better You. Track Finance, Mental, Physical Health, and Nutrition.",
       "lang": "en",
       "scope": "/",
       "startUrl": "/",
@@ -34,7 +35,20 @@
       "themeColor": "#58CC02",
       "display": "standalone",
       "orientation": "portrait",
-      "bundler": "metro"
+      "bundler": "metro",
+      "preferRelatedApplications": false,
+      "categories": ["health", "lifestyle", "productivity"],
+      "meta": {
+        "viewport": "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no",
+        "apple-mobile-web-app-capable": "yes",
+        "apple-mobile-web-app-status-bar-style": "black-translucent",
+        "mobile-web-app-capable": "yes"
+      },
+      "splash": {
+        "backgroundColor": "#FFFFFF",
+        "resizeMode": "contain",
+        "image": "./assets/splash-icon.png"
+      }
     },
     "plugins": [
       [
