@@ -47,6 +47,9 @@ import { WorkoutTrackerScreen } from '../screens/physical/tools/WorkoutTrackerSc
 import { NutritionPath } from '../screens/nutrition/NutritionPath';
 import { NutritionLessonIntro } from '../screens/nutrition/NutritionLessonIntro';
 import { NutritionLessonContent } from '../screens/nutrition/NutritionLessonContent';
+import { MealLoggerScreen } from '../screens/nutrition/tools/MealLoggerScreen';
+import { WaterTrackerScreen } from '../screens/nutrition/tools/WaterTrackerScreen';
+import { CalorieCalculatorScreen } from '../screens/nutrition/tools/CalorieCalculatorScreen';
 
 // Admin
 import { AdminScreen } from '../screens/AdminScreen';
@@ -272,6 +275,21 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="NutritionLessonContent"
               component={NutritionLessonContent}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="MealLogger"
+              component={MealLoggerScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="WaterTracker"
+              component={WaterTrackerScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="CalorieCounter"
+              component={CalorieCalculatorScreen}
               options={{ headerShown: false }}
             />
 
