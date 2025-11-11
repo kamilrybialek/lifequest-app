@@ -37,18 +37,17 @@
       left: 0;
       right: 0;
       bottom: 0;
-      /* Account for iOS safe area */
-      padding-bottom: env(safe-area-inset-bottom);
+      /* No padding here - handled by tab bar directly */
     }
 
     /* Fix for bottom tab bar container - maximum specificity */
     [role="tablist"],
     div[style*="flex-direction: row"][style*="background"],
     div[style*="flexDirection"][style*="row"] {
-      min-height: 75px !important;
-      height: 75px !important;
-      padding-bottom: 12px !important;
-      padding-top: 8px !important;
+      min-height: 100px !important;
+      height: auto !important;
+      padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px)) !important;
+      padding-top: 12px !important;
       box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.08);
     }
 
@@ -56,9 +55,9 @@
     [role="tab"],
     button[role="tab"],
     a[role="tab"] {
-      min-height: 75px !important;
+      min-height: 88px !important;
       height: auto !important;
-      padding: 8px 4px 12px 4px !important;
+      padding: 12px 4px 16px 4px !important;
       display: flex !important;
       flex-direction: column !important;
       justify-content: space-between !important;
@@ -70,7 +69,7 @@
     [role="tab"] > div:first-child,
     button[role="tab"] > div:first-child {
       flex-shrink: 0 !important;
-      margin-bottom: 2px !important;
+      margin-bottom: 4px !important;
     }
 
     /* Force text labels to be fully visible with specific targeting */
@@ -83,12 +82,13 @@
       opacity: 1 !important;
       font-size: 12px !important;
       font-weight: 600 !important;
-      line-height: 16px !important;
+      line-height: 18px !important;
       overflow: visible !important;
       max-height: none !important;
       height: auto !important;
       white-space: nowrap !important;
       flex-shrink: 0 !important;
+      padding-bottom: 2px !important;
     }
 
     /* Ensure no clipping happens */
@@ -102,6 +102,14 @@
     [role="main"] {
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
+      padding-bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+    }
+
+    /* Additional safe area support for various screen containers */
+    .screen-container,
+    main,
+    [role="main"] > div {
+      padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)) !important;
     }
   </style>
 </head>
