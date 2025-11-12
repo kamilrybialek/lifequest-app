@@ -11,9 +11,10 @@ import { getTasks, completeTask as dbCompleteTask, Task } from '../../../databas
 
 interface TasksPreviewProps {
   navigation: any;
+  maxTasks?: number;
 }
 
-export const TasksPreview: React.FC<TasksPreviewProps> = ({ navigation }) => {
+export const TasksPreview: React.FC<TasksPreviewProps> = ({ navigation, maxTasks = 3 }) => {
   const { user } = useAuthStore();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,7 +47,7 @@ export const TasksPreview: React.FC<TasksPreviewProps> = ({ navigation }) => {
           }
           return (b.priority || 0) - (a.priority || 0);
         })
-        .slice(0, 3); // Show max 3 tasks
+        .slice(0, maxTasks);
 
       setTasks(relevantTasks);
     } catch (error) {

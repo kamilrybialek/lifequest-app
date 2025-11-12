@@ -148,13 +148,12 @@ export const ProfileScreenNew: React.FC<ProfileScreenNewProps> = ({ navigation }
           </Card>
         )}
 
-        {/* Settings */}
+        {/* Account Section */}
+        <Text style={styles.sectionTitle}>ACCOUNT</Text>
         <Card variant="elevated" style={styles.settingsCard}>
-          <Text style={styles.settingsTitle}>Settings</Text>
-
           <TouchableOpacity style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <Ionicons name="person-outline" size={24} color={colors.textSecondary} />
+              <Ionicons name="person-outline" size={22} color={colors.textSecondary} />
               <Text style={styles.settingText}>Edit Profile</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
@@ -162,24 +161,162 @@ export const ProfileScreenNew: React.FC<ProfileScreenNewProps> = ({ navigation }
 
           <TouchableOpacity style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <Ionicons name="notifications-outline" size={24} color={colors.textSecondary} />
+              <Ionicons name="key-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Change Password</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="mail-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Email Preferences</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+          </TouchableOpacity>
+        </Card>
+
+        {/* Preferences Section */}
+        <Text style={styles.sectionTitle}>PREFERENCES</Text>
+        <Card variant="elevated" style={styles.settingsCard}>
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="notifications-outline" size={22} color={colors.textSecondary} />
               <Text style={styles.settingText}>Notifications</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+            <View style={styles.settingRight}>
+              <Text style={styles.settingValue}>On</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <Ionicons name="shield-outline" size={24} color={colors.textSecondary} />
-              <Text style={styles.settingText}>Privacy</Text>
+              <Ionicons name="moon-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Dark Mode</Text>
+            </View>
+            <View style={styles.settingRight}>
+              <Text style={styles.settingValue}>Off</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="language-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Language</Text>
+            </View>
+            <View style={styles.settingRight}>
+              <Text style={styles.settingValue}>English</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="timer-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Daily Reminder</Text>
+            </View>
+            <View style={styles.settingRight}>
+              <Text style={styles.settingValue}>9:00 AM</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+            </View>
+          </TouchableOpacity>
+        </Card>
+
+        {/* Data & Privacy Section */}
+        <Text style={styles.sectionTitle}>DATA & PRIVACY</Text>
+        <Card variant="elevated" style={styles.settingsCard}>
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="cloud-download-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Export Data</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.settingItem}>
             <View style={styles.settingLeft}>
-              <Ionicons name="information-circle-outline" size={24} color={colors.textSecondary} />
+              <Ionicons name="sync-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Backup & Sync</Text>
+            </View>
+            <View style={styles.settingRight}>
+              <Text style={styles.settingValue}>Off</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+            </View>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="shield-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Privacy Policy</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="document-text-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Terms of Service</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+          </TouchableOpacity>
+        </Card>
+
+        {/* Support Section */}
+        <Text style={styles.sectionTitle}>SUPPORT</Text>
+        <Card variant="elevated" style={styles.settingsCard}>
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="help-circle-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Help Center</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="chatbubble-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Contact Support</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="star-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Rate App</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="information-circle-outline" size={22} color={colors.textSecondary} />
               <Text style={styles.settingText}>About</Text>
+            </View>
+            <View style={styles.settingRight}>
+              <Text style={styles.settingValue}>v1.0.0</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+            </View>
+          </TouchableOpacity>
+        </Card>
+
+        {/* Danger Zone */}
+        <Text style={styles.sectionTitle}>DANGER ZONE</Text>
+        <Card variant="elevated" style={styles.settingsCard}>
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="refresh-outline" size={22} color={colors.warning} />
+              <Text style={[styles.settingText, { color: colors.warning }]}>Reset Progress</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="trash-outline" size={22} color={colors.error} />
+              <Text style={[styles.settingText, { color: colors.error }]}>Delete Account</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
           </TouchableOpacity>
@@ -331,6 +468,14 @@ const styles = StyleSheet.create({
   settingsCard: {
     marginBottom: spacing.lg,
   },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.xs,
+  },
   settingsTitle: {
     ...typography.h4,
     color: colors.text,
@@ -348,10 +493,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
+    flex: 1,
+  },
+  settingRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   settingText: {
     ...typography.body,
+    fontSize: 15,
     color: colors.text,
+  },
+  settingValue: {
+    fontSize: 14,
+    color: colors.textSecondary,
   },
   logoutButton: {
     marginTop: spacing.md,

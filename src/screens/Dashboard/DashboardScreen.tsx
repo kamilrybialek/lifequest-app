@@ -4,12 +4,7 @@ import { Text } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { TodaysFocus } from './components/TodaysFocus';
 import { PillarProgressGrid } from './components/PillarProgressGrid';
-import { StreakCards } from './components/StreakCards';
-import { QuickActionsGrid } from './components/QuickActionsGrid';
 import { TasksPreview } from './components/TasksPreview';
-import { AchievementsPreview } from './components/AchievementsPreview';
-import { ActivityFeed } from './components/ActivityFeed';
-import { StatsCard } from './components/StatsCard';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/theme';
 import { spacing } from '../../theme/spacing';
@@ -53,38 +48,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     { pillar: 'mental' as Pillar, count: progress.mental?.streak || 0 },
     { pillar: 'physical' as Pillar, count: progress.physical?.streak || 0 },
     { pillar: 'nutrition' as Pillar, count: progress.nutrition?.streak || 0 },
-  ];
-
-  // Quick actions
-  const quickActions = [
-    {
-      id: 'log-expense',
-      title: 'Log Expense',
-      icon: 'cash-outline' as keyof typeof Ionicons.glyphMap,
-      color: colors.finance,
-      onPress: () => navigation.navigate('ExpenseLogger'),
-    },
-    {
-      id: 'meditation',
-      title: 'Meditate',
-      icon: 'flower-outline' as keyof typeof Ionicons.glyphMap,
-      color: colors.mental,
-      onPress: () => navigation.navigate('MeditationTimer'),
-    },
-    {
-      id: 'log-workout',
-      title: 'Log Workout',
-      icon: 'barbell-outline' as keyof typeof Ionicons.glyphMap,
-      color: colors.physical,
-      onPress: () => navigation.navigate('ExerciseLogger'),
-    },
-    {
-      id: 'log-meal',
-      title: 'Log Meal',
-      icon: 'restaurant-outline' as keyof typeof Ionicons.glyphMap,
-      color: colors.nutrition,
-      onPress: () => navigation.navigate('MealLogger'),
-    },
   ];
 
   const handleCompleteTask = async (taskId: string) => {
@@ -134,16 +97,24 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
           </View>
         </View>
 
-        {/* Stats Card */}
-        <StatsCard
-          level={user?.level || 1}
-          currentXP={(user?.xp || 0) % 1000}
-          xpToNextLevel={1000}
-          totalXP={user?.xp || 0}
-          streak={Math.max(...streaks.map(s => s.count), 0)}
-          totalTasks={dailyTasks.filter((t: Task) => t.completed).length}
-          achievements={0}
-        />
+        {/* Compact Stats */}
+        <View style={styles.compactStats}>
+          <View style={styles.statBox}>
+            <Ionicons name="star" size={20} color={colors.warning} />
+            <Text style={styles.statValue}>Lvl {user?.level || 1}</Text>
+            <Text style={styles.statLabel}>Level</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Ionicons name="flame" size={20} color={colors.error} />
+            <Text style={styles.statValue}>{Math.max(...streaks.map(s => s.count), 0)}</Text>
+            <Text style={styles.statLabel}>Streak</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Ionicons name="trophy" size={20} color={colors.primary} />
+            <Text style={styles.statValue}>{user?.xp || 0}</Text>
+            <Text style={styles.statLabel}>Total XP</Text>
+          </View>
+        </View>
 
         {/* Today's Focus Task */}
         <TodaysFocus
@@ -152,23 +123,11 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
           onPress={handleTaskPress}
         />
 
-        {/* My Tasks Preview */}
-        <TasksPreview navigation={navigation} />
-
-        {/* Streaks */}
-        <StreakCards streaks={streaks} />
+        {/* My Tasks Preview - Compact */}
+        <TasksPreview navigation={navigation} maxTasks={2} />
 
         {/* Pillar Progress */}
         <PillarProgressGrid pillars={pillarProgress} onPillarPress={handlePillarPress} />
-
-        {/* Quick Actions */}
-        <QuickActionsGrid actions={quickActions} />
-
-        {/* Achievements Preview */}
-        <AchievementsPreview navigation={navigation} />
-
-        {/* Activity Feed */}
-        <ActivityFeed maxItems={5} />
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
@@ -216,6 +175,28 @@ const styles = StyleSheet.create({
   levelText: {
     ...typography.bodyBold,
     color: colors.text,
+  },
+  compactStats: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
+  },
+  statBox: {
+    flex: 1,
+    backgroundColor: colors.background,
+    padding: spacing.md,
+    borderRadius: 12,
+    alignItems: 'center',
+    gap: spacing.xs / 2,
+  },
+  statValue: {
+    ...typography.heading,
+    fontSize: 20,
+    color: colors.text,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: colors.textSecondary,
   },
   bottomSpacer: {
     height: spacing.xl,
