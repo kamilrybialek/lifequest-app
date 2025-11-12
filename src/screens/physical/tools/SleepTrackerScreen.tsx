@@ -7,13 +7,20 @@ import {
   SafeAreaView,
   ScrollView,
   Alert,
+  Platform,
+  TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { colors } from '../../../theme/colors';
 import { shadows } from '../../../theme/theme';
 import { useAuthStore } from '../../../store/authStore';
 import { logSleep, getSleepLogs, getAverageSleepDuration } from '../../../database/health';
+
+// Conditionally import DateTimePicker only for native platforms
+let DateTimePicker: any = null;
+if (Platform.OS !== 'web') {
+  DateTimePicker = require('@react-native-community/datetimepicker').default;
+}
 
 export const SleepTrackerScreen = ({ navigation }: any) => {
   const { user } = useAuthStore();
@@ -82,6 +89,31 @@ export const SleepTrackerScreen = ({ navigation }: any) => {
     return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   };
 
+  const handleTimeSelection = (type: 'bedtime' | 'wakeTime') => {
+    if (Platform.OS === 'web') {
+      // On web, use a simple approach - set time directly
+      // Users can manually adjust using the time buttons or we can add input fields
+      if (type === 'bedtime') {
+        // Set bedtime to 10 PM by default for web
+        const newTime = new Date();
+        newTime.setHours(22, 0, 0, 0);
+        setBedtime(newTime);
+      } else {
+        // Set wake time to 7 AM by default for web
+        const newTime = new Date();
+        newTime.setHours(7, 0, 0, 0);
+        setWakeTime(newTime);
+      }
+    } else {
+      // On native, show the picker
+      if (type === 'bedtime') {
+        setShowBedtimePicker(true);
+      } else {
+        setShowWakeTimePicker(true);
+      }
+    }
+  };
+
   const sleepHours = calculateSleepHours();
   const isHealthySleep = sleepHours >= 7 && sleepHours <= 9;
 
@@ -127,7 +159,7 @@ export const SleepTrackerScreen = ({ navigation }: any) => {
 
           <TouchableOpacity
             style={styles.timeButton}
-            onPress={() => setShowBedtimePicker(true)}
+            onPress={() => handleTimeSelection('bedtime')}
           >
             <View style={styles.timeButtonLeft}>
               <Ionicons name="bed" size={24} color={colors.physical} />
@@ -141,7 +173,7 @@ export const SleepTrackerScreen = ({ navigation }: any) => {
 
           <TouchableOpacity
             style={styles.timeButton}
-            onPress={() => setShowWakeTimePicker(true)}
+            onPress={() => handleTimeSelection('wakeTime')}
           >
             <View style={styles.timeButtonLeft}>
               <Ionicons name="sunny" size={24} color={colors.xpGold} />
@@ -200,8 +232,8 @@ export const SleepTrackerScreen = ({ navigation }: any) => {
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Date Time Pickers */}
-      {showBedtimePicker && (
+      {/* Date Time Pickers - Native only */}
+      {Platform.OS !== 'web' && showBedtimePicker && DateTimePicker && (
         <DateTimePicker
           value={bedtime}
           mode="time"
@@ -215,7 +247,7 @@ export const SleepTrackerScreen = ({ navigation }: any) => {
         />
       )}
 
-      {showWakeTimePicker && (
+      {Platform.OS !== 'web' && showWakeTimePicker && DateTimePicker && (
         <DateTimePicker
           value={wakeTime}
           mode="time"
