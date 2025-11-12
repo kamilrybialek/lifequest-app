@@ -190,6 +190,16 @@ export const useAppStore = create<AppState>((set, get) => ({
   loadDailyTasksFromDB: async (userId: number) => {
     try {
       const db = await getDatabase();
+
+      // On web, getDatabase returns null - use fallback
+      if (!db) {
+        console.log('⚠️ Database not available on web, using AsyncStorage fallback');
+        const tasksData = await AsyncStorage.getItem('dailyTasks');
+        const tasks = tasksData ? JSON.parse(tasksData) : [];
+        set({ dailyTasks: tasks });
+        return;
+      }
+
       const today = new Date().toISOString().split('T')[0];
 
       // Load tasks from database
