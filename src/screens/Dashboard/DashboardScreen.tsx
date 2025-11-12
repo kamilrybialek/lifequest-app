@@ -4,9 +4,7 @@ import { Text } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { TodaysFocus } from './components/TodaysFocus';
 import { PillarProgressGrid } from './components/PillarProgressGrid';
-import { StreakCards } from './components/StreakCards';
-import { QuickActionsGrid } from './components/QuickActionsGrid';
-import { Card } from '../../components/ui/Card';
+import { TasksPreview } from './components/TasksPreview';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/theme';
 import { spacing } from '../../theme/spacing';
@@ -50,38 +48,6 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
     { pillar: 'mental' as Pillar, count: progress.mental?.streak || 0 },
     { pillar: 'physical' as Pillar, count: progress.physical?.streak || 0 },
     { pillar: 'nutrition' as Pillar, count: progress.nutrition?.streak || 0 },
-  ];
-
-  // Quick actions
-  const quickActions = [
-    {
-      id: 'log-expense',
-      title: 'Log Expense',
-      icon: 'cash-outline' as keyof typeof Ionicons.glyphMap,
-      color: colors.finance,
-      onPress: () => navigation.navigate('ExpenseLogger'),
-    },
-    {
-      id: 'meditation',
-      title: 'Meditate',
-      icon: 'flower-outline' as keyof typeof Ionicons.glyphMap,
-      color: colors.mental,
-      onPress: () => navigation.navigate('MeditationTimer'),
-    },
-    {
-      id: 'log-workout',
-      title: 'Log Workout',
-      icon: 'barbell-outline' as keyof typeof Ionicons.glyphMap,
-      color: colors.physical,
-      onPress: () => navigation.navigate('ExerciseLogger'),
-    },
-    {
-      id: 'log-meal',
-      title: 'Log Meal',
-      icon: 'restaurant-outline' as keyof typeof Ionicons.glyphMap,
-      color: colors.nutrition,
-      onPress: () => navigation.navigate('MealLogger'),
-    },
   ];
 
   const handleCompleteTask = async (taskId: string) => {
@@ -131,6 +97,25 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
           </View>
         </View>
 
+        {/* Compact Stats */}
+        <View style={styles.compactStats}>
+          <View style={styles.statBox}>
+            <Ionicons name="star" size={20} color={colors.warning} />
+            <Text style={styles.statValue}>Lvl {user?.level || 1}</Text>
+            <Text style={styles.statLabel}>Level</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Ionicons name="flame" size={20} color={colors.error} />
+            <Text style={styles.statValue}>{Math.max(...streaks.map(s => s.count), 0)}</Text>
+            <Text style={styles.statLabel}>Streak</Text>
+          </View>
+          <View style={styles.statBox}>
+            <Ionicons name="trophy" size={20} color={colors.primary} />
+            <Text style={styles.statValue}>{user?.xp || 0}</Text>
+            <Text style={styles.statLabel}>Total XP</Text>
+          </View>
+        </View>
+
         {/* Today's Focus Task */}
         <TodaysFocus
           task={todaysFocusTask}
@@ -138,40 +123,11 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
           onPress={handleTaskPress}
         />
 
-        {/* Streaks */}
-        <StreakCards streaks={streaks} />
+        {/* My Tasks Preview - Compact */}
+        <TasksPreview navigation={navigation} maxTasks={2} />
 
         {/* Pillar Progress */}
         <PillarProgressGrid pillars={pillarProgress} onPillarPress={handlePillarPress} />
-
-        {/* Quick Actions */}
-        <QuickActionsGrid actions={quickActions} />
-
-        {/* Stats Summary */}
-        <Card variant="elevated" style={styles.statsCard}>
-          <Text style={styles.statsTitle}>Today's Stats</Text>
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Ionicons name="checkmark-circle" size={24} color={colors.success} />
-              <Text style={styles.statValue}>
-                {dailyTasks.filter((t: Task) => t.completed).length}/{dailyTasks.length}
-              </Text>
-              <Text style={styles.statLabel}>Tasks</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Ionicons name="flash" size={24} color={colors.xpGold} />
-              <Text style={styles.statValue}>{user?.xp || 0}</Text>
-              <Text style={styles.statLabel}>Total XP</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Ionicons name="flame" size={24} color={colors.error} />
-              <Text style={styles.statValue}>
-                {Math.max(...streaks.map(s => s.count))}
-              </Text>
-              <Text style={styles.statLabel}>Best Streak</Text>
-            </View>
-          </View>
-        </Card>
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
@@ -220,30 +176,27 @@ const styles = StyleSheet.create({
     ...typography.bodyBold,
     color: colors.text,
   },
-  statsCard: {
-    marginTop: spacing.md,
-  },
-  statsTitle: {
-    ...typography.h4,
-    color: colors.text,
-    marginBottom: spacing.md,
-  },
-  statsRow: {
+  compactStats: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    gap: spacing.sm,
+    marginBottom: spacing.lg,
   },
-  statItem: {
+  statBox: {
+    flex: 1,
+    backgroundColor: colors.background,
+    padding: spacing.md,
+    borderRadius: 12,
     alignItems: 'center',
+    gap: spacing.xs / 2,
   },
   statValue: {
-    ...typography.h3,
+    ...typography.heading,
+    fontSize: 20,
     color: colors.text,
-    marginTop: spacing.xs,
   },
   statLabel: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.textSecondary,
-    marginTop: spacing.xs,
   },
   bottomSpacer: {
     height: spacing.xl,

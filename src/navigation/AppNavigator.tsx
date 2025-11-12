@@ -75,6 +75,10 @@ import { TaggedTasksScreen } from '../screens/tasks/TaggedTasksScreen';
 import { CreateListScreen } from '../screens/tasks/CreateListScreen';
 import { CreateTagScreen } from '../screens/tasks/CreateTagScreen';
 
+// Settings screens
+import { NotificationsSettingsScreen } from '../screens/Settings/NotificationsSettingsScreen';
+import { AboutScreen } from '../screens/Settings/AboutScreen';
+
 import { useAuthStore } from '../store/authStore';
 
 const Stack = createNativeStackNavigator();
@@ -323,6 +327,18 @@ export const AppNavigator = () => {
                 headerShown: false,
                 presentation: 'modal'
               }}
+            />
+
+            {/* Settings Screens */}
+            <Stack.Screen
+              name="NotificationsSettings"
+              component={NotificationsSettingsScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="About"
+              component={AboutScreen}
+              options={{ headerShown: false }}
             />
 
             {/* Achievements Screen */}

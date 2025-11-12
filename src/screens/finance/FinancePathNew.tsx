@@ -10,11 +10,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../theme/colors';
 import { typography, shadows } from '../../theme/theme';
+import { spacing } from '../../theme/spacing';
 import { FinanceStep, FinanceLesson, FINANCE_STEPS, INTEGRATED_TOOLS } from '../../types/financeNew';
 import { useAuthStore } from '../../store/authStore';
 import { getCompletedLessons } from '../../database/lessons';
 import { getFinanceProgress } from '../../database/finance';
 import { useFocusEffect } from '@react-navigation/native';
+import { LessonBubble } from '../../components/paths/LessonBubble';
+import { StepHeader } from '../../components/paths/StepHeader';
+import { ContinueJourneyCard } from '../../components/paths/ContinueJourneyCard';
 
 const { width } = Dimensions.get('window');
 
@@ -136,32 +140,18 @@ export const FinancePathNew = ({ navigation, route }: any) => {
 
         {/* Next Lesson Card - Duolingo Style */}
         {nextLesson && (
-          <View style={styles.nextLessonSection}>
-            <Text style={styles.sectionTitle}>📚 Continue Your Journey</Text>
-            <TouchableOpacity
-              style={styles.nextLessonCard}
-              onPress={() => handleLessonPress(nextLesson.step, nextLesson.lesson)}
-              activeOpacity={0.9}
-            >
-              <View style={styles.nextLessonContent}>
-                <View style={styles.nextLessonBadge}>
-                  <Text style={styles.nextLessonBadgeText}>NEXT LESSON</Text>
-                </View>
-                <Text style={styles.nextLessonStepTitle}>
-                  Step {nextLesson.stepIndex}: {nextLesson.step.title}
-                </Text>
-                <Text style={styles.nextLessonName}>{nextLesson.lesson.title}</Text>
-                <View style={styles.nextLessonMeta}>
-                  <Text style={styles.nextLessonMetaText}>
-                    ⏱️ {nextLesson.lesson.estimatedTime} min • +{nextLesson.lesson.xp} XP
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.nextLessonButton}>
-                <Ionicons name="play-circle" size={48} color={colors.finance} />
-              </View>
-            </TouchableOpacity>
-          </View>
+          <ContinueJourneyCard
+            lesson={{
+              title: nextLesson.lesson.title,
+              stepTitle: nextLesson.step.title,
+              stepNumber: nextLesson.stepIndex,
+              icon: nextLesson.step.icon,
+              xp: nextLesson.lesson.xp,
+              duration: nextLesson.lesson.estimatedTime,
+            }}
+            color={colors.finance}
+            onPress={() => handleLessonPress(nextLesson.step, nextLesson.lesson)}
+          />
         )}
 
         {/* Integrated Tools Section */}
@@ -201,185 +191,65 @@ export const FinancePathNew = ({ navigation, route }: any) => {
 
         {/* Steps List */}
         <View style={styles.stepsPath}>
-          {steps.map((step, stepIndex) => (
-            <View key={step.id}>
-              {/* Step Header - Collapsible */}
-              <TouchableOpacity
-                onPress={() => step.status !== 'locked' && toggleStepExpanded(step.id)}
-                disabled={step.status === 'locked'}
-                activeOpacity={0.8}
-              >
-                <StepHeader step={step} isExpanded={expandedSteps[step.id]} />
-              </TouchableOpacity>
+          {steps.map((step, stepIndex) => {
+            const completedCount = step.lessons.filter(l => l.status === 'completed').length;
+            const totalCount = step.lessons.length;
+            const progress = (completedCount / totalCount) * 100;
 
-              {/* Lessons - Only if expanded */}
-              {step.status !== 'locked' && expandedSteps[step.id] && (
-                <View style={styles.lessonsContainer}>
-                  {step.lessons.map((lesson, lessonIndex) => (
-                    <View key={lesson.id}>
-                      <LessonCard
-                        lesson={lesson}
-                        step={step}
-                        onPress={() => handleLessonPress(step, lesson)}
-                      />
-                      {lessonIndex < step.lessons.length - 1 && (
-                        <View style={styles.lessonConnector} />
-                      )}
-                    </View>
-                  ))}
-                </View>
-              )}
+            return (
+              <View key={step.id}>
+                {/* Step Header - Collapsible */}
+                <StepHeader
+                  stepNumber={step.number}
+                  title={step.title}
+                  description={step.description}
+                  icon={step.icon}
+                  color={step.color || colors.finance}
+                  progress={progress}
+                  totalLessons={totalCount}
+                  completedLessons={completedCount}
+                  status={step.status}
+                  isExpanded={expandedSteps[step.id]}
+                  onToggle={() => step.status !== 'locked' && toggleStepExpanded(step.id)}
+                />
 
-              {/* Step Connector */}
-              {stepIndex < steps.length - 1 && (
-                <View style={styles.stepConnector} />
-              )}
-            </View>
-          ))}
+                {/* Lessons - Only if expanded */}
+                {step.status !== 'locked' && expandedSteps[step.id] && (
+                  <View style={styles.lessonsContainer}>
+                    {step.lessons.map((lesson, lessonIndex) => {
+                      const position = lessonIndex % 3 === 0 ? 'left' : lessonIndex % 3 === 1 ? 'center' : 'right';
+                      return (
+                        <LessonBubble
+                          key={lesson.id}
+                          lesson={{
+                            id: lesson.id,
+                            title: lesson.title,
+                            icon: lesson.icon,
+                            xp: lesson.xp,
+                            duration: lesson.estimatedTime,
+                            status: lesson.status,
+                          }}
+                          color={step.color || colors.finance}
+                          onPress={() => handleLessonPress(step, lesson)}
+                          position={position}
+                        />
+                      );
+                    })}
+                  </View>
+                )}
+
+                {/* Step Connector */}
+                {stepIndex < steps.length - 1 && (
+                  <View style={styles.stepConnector} />
+                )}
+              </View>
+            );
+          })}
         </View>
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
     </View>
-  );
-};
-
-// ============================================
-// SUB-COMPONENTS
-// ============================================
-
-const StepHeader: React.FC<{ step: FinanceStep; isExpanded?: boolean }> = ({ step, isExpanded }) => {
-  const getStepColor = () => {
-    if (step.status === 'completed') return colors.success;
-    if (step.status === 'current') return step.color;
-    return colors.textLight;
-  };
-
-  const backgroundColor = step.status === 'completed'
-    ? colors.success + '15'
-    : step.status === 'current'
-    ? step.color + '15'
-    : colors.backgroundGray;
-
-  const completedCount = step.lessons.filter(l => l.status === 'completed').length;
-  const totalCount = step.lessons.length;
-
-  return (
-    <View style={[styles.stepHeader, { backgroundColor }]}>
-      <View style={[styles.stepNumberCircle, { backgroundColor: getStepColor() }]}>
-        {step.status === 'completed' ? (
-          <Ionicons name="checkmark" size={28} color="#FFFFFF" />
-        ) : step.status === 'locked' ? (
-          <Ionicons name="lock-closed" size={24} color="#FFFFFF" />
-        ) : (
-          <Text style={styles.stepNumber}>{step.number}</Text>
-        )}
-      </View>
-
-      <View style={styles.stepInfo}>
-        <Text style={[styles.stepTitle, step.status === 'locked' && styles.stepTitleLocked]}>
-          {step.icon} {step.title}
-        </Text>
-        <Text style={styles.stepSubtitle}>{step.subtitle}</Text>
-        <Text style={styles.stepDescription}>{step.description}</Text>
-
-        {step.status !== 'locked' && (
-          <Text style={styles.stepProgress}>
-            {completedCount}/{totalCount} lessons • {Math.round((completedCount / totalCount) * 100)}%
-          </Text>
-        )}
-      </View>
-
-      {step.status !== 'locked' && (
-        <Ionicons
-          name={isExpanded ? 'chevron-up' : 'chevron-down'}
-          size={24}
-          color={getStepColor()}
-        />
-      )}
-    </View>
-  );
-};
-
-const LessonCard: React.FC<{
-  lesson: FinanceLesson;
-  step: FinanceStep;
-  onPress: () => void;
-}> = ({ lesson, step, onPress }) => {
-  const getLessonColor = () => {
-    if (lesson.status === 'completed') return colors.success;
-    if (lesson.status === 'current') return step.color;
-    return colors.border;
-  };
-
-  const getTypeIcon = () => {
-    if (lesson.type === 'education') return '📚';
-    if (lesson.type === 'action') return '⚡';
-    if (lesson.type === 'practice') return '🎯';
-    if (lesson.type === 'mindset') return '🧠';
-    if (lesson.type === 'celebration') return '🎉';
-    return '📝';
-  };
-
-  const isInteractive = lesson.status !== 'locked';
-
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      disabled={!isInteractive}
-      activeOpacity={isInteractive ? 0.7 : 1}
-    >
-      <View
-        style={[
-          styles.lessonCard,
-          lesson.status === 'completed' && styles.lessonCardCompleted,
-          lesson.status === 'locked' && styles.lessonCardLocked,
-        ]}
-      >
-        <View
-          style={[
-            styles.lessonIconCircle,
-            { borderColor: getLessonColor() },
-            lesson.status === 'completed' && { backgroundColor: colors.success },
-            lesson.status === 'current' && { backgroundColor: step.color },
-          ]}
-        >
-          {lesson.status === 'completed' ? (
-            <Ionicons name="checkmark" size={24} color="#FFFFFF" />
-          ) : lesson.status === 'locked' ? (
-            <Ionicons name="lock-closed" size={20} color={colors.textLight} />
-          ) : (
-            <Text style={styles.lessonTypeIcon}>{getTypeIcon()}</Text>
-          )}
-        </View>
-
-        <View style={styles.lessonContent}>
-          <Text
-            style={[
-              styles.lessonTitle,
-              lesson.status === 'locked' && styles.lessonTitleLocked,
-            ]}
-          >
-            {lesson.title}
-          </Text>
-          <Text style={styles.lessonDescription}>{lesson.description}</Text>
-
-          <View style={styles.lessonMeta}>
-            <Text style={styles.lessonMetaText}>⏱️ {lesson.estimatedTime} min</Text>
-            <Text style={styles.lessonMetaText}>• +{lesson.xp} XP</Text>
-            {lesson.integratedTool && (
-              <Text style={styles.lessonMetaText}>• 🔧 Tool</Text>
-            )}
-          </View>
-        </View>
-
-        {lesson.status === 'current' && (
-          <View style={[styles.startButton, { backgroundColor: step.color }]}>
-            <Text style={styles.startButtonText}>START</Text>
-          </View>
-        )}
-      </View>
-    </TouchableOpacity>
   );
 };
 

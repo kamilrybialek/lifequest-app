@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
-import { PathSelector } from './components/PathSelector';
+import { View, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import { Text } from 'react-native-paper';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { typography } from '../../theme/theme';
 import { spacing } from '../../theme/spacing';
 import { useAppStore } from '../../store/appStore';
 import { Pillar } from '../../types';
@@ -19,8 +21,8 @@ interface JourneyScreenProps {
 
 export const JourneyScreen: React.FC<JourneyScreenProps> = ({ navigation, route }) => {
   const { progress } = useAppStore();
-  const [selectedPath, setSelectedPath] = useState<Pillar | null>(
-    route?.params?.selectedPillar || null
+  const [selectedPath, setSelectedPath] = useState<Pillar>(
+    route?.params?.selectedPillar || 'finance'
   );
 
   useEffect(() => {
@@ -29,32 +31,21 @@ export const JourneyScreen: React.FC<JourneyScreenProps> = ({ navigation, route 
     }
   }, [route?.params?.selectedPillar]);
 
-  // Prepare path data
-  const paths = [
-    {
-      pillar: 'finance' as Pillar,
-      progress: progress.finance?.currentBabyStep ? (progress.finance.currentBabyStep / 7) * 100 : 0,
-      currentStep: progress.finance?.currentBabyStep ? `Baby Step ${progress.finance.currentBabyStep}` : 'Not Started',
-    },
-    {
-      pillar: 'mental' as Pillar,
-      progress: 45, // Mock - replace with real data
-      currentStep: 'Foundation 2: Sleep Optimization',
-    },
-    {
-      pillar: 'physical' as Pillar,
-      progress: 60,
-      currentStep: 'Foundation 3: Strength Training',
-    },
-    {
-      pillar: 'nutrition' as Pillar,
-      progress: 30,
-      currentStep: 'Foundation 1: Hydration',
-    },
+  const tabs = [
+    { pillar: 'finance' as Pillar, icon: 'cash', label: 'Finance' },
+    { pillar: 'mental' as Pillar, icon: 'brain', label: 'Mental' },
+    { pillar: 'physical' as Pillar, icon: 'fitness', label: 'Physical' },
+    { pillar: 'nutrition' as Pillar, icon: 'restaurant', label: 'Nutrition' },
   ];
 
-  const handlePathSelect = (pillar: Pillar) => {
-    setSelectedPath(pillar);
+  const getPillarColor = (pillar: Pillar) => {
+    switch (pillar) {
+      case 'finance': return colors.finance;
+      case 'mental': return colors.mental;
+      case 'physical': return colors.physical;
+      case 'nutrition': return colors.nutrition;
+      default: return colors.primary;
+    }
   };
 
   // Render selected path content
@@ -79,28 +70,44 @@ export const JourneyScreen: React.FC<JourneyScreenProps> = ({ navigation, route 
 
   return (
     <SafeAreaView style={styles.container}>
-      {!selectedPath ? (
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
-        >
-          <PathSelector
-            paths={paths}
-            selectedPath={selectedPath}
-            onPathSelect={handlePathSelect}
-          />
+      {/* Compact Tab Bar */}
+      <View style={styles.tabBar}>
+        {tabs.map((tab) => (
+          <TouchableOpacity
+            key={tab.pillar}
+            style={[
+              styles.tab,
+              selectedPath === tab.pillar && [
+                styles.tabActive,
+                { borderBottomColor: getPillarColor(tab.pillar) }
+              ]
+            ]}
+            onPress={() => setSelectedPath(tab.pillar)}
+          >
+            <Ionicons
+              name={tab.icon as any}
+              size={20}
+              color={selectedPath === tab.pillar ? getPillarColor(tab.pillar) : colors.textLight}
+            />
+            <Text
+              style={[
+                styles.tabLabel,
+                selectedPath === tab.pillar && [
+                  styles.tabLabelActive,
+                  { color: getPillarColor(tab.pillar) }
+                ]
+              ]}
+            >
+              {tab.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
-          {/* Additional content when no path is selected */}
-          <View style={styles.placeholder}>
-            {/* Could add motivational content, stats overview, etc. */}
-          </View>
-        </ScrollView>
-      ) : (
-        <View style={styles.pathContentContainer}>
-          {renderPathContent()}
-        </View>
-      )}
+      {/* Path Content */}
+      <View style={styles.pathContentContainer}>
+        {renderPathContent()}
+      </View>
     </SafeAreaView>
   );
 };
@@ -110,17 +117,34 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.backgroundGray,
   },
-  scrollView: {
-    flex: 1,
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  content: {
-    paddingTop: spacing.lg,
-    paddingBottom: spacing.xl,
+  tab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 3,
+    borderBottomColor: 'transparent',
+  },
+  tabActive: {
+    borderBottomWidth: 3,
+  },
+  tabLabel: {
+    ...typography.bodyBold,
+    fontSize: 13,
+    color: colors.textLight,
+  },
+  tabLabelActive: {
+    fontWeight: '700',
   },
   pathContentContainer: {
     flex: 1,
-  },
-  placeholder: {
-    padding: spacing.md,
   },
 });
