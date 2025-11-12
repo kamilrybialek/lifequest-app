@@ -2,16 +2,14 @@ import React from 'react';
 import { Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+
+// New Tab Navigator
+import { TabNavigatorNew } from './TabNavigatorNew';
 
 // Auth screens
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { OnboardingScreen } from '../screens/auth/OnboardingScreen';
-
-// Main screens
-import { HomeScreenFlat } from '../screens/HomeScreenFlat';
-import { ProfileScreen } from '../screens/ProfileScreen';
 
 // Finance Path & Integrated Tools
 import { FinanceScreenPath } from '../screens/finance/FinanceScreenPath';
@@ -179,7 +177,7 @@ export const AppNavigator = () => {
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         ) : (
           <>
-            <Stack.Screen name="MainTabs" component={MainTabs} />
+            <Stack.Screen name="MainTabs" component={TabNavigatorNew} />
 
             {/* Finance Lessons & Tools */}
             <Stack.Screen
