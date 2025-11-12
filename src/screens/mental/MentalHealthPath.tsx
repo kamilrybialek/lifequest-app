@@ -4,11 +4,15 @@ import { Text } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { typography, shadows } from '../../theme/theme';
+import { spacing } from '../../theme/spacing';
 import { MentalFoundation, MentalLesson, MENTAL_FOUNDATIONS } from '../../types/mental';
 import { useAuthStore } from '../../store/authStore';
 import { getCompletedLessons } from '../../database/lessons';
 import { getMentalProgress } from '../../database/mental';
 import { useFocusEffect } from '@react-navigation/native';
+import { ContinueJourneyCard } from '../../components/paths/ContinueJourneyCard';
+import { StepHeader } from '../../components/paths/StepHeader';
+import { LessonBubble } from '../../components/paths/LessonBubble';
 
 const { width } = Dimensions.get('window');
 
@@ -203,34 +207,20 @@ export const MentalHealthPath = ({ navigation }: any) => {
           </View>
         </View>
 
-        {/* Next Lesson Card - Duolingo Style */}
+        {/* Next Lesson Card */}
         {nextLesson && (
-          <View style={styles.nextLessonSection}>
-            <Text style={styles.nextLessonTitle}>📚 Continue Your Journey</Text>
-            <TouchableOpacity
-              style={styles.nextLessonCard}
-              onPress={() => handleLessonPress(nextLesson.foundation, nextLesson.lesson)}
-              activeOpacity={0.9}
-            >
-              <View style={styles.nextLessonContent}>
-                <View style={styles.nextLessonBadge}>
-                  <Text style={styles.nextLessonBadgeText}>NEXT LESSON</Text>
-                </View>
-                <Text style={styles.nextLessonStepTitle}>
-                  Foundation {nextLesson.foundationIndex}: {nextLesson.foundation.title}
-                </Text>
-                <Text style={styles.nextLessonName}>{nextLesson.lesson.title}</Text>
-                <View style={styles.nextLessonMeta}>
-                  <Text style={styles.nextLessonMetaText}>
-                    ⏱️ {nextLesson.lesson.estimatedTime} min • +{nextLesson.lesson.xp} XP
-                  </Text>
-                </View>
-              </View>
-              <View style={styles.nextLessonButton}>
-                <Ionicons name="play-circle" size={48} color={colors.mental} />
-              </View>
-            </TouchableOpacity>
-          </View>
+          <ContinueJourneyCard
+            lesson={{
+              title: nextLesson.lesson.title,
+              stepTitle: nextLesson.foundation.title,
+              stepNumber: nextLesson.foundationIndex,
+              icon: nextLesson.foundation.icon,
+              xp: nextLesson.lesson.xp,
+              duration: nextLesson.lesson.estimatedTime,
+            }}
+            color={colors.mental}
+            onPress={() => handleLessonPress(nextLesson.foundation, nextLesson.lesson)}
+          />
         )}
 
         {/* Path Divider */}
@@ -242,171 +232,60 @@ export const MentalHealthPath = ({ navigation }: any) => {
 
         {/* Foundations Path */}
         <View style={styles.path}>
-          {foundations.map((foundation, foundationIndex) => (
-            <View key={foundation.id}>
-              {/* Foundation Header - Now Collapsible */}
-              <TouchableOpacity
-                onPress={() => foundation.status !== 'locked' && toggleFoundationExpanded(foundation.id)}
-                disabled={foundation.status === 'locked'}
-                activeOpacity={0.8}
-              >
-                <FoundationHeader foundation={foundation} isExpanded={expandedFoundations[foundation.id]} />
-              </TouchableOpacity>
+          {foundations.map((foundation, foundationIndex) => {
+            const completedCount = foundation.lessons.filter(l => l.status === 'completed').length;
+            const totalCount = foundation.lessons.length;
+            const progress = (completedCount / totalCount) * 100;
 
-              {/* Lessons - Only show if expanded */}
-              {foundation.status !== 'locked' && expandedFoundations[foundation.id] && (
-                <View style={styles.lessonsContainer}>
-                  {foundation.lessons.map((lesson, lessonIndex) => (
-                    <View key={lesson.id}>
-                      <LessonNode
-                        lesson={lesson}
-                        foundation={foundation}
-                        onPress={() => handleLessonPress(foundation, lesson)}
-                      />
-                      {/* Connector line */}
-                      {lessonIndex < foundation.lessons.length - 1 && (
-                        <View style={styles.connector} />
-                      )}
-                    </View>
-                  ))}
-                </View>
-              )}
+            return (
+              <View key={foundation.id}>
+                {/* Foundation Header */}
+                <StepHeader
+                  stepNumber={foundation.number}
+                  title={foundation.title}
+                  description={foundation.description}
+                  icon={foundation.icon}
+                  color={foundation.color || colors.mental}
+                  progress={progress}
+                  totalLessons={totalCount}
+                  completedLessons={completedCount}
+                  status={foundation.status}
+                  isExpanded={expandedFoundations[foundation.id]}
+                  onToggle={() => foundation.status !== 'locked' && toggleFoundationExpanded(foundation.id)}
+                />
 
-              {/* Connector to next foundation */}
-              {foundationIndex < foundations.length - 1 && (
-                <View style={styles.foundationConnector} />
-              )}
-            </View>
-          ))}
+                {/* Lessons - Only show if expanded */}
+                {foundation.status !== 'locked' && expandedFoundations[foundation.id] && (
+                  <View style={styles.lessonsContainer}>
+                    {foundation.lessons.map((lesson, lessonIndex) => {
+                      const position = lessonIndex % 3 === 0 ? 'left' : lessonIndex % 3 === 1 ? 'center' : 'right';
+                      return (
+                        <LessonBubble
+                          key={lesson.id}
+                          lesson={{
+                            id: lesson.id,
+                            title: lesson.title,
+                            icon: lesson.icon,
+                            xp: lesson.xp,
+                            duration: lesson.estimatedTime,
+                            status: lesson.status,
+                          }}
+                          color={foundation.color || colors.mental}
+                          onPress={() => handleLessonPress(foundation, lesson)}
+                          position={position}
+                        />
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+            );
+          })}
         </View>
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
     </View>
-  );
-};
-
-const FoundationHeader: React.FC<{ foundation: MentalFoundation; isExpanded?: boolean }> = ({ foundation, isExpanded }) => {
-  const getFoundationColor = () => {
-    if (foundation.status === 'completed') return colors.success;
-    if (foundation.status === 'current') return colors.mental;
-    return colors.textLight;
-  };
-
-  const backgroundColor = foundation.status === 'completed'
-    ? colors.success + '20'
-    : foundation.status === 'current'
-    ? colors.mental + '20'
-    : colors.backgroundGray;
-
-  return (
-    <View style={[styles.foundationHeader, { backgroundColor }]}>
-      <View style={[styles.foundationNumberCircle, { backgroundColor: getFoundationColor() }]}>
-        {foundation.status === 'completed' ? (
-          <Text style={styles.foundationCheckmark}>✓</Text>
-        ) : foundation.status === 'locked' ? (
-          <Text style={styles.foundationLockIcon}>🔒</Text>
-        ) : (
-          <Text style={styles.foundationNumber}>{foundation.number}</Text>
-        )}
-      </View>
-      <View style={styles.foundationInfo}>
-        <Text
-          style={[
-            styles.foundationTitle,
-            foundation.status === 'locked' && styles.foundationTitleLocked,
-          ]}
-        >
-          {foundation.icon} {foundation.title}
-        </Text>
-        <Text style={styles.foundationDescription}>{foundation.description}</Text>
-      </View>
-      {foundation.status !== 'locked' && (
-        <View style={styles.expandIcon}>
-          <Ionicons
-            name={isExpanded ? 'chevron-up' : 'chevron-down'}
-            size={24}
-            color={getFoundationColor()}
-          />
-        </View>
-      )}
-    </View>
-  );
-};
-
-const LessonNode: React.FC<{
-  lesson: MentalLesson;
-  foundation: MentalFoundation;
-  onPress: () => void;
-}> = ({ lesson, foundation, onPress }) => {
-  const getLessonColor = () => {
-    if (lesson.status === 'completed') return colors.success;
-    if (lesson.status === 'current') return colors.mental;
-    return colors.border;
-  };
-
-  const getTypeIcon = () => {
-    if (lesson.type === 'education') return '📚';
-    if (lesson.type === 'practice') return '⚡';
-    if (lesson.type === 'technique') return '🎯';
-    return '📝';
-  };
-
-  const isInteractive = lesson.status !== 'locked';
-
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      disabled={!isInteractive}
-      activeOpacity={isInteractive ? 0.8 : 1}
-    >
-      <View
-        style={[
-          styles.lessonNode,
-          lesson.status === 'completed' && styles.lessonNodeCompleted,
-          lesson.status === 'locked' && styles.lessonNodeLocked,
-        ]}
-      >
-        <View
-          style={[
-            styles.lessonCircle,
-            { borderColor: getLessonColor() },
-            lesson.status === 'completed' && { backgroundColor: colors.success },
-            lesson.status === 'current' && { backgroundColor: colors.mental },
-          ]}
-        >
-          {lesson.status === 'completed' ? (
-            <Text style={styles.lessonCheckmark}>✓</Text>
-          ) : lesson.status === 'locked' ? (
-            <Text style={styles.lessonLockIcon}>🔒</Text>
-          ) : (
-            <Text style={styles.lessonIcon}>{getTypeIcon()}</Text>
-          )}
-        </View>
-
-        <View style={styles.lessonContent}>
-          <Text
-            style={[
-              styles.lessonTitle,
-              lesson.status === 'locked' && styles.lessonTitleLocked,
-            ]}
-          >
-            {lesson.title}
-          </Text>
-          <Text style={styles.lessonDescription}>{lesson.description}</Text>
-          <View style={styles.lessonMeta}>
-            <Text style={styles.lessonMetaText}>⏱️ {lesson.estimatedTime} min</Text>
-            <Text style={styles.lessonMetaText}>• +{lesson.xp} XP</Text>
-          </View>
-        </View>
-
-        {lesson.status === 'current' && (
-          <View style={[styles.startButton, { backgroundColor: colors.mental }]}>
-            <Text style={styles.startButtonText}>START</Text>
-          </View>
-        )}
-      </View>
-    </TouchableOpacity>
   );
 };
 
@@ -512,199 +391,10 @@ const styles = StyleSheet.create({
   path: {
     padding: 20,
   },
-  // Foundation Header
-  foundationHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    borderRadius: 16,
-    marginBottom: 16,
-    ...shadows.small,
-  },
-  foundationNumberCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  foundationNumber: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: '#FFFFFF',
-  },
-  foundationCheckmark: {
-    fontSize: 28,
-    color: '#FFFFFF',
-  },
-  foundationLockIcon: {
-    fontSize: 24,
-  },
-  foundationInfo: {
-    flex: 1,
-  },
-  expandIcon: {
-    marginLeft: 8,
-    justifyContent: 'center',
-  },
-  foundationTitle: {
-    ...typography.bodyBold,
-    fontSize: 18,
-    marginBottom: 4,
-  },
-  foundationTitleLocked: {
-    color: colors.textLight,
-  },
-  foundationDescription: {
-    ...typography.caption,
-  },
   // Lessons
   lessonsContainer: {
     marginLeft: 28,
     marginBottom: 16,
-  },
-  lessonNode: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    padding: 16,
-    borderRadius: 16,
-    ...shadows.small,
-  },
-  lessonNodeCompleted: {
-    opacity: 0.7,
-  },
-  lessonNodeLocked: {
-    opacity: 0.5,
-  },
-  lessonCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-    backgroundColor: colors.background,
-  },
-  lessonCheckmark: {
-    fontSize: 28,
-    color: '#FFFFFF',
-  },
-  lessonLockIcon: {
-    fontSize: 24,
-  },
-  lessonIcon: {
-    fontSize: 28,
-  },
-  lessonContent: {
-    flex: 1,
-  },
-  lessonTitle: {
-    ...typography.bodyBold,
-    marginBottom: 4,
-  },
-  lessonTitleLocked: {
-    color: colors.textLight,
-  },
-  lessonDescription: {
-    ...typography.caption,
-    marginBottom: 8,
-  },
-  lessonMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  lessonMetaText: {
-    ...typography.small,
-    marginRight: 8,
-  },
-  startButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  startButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  // Next Lesson Card
-  nextLessonSection: {
-    marginVertical: 16,
-    paddingHorizontal: 16,
-  },
-  nextLessonTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: 12,
-  },
-  nextLessonCard: {
-    flexDirection: 'row',
-    backgroundColor: colors.mental + '10',
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 2,
-    borderColor: colors.mental,
-    ...shadows.large,
-  },
-  nextLessonContent: {
-    flex: 1,
-  },
-  nextLessonBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: colors.mental,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginBottom: 8,
-  },
-  nextLessonBadgeText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: 1,
-  },
-  nextLessonStepTitle: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  nextLessonName: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  nextLessonMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  nextLessonMetaText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-  },
-  nextLessonButton: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 16,
-  },
-  // Connectors
-  connector: {
-    width: 4,
-    height: 24,
-    backgroundColor: colors.border,
-    marginLeft: 30,
-    marginVertical: 4,
-  },
-  foundationConnector: {
-    width: 4,
-    height: 40,
-    backgroundColor: colors.border,
-    marginLeft: 28,
-    marginVertical: 8,
   },
   bottomSpacer: {
     height: 40,

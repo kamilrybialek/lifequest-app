@@ -1,9 +1,9 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Animated, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme/colors';
-import { typography } from '../theme/theme';
-import { spacing } from '../theme/spacing';
+import { colors } from '../../theme/colors';
+import { typography } from '../../theme/theme';
+import { spacing } from '../../theme/spacing';
 
 type ToastType = 'success' | 'error' | 'info' | 'warning';
 
