@@ -1,13 +1,22 @@
 import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-// Import TabNavigatorNew
-import { TabNavigatorNew } from './TabNavigatorNew';
+// Temporary test screens to isolate which one crashes
+const TestLoginScreen = () => (
+  <View style={styles.container}>
+    <Text style={styles.title}>Login Screen Test</Text>
+    <Text style={styles.text}>This is a placeholder</Text>
+  </View>
+);
 
-// Auth screens
-import { LoginScreen } from '../screens/auth/LoginScreen';
-import { OnboardingScreen } from '../screens/auth/OnboardingScreen';
+const TestTabNavigator = () => (
+  <View style={styles.container}>
+    <Text style={styles.title}>Tab Navigator Test</Text>
+    <Text style={styles.text}>This is a placeholder</Text>
+  </View>
+);
 
 import { useAuthStore } from '../store/authStore';
 
@@ -24,13 +33,30 @@ export const AppNavigator = () => {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
-          <Stack.Screen name="Login" component={LoginScreen} />
-        ) : !user?.onboarded ? (
-          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+          <Stack.Screen name="Login" component={TestLoginScreen} />
         ) : (
-          <Stack.Screen name="Main" component={TabNavigatorNew} />
+          <Stack.Screen name="Main" component={TestTabNavigator} />
         )}
       </Stack.Navigator>
     </NavigationContainer>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#58CC02',
+    marginBottom: 20,
+  },
+  text: {
+    fontSize: 18,
+    color: '#333333',
+  },
+});
