@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { View, Text, ActivityIndicator, StyleSheet, Platform } from 'react-native';
-// import { AppNavigator } from './src/navigation/AppNavigator'; // TEMP DISABLED
+import { AppNavigator } from './src/navigation/AppNavigator';
 import { useAuthStore } from './src/store/authStore';
 import { useAppStore } from './src/store/appStore';
 import { theme } from './src/theme/theme';
@@ -84,17 +84,9 @@ export default function App() {
     );
   }
 
-  // TEMPORARY: Don't load AppNavigator yet - test if Navigation is the problem
   return (
     <PaperProvider theme={theme}>
-      <View style={styles.successContainer}>
-        <Text style={styles.successTitle}>✅ LifeQuest Initialized!</Text>
-        <Text style={styles.successText}>All systems working</Text>
-        <Text style={styles.debug}>Database: ✅</Text>
-        <Text style={styles.debug}>Stores: ✅</Text>
-        <Text style={styles.debug}>AsyncStorage: ✅</Text>
-        <Text style={styles.hint}>Navigation temporarily disabled for testing</Text>
-      </View>
+      <AppNavigator />
       <Toast />
     </PaperProvider>
   );
