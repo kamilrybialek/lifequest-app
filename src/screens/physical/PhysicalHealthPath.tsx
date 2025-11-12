@@ -4,7 +4,6 @@ import { Text } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { typography, shadows } from '../../theme/theme';
-import { spacing } from '../../theme/spacing';
 import { PhysicalFoundation, PhysicalLesson, PHYSICAL_FOUNDATIONS } from '../../types/physical';
 import { useAuthStore } from '../../store/authStore';
 import { getCompletedLessons } from '../../database/lessons';

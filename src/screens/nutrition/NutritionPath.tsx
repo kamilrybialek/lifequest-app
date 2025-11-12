@@ -4,7 +4,6 @@ import { Text } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { typography, shadows } from '../../theme/theme';
-import { spacing } from '../../theme/spacing';
 import { NutritionFoundation, NutritionLesson, NUTRITION_FOUNDATIONS, NUTRITION_TOOLS } from '../../types/nutrition';
 import { useAuthStore } from '../../store/authStore';
 import { getCompletedLessons } from '../../database/lessons';
