@@ -2,17 +2,14 @@ import React from 'react';
 import { Platform } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+
+// New Tab Navigator
+import { TabNavigatorNew } from './TabNavigatorNew';
 
 // Auth screens
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { OnboardingScreen } from '../screens/auth/OnboardingScreen';
-
-// Main screens
-import { HomeScreenSimple } from '../screens/HomeScreenSimple';
-import { PathsScreen } from '../screens/PathsScreen';
-import { ProfileScreen } from '../screens/ProfileScreen';
 
 // Finance Path & Integrated Tools
 import { FinanceScreenPath } from '../screens/finance/FinanceScreenPath';
@@ -43,6 +40,9 @@ import { PhysicalLessonIntro } from '../screens/physical/PhysicalLessonIntro';
 import { PhysicalLessonContent } from '../screens/physical/PhysicalLessonContent';
 import { PhysicalLessonDuolingo } from '../screens/physical/PhysicalLessonDuolingo';
 import { WorkoutTrackerScreen } from '../screens/physical/tools/WorkoutTrackerScreen';
+import { SleepTrackerScreen } from '../screens/physical/tools/SleepTrackerScreen';
+import { BodyMeasurementsScreen } from '../screens/physical/tools/BodyMeasurementsScreen';
+import { ExerciseLoggerScreen } from '../screens/physical/tools/ExerciseLoggerScreen';
 
 // Nutrition Path & Screens
 import { NutritionPath } from '../screens/nutrition/NutritionPath';
@@ -78,71 +78,6 @@ import { CreateTagScreen } from '../screens/tasks/CreateTagScreen';
 import { useAuthStore } from '../store/authStore';
 
 const Stack = createNativeStackNavigator();
-const Tab = createBottomTabNavigator();
-
-const MainTabs = () => {
-  const { user } = useAuthStore();
-  const isAdmin = user?.email === 'kamil.rybialek@gmail.com';
-
-  return (
-    <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName: any;
-
-          if (route.name === 'Home') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Tasks') {
-            iconName = focused ? 'checkbox' : 'checkbox-outline';
-          } else if (route.name === 'Paths') {
-            iconName = focused ? 'compass' : 'compass-outline';
-          } else if (route.name === 'Profile') {
-            iconName = focused ? 'person' : 'person-outline';
-          }
-
-          return <Ionicons name={iconName} size={size} color={color} />;
-        },
-        tabBarActiveTintColor: '#58CC02',
-        tabBarInactiveTintColor: '#AFAFAF',
-        tabBarStyle: Platform.OS === 'web'
-          ? {
-              backgroundColor: '#FFFFFF',
-              borderTopWidth: 1,
-              borderTopColor: '#E5E5E5',
-              minHeight: 100,
-              height: 'auto',
-              paddingBottom: 32,
-              paddingTop: 12,
-            }
-          : {
-              backgroundColor: '#FFFFFF',
-              borderTopWidth: 1,
-              borderTopColor: '#E5E5E5',
-            },
-        tabBarLabelStyle: Platform.OS === 'web'
-          ? {
-              fontSize: 12,
-              fontWeight: '600',
-              marginTop: 4,
-            }
-          : {
-              fontSize: 12,
-            },
-        tabBarIconStyle: Platform.OS === 'web'
-          ? {
-              marginTop: 2,
-            }
-          : undefined,
-        headerShown: false,
-      })}
-    >
-      <Tab.Screen name="Home" component={HomeScreenSimple} options={{ tabBarLabel: 'Home' }} />
-      <Tab.Screen name="Tasks" component={TasksScreen} options={{ tabBarLabel: 'Tasks' }} />
-      <Tab.Screen name="Paths" component={PathsScreen} options={{ tabBarLabel: 'Paths' }} />
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: 'Profile' }} />
-    </Tab.Navigator>
-  );
-};
 
 export const AppNavigator = () => {
   const { user, isAuthenticated, isLoading } = useAuthStore();
@@ -160,7 +95,7 @@ export const AppNavigator = () => {
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         ) : (
           <>
-            <Stack.Screen name="MainTabs" component={MainTabs} />
+            <Stack.Screen name="MainTabs" component={TabNavigatorNew} />
 
             {/* Pillar Paths - Accessible from Paths screen */}
             <Stack.Screen
@@ -282,6 +217,21 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="WorkoutTracker"
               component={WorkoutTrackerScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="SleepTracker"
+              component={SleepTrackerScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="BodyMeasurements"
+              component={BodyMeasurementsScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="ExerciseLogger"
+              component={ExerciseLoggerScreen}
               options={{ headerShown: false }}
             />
 

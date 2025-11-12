@@ -26,6 +26,11 @@ export const typography = {
     fontWeight: '700' as const,
     color: colors.text,
   },
+  h3: {
+    fontSize: 18,
+    fontWeight: '700' as const,
+    color: colors.text,
+  },
   body: {
     fontSize: 16,
     fontWeight: '400' as const,
