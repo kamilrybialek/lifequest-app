@@ -1,107 +1,66 @@
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import { openDatabase } from '../database/database';
+import { getDatabase } from '../database/init';
 
 export const exportUserDataToJSON = async (userId: number): Promise<string> => {
-  const db = openDatabase();
+  try {
+    const db = await getDatabase();
 
-  const exportData: any = {
-    exportDate: new Date().toISOString(),
-    userId,
-    user: {},
-    tasks: [],
-    finance: {},
-    mental: {},
-    physical: {},
-    nutrition: {},
-    achievements: [],
-  };
+    const exportData: any = {
+      exportDate: new Date().toISOString(),
+      userId,
+      user: {},
+      tasks: [],
+      finance: {},
+      mental: {},
+      physical: {},
+      nutrition: {},
+      achievements: [],
+    };
 
-  return new Promise((resolve, reject) => {
-    db.transaction((tx) => {
-      // Export user data
-      tx.executeSql(
-        'SELECT * FROM users WHERE id = ?',
-        [userId],
-        (_, { rows }) => {
-          if (rows.length > 0) {
-            exportData.user = rows.item(0);
-          }
-        }
-      );
+    // Export user data
+    const user = await db.getFirstAsync('SELECT * FROM users WHERE id = ?', [userId]);
+    if (user) {
+      exportData.user = user;
+    }
 
-      // Export tasks
-      tx.executeSql(
-        'SELECT * FROM tasks WHERE user_id = ?',
-        [userId],
-        (_, { rows }) => {
-          for (let i = 0; i < rows.length; i++) {
-            exportData.tasks.push(rows.item(i));
-          }
-        }
-      );
+    // Export tasks
+    const tasks = await db.getAllAsync('SELECT * FROM tasks WHERE user_id = ?', [userId]);
+    exportData.tasks = tasks || [];
 
-      // Export finance progress
-      tx.executeSql(
-        'SELECT * FROM finance_progress WHERE user_id = ?',
-        [userId],
-        (_, { rows }) => {
-          if (rows.length > 0) {
-            exportData.finance = rows.item(0);
-          }
-        }
-      );
+    // Export finance progress
+    const finance = await db.getFirstAsync('SELECT * FROM finance_progress WHERE user_id = ?', [userId]);
+    if (finance) {
+      exportData.finance = finance;
+    }
 
-      // Export mental progress
-      tx.executeSql(
-        'SELECT * FROM mental_progress WHERE user_id = ?',
-        [userId],
-        (_, { rows }) => {
-          if (rows.length > 0) {
-            exportData.mental = rows.item(0);
-          }
-        }
-      );
+    // Export mental progress
+    const mental = await db.getFirstAsync('SELECT * FROM mental_progress WHERE user_id = ?', [userId]);
+    if (mental) {
+      exportData.mental = mental;
+    }
 
-      // Export physical progress
-      tx.executeSql(
-        'SELECT * FROM physical_progress WHERE user_id = ?',
-        [userId],
-        (_, { rows }) => {
-          if (rows.length > 0) {
-            exportData.physical = rows.item(0);
-          }
-        }
-      );
+    // Export physical progress
+    const physical = await db.getFirstAsync('SELECT * FROM physical_progress WHERE user_id = ?', [userId]);
+    if (physical) {
+      exportData.physical = physical;
+    }
 
-      // Export nutrition progress
-      tx.executeSql(
-        'SELECT * FROM nutrition_progress WHERE user_id = ?',
-        [userId],
-        (_, { rows }) => {
-          if (rows.length > 0) {
-            exportData.nutrition = rows.item(0);
-          }
-        }
-      );
+    // Export nutrition progress
+    const nutrition = await db.getFirstAsync('SELECT * FROM nutrition_progress WHERE user_id = ?', [userId]);
+    if (nutrition) {
+      exportData.nutrition = nutrition;
+    }
 
-      // Export achievements
-      tx.executeSql(
-        'SELECT * FROM user_achievements WHERE user_id = ?',
-        [userId],
-        (_, { rows }) => {
-          for (let i = 0; i < rows.length; i++) {
-            exportData.achievements.push(rows.item(i));
-          }
-          resolve(JSON.stringify(exportData, null, 2));
-        },
-        (_, error) => {
-          reject(error);
-          return false;
-        }
-      );
-    });
-  });
+    // Export achievements
+    const achievements = await db.getAllAsync('SELECT * FROM user_achievements WHERE user_id = ?', [userId]);
+    exportData.achievements = achievements || [];
+
+    return JSON.stringify(exportData, null, 2);
+  } catch (error) {
+    console.error('Error exporting user data to JSON:', error);
+    throw error;
+  }
 };
 
 export const shareUserData = async (userId: number): Promise<void> => {
