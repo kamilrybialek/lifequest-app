@@ -4,7 +4,6 @@ import { Text } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { typography, shadows } from '../../theme/theme';
-import { spacing } from '../../theme/spacing';
 import { MentalFoundation, MentalLesson, MENTAL_FOUNDATIONS } from '../../types/mental';
 import { useAuthStore } from '../../store/authStore';
 import { getCompletedLessons } from '../../database/lessons';
