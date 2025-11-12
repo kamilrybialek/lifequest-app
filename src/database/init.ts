@@ -123,7 +123,7 @@ export const initDatabase = async () => {
     );
   `);
 
-  // Daily Tasks
+  // Daily Tasks (DEPRECATED - keeping for migration)
   await db.execAsync(`
     CREATE TABLE IF NOT EXISTS daily_tasks (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -138,6 +138,97 @@ export const initDatabase = async () => {
       FOREIGN KEY (user_id) REFERENCES users(id)
     );
   `);
+
+  // ========================================
+  // UNIFIED TODO SYSTEM (Apple Reminders-style)
+  // ========================================
+
+  // Task Lists (like Reminders lists)
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS task_lists (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      icon TEXT,
+      color TEXT,
+      is_smart_list INTEGER DEFAULT 0,
+      smart_filter TEXT,
+      sort_order INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+  `);
+
+  // Tags (for organizing tasks)
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS tags (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      color TEXT,
+      icon TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      UNIQUE(user_id, name)
+    );
+  `);
+
+  // Tasks (unified system - manual + generated)
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS tasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      notes TEXT,
+
+      -- Organization
+      list_id INTEGER,
+      parent_task_id INTEGER,
+
+      -- Properties
+      pillar TEXT,
+      priority INTEGER DEFAULT 0,
+      completed INTEGER DEFAULT 0,
+
+      -- Dates & Time
+      due_date DATE,
+      due_time TIME,
+      reminder_date DATETIME,
+      completed_at DATETIME,
+
+      -- Gamification
+      xp_reward INTEGER DEFAULT 10,
+      difficulty TEXT,
+
+      -- Source tracking
+      is_generated INTEGER DEFAULT 0,
+      generation_source TEXT,
+
+      -- Metadata
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (list_id) REFERENCES task_lists(id) ON DELETE SET NULL,
+      FOREIGN KEY (parent_task_id) REFERENCES tasks(id) ON DELETE CASCADE
+    );
+  `);
+
+  // Task Tags (many-to-many relationship)
+  await db.execAsync(`
+    CREATE TABLE IF NOT EXISTS task_tags (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id INTEGER NOT NULL,
+      tag_id INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
+      FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE,
+      UNIQUE(task_id, tag_id)
+    );
+  `);
+
+  // Create default smart lists for each user (handled in migration function)
 
   // User Stats (streaks, levels, etc.)
   await db.execAsync(`

@@ -64,6 +64,16 @@ import { StreaksScreen } from '../screens/StreaksScreen';
 import { TrackExpensesScreen } from '../screens/tasks/TrackExpensesScreen';
 import { MorningSunlightScreen } from '../screens/tasks/MorningSunlightScreen';
 
+// TODO System Screens
+import { TasksScreen } from '../screens/tasks/TasksScreen';
+import { CreateTaskScreen } from '../screens/tasks/CreateTaskScreen';
+import { TaskDetailScreen } from '../screens/tasks/TaskDetailScreen';
+import { SmartListScreen } from '../screens/tasks/SmartListScreen';
+import { TaskListScreen } from '../screens/tasks/TaskListScreen';
+import { TaggedTasksScreen } from '../screens/tasks/TaggedTasksScreen';
+import { CreateListScreen } from '../screens/tasks/CreateListScreen';
+import { CreateTagScreen } from '../screens/tasks/CreateTagScreen';
+
 import { useAuthStore } from '../store/authStore';
 
 const Stack = createNativeStackNavigator();
@@ -81,6 +91,8 @@ const MainTabs = () => {
 
           if (route.name === 'Home') {
             iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'Tasks') {
+            iconName = focused ? 'checkbox' : 'checkbox-outline';
           } else if (route.name === 'Finance') {
             iconName = focused ? 'wallet' : 'wallet-outline';
           } else if (route.name === 'Mental') {
@@ -132,6 +144,7 @@ const MainTabs = () => {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreenFlat} options={{ tabBarLabel: 'Home' }} />
+      <Tab.Screen name="Tasks" component={TasksScreen} options={{ tabBarLabel: 'Tasks' }} />
       <Tab.Screen name="Finance" component={FinancePathNew} options={{ tabBarLabel: 'Finance' }} />
       <Tab.Screen name="Mental" component={MentalHealthPath} options={{ tabBarLabel: 'Mental' }} />
       <Tab.Screen name="Physical" component={PhysicalHealthPath} options={{ tabBarLabel: 'Physical' }} />
@@ -303,6 +316,57 @@ export const AppNavigator = () => {
               name="MorningSunlight"
               component={MorningSunlightScreen}
               options={{ headerShown: true, title: 'Morning Sunlight' }}
+            />
+
+            {/* TODO System Screens */}
+            <Stack.Screen
+              name="Tasks"
+              component={TasksScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="CreateTask"
+              component={CreateTaskScreen}
+              options={{
+                headerShown: false,
+                presentation: 'modal'
+              }}
+            />
+            <Stack.Screen
+              name="TaskDetail"
+              component={TaskDetailScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="SmartList"
+              component={SmartListScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="TaskList"
+              component={TaskListScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="TaggedTasks"
+              component={TaggedTasksScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="CreateList"
+              component={CreateListScreen}
+              options={{
+                headerShown: false,
+                presentation: 'modal'
+              }}
+            />
+            <Stack.Screen
+              name="CreateTag"
+              component={CreateTagScreen}
+              options={{
+                headerShown: false,
+                presentation: 'modal'
+              }}
             />
 
             {/* Achievements Screen */}
