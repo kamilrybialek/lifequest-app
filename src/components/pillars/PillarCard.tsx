@@ -109,7 +109,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   labelLarge: {
-    ...typography.h4,
+    ...typography.heading,
+    fontSize: 18,
     color: colors.text,
     marginBottom: spacing.xs,
   },
