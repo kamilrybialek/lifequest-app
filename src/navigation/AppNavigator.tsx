@@ -10,7 +10,8 @@ import { LoginScreen } from '../screens/auth/LoginScreen';
 import { OnboardingScreen } from '../screens/auth/OnboardingScreen';
 
 // Main screens
-import { HomeScreenFlat } from '../screens/HomeScreenFlat';
+import { HomeScreenSimple } from '../screens/HomeScreenSimple';
+import { PathsScreen } from '../screens/PathsScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 
 // Finance Path & Integrated Tools
@@ -93,18 +94,10 @@ const MainTabs = () => {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Tasks') {
             iconName = focused ? 'checkbox' : 'checkbox-outline';
-          } else if (route.name === 'Finance') {
-            iconName = focused ? 'wallet' : 'wallet-outline';
-          } else if (route.name === 'Mental') {
-            iconName = focused ? 'happy' : 'happy-outline';
-          } else if (route.name === 'Physical') {
-            iconName = focused ? 'fitness' : 'fitness-outline';
-          } else if (route.name === 'Nutrition') {
-            iconName = focused ? 'restaurant' : 'restaurant-outline';
+          } else if (route.name === 'Paths') {
+            iconName = focused ? 'compass' : 'compass-outline';
           } else if (route.name === 'Profile') {
             iconName = focused ? 'person' : 'person-outline';
-          } else if (route.name === 'Admin') {
-            iconName = focused ? 'settings' : 'settings-outline';
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -143,18 +136,9 @@ const MainTabs = () => {
         headerShown: false,
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreenFlat} options={{ tabBarLabel: 'Home' }} />
+      <Tab.Screen name="Home" component={HomeScreenSimple} options={{ tabBarLabel: 'Home' }} />
       <Tab.Screen name="Tasks" component={TasksScreen} options={{ tabBarLabel: 'Tasks' }} />
-      <Tab.Screen name="Finance" component={FinancePathNew} options={{ tabBarLabel: 'Finance' }} />
-      <Tab.Screen name="Mental" component={MentalHealthPath} options={{ tabBarLabel: 'Mental' }} />
-      <Tab.Screen name="Physical" component={PhysicalHealthPath} options={{ tabBarLabel: 'Physical' }} />
-      <Tab.Screen name="Nutrition" component={NutritionPath} options={{ tabBarLabel: 'Nutrition' }} />
-
-      {/* Admin Tab - Only visible for kamil.rybialek@gmail.com */}
-      {isAdmin && (
-        <Tab.Screen name="Admin" component={AdminScreen} options={{ tabBarLabel: 'Admin' }} />
-      )}
-
+      <Tab.Screen name="Paths" component={PathsScreen} options={{ tabBarLabel: 'Paths' }} />
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ tabBarLabel: 'Profile' }} />
     </Tab.Navigator>
   );
@@ -177,6 +161,28 @@ export const AppNavigator = () => {
         ) : (
           <>
             <Stack.Screen name="MainTabs" component={MainTabs} />
+
+            {/* Pillar Paths - Accessible from Paths screen */}
+            <Stack.Screen
+              name="Finance"
+              component={FinancePathNew}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="Mental"
+              component={MentalHealthPath}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="Physical"
+              component={PhysicalHealthPath}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="Nutrition"
+              component={NutritionPath}
+              options={{ headerShown: false }}
+            />
 
             {/* Finance Lessons & Tools */}
             <Stack.Screen
