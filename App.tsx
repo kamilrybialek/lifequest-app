@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { View, Text, ActivityIndicator, StyleSheet, Platform } from 'react-native';
-import { AppNavigator } from './src/navigation/AppNavigator';
+// import { AppNavigator } from './src/navigation/AppNavigator'; // TEMP DISABLED
 import { useAuthStore } from './src/store/authStore';
 import { useAppStore } from './src/store/appStore';
 import { theme } from './src/theme/theme';
@@ -84,9 +84,17 @@ export default function App() {
     );
   }
 
+  // TEMPORARY: Don't load AppNavigator yet - test if Navigation is the problem
   return (
     <PaperProvider theme={theme}>
-      <AppNavigator />
+      <View style={styles.successContainer}>
+        <Text style={styles.successTitle}>✅ LifeQuest Initialized!</Text>
+        <Text style={styles.successText}>All systems working</Text>
+        <Text style={styles.debug}>Database: ✅</Text>
+        <Text style={styles.debug}>Stores: ✅</Text>
+        <Text style={styles.debug}>AsyncStorage: ✅</Text>
+        <Text style={styles.hint}>Navigation temporarily disabled for testing</Text>
+      </View>
       <Toast />
     </PaperProvider>
   );
@@ -132,5 +140,34 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666666',
     textAlign: 'center',
+  },
+  successContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+  },
+  successTitle: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#58CC02',
+    marginBottom: 20,
+  },
+  successText: {
+    fontSize: 18,
+    color: '#333333',
+    marginBottom: 20,
+  },
+  debug: {
+    fontSize: 16,
+    color: '#666666',
+    marginVertical: 5,
+  },
+  hint: {
+    fontSize: 12,
+    color: '#999999',
+    marginTop: 30,
+    fontStyle: 'italic',
   },
 });
