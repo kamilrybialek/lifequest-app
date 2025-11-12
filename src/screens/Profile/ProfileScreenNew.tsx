@@ -17,7 +17,9 @@ import { typography, shadows } from '../../theme/theme';
 import { spacing } from '../../theme/spacing';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
+import { useSettingsStore } from '../../store/settingsStore';
 import { getUserAchievements } from '../../database/achievements';
+import { shareUserData } from '../../utils/exportUserData';
 
 interface ProfileScreenNewProps {
   navigation: any;
@@ -26,6 +28,7 @@ interface ProfileScreenNewProps {
 export const ProfileScreenNew: React.FC<ProfileScreenNewProps> = ({ navigation }) => {
   const { user, logout } = useAuthStore();
   const { progress } = useAppStore();
+  const { darkMode, notificationsEnabled, toggleDarkMode } = useSettingsStore();
   const [achievements, setAchievements] = useState<any[]>([]);
 
   useEffect(() => {
@@ -47,6 +50,26 @@ export const ProfileScreenNew: React.FC<ProfileScreenNewProps> = ({ navigation }
       { text: 'Cancel', style: 'cancel' },
       { text: 'Logout', onPress: logout, style: 'destructive' },
     ]);
+  };
+
+  const handleExportData = async () => {
+    if (!user?.id) return;
+    try {
+      await shareUserData(user.id);
+      Alert.alert('Success', 'Your data has been exported successfully!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to export data. Please try again.');
+      console.error('Export error:', error);
+    }
+  };
+
+  const handleToggleDarkMode = () => {
+    toggleDarkMode();
+    Alert.alert(
+      'Dark Mode',
+      `Dark Mode ${!darkMode ? 'enabled' : 'disabled'}. This feature will be fully implemented soon.`,
+      [{ text: 'OK' }]
+    );
   };
 
   const xpToNextLevel = ((user?.level || 1) * 100) - (user?.xp || 0);
@@ -179,24 +202,30 @@ export const ProfileScreenNew: React.FC<ProfileScreenNewProps> = ({ navigation }
         {/* Preferences Section */}
         <Text style={styles.sectionTitle}>PREFERENCES</Text>
         <Card variant="elevated" style={styles.settingsCard}>
-          <TouchableOpacity style={styles.settingItem}>
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={() => navigation.navigate('NotificationsSettings')}
+          >
             <View style={styles.settingLeft}>
               <Ionicons name="notifications-outline" size={22} color={colors.textSecondary} />
               <Text style={styles.settingText}>Notifications</Text>
             </View>
             <View style={styles.settingRight}>
-              <Text style={styles.settingValue}>On</Text>
+              <Text style={styles.settingValue}>{notificationsEnabled ? 'On' : 'Off'}</Text>
               <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
             </View>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItem}>
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={handleToggleDarkMode}
+          >
             <View style={styles.settingLeft}>
               <Ionicons name="moon-outline" size={22} color={colors.textSecondary} />
               <Text style={styles.settingText}>Dark Mode</Text>
             </View>
             <View style={styles.settingRight}>
-              <Text style={styles.settingValue}>Off</Text>
+              <Text style={styles.settingValue}>{darkMode ? 'On' : 'Off'}</Text>
               <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
             </View>
           </TouchableOpacity>
@@ -227,7 +256,10 @@ export const ProfileScreenNew: React.FC<ProfileScreenNewProps> = ({ navigation }
         {/* Data & Privacy Section */}
         <Text style={styles.sectionTitle}>DATA & PRIVACY</Text>
         <Card variant="elevated" style={styles.settingsCard}>
-          <TouchableOpacity style={styles.settingItem}>
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={handleExportData}
+          >
             <View style={styles.settingLeft}>
               <Ionicons name="cloud-download-outline" size={22} color={colors.textSecondary} />
               <Text style={styles.settingText}>Export Data</Text>
@@ -290,7 +322,10 @@ export const ProfileScreenNew: React.FC<ProfileScreenNewProps> = ({ navigation }
             <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.settingItem}>
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={() => navigation.navigate('About')}
+          >
             <View style={styles.settingLeft}>
               <Ionicons name="information-circle-outline" size={22} color={colors.textSecondary} />
               <Text style={styles.settingText}>About</Text>
