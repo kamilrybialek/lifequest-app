@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 
-// TEST VERSION 2: Add initialization without database
+// TEST VERSION 3: Test stores
 export default function App() {
   const [step, setStep] = useState('Starting...');
   const [error, setError] = useState<string | null>(null);
@@ -9,34 +9,41 @@ export default function App() {
   useEffect(() => {
     const initialize = async () => {
       try {
-        setStep('1/4: Imports loaded ✅');
+        setStep('1/6: Basic modules ✅');
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        setStep('2/4: Testing AsyncStorage...');
-        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
-        await AsyncStorage.setItem('test', 'works');
-        const test = await AsyncStorage.getItem('test');
-        if (test === 'works') {
-          setStep('2/4: AsyncStorage works ✅');
-        }
+        setStep('2/6: Loading authStore...');
+        const { useAuthStore } = require('./src/store/authStore');
+        setStep('2/6: authStore loaded ✅');
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        setStep('3/4: Testing Navigation...');
-        // Don't actually load navigation yet, just check if module exists
-        const nav = require('@react-navigation/native');
-        setStep('3/4: Navigation module loaded ✅');
+        setStep('3/6: Loading appStore...');
+        const { useAppStore } = require('./src/store/appStore');
+        setStep('3/6: appStore loaded ✅');
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        setStep('4/4: Testing PaperProvider...');
-        const paper = require('react-native-paper');
-        setStep('4/4: Paper module loaded ✅');
+        setStep('4/6: Testing authStore.loadUser...');
+        const loadUser = useAuthStore.getState().loadUser;
+        await loadUser();
+        setStep('4/6: authStore.loadUser works ✅');
         await new Promise(resolve => setTimeout(resolve, 100));
 
-        setStep('ALL TESTS PASSED! ✅');
+        setStep('5/6: Testing appStore.loadAppData...');
+        const loadAppData = useAppStore.getState().loadAppData;
+        await loadAppData();
+        setStep('5/6: appStore.loadAppData works ✅');
+        await new Promise(resolve => setTimeout(resolve, 100));
+
+        setStep('6/6: Testing database init...');
+        const { initDatabase } = require('./src/database/init');
+        await initDatabase();
+        setStep('6/6: Database init works ✅');
+
+        setStep('ALL TESTS PASSED! 🎉 App should work now!');
       } catch (err) {
-        console.error('❌ Initialization failed:', err);
+        console.error('❌ Test failed:', err);
+        console.error('❌ Stack:', err instanceof Error ? err.stack : 'No stack');
         setError(err instanceof Error ? err.message : String(err));
-        setStep('FAILED ❌');
       }
     };
 
@@ -48,7 +55,8 @@ export default function App() {
       <View style={styles.container}>
         <Text style={styles.errorTitle}>❌ Error Found!</Text>
         <Text style={styles.errorText}>{error}</Text>
-        <Text style={styles.debug}>Step: {step}</Text>
+        <Text style={styles.debug}>Failed at: {step}</Text>
+        <Text style={styles.hint}>Check console for full error (F12)</Text>
       </View>
     );
   }
@@ -106,5 +114,6 @@ const styles = StyleSheet.create({
     color: '#333333',
     textAlign: 'center',
     marginBottom: 10,
+    paddingHorizontal: 20,
   },
 });
