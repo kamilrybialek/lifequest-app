@@ -100,8 +100,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   nutritionData: initialNutritionData,
 
   loadAppData: async () => {
+    console.log('🔍 loadAppData: Starting...');
     try {
       // Load from AsyncStorage (pillar-specific data)
+      console.log('🔍 loadAppData: Loading AsyncStorage data...');
       const financeData = await AsyncStorage.getItem('financeData');
       const mentalData = await AsyncStorage.getItem('mentalHealthData');
       const physicalData = await AsyncStorage.getItem('physicalHealthData');
@@ -111,6 +113,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (mentalData) set({ mentalHealthData: JSON.parse(mentalData) });
       if (physicalData) set({ physicalHealthData: JSON.parse(physicalData) });
       if (nutritionData) set({ nutritionData: JSON.parse(nutritionData) });
+      console.log('✅ loadAppData: AsyncStorage data loaded');
 
       // Load progress from SQLite (if user is logged in)
       const { useAuthStore } = require('./authStore');
@@ -118,12 +121,16 @@ export const useAppStore = create<AppState>((set, get) => ({
       const userId = authStore.user?.id;
 
       if (userId) {
+        console.log('🔍 loadAppData: User logged in, loading from database...');
         try {
           // Get XP, level, and streaks from SQLite database
+          console.log('🔍 loadAppData: Fetching user stats and streaks...');
           const [userStats, streaks] = await Promise.all([
             getUserStats(userId),
             getAllStreaks(userId),
           ]);
+          console.log('✅ loadAppData: Got user stats:', userStats);
+          console.log('✅ loadAppData: Got streaks:', streaks);
 
           // Transform SQLite data into AppStore format
           const updatedProgress: UserProgress = {
@@ -143,15 +150,22 @@ export const useAppStore = create<AppState>((set, get) => ({
           console.log('✅ Loaded progress from SQLite:', updatedProgress);
 
           // Generate daily tasks from database (new intelligent system)
+          console.log('🔍 loadAppData: Generating daily tasks...');
           await checkAndGenerateTasks(userId);
+          console.log('🔍 loadAppData: Loading daily tasks from DB...');
           await get().loadDailyTasksFromDB(userId);
+          console.log('✅ loadAppData: Daily tasks loaded');
         } catch (error) {
-          console.error('Error loading progress from SQLite:', error);
+          console.error('❌ Error loading progress from SQLite:', error);
+          console.error('❌ Error details:', error instanceof Error ? error.message : 'Unknown');
+          console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack');
           // Fall back to AsyncStorage if SQLite fails
+          console.log('⚠️ Falling back to AsyncStorage...');
           const progressData = await AsyncStorage.getItem('progress');
           if (progressData) set({ progress: JSON.parse(progressData) });
         }
       } else {
+        console.log('🔍 loadAppData: No user logged in, using AsyncStorage fallback...');
         // No user logged in - use AsyncStorage fallback
         const progressData = await AsyncStorage.getItem('progress');
         if (progressData) set({ progress: JSON.parse(progressData) });
@@ -164,8 +178,12 @@ export const useAppStore = create<AppState>((set, get) => ({
           set({ dailyTasks: tasks });
         }
       }
+      console.log('✅ loadAppData: Complete!');
     } catch (error) {
-      console.error('Error loading app data:', error);
+      console.error('❌ Error loading app data:', error);
+      console.error('❌ Error details:', error instanceof Error ? error.message : 'Unknown');
+      console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack');
+      throw error; // Re-throw to be caught by App.tsx
     }
   },
 

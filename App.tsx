@@ -19,28 +19,38 @@ export default function App() {
     const initialize = async () => {
       try {
         // Initialize database first
-        console.log('Initializing database...');
+        console.log('🔧 [1/4] Initializing database...');
         await initDatabase();
-        console.log('Database initialized successfully');
+        console.log('✅ [1/4] Database initialized successfully');
 
         // Load user and app data
+        console.log('🔧 [2/4] Loading user...');
         await loadUser();
+        console.log('✅ [2/4] User loaded');
+
+        console.log('🔧 [3/4] Loading app data...');
         await loadAppData();
+        console.log('✅ [3/4] App data loaded');
 
         // Initialize push notifications
-        console.log('Initializing push notifications...');
+        console.log('🔧 [4/4] Initializing push notifications...');
         await initializeNotifications();
-        console.log('Push notifications initialized');
+        console.log('✅ [4/4] Push notifications initialized');
+
+        console.log('🎉 All initialization complete!');
       } catch (error) {
-        console.error('Initialization error:', error);
+        console.error('❌ Initialization error:', error);
+        console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
         const errorMessage = error instanceof Error ? error.message : 'Unknown initialization error';
         setInitError(`Failed to initialize app: ${errorMessage}`);
 
         // On web, still allow app to continue with limited functionality
         if (Platform.OS === 'web') {
           console.warn('⚠️ Running in degraded mode on web platform');
+          console.warn('⚠️ Error was:', errorMessage);
         }
       } finally {
+        console.log('📍 Setting isInitializing to false');
         setIsInitializing(false);
       }
     };
@@ -52,17 +62,24 @@ export default function App() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#58CC02" />
         <Text style={styles.loadingText}>Loading LifeQuest...</Text>
+        {Platform.OS === 'web' && (
+          <Text style={styles.debugText}>Check browser console for logs</Text>
+        )}
       </View>
     );
   }
 
-  // Show error screen if initialization failed and we're not on web
-  if (initError && Platform.OS !== 'web') {
+  // Show error screen if initialization failed
+  if (initError) {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorTitle}>⚠️ Initialization Error</Text>
         <Text style={styles.errorText}>{initError}</Text>
-        <Text style={styles.errorHint}>Please restart the app</Text>
+        {Platform.OS === 'web' ? (
+          <Text style={styles.errorHint}>Check browser console for details. Attempting to continue anyway...</Text>
+        ) : (
+          <Text style={styles.errorHint}>Please restart the app</Text>
+        )}
       </View>
     );
   }
@@ -86,6 +103,11 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
     color: '#333333',
+  },
+  debugText: {
+    marginTop: 8,
+    fontSize: 12,
+    color: '#666666',
   },
   errorContainer: {
     flex: 1,
