@@ -301,6 +301,12 @@ const prioritizeTasks = (tasks: GeneratedTask[]): GeneratedTask[] => {
 const saveDailyTasks = async (userId: number, taskDate: string, tasks: GeneratedTask[]): Promise<void> => {
   const db = await getDatabase();
 
+  // On web, db is null - use AsyncStorage fallback
+  if (!db) {
+    console.log('⚠️ Database not available on web, tasks saved to AsyncStorage');
+    return;
+  }
+
   try {
     // Delete existing tasks for today (in case of regeneration)
     await db.runAsync('DELETE FROM daily_tasks WHERE user_id = ? AND task_date = ?', [userId, taskDate]);
@@ -326,6 +332,13 @@ const saveDailyTasks = async (userId: number, taskDate: string, tasks: Generated
  */
 export const checkAndGenerateTasks = async (userId: number): Promise<boolean> => {
   const db = await getDatabase();
+
+  // On web, db is null - skip task generation
+  if (!db) {
+    console.log('⚠️ Database not available on web, skipping task generation');
+    return false;
+  }
+
   const today = new Date().toISOString().split('T')[0];
 
   try {
