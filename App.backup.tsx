@@ -133,33 +133,4 @@ const styles = StyleSheet.create({
     color: '#666666',
     textAlign: 'center',
   },
-  successContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-  },
-  successTitle: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#58CC02',
-    marginBottom: 20,
-  },
-  successText: {
-    fontSize: 18,
-    color: '#333333',
-    marginBottom: 20,
-  },
-  debug: {
-    fontSize: 16,
-    color: '#666666',
-    marginVertical: 5,
-  },
-  hint: {
-    fontSize: 12,
-    color: '#999999',
-    marginTop: 30,
-    fontStyle: 'italic',
-  },
 });
