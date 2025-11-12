@@ -97,6 +97,28 @@ export const AppNavigator = () => {
           <>
             <Stack.Screen name="MainTabs" component={TabNavigatorNew} />
 
+            {/* Pillar Paths - Accessible from Paths screen */}
+            <Stack.Screen
+              name="Finance"
+              component={FinancePathNew}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="Mental"
+              component={MentalHealthPath}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="Physical"
+              component={PhysicalHealthPath}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="Nutrition"
+              component={NutritionPath}
+              options={{ headerShown: false }}
+            />
+
             {/* Finance Lessons & Tools */}
             <Stack.Screen
               name="LessonIntroduction"
