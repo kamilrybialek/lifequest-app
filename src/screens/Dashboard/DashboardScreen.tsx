@@ -6,7 +6,10 @@ import { TodaysFocus } from './components/TodaysFocus';
 import { PillarProgressGrid } from './components/PillarProgressGrid';
 import { StreakCards } from './components/StreakCards';
 import { QuickActionsGrid } from './components/QuickActionsGrid';
-import { Card } from '../../components/ui/Card';
+import { TasksPreview } from './components/TasksPreview';
+import { AchievementsPreview } from './components/AchievementsPreview';
+import { ActivityFeed } from './components/ActivityFeed';
+import { StatsCard } from './components/StatsCard';
 import { colors } from '../../theme/colors';
 import { typography } from '../../theme/theme';
 import { spacing } from '../../theme/spacing';
@@ -131,12 +134,26 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
           </View>
         </View>
 
+        {/* Stats Card */}
+        <StatsCard
+          level={user?.level || 1}
+          currentXP={(user?.xp || 0) % 1000}
+          xpToNextLevel={1000}
+          totalXP={user?.xp || 0}
+          streak={Math.max(...streaks.map(s => s.count), 0)}
+          totalTasks={dailyTasks.filter((t: Task) => t.completed).length}
+          achievements={0}
+        />
+
         {/* Today's Focus Task */}
         <TodaysFocus
           task={todaysFocusTask}
           onComplete={handleCompleteTask}
           onPress={handleTaskPress}
         />
+
+        {/* My Tasks Preview */}
+        <TasksPreview navigation={navigation} />
 
         {/* Streaks */}
         <StreakCards streaks={streaks} />
@@ -147,31 +164,11 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
         {/* Quick Actions */}
         <QuickActionsGrid actions={quickActions} />
 
-        {/* Stats Summary */}
-        <Card variant="elevated" style={styles.statsCard}>
-          <Text style={styles.statsTitle}>Today's Stats</Text>
-          <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Ionicons name="checkmark-circle" size={24} color={colors.success} />
-              <Text style={styles.statValue}>
-                {dailyTasks.filter((t: Task) => t.completed).length}/{dailyTasks.length}
-              </Text>
-              <Text style={styles.statLabel}>Tasks</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Ionicons name="flash" size={24} color={colors.xpGold} />
-              <Text style={styles.statValue}>{user?.xp || 0}</Text>
-              <Text style={styles.statLabel}>Total XP</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Ionicons name="flame" size={24} color={colors.error} />
-              <Text style={styles.statValue}>
-                {Math.max(...streaks.map(s => s.count))}
-              </Text>
-              <Text style={styles.statLabel}>Best Streak</Text>
-            </View>
-          </View>
-        </Card>
+        {/* Achievements Preview */}
+        <AchievementsPreview navigation={navigation} />
+
+        {/* Activity Feed */}
+        <ActivityFeed maxItems={5} />
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
@@ -219,31 +216,6 @@ const styles = StyleSheet.create({
   levelText: {
     ...typography.bodyBold,
     color: colors.text,
-  },
-  statsCard: {
-    marginTop: spacing.md,
-  },
-  statsTitle: {
-    ...typography.h4,
-    color: colors.text,
-    marginBottom: spacing.md,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statValue: {
-    ...typography.h3,
-    color: colors.text,
-    marginTop: spacing.xs,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
   },
   bottomSpacer: {
     height: spacing.xl,
