@@ -42,6 +42,9 @@ import { PhysicalLessonIntro } from '../screens/physical/PhysicalLessonIntro';
 import { PhysicalLessonContent } from '../screens/physical/PhysicalLessonContent';
 import { PhysicalLessonDuolingo } from '../screens/physical/PhysicalLessonDuolingo';
 import { WorkoutTrackerScreen } from '../screens/physical/tools/WorkoutTrackerScreen';
+import { SleepTrackerScreen } from '../screens/physical/tools/SleepTrackerScreen';
+import { BodyMeasurementsScreen } from '../screens/physical/tools/BodyMeasurementsScreen';
+import { ExerciseLoggerScreen } from '../screens/physical/tools/ExerciseLoggerScreen';
 
 // Nutrition Path & Screens
 import { NutritionPath } from '../screens/nutrition/NutritionPath';
@@ -276,6 +279,21 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="WorkoutTracker"
               component={WorkoutTrackerScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="SleepTracker"
+              component={SleepTrackerScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="BodyMeasurements"
+              component={BodyMeasurementsScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="ExerciseLogger"
+              component={ExerciseLoggerScreen}
               options={{ headerShown: false }}
             />
 
