@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, ScrollView } from 'react-native';
 import { colors } from '../../theme/colors';
 import { useOnboardingStore } from '../../store/onboardingStore';
 
@@ -8,57 +8,45 @@ export const WelcomeScreen = ({ navigation }: any) => {
 
   const handleStart = () => {
     setCurrentStep('personal');
-    navigation.navigate('OnboardingPersonal');
+    navigation.navigate('PersonalInfo');
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.content}>
         <Text style={styles.emoji}>🎯</Text>
         <Text style={styles.title}>Welcome to LifeQuest!</Text>
-        <Text style={styles.subtitle}>Your journey to a better life starts here</Text>
+        <Text style={styles.subtitle}>Your journey to holistic self-improvement</Text>
 
-        <View style={styles.features}>
-          <View style={styles.feature}>
-            <Text style={styles.featureIcon}>📊</Text>
-            <Text style={styles.featureText}>
-              <Text style={styles.featureBold}>2-minute assessment</Text>
-              {'\n'}
-              We'll understand your current state in 4 key life areas
-            </Text>
-          </View>
-
-          <View style={styles.feature}>
-            <Text style={styles.featureIcon}>🎯</Text>
-            <Text style={styles.featureText}>
-              <Text style={styles.featureBold}>Personalized path</Text>
-              {'\n'}
-              Get a custom learning journey tailored to your needs
-            </Text>
-          </View>
-
-          <View style={styles.feature}>
-            <Text style={styles.featureIcon}>💪</Text>
-            <Text style={styles.featureText}>
-              <Text style={styles.featureBold}>Immediate actions</Text>
-              {'\n'}
-              Start with quick wins you can implement today
-            </Text>
-          </View>
-
-          <View style={styles.feature}>
-            <Text style={styles.featureIcon}>📈</Text>
-            <Text style={styles.featureText}>
-              <Text style={styles.featureBold}>Track progress</Text>
-              {'\n'}
-              Monitor your growth across Finance, Mental, Physical & Nutrition
-            </Text>
+        <View style={styles.pillarsContainer}>
+          <Text style={styles.pillarsTitle}>Transform Your Life in 4 Key Areas:</Text>
+          <View style={styles.pillars}>
+            <View style={styles.pillar}>
+              <Text style={styles.pillarIcon}>💰</Text>
+              <Text style={styles.pillarName}>Finance</Text>
+            </View>
+            <View style={styles.pillar}>
+              <Text style={styles.pillarIcon}>🧠</Text>
+              <Text style={styles.pillarName}>Mental</Text>
+            </View>
+            <View style={styles.pillar}>
+              <Text style={styles.pillarIcon}>💪</Text>
+              <Text style={styles.pillarName}>Physical</Text>
+            </View>
+            <View style={styles.pillar}>
+              <Text style={styles.pillarIcon}>🥗</Text>
+              <Text style={styles.pillarName}>Nutrition</Text>
+            </View>
           </View>
         </View>
 
-        <Text style={styles.note}>
-          This assessment helps us understand where you are now, so we can guide you to where you want to be.
-        </Text>
+        <View style={styles.infoBox}>
+          <Text style={styles.infoTitle}>Quick Assessment</Text>
+          <Text style={styles.infoText}>
+            Complete a 2-minute assessment to get your personalized learning path and immediate action steps.
+          </Text>
+        </View>
       </View>
 
       <View style={styles.footer}>
@@ -67,6 +55,7 @@ export const WelcomeScreen = ({ navigation }: any) => {
         </TouchableOpacity>
         <Text style={styles.footerText}>Takes about 2-3 minutes</Text>
       </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -76,66 +65,83 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.background,
   },
-  content: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  content: {
     paddingHorizontal: 24,
-    paddingTop: 60,
+    paddingTop: 40,
+    paddingBottom: 20,
   },
   emoji: {
-    fontSize: 80,
+    fontSize: 72,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: colors.text,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 18,
+    fontSize: 16,
     color: colors.textLight,
     textAlign: 'center',
-    marginBottom: 48,
+    marginBottom: 40,
   },
-  features: {
-    gap: 24,
+  pillarsContainer: {
     marginBottom: 32,
   },
-  feature: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  featureIcon: {
-    fontSize: 32,
-    marginRight: 16,
-  },
-  featureText: {
-    flex: 1,
-    fontSize: 15,
-    color: colors.text,
-    lineHeight: 22,
-  },
-  featureBold: {
+  pillarsTitle: {
+    fontSize: 18,
     fontWeight: '600',
     color: colors.text,
-  },
-  note: {
-    fontSize: 14,
-    color: colors.textLight,
     textAlign: 'center',
-    fontStyle: 'italic',
+    marginBottom: 20,
+  },
+  pillars: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  pillar: {
+    alignItems: 'center',
+    width: 70,
+  },
+  pillarIcon: {
+    fontSize: 36,
+    marginBottom: 8,
+  },
+  pillarName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+  },
+  infoBox: {
+    backgroundColor: '#F0F9FF',
+    padding: 20,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
+    marginBottom: 20,
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  infoText: {
+    fontSize: 14,
+    color: colors.text,
     lineHeight: 20,
-    paddingHorizontal: 16,
   },
   footer: {
     padding: 24,
