@@ -42,7 +42,7 @@ export const PersonalInfoScreen = ({ navigation }: any) => {
         weightKg: parseFloat(weightKg),
       });
       setCurrentStep('physical');
-      navigation.navigate('OnboardingPhysical');
+      navigation.navigate('PhysicalHealth');
     }
   };
 

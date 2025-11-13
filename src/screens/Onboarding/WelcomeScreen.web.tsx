@@ -8,7 +8,7 @@ export const WelcomeScreen = ({ navigation }: any) => {
 
   const handleStart = () => {
     setCurrentStep('personal');
-    navigation.navigate('PersonalInfo');
+    navigation.navigate('Name');
   };
 
   return (
