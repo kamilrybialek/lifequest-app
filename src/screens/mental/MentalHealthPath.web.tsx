@@ -27,66 +27,66 @@ const MENTAL_FOUNDATIONS: Foundation[] = [
   {
     id: 1,
     title: 'Dopamine Regulation',
-    subtitle: 'Reset your reward system',
+    subtitle: 'Reset your reward system for sustainable motivation',
     icon: '🧬',
     color: '#8B5CF6',
     lessons: [
-      { id: 'mental-f1-l1', title: 'The Dopamine Crisis', xp: 10, duration: 7 },
-      { id: 'mental-f1-l2', title: 'Dopamine Detox Protocol', xp: 20, duration: 10 },
-      { id: 'mental-f1-l3', title: 'Managing Screen Time', xp: 15, duration: 7 },
-      { id: 'mental-f1-l4', title: 'Sustainable Motivation', xp: 15, duration: 8 },
+      { id: 'foundation1-lesson1', title: 'The Dopamine Crisis', xp: 10, duration: 7 },
+      { id: 'foundation1-lesson2', title: 'Dopamine Detox Protocol', xp: 20, duration: 10 },
+      { id: 'foundation1-lesson3', title: 'Managing Screen Time', xp: 15, duration: 7 },
+      { id: 'foundation1-lesson4', title: 'Sustainable Motivation', xp: 15, duration: 8 },
     ],
   },
   {
     id: 2,
     title: 'Stress Management',
-    subtitle: 'Handle stress effectively',
+    subtitle: 'Tools to handle stress effectively',
     icon: '🧘',
     color: '#8B5CF6',
     lessons: [
-      { id: 'mental-f2-l1', title: 'Understanding Stress', xp: 10, duration: 5 },
-      { id: 'mental-f2-l2', title: 'Box Breathing', xp: 15, duration: 10 },
-      { id: 'mental-f2-l3', title: 'Physiological Sigh', xp: 10, duration: 5 },
-      { id: 'mental-f2-l4', title: 'Daily Stress Check', xp: 10, duration: 5 },
+      { id: 'foundation2-lesson1', title: 'Understanding Stress', xp: 10, duration: 5 },
+      { id: 'foundation2-lesson2', title: 'Box Breathing', xp: 15, duration: 10 },
+      { id: 'foundation2-lesson3', title: 'Physiological Sigh', xp: 10, duration: 5 },
+      { id: 'foundation2-lesson4', title: 'Daily Stress Check', xp: 10, duration: 5 },
     ],
   },
   {
     id: 3,
     title: 'Mindfulness & Gratitude',
-    subtitle: 'Cultivate presence',
+    subtitle: 'Cultivate presence and appreciation',
     icon: '🙏',
     color: '#8B5CF6',
     lessons: [
-      { id: 'mental-f3-l1', title: 'Science of Gratitude', xp: 10, duration: 5 },
-      { id: 'mental-f3-l2', title: 'Daily Gratitude Practice', xp: 15, duration: 5 },
-      { id: 'mental-f3-l3', title: 'Present Moment Awareness', xp: 10, duration: 7 },
-      { id: 'mental-f3-l4', title: 'Gratitude Journal', xp: 15, duration: 10 },
+      { id: 'foundation3-lesson1', title: 'Science of Gratitude', xp: 10, duration: 5 },
+      { id: 'foundation3-lesson2', title: 'Daily Gratitude Practice', xp: 15, duration: 5 },
+      { id: 'foundation3-lesson3', title: 'Present Moment Awareness', xp: 10, duration: 7 },
+      { id: 'foundation3-lesson4', title: 'Meditation Basics', xp: 15, duration: 10 },
     ],
   },
   {
     id: 4,
-    title: 'Anxiety Reduction',
-    subtitle: 'Control worry and fear',
-    icon: '😌',
+    title: 'Social Connection',
+    subtitle: 'Build meaningful relationships',
+    icon: '💬',
     color: '#8B5CF6',
     lessons: [
-      { id: 'mental-f4-l1', title: 'Understanding Anxiety', xp: 10, duration: 5 },
-      { id: 'mental-f4-l2', title: 'Cognitive Reframing', xp: 15, duration: 8 },
-      { id: 'mental-f4-l3', title: '5-4-3-2-1 Grounding', xp: 10, duration: 5 },
-      { id: 'mental-f4-l4', title: 'Anxiety Journal', xp: 15, duration: 7 },
+      { id: 'foundation4-lesson1', title: 'Loneliness Crisis', xp: 10, duration: 5 },
+      { id: 'foundation4-lesson2', title: 'Quality Over Quantity', xp: 10, duration: 5 },
+      { id: 'foundation4-lesson3', title: 'Reaching Out', xp: 15, duration: 5 },
+      { id: 'foundation4-lesson4', title: 'Active Listening', xp: 10, duration: 7 },
     ],
   },
   {
     id: 5,
-    title: 'Emotional Resilience',
-    subtitle: 'Build mental strength',
-    icon: '💪',
+    title: 'Purpose & Growth',
+    subtitle: 'Find meaning and keep evolving',
+    icon: '🎯',
     color: '#8B5CF6',
     lessons: [
-      { id: 'mental-f5-l1', title: 'What is Resilience?', xp: 10, duration: 5 },
-      { id: 'mental-f5-l2', title: 'Growth Mindset', xp: 15, duration: 8 },
-      { id: 'mental-f5-l3', title: 'Handling Setbacks', xp: 15, duration: 7 },
-      { id: 'mental-f5-l4', title: 'Building Self-Compassion', xp: 15, duration: 8 },
+      { id: 'foundation5-lesson1', title: 'Finding Your Why', xp: 15, duration: 10 },
+      { id: 'foundation5-lesson2', title: 'Meaningful Goals', xp: 15, duration: 10 },
+      { id: 'foundation5-lesson3', title: 'Growth Mindset', xp: 10, duration: 7 },
+      { id: 'foundation5-lesson4', title: 'Daily Progress', xp: 10, duration: 5 },
     ],
   },
 ];
@@ -101,7 +101,7 @@ const MENTAL_TOOLS = [
 export const MentalHealthPath = ({ navigation }: any) => {
   const { user } = useAuthStore();
   const [completedLessons, setCompletedLessons] = useState<string[]>([]);
-  const [currentLesson, setCurrentLesson] = useState<string>('mental-f1-l1');
+  const [currentLesson, setCurrentLesson] = useState<string>('foundation1-lesson1');
   const [expandedFoundations, setExpandedFoundations] = useState<number[]>([1]);
 
   const loadProgress = async () => {
@@ -114,7 +114,7 @@ export const MentalHealthPath = ({ navigation }: any) => {
       if (progressData) {
         const progress = JSON.parse(progressData);
         setCompletedLessons(progress.completedLessons || []);
-        setCurrentLesson(progress.currentLesson || 'mental-f1-l1');
+        setCurrentLesson(progress.currentLesson || 'foundation1-lesson1');
       }
     } catch (error) {
       console.error('Error loading mental progress:', error);

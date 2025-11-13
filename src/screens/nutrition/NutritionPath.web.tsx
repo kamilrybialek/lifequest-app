@@ -27,77 +27,115 @@ const NUTRITION_FOUNDATIONS: Foundation[] = [
   {
     id: 1,
     title: 'Nutrition Fundamentals',
-    subtitle: 'Understanding macros & calories',
+    subtitle: 'Understanding macros, calories, and how food fuels your body',
     icon: '🥗',
     color: '#EC4899',
     lessons: [
-      { id: 'nutr-f1-l1', title: 'Calories In vs Calories Out', xp: 50, duration: 7 },
-      { id: 'nutr-f1-l2', title: 'The Three Macronutrients', xp: 50, duration: 8 },
-      { id: 'nutr-f1-l3', title: 'Micronutrients Matter', xp: 50, duration: 6 },
+      { id: 'nutrition-foundation1-lesson1', title: 'Calories In vs Calories Out', xp: 50, duration: 7 },
+      { id: 'nutrition-foundation1-lesson2', title: 'The Three Macronutrients', xp: 50, duration: 8 },
+      { id: 'nutrition-foundation1-lesson3', title: 'Micronutrients Matter', xp: 50, duration: 6 },
     ],
   },
   {
     id: 2,
     title: 'Building a Balanced Plate',
-    subtitle: 'Create nutritious meals',
+    subtitle: 'Learn to create nutritious, satisfying meals',
     icon: '🍽️',
     color: '#EC4899',
     lessons: [
-      { id: 'nutr-f2-l1', title: 'The Plate Method', xp: 50, duration: 6 },
-      { id: 'nutr-f2-l2', title: 'Protein at Every Meal', xp: 50, duration: 7 },
-      { id: 'nutr-f2-l3', title: 'Smart Carb Choices', xp: 50, duration: 7 },
-      { id: 'nutr-f2-l4', title: 'Healthy Fats Explained', xp: 50, duration: 6 },
+      { id: 'nutrition-foundation2-lesson1', title: 'The Plate Method', xp: 50, duration: 6 },
+      { id: 'nutrition-foundation2-lesson2', title: 'Protein at Every Meal', xp: 50, duration: 7 },
+      { id: 'nutrition-foundation2-lesson3', title: 'Smart Carb Choices', xp: 50, duration: 7 },
+      { id: 'nutrition-foundation2-lesson4', title: 'Healthy Fats Explained', xp: 50, duration: 6 },
     ],
   },
   {
     id: 3,
     title: 'Meal Planning & Prep',
-    subtitle: 'Save time and stay on track',
+    subtitle: 'Save time, money, and stay on track with smart planning',
     icon: '📋',
     color: '#EC4899',
     lessons: [
-      { id: 'nutr-f3-l1', title: 'Why Meal Planning Works', xp: 50, duration: 5 },
-      { id: 'nutr-f3-l2', title: 'Weekly Meal Prep Basics', xp: 50, duration: 8 },
-      { id: 'nutr-f3-l3', title: 'Shopping Smart', xp: 50, duration: 6 },
+      { id: 'nutrition-foundation3-lesson1', title: 'Why Meal Planning Works', xp: 50, duration: 5 },
+      { id: 'nutrition-foundation3-lesson2', title: 'Weekly Meal Prep Basics', xp: 50, duration: 8 },
+      { id: 'nutrition-foundation3-lesson3', title: 'Shopping Smart', xp: 50, duration: 6 },
     ],
   },
   {
     id: 4,
-    title: 'Hydration & Supplements',
-    subtitle: 'Optimize your intake',
+    title: 'Hydration & Water Balance',
+    subtitle: 'Master proper hydration for energy and health',
     icon: '💧',
     color: '#EC4899',
     lessons: [
-      { id: 'nutr-f4-l1', title: 'Why Hydration Matters', xp: 50, duration: 5 },
-      { id: 'nutr-f4-l2', title: 'Essential Supplements', xp: 50, duration: 7 },
-      { id: 'nutr-f4-l3', title: 'Timing Your Intake', xp: 50, duration: 6 },
+      { id: 'nutrition-foundation4-lesson1', title: 'Water is Life', xp: 50, duration: 6 },
+      { id: 'nutrition-foundation4-lesson2', title: 'Hydration Strategy', xp: 50, duration: 5 },
+      { id: 'nutrition-foundation4-lesson3', title: 'Beyond Water', xp: 50, duration: 6 },
     ],
   },
   {
     id: 5,
-    title: 'Sustainable Eating Habits',
-    subtitle: 'Long-term success',
-    icon: '🌱',
+    title: 'Sugar & Processed Foods',
+    subtitle: 'Understand and reduce hidden sugars and ultra-processed foods',
+    icon: '🍬',
     color: '#EC4899',
     lessons: [
-      { id: 'nutr-f5-l1', title: 'Mindful Eating', xp: 50, duration: 6 },
-      { id: 'nutr-f5-l2', title: 'Managing Cravings', xp: 50, duration: 7 },
-      { id: 'nutr-f5-l3', title: 'Eating Out Strategies', xp: 50, duration: 6 },
+      { id: 'nutrition-foundation5-lesson1', title: 'The Truth About Sugar', xp: 50, duration: 7 },
+      { id: 'nutrition-foundation5-lesson2', title: 'Hidden Sugar Detective', xp: 50, duration: 6 },
+      { id: 'nutrition-foundation5-lesson3', title: 'Ultra-Processed Foods', xp: 50, duration: 7 },
+      { id: 'nutrition-foundation5-lesson4', title: 'Healthier Swaps', xp: 50, duration: 6 },
+    ],
+  },
+  {
+    id: 6,
+    title: 'Timing & Meal Frequency',
+    subtitle: 'When to eat for optimal energy and metabolism',
+    icon: '⏰',
+    color: '#EC4899',
+    lessons: [
+      { id: 'nutrition-foundation6-lesson1', title: 'Circadian Eating', xp: 50, duration: 7 },
+      { id: 'nutrition-foundation6-lesson2', title: 'Intermittent Fasting 101', xp: 50, duration: 8 },
+      { id: 'nutrition-foundation6-lesson3', title: 'Pre & Post Workout Nutrition', xp: 50, duration: 6 },
+    ],
+  },
+  {
+    id: 7,
+    title: 'Special Diets & Approaches',
+    subtitle: 'Explore different nutrition strategies',
+    icon: '🥑',
+    color: '#EC4899',
+    lessons: [
+      { id: 'nutrition-foundation7-lesson1', title: 'Mediterranean Diet', xp: 50, duration: 7 },
+      { id: 'nutrition-foundation7-lesson2', title: 'Plant-Based Eating', xp: 50, duration: 7 },
+      { id: 'nutrition-foundation7-lesson3', title: 'Low-Carb & Keto', xp: 50, duration: 7 },
+      { id: 'nutrition-foundation7-lesson4', title: 'Finding What Works for YOU', xp: 50, duration: 6 },
+    ],
+  },
+  {
+    id: 8,
+    title: 'Sustainable Habits & Mindset',
+    subtitle: 'Build a healthy relationship with food for life',
+    icon: '🎯',
+    color: '#EC4899',
+    lessons: [
+      { id: 'nutrition-foundation8-lesson1', title: 'The 80/20 Rule', xp: 50, duration: 6 },
+      { id: 'nutrition-foundation8-lesson2', title: 'Mindful Eating', xp: 50, duration: 7 },
+      { id: 'nutrition-foundation8-lesson3', title: 'Eating Out & Social Events', xp: 50, duration: 6 },
+      { id: 'nutrition-foundation8-lesson4', title: 'Your Nutrition Journey Continues', xp: 50, duration: 5 },
     ],
   },
 ];
 
 const NUTRITION_TOOLS = [
-  { id: 'meal', icon: '🍽️', name: 'Meal Planner', screen: 'MealPlanner' },
-  { id: 'calorie', icon: '📊', name: 'Calorie Tracker', screen: 'CalorieTracker' },
-  { id: 'water', icon: '💧', name: 'Water Tracker', screen: 'WaterTracker' },
-  { id: 'recipes', icon: '📖', name: 'Healthy Recipes', screen: 'HealthyRecipes' },
+  { id: 'meal-logger', icon: '🍽️', name: 'Meal Logger', screen: 'MealLogger' },
+  { id: 'calorie-counter', icon: '🔥', name: 'Calorie Calculator', screen: 'CalorieCounter' },
+  { id: 'water-tracker', icon: '💧', name: 'Water Tracker', screen: 'WaterTracker' },
 ];
 
 export const NutritionPath = ({ navigation }: any) => {
   const { user } = useAuthStore();
   const [completedLessons, setCompletedLessons] = useState<string[]>([]);
-  const [currentLesson, setCurrentLesson] = useState<string>('nutr-f1-l1');
+  const [currentLesson, setCurrentLesson] = useState<string>('nutrition-foundation1-lesson1');
   const [expandedFoundations, setExpandedFoundations] = useState<number[]>([1]);
 
   const loadProgress = async () => {
@@ -110,7 +148,7 @@ export const NutritionPath = ({ navigation }: any) => {
       if (progressData) {
         const progress = JSON.parse(progressData);
         setCompletedLessons(progress.completedLessons || []);
-        setCurrentLesson(progress.currentLesson || 'nutr-f1-l1');
+        setCurrentLesson(progress.currentLesson || 'nutrition-foundation1-lesson1');
       }
     } catch (error) {
       console.error('Error loading nutrition progress:', error);

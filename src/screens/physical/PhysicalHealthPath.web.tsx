@@ -26,62 +26,122 @@ interface Foundation {
 const PHYSICAL_FOUNDATIONS: Foundation[] = [
   {
     id: 1,
-    title: 'Holistic Health Basics',
-    subtitle: 'Understand wellness',
+    title: 'Understanding Holistic Health',
+    subtitle: 'Learn what holistic health means and how body systems connect',
     icon: '🌟',
     color: '#F59E0B',
     lessons: [
-      { id: 'phys-f1-l1', title: 'What is Holistic Health?', xp: 50, duration: 5 },
-      { id: 'phys-f1-l2', title: 'Your Body is a System', xp: 50, duration: 5 },
-      { id: 'phys-f1-l3', title: 'Prevention Over Treatment', xp: 50, duration: 5 },
+      { id: 'foundation1-lesson1', title: 'What is Holistic Health?', xp: 50, duration: 5 },
+      { id: 'foundation1-lesson2', title: 'Your Body is a System', xp: 50, duration: 5 },
+      { id: 'foundation1-lesson3', title: 'Prevention Over Treatment', xp: 50, duration: 5 },
     ],
   },
   {
     id: 2,
-    title: 'Sleep & Recovery',
-    subtitle: 'Master rest and healing',
+    title: 'Sleep and Recovery',
+    subtitle: 'Master sleep for energy, healing, and mental clarity',
     icon: '😴',
     color: '#F59E0B',
     lessons: [
-      { id: 'phys-f2-l1', title: 'Why Sleep is Your Superpower', xp: 50, duration: 5 },
-      { id: 'phys-f2-l2', title: 'The Circadian Rhythm', xp: 50, duration: 5 },
-      { id: 'phys-f2-l3', title: 'Sleep Hygiene Basics', xp: 50, duration: 6 },
+      { id: 'foundation2-lesson1', title: 'Why Sleep is Your Superpower', xp: 50, duration: 5 },
+      { id: 'foundation2-lesson2', title: 'The Circadian Rhythm', xp: 50, duration: 5 },
+      { id: 'foundation2-lesson3', title: 'Sleep Hygiene Basics', xp: 50, duration: 6 },
     ],
   },
   {
     id: 3,
-    title: 'Stress & Inflammation',
-    subtitle: 'Reduce chronic stress',
+    title: 'Stress and Inflammation',
+    subtitle: 'Manage stress and reduce chronic inflammation',
     icon: '🧘',
     color: '#F59E0B',
     lessons: [
-      { id: 'phys-f3-l1', title: 'Stress: The Silent Killer', xp: 50, duration: 5 },
-      { id: 'phys-f3-l2', title: 'Inflammation: Friend or Foe?', xp: 50, duration: 5 },
-      { id: 'phys-f3-l3', title: 'Simple Stress Management', xp: 50, duration: 6 },
+      { id: 'foundation3-lesson1', title: 'Stress: The Silent Killer', xp: 50, duration: 5 },
+      { id: 'foundation3-lesson2', title: 'Inflammation: Friend or Foe?', xp: 50, duration: 5 },
+      { id: 'foundation3-lesson3', title: 'Simple Stress Management Tools', xp: 50, duration: 6 },
     ],
   },
   {
     id: 4,
-    title: 'Movement Fundamentals',
-    subtitle: 'Build strong foundation',
-    icon: '🏃',
+    title: 'Nutrition Fundamentals',
+    subtitle: 'Use food as medicine for optimal health',
+    icon: '🥗',
     color: '#F59E0B',
     lessons: [
-      { id: 'phys-f4-l1', title: 'Why Movement Matters', xp: 50, duration: 5 },
-      { id: 'phys-f4-l2', title: 'Types of Exercise', xp: 50, duration: 6 },
-      { id: 'phys-f4-l3', title: 'Starting Slow & Safe', xp: 50, duration: 5 },
+      { id: 'foundation4-lesson1', title: 'Food as Medicine', xp: 50, duration: 5 },
+      { id: 'foundation4-lesson2', title: 'The Truth About Sugar', xp: 50, duration: 5 },
+      { id: 'foundation4-lesson3', title: 'Building a Balanced Plate', xp: 50, duration: 6 },
     ],
   },
   {
     id: 5,
-    title: 'Strength Training',
-    subtitle: 'Build muscle and power',
-    icon: '💪',
+    title: 'Movement and Exercise',
+    subtitle: 'Find movement you enjoy and build consistency',
+    icon: '🏃',
     color: '#F59E0B',
     lessons: [
-      { id: 'phys-f5-l1', title: 'Benefits of Strength Training', xp: 50, duration: 5 },
-      { id: 'phys-f5-l2', title: 'Basic Movement Patterns', xp: 50, duration: 6 },
-      { id: 'phys-f5-l3', title: 'Progressive Overload', xp: 50, duration: 5 },
+      { id: 'foundation5-lesson1', title: 'You Were Born to Move', xp: 50, duration: 5 },
+      { id: 'foundation5-lesson2', title: 'The Best Exercise is the One You\'ll Do', xp: 50, duration: 5 },
+      { id: 'foundation5-lesson3', title: 'Recovery is Part of Training', xp: 50, duration: 6 },
+    ],
+  },
+  {
+    id: 6,
+    title: 'Preventive Health Screenings',
+    subtitle: 'Catch problems early with regular health checks',
+    icon: '🩺',
+    color: '#F59E0B',
+    lessons: [
+      { id: 'foundation6-lesson1', title: 'Prevention Saves Lives', xp: 50, duration: 5 },
+      { id: 'foundation6-lesson2', title: 'Know Your Numbers', xp: 50, duration: 5 },
+      { id: 'foundation6-lesson3', title: 'Build a Relationship with Your Doctor', xp: 50, duration: 6 },
+    ],
+  },
+  {
+    id: 7,
+    title: 'Gut Health and Digestion',
+    subtitle: 'Heal your gut for better mood, immunity, and energy',
+    icon: '🦠',
+    color: '#F59E0B',
+    lessons: [
+      { id: 'foundation7-lesson1', title: 'Your Gut is Your Second Brain', xp: 50, duration: 5 },
+      { id: 'foundation7-lesson2', title: 'Feeding Your Good Bacteria', xp: 50, duration: 5 },
+      { id: 'foundation7-lesson3', title: 'Parasites and Gut Health', xp: 50, duration: 6 },
+    ],
+  },
+  {
+    id: 8,
+    title: 'Hormones and Balance',
+    subtitle: 'Balance hormones for energy, mood, and metabolism',
+    icon: '⚖️',
+    color: '#F59E0B',
+    lessons: [
+      { id: 'foundation8-lesson1', title: 'Hormones Control Everything', xp: 50, duration: 5 },
+      { id: 'foundation8-lesson2', title: 'Blood Sugar and Insulin', xp: 50, duration: 5 },
+      { id: 'foundation8-lesson3', title: 'Supporting Hormonal Balance', xp: 50, duration: 6 },
+    ],
+  },
+  {
+    id: 9,
+    title: 'Hydration and Detox',
+    subtitle: 'Support your body\'s natural detoxification systems',
+    icon: '💧',
+    color: '#F59E0B',
+    lessons: [
+      { id: 'foundation9-lesson1', title: 'Water is Life', xp: 50, duration: 5 },
+      { id: 'foundation9-lesson2', title: 'Your Liver: The Detox Powerhouse', xp: 50, duration: 5 },
+      { id: 'foundation9-lesson3', title: 'Do You Need to "Detox"?', xp: 50, duration: 6 },
+    ],
+  },
+  {
+    id: 10,
+    title: 'Mindset and Long-Term Success',
+    subtitle: 'Build sustainable health habits for life',
+    icon: '🎯',
+    color: '#F59E0B',
+    lessons: [
+      { id: 'foundation10-lesson1', title: 'Health is a Journey, Not a Destination', xp: 50, duration: 5 },
+      { id: 'foundation10-lesson2', title: 'Your Health, Your Responsibility', xp: 50, duration: 5 },
+      { id: 'foundation10-lesson3', title: 'Celebrate Your Progress', xp: 50, duration: 6 },
     ],
   },
 ];
@@ -96,7 +156,7 @@ const PHYSICAL_TOOLS = [
 export const PhysicalHealthPath = ({ navigation }: any) => {
   const { user } = useAuthStore();
   const [completedLessons, setCompletedLessons] = useState<string[]>([]);
-  const [currentLesson, setCurrentLesson] = useState<string>('phys-f1-l1');
+  const [currentLesson, setCurrentLesson] = useState<string>('foundation1-lesson1');
   const [expandedFoundations, setExpandedFoundations] = useState<number[]>([1]);
 
   const loadProgress = async () => {
@@ -109,7 +169,7 @@ export const PhysicalHealthPath = ({ navigation }: any) => {
       if (progressData) {
         const progress = JSON.parse(progressData);
         setCompletedLessons(progress.completedLessons || []);
-        setCurrentLesson(progress.currentLesson || 'phys-f1-l1');
+        setCurrentLesson(progress.currentLesson || 'foundation1-lesson1');
       }
     } catch (error) {
       console.error('Error loading physical progress:', error);
