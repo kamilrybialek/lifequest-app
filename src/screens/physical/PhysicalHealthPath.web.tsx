@@ -177,6 +177,12 @@ export const PhysicalHealthPath = ({ navigation }: any) => {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>💪 Physical Wellness Path</Text>
           <Text style={styles.headerSubtitle}>5 Foundations of Physical Health</Text>
         </View>
@@ -431,6 +437,14 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     backgroundColor: colors.background,
     alignItems: 'center',
+    position: 'relative',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    zIndex: 10,
+    padding: 8,
   },
   headerTitle: {
     ...typography.heading,

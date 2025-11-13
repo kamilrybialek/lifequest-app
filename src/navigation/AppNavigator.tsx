@@ -9,6 +9,12 @@ import { TabNavigatorNew } from './TabNavigatorNew';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { OnboardingScreen } from '../screens/auth/OnboardingScreen';
 
+// Path screens - web versions
+import { FinancePathNew } from '../screens/finance/FinancePathNew';
+import { MentalHealthPath } from '../screens/mental/MentalHealthPath';
+import { PhysicalHealthPath } from '../screens/physical/PhysicalHealthPath';
+import { NutritionPath } from '../screens/nutrition/NutritionPath';
+
 import { useAuthStore } from '../store/authStore';
 
 const Stack = createNativeStackNavigator();
@@ -28,7 +34,15 @@ export const AppNavigator = () => {
         ) : !user?.onboarded ? (
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         ) : (
-          <Stack.Screen name="Main" component={TabNavigatorNew} />
+          <>
+            <Stack.Screen name="Main" component={TabNavigatorNew} />
+
+            {/* Path screens - accessible from Journey */}
+            <Stack.Screen name="FinancePathNew" component={FinancePathNew} />
+            <Stack.Screen name="MentalHealthPath" component={MentalHealthPath} />
+            <Stack.Screen name="PhysicalHealthPath" component={PhysicalHealthPath} />
+            <Stack.Screen name="NutritionPath" component={NutritionPath} />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
