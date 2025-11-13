@@ -47,6 +47,7 @@ import { ExpenseLoggerScreen } from '../screens/finance/ExpenseLoggerScreen';
 import { BudgetManagerScreen } from '../screens/finance/BudgetManagerScreen';
 import { SubscriptionsScreen } from '../screens/finance/SubscriptionsScreen';
 import { SavingsGoalsScreen } from '../screens/finance/SavingsGoalsScreen';
+import { NetWorthCalculatorScreen } from '../screens/finance/NetWorthCalculatorScreen';
 
 import { useAuthStore } from '../store/authStore';
 
@@ -108,6 +109,7 @@ export const AppNavigator = () => {
             <Stack.Screen name="BudgetManagerScreen" component={BudgetManagerScreen} />
             <Stack.Screen name="SubscriptionsScreen" component={SubscriptionsScreen} />
             <Stack.Screen name="SavingsGoalsScreen" component={SavingsGoalsScreen} />
+            <Stack.Screen name="NetWorthCalculatorScreen" component={NetWorthCalculatorScreen} />
           </>
         )}
       </Stack.Navigator>
