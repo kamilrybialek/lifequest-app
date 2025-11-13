@@ -49,7 +49,7 @@ const pillarPaths: PillarPath[] = [
   },
 ];
 
-export const JourneyScreen = () => {
+export const JourneyScreen = ({ navigation }: any) => {
   const { progress, loadAppData } = useAppStore();
   const [refreshing, setRefreshing] = useState(false);
 
@@ -69,8 +69,20 @@ export const JourneyScreen = () => {
   };
 
   const handlePillarPress = (pillar: Pillar) => {
-    // TODO: Navigate to pillar-specific learning path
-    console.log('Navigate to', pillar, 'path');
+    const screenMap = {
+      finance: 'FinancePathNew',
+      mental: 'MentalHealthPath',
+      physical: 'PhysicalHealthPath',
+      nutrition: 'NutritionPath',
+    };
+
+    const screenName = screenMap[pillar];
+    if (screenName) {
+      console.log('Navigating to', screenName);
+      navigation.navigate(screenName);
+    } else {
+      console.warn('No path screen for pillar:', pillar);
+    }
   };
 
   const totalStreak = progress.streaks.reduce((sum, s) => sum + s.current, 0);
