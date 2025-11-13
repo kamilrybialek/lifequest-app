@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, RefreshControl, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, RefreshControl } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
@@ -22,14 +22,11 @@ export const ProfileScreenNew = () => {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Logout', style: 'destructive', onPress: logout },
-      ]
-    );
+    const confirmed = window.confirm('Are you sure you want to logout?');
+    if (confirmed) {
+      console.log('Logging out...');
+      logout();
+    }
   };
 
   const handleSettingPress = (setting: string) => {
@@ -37,40 +34,35 @@ export const ProfileScreenNew = () => {
     // TODO: Implement settings navigation
   };
 
-  const handleResetDatabase = () => {
-    Alert.alert(
-      '⚠️ Reset Database',
-      'This will delete ALL your data including onboarding, tasks, progress, and achievements. This action cannot be undone!\n\nAre you absolutely sure?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reset Everything',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await AsyncStorage.clear();
-              Alert.alert(
-                'Success',
-                'Database has been reset. Please restart the app.',
-                [
-                  {
-                    text: 'Restart Now',
-                    onPress: () => {
-                      // Logout and refresh
-                      logout();
-                      window.location.reload();
-                    },
-                  },
-                ]
-              );
-            } catch (error) {
-              console.error('Error resetting database:', error);
-              Alert.alert('Error', 'Failed to reset database');
-            }
-          },
-        },
-      ]
+  const handleResetDatabase = async () => {
+    const confirmed = window.confirm(
+      '⚠️ RESET DATABASE\n\n' +
+      'This will delete ALL your data including:\n' +
+      '- Onboarding data\n' +
+      '- Tasks and progress\n' +
+      '- Achievements and streaks\n' +
+      '- User authentication\n\n' +
+      'This action CANNOT be undone!\n\n' +
+      'Are you absolutely sure?'
     );
+
+    if (confirmed) {
+      try {
+        console.log('Resetting database...');
+        await AsyncStorage.clear();
+        console.log('Database cleared, reloading...');
+
+        // Show success message
+        window.alert('✅ Database has been reset successfully!\n\nThe app will now reload.');
+
+        // Logout and reload
+        await logout();
+        window.location.reload();
+      } catch (error) {
+        console.error('Error resetting database:', error);
+        window.alert('❌ Error: Failed to reset database. Please try again.');
+      }
+    }
   };
 
   const unlockedAchievements = progress.achievements.filter(a => a.unlocked);
