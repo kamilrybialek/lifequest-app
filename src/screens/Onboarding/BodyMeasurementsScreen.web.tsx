@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, SafeAreaView, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, TouchableOpacity, TextInput } from 'react-native';
 import { colors } from '../../theme/colors';
 import { useOnboardingStore } from '../../store/onboardingStore';
 
@@ -45,7 +45,8 @@ export const BodyMeasurementsScreen = ({ navigation }: any) => {
         <Text style={styles.stepText}>Step 4 of 8</Text>
       </View>
 
-      <View style={styles.content}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
+        <View style={styles.content}>
         <Text style={styles.emoji}>📏</Text>
         <Text style={styles.title}>Your measurements</Text>
         <Text style={styles.subtitle}>We'll use this to calculate your BMI and health metrics</Text>
@@ -79,7 +80,9 @@ export const BodyMeasurementsScreen = ({ navigation }: any) => {
           />
           {errors.weight && <Text style={styles.errorText}>{errors.weight}</Text>}
         </View>
+        <View style={{ height: 200 }} />
       </View>
+      </ScrollView>
 
       <View style={styles.footer}>
         <TouchableOpacity
@@ -126,8 +129,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: colors.textLight,
   },
-  content: {
+  scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  content: {
     paddingHorizontal: 24,
     paddingTop: 40,
   },

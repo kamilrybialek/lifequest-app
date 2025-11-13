@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { OnboardingData, OnboardingStep, AssessmentResult } from '../types/onboarding';
 import { performAssessment } from '../utils/onboardingAssessment';
+import { useAuthStore } from './authStore';
 
 interface OnboardingState {
   currentStep: OnboardingStep;
@@ -85,8 +86,13 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
 
       console.log('✅ Onboarding data saved successfully');
 
+      // Mark user as onboarded in auth store
+      const { updateProfile } = useAuthStore.getState();
+      await updateProfile({ onboarded: true });
+
+      console.log('✅ User marked as onboarded, navigating to main app...');
+
       // TODO: Save to database when backend is ready
-      // const { useAuthStore } = require('./authStore');
       // const userId = useAuthStore.getState().user?.id;
       // if (userId) {
       //   await saveOnboardingToDatabase(userId, data, assessmentResult);

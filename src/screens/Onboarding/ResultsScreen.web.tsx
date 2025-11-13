@@ -14,12 +14,12 @@ export const ResultsScreen = ({ navigation }: any) => {
 
   const handleStartJourney = async () => {
     try {
+      console.log('Starting journey - completing onboarding...');
       await completeOnboarding();
-      // Navigate to main app
-      navigation.reset({
-        index: 0,
-        routes: [{ name: 'Main' }],
-      });
+      console.log('Onboarding completed successfully!');
+      // The onboarding store will set user.onboarded = true
+      // which will trigger AppNavigator to show Main screen
+      // No need to navigate manually - AppNavigator handles this
     } catch (error) {
       console.error('Error completing onboarding:', error);
     }

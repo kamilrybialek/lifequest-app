@@ -46,11 +46,11 @@ export const FinanceScreen = ({ navigation }: any) => {
           <Text style={styles.label}>What is your monthly net income? *</Text>
           <View style={styles.radioGroup}>
             {[
-              { label: 'Below 3000 PLN', value: 0 },
-              { label: '3000 - 5000 PLN', value: 1 },
-              { label: '5000 - 8000 PLN', value: 2 },
-              { label: '8000 - 12000 PLN', value: 3 },
-              { label: 'Above 12000 PLN', value: 4 },
+              { label: 'Below $1,000', value: 0 },
+              { label: '$1,000 - $2,500', value: 1 },
+              { label: '$2,500 - $5,000', value: 2 },
+              { label: '$5,000 - $10,000', value: 3 },
+              { label: 'Above $10,000', value: 4 },
             ].map((option) => (
               <TouchableOpacity
                 key={option.value}
@@ -71,9 +71,9 @@ export const FinanceScreen = ({ navigation }: any) => {
           <View style={styles.radioGroup}>
             {[
               { label: 'No', value: 0 },
-              { label: 'Yes, small (up to 10k PLN)', value: 1 },
-              { label: 'Yes, medium (10k-50k PLN)', value: 2 },
-              { label: 'Yes, large (above 50k PLN)', value: 3 },
+              { label: 'Yes, small (up to $5,000)', value: 1 },
+              { label: 'Yes, medium ($5,000-$25,000)', value: 2 },
+              { label: 'Yes, large (above $25,000)', value: 3 },
             ].map((option) => (
               <TouchableOpacity
                 key={option.value}
@@ -93,11 +93,11 @@ export const FinanceScreen = ({ navigation }: any) => {
           <Text style={styles.label}>How much do you have in savings? *</Text>
           <View style={styles.radioGroup}>
             {[
-              { label: 'None or below 1000 PLN', value: 0 },
-              { label: '1000 - 5000 PLN', value: 1 },
-              { label: '5000 - 20000 PLN', value: 2 },
-              { label: '20000 - 50000 PLN', value: 3 },
-              { label: 'Above 50000 PLN', value: 4 },
+              { label: 'None or below $500', value: 0 },
+              { label: '$500 - $2,500', value: 1 },
+              { label: '$2,500 - $10,000', value: 2 },
+              { label: '$10,000 - $25,000', value: 3 },
+              { label: 'Above $25,000', value: 4 },
             ].map((option) => (
               <TouchableOpacity
                 key={option.value}
