@@ -75,7 +75,7 @@ export const AboutScreen = ({ navigation }: any) => {
           </View>
           <View style={styles.divider} />
           <View style={styles.featureRow}>
-            <Ionicons name="brain" size={24} color={colors.mental} />
+            <Ionicons name="bulb" size={24} color={colors.mental} />
             <View style={styles.featureInfo}>
               <Text style={styles.featureTitle}>Mental Health</Text>
               <Text style={styles.featureDescription}>5 Foundations of Wellness</Text>

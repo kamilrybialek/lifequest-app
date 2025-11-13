@@ -1,587 +1,415 @@
-/**
- * Mental Health Path - Web Version
- * Learning path for Mental Wellness with 5 foundations
- */
-
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { Text } from 'react-native-paper';
+import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { typography, shadows } from '../../theme/theme';
+import { MentalFoundation, MentalLesson, MENTAL_FOUNDATIONS } from '../../types/mental';
 import { useAuthStore } from '../../store/authStore';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getCompletedLessons } from '../../database/lessons.web';
+import { getMentalProgress } from '../../database/mental.web';
+import { useFocusEffect } from '@react-navigation/native';
+import { ContinueJourneyCard } from '../../components/paths/ContinueJourneyCard';
+import { StepHeader } from '../../components/paths/StepHeader';
+import { LessonBubble } from '../../components/paths/LessonBubble';
 
-interface Foundation {
-  id: number;
-  title: string;
-  subtitle: string;
-  icon: string;
-  color: string;
-  lessons: {
-    id: string;
-    title: string;
-    xp: number;
-    duration: number;
-  }[];
-}
-
-const MENTAL_FOUNDATIONS: Foundation[] = [
-  {
-    id: 1,
-    title: 'Dopamine Regulation',
-    subtitle: 'Reset your reward system',
-    icon: '🧬',
-    color: '#8B5CF6',
-    lessons: [
-      { id: 'mental-f1-l1', title: 'The Dopamine Crisis', xp: 10, duration: 7 },
-      { id: 'mental-f1-l2', title: 'Dopamine Detox Protocol', xp: 20, duration: 10 },
-      { id: 'mental-f1-l3', title: 'Managing Screen Time', xp: 15, duration: 7 },
-      { id: 'mental-f1-l4', title: 'Sustainable Motivation', xp: 15, duration: 8 },
-    ],
-  },
-  {
-    id: 2,
-    title: 'Stress Management',
-    subtitle: 'Handle stress effectively',
-    icon: '🧘',
-    color: '#8B5CF6',
-    lessons: [
-      { id: 'mental-f2-l1', title: 'Understanding Stress', xp: 10, duration: 5 },
-      { id: 'mental-f2-l2', title: 'Box Breathing', xp: 15, duration: 10 },
-      { id: 'mental-f2-l3', title: 'Physiological Sigh', xp: 10, duration: 5 },
-      { id: 'mental-f2-l4', title: 'Daily Stress Check', xp: 10, duration: 5 },
-    ],
-  },
-  {
-    id: 3,
-    title: 'Mindfulness & Gratitude',
-    subtitle: 'Cultivate presence',
-    icon: '🙏',
-    color: '#8B5CF6',
-    lessons: [
-      { id: 'mental-f3-l1', title: 'Science of Gratitude', xp: 10, duration: 5 },
-      { id: 'mental-f3-l2', title: 'Daily Gratitude Practice', xp: 15, duration: 5 },
-      { id: 'mental-f3-l3', title: 'Present Moment Awareness', xp: 10, duration: 7 },
-      { id: 'mental-f3-l4', title: 'Gratitude Journal', xp: 15, duration: 10 },
-    ],
-  },
-  {
-    id: 4,
-    title: 'Anxiety Reduction',
-    subtitle: 'Control worry and fear',
-    icon: '😌',
-    color: '#8B5CF6',
-    lessons: [
-      { id: 'mental-f4-l1', title: 'Understanding Anxiety', xp: 10, duration: 5 },
-      { id: 'mental-f4-l2', title: 'Cognitive Reframing', xp: 15, duration: 8 },
-      { id: 'mental-f4-l3', title: '5-4-3-2-1 Grounding', xp: 10, duration: 5 },
-      { id: 'mental-f4-l4', title: 'Anxiety Journal', xp: 15, duration: 7 },
-    ],
-  },
-  {
-    id: 5,
-    title: 'Emotional Resilience',
-    subtitle: 'Build mental strength',
-    icon: '💪',
-    color: '#8B5CF6',
-    lessons: [
-      { id: 'mental-f5-l1', title: 'What is Resilience?', xp: 10, duration: 5 },
-      { id: 'mental-f5-l2', title: 'Growth Mindset', xp: 15, duration: 8 },
-      { id: 'mental-f5-l3', title: 'Handling Setbacks', xp: 15, duration: 7 },
-      { id: 'mental-f5-l4', title: 'Building Self-Compassion', xp: 15, duration: 8 },
-    ],
-  },
-];
+const { width } = Dimensions.get('window');
 
 const MENTAL_TOOLS = [
-  { id: 'dopamine', icon: '🧬', name: 'Dopamine Detox Tracker', screen: 'DopamineDetox' },
-  { id: 'screen', icon: '📱', name: 'Screen Time Monitor', screen: 'ScreenTime' },
-  { id: 'meditation', icon: '🧘', name: 'Meditation Timer', screen: 'Meditation' },
-  { id: 'mood', icon: '😊', name: 'Mood Journal', screen: 'MoodJournal' },
+  {
+    id: 'dopamine-detox',
+    title: 'Dopamine Detox',
+    icon: '🧬',
+    description: 'Track your detox progress',
+    screen: 'DopamineDetox',
+    color: colors.mental,
+  },
+  {
+    id: 'screen-time-tracker',
+    title: 'Screen Time',
+    icon: '📱',
+    description: 'Monitor and reduce usage',
+    screen: 'ScreenTimeTracker',
+    color: '#CE82FF',
+  },
+  {
+    id: 'morning-routine',
+    title: 'Morning Routine',
+    icon: '☀️',
+    description: 'Build your optimal routine',
+    screen: 'MorningRoutine',
+    color: '#1CB0F6',
+  },
+  {
+    id: 'meditation-timer',
+    title: 'Meditation',
+    icon: '🧘',
+    description: 'Breathing & mindfulness',
+    screen: 'MeditationTimer',
+    color: '#FFB900',
+  },
 ];
 
 export const MentalHealthPath = ({ navigation }: any) => {
+  const [foundations, setFoundations] = useState<MentalFoundation[]>(MENTAL_FOUNDATIONS);
+  const [expandedFoundations, setExpandedFoundations] = useState<{ [key: string]: boolean }>({});
+  const [nextLesson, setNextLesson] = useState<any>(null);
   const { user } = useAuthStore();
-  const [completedLessons, setCompletedLessons] = useState<string[]>([]);
-  const [currentLesson, setCurrentLesson] = useState<string>('mental-f1-l1');
-  const [expandedFoundations, setExpandedFoundations] = useState<number[]>([1]);
 
-  const loadProgress = async () => {
+  const loadLessonProgress = async () => {
     if (!user?.id) return;
 
     try {
-      const progressKey = `mental_progress_${user.id}`;
-      const progressData = await AsyncStorage.getItem(progressKey);
+      // Get completed lessons from database
+      const completedLessonIds = await getCompletedLessons(user.id);
 
-      if (progressData) {
-        const progress = JSON.parse(progressData);
-        setCompletedLessons(progress.completedLessons || []);
-        setCurrentLesson(progress.currentLesson || 'mental-f1-l1');
-      }
+      // Get mental progress
+      const mentalProgress = await getMentalProgress(user.id);
+
+      // Determine which foundation should be current
+      const currentFoundation = mentalProgress?.current_foundation || 1;
+
+      let foundNextLesson: any = null;
+
+      // Update foundations with progress data
+      const updatedFoundations = MENTAL_FOUNDATIONS.map((foundation) => {
+        // Determine foundation status
+        let foundationStatus: 'completed' | 'current' | 'locked';
+        if (foundation.number < currentFoundation) {
+          foundationStatus = 'completed';
+        } else if (foundation.number === currentFoundation) {
+          foundationStatus = 'current';
+        } else {
+          foundationStatus = 'locked';
+        }
+
+        const updatedLessons = foundation.lessons.map((lesson, lessonIndex) => {
+          // Only show lessons if foundation is current or completed
+          if (foundationStatus === 'locked') {
+            return { ...lesson, status: 'locked' as const };
+          }
+
+          // Check if lesson is completed
+          if (completedLessonIds.includes(lesson.id)) {
+            return { ...lesson, status: 'completed' as const };
+          }
+
+          // Find first uncompleted lesson in this foundation
+          const allPreviousCompleted = foundation.lessons
+            .slice(0, lessonIndex)
+            .every((prevLesson) => completedLessonIds.includes(prevLesson.id));
+
+          if (allPreviousCompleted && foundationStatus === 'current') {
+            // This is the next lesson to complete
+            if (!foundNextLesson) {
+              foundNextLesson = {
+                lesson,
+                foundation,
+                foundationIndex: foundation.number,
+                lessonIndex,
+              };
+            }
+            return { ...lesson, status: 'current' as const };
+          }
+
+          return { ...lesson, status: 'locked' as const };
+        });
+
+        return {
+          ...foundation,
+          status: foundationStatus,
+          lessons: updatedLessons,
+        };
+      });
+
+      setFoundations(updatedFoundations);
+      setNextLesson(foundNextLesson);
+
+      // Auto-expand current foundation, collapse completed foundations
+      const newExpandedState: { [key: string]: boolean } = {};
+      updatedFoundations.forEach((foundation) => {
+        if (foundation.status === 'current') {
+          newExpandedState[foundation.id] = true;
+        } else {
+          newExpandedState[foundation.id] = false;
+        }
+      });
+      setExpandedFoundations(newExpandedState);
     } catch (error) {
-      console.error('Error loading mental progress:', error);
+      console.error('Error loading mental lesson progress:', error);
     }
   };
 
-  useEffect(() => {
-    loadProgress();
-  }, [user?.id]);
-
-  useEffect(() => {
-    // Auto-expand the current foundation
-    if (currentLesson) {
-      const foundationId = parseInt(currentLesson.split('-')[1].replace('f', ''));
-      if (!expandedFoundations.includes(foundationId)) {
-        setExpandedFoundations([...expandedFoundations, foundationId]);
-      }
-    }
-  }, [currentLesson]);
-
-  const getLessonStatus = (lessonId: string): 'locked' | 'available' | 'current' | 'completed' => {
-    if (completedLessons.includes(lessonId)) return 'completed';
-    if (currentLesson === lessonId) return 'current';
-
-    const allLessons = MENTAL_FOUNDATIONS.flatMap(f => f.lessons);
-    const lessonIndex = allLessons.findIndex(l => l.id === lessonId);
-    const completedCount = completedLessons.length;
-
-    if (lessonIndex <= completedCount) return 'available';
-    return 'locked';
+  const toggleFoundationExpanded = (foundationId: string) => {
+    setExpandedFoundations((prev) => ({
+      ...prev,
+      [foundationId]: !prev[foundationId],
+    }));
   };
 
-  const toggleFoundation = (foundationId: number) => {
-    if (expandedFoundations.includes(foundationId)) {
-      setExpandedFoundations(expandedFoundations.filter(id => id !== foundationId));
-    } else {
-      setExpandedFoundations([...expandedFoundations, foundationId]);
-    }
+  // Load progress when screen is focused
+  useFocusEffect(
+    React.useCallback(() => {
+      loadLessonProgress();
+    }, [user?.id])
+  );
+
+  const handleLessonPress = (foundation: MentalFoundation, lesson: MentalLesson) => {
+    if (lesson.status === 'locked') return;
+
+    // Navigate to lesson introduction screen
+    navigation.navigate('MentalLessonIntro', {
+      lessonId: lesson.id,
+      lessonTitle: lesson.title,
+      foundationId: foundation.id,
+    });
   };
 
-  const handleLessonPress = (lessonId: string) => {
-    const status = getLessonStatus(lessonId);
-    if (status === 'locked') return;
-
-    navigation.navigate('MentalLessonContent', { lessonId });
+  const handleToolPress = (toolScreen: string) => {
+    navigation.navigate(toolScreen);
   };
-
-  const getFoundationProgress = (foundation: Foundation) => {
-    const total = foundation.lessons.length;
-    const completed = foundation.lessons.filter(l => completedLessons.includes(l.id)).length;
-    return { completed, total, percentage: (completed / total) * 100 };
-  };
-
-  const totalLessons = MENTAL_FOUNDATIONS.reduce((sum, f) => sum + f.lessons.length, 0);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Mental Health Path</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
-      <ScrollView style={styles.content}>
-        <View style={styles.introCard}>
-          <Text style={styles.introIcon}>🧠</Text>
-          <Text style={styles.introTitle}>Mental Wellness Journey</Text>
-          <Text style={styles.introText}>
-            Master 5 foundations of mental health. Build resilience, reduce stress, and cultivate mindfulness.
-          </Text>
+    <View style={styles.container}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>🧠 Mental Wellness Path</Text>
+          <Text style={styles.headerSubtitle}>5 Foundations of Mental Health</Text>
         </View>
 
-        {/* Progress Overview */}
-        <View style={styles.progressCard}>
-          <Text style={styles.progressLabel}>Overall Progress</Text>
-          <View style={styles.progressBar}>
-            <View
-              style={[
-                styles.progressFill,
-                { width: `${(completedLessons.length / totalLessons) * 100}%`, backgroundColor: '#8B5CF6' }
-              ]}
-            />
-          </View>
-          <Text style={styles.progressText}>
-            {completedLessons.length} / {totalLessons} lessons completed
-          </Text>
-        </View>
-
-        {/* Foundations with Lessons */}
-        {MENTAL_FOUNDATIONS.map((foundation) => {
-          const progress = getFoundationProgress(foundation);
-          const isExpanded = expandedFoundations.includes(foundation.id);
-          const isCompleted = progress.completed === progress.total;
-
-          return (
-            <View key={foundation.id} style={styles.foundationContainer}>
-              <TouchableOpacity
-                style={[
-                  styles.foundationHeader,
-                  isCompleted && styles.foundationHeaderCompleted
-                ]}
-                onPress={() => toggleFoundation(foundation.id)}
-              >
-                <View style={styles.foundationHeaderLeft}>
-                  <View style={[
-                    styles.foundationIconContainer,
-                    isCompleted && styles.foundationIconCompleted,
-                    { backgroundColor: foundation.color + '20' }
-                  ]}>
-                    <Text style={styles.foundationIcon}>{foundation.icon}</Text>
-                  </View>
-                  <View style={styles.foundationInfo}>
-                    <Text style={styles.foundationTitle}>{foundation.title}</Text>
-                    <Text style={styles.foundationSubtitle}>{foundation.subtitle}</Text>
-                    <Text style={[styles.foundationProgress, { color: foundation.color }]}>
-                      {progress.completed}/{progress.total} lessons
-                    </Text>
-                  </View>
-                </View>
-                <Text style={styles.expandIcon}>{isExpanded ? '▼' : '▶'}</Text>
-              </TouchableOpacity>
-
-              {isExpanded && (
-                <View style={styles.lessonsContainer}>
-                  {foundation.lessons.map((lesson, index) => {
-                    const status = getLessonStatus(lesson.id);
-
-                    return (
-                      <TouchableOpacity
-                        key={lesson.id}
-                        style={[
-                          styles.lessonCard,
-                          status === 'locked' && styles.lessonLocked,
-                          status === 'current' && styles.lessonCurrent,
-                          status === 'completed' && styles.lessonCompleted,
-                        ]}
-                        onPress={() => handleLessonPress(lesson.id)}
-                        disabled={status === 'locked'}
-                      >
-                        <View style={styles.lessonLeft}>
-                          <View style={[
-                            styles.lessonNumber,
-                            status === 'completed' && styles.lessonNumberCompleted,
-                            status === 'current' && styles.lessonNumberCurrent,
-                          ]}>
-                            {status === 'completed' ? (
-                              <Text style={styles.lessonCheckmark}>✓</Text>
-                            ) : (
-                              <Text style={styles.lessonNumberText}>{index + 1}</Text>
-                            )}
-                          </View>
-                          <View style={styles.lessonInfo}>
-                            <Text style={[
-                              styles.lessonTitle,
-                              status === 'locked' && styles.lessonTitleLocked
-                            ]}>
-                              {lesson.title}
-                            </Text>
-                            <Text style={styles.lessonDetails}>
-                              +{lesson.xp} XP • {lesson.duration} min
-                            </Text>
-                          </View>
-                        </View>
-                        {status === 'locked' && (
-                          <Text style={styles.lockIcon}>🔒</Text>
-                        )}
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              )}
-            </View>
-          );
-        })}
-
-        {/* Tools Section */}
+        {/* Mental Tools Section */}
         <View style={styles.toolsSection}>
-          <Text style={styles.toolsTitle}>🔧 Mental Health Tools</Text>
-          {MENTAL_TOOLS.map((tool) => (
-            <TouchableOpacity
-              key={tool.id}
-              style={styles.toolCard}
-              onPress={() => navigation.navigate(tool.screen)}
-            >
-              <Text style={styles.toolIcon}>{tool.icon}</Text>
-              <View style={styles.toolInfo}>
-                <Text style={styles.toolName}>{tool.name}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+          <Text style={styles.toolsSectionTitle}>🔧 My Mental Health Tools</Text>
+          <Text style={styles.toolsSectionSubtitle}>
+            Track your progress and build healthy habits
+          </Text>
+
+          <View style={styles.toolsGrid}>
+            {MENTAL_TOOLS.map((tool) => (
+              <TouchableOpacity
+                key={tool.id}
+                style={styles.toolCard}
+                onPress={() => handleToolPress(tool.screen)}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.toolIconContainer, { backgroundColor: tool.color + '20' }]}>
+                  <Text style={styles.toolIcon}>{tool.icon}</Text>
+                </View>
+                <Text style={styles.toolTitle}>{tool.title}</Text>
+                <Text style={styles.toolDescription}>{tool.description}</Text>
+                <View style={styles.toolArrow}>
+                  <Ionicons name="chevron-forward" size={20} color={tool.color} />
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
-        <View style={{ height: 40 }} />
+        {/* Next Lesson Card */}
+        {nextLesson && (
+          <ContinueJourneyCard
+            lesson={{
+              title: nextLesson.lesson.title,
+              stepTitle: nextLesson.foundation.title,
+              stepNumber: nextLesson.foundationIndex,
+              icon: nextLesson.foundation.icon,
+              xp: nextLesson.lesson.xp,
+              duration: nextLesson.lesson.estimatedTime,
+            }}
+            color={colors.mental}
+            onPress={() => handleLessonPress(nextLesson.foundation, nextLesson.lesson)}
+          />
+        )}
+
+        {/* Path Divider */}
+        <View style={styles.pathDivider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>ALL FOUNDATIONS</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        {/* Foundations Path */}
+        <View style={styles.path}>
+          {foundations.map((foundation, foundationIndex) => {
+            const completedCount = foundation.lessons.filter(l => l.status === 'completed').length;
+            const totalCount = foundation.lessons.length;
+            const progress = (completedCount / totalCount) * 100;
+
+            return (
+              <View key={foundation.id}>
+                {/* Foundation Header */}
+                <StepHeader
+                  stepNumber={foundation.number}
+                  title={foundation.title}
+                  description={foundation.description}
+                  icon={foundation.icon}
+                  color={foundation.color || colors.mental}
+                  progress={progress}
+                  totalLessons={totalCount}
+                  completedLessons={completedCount}
+                  status={foundation.status}
+                  isExpanded={expandedFoundations[foundation.id]}
+                  onToggle={() => foundation.status !== 'locked' && toggleFoundationExpanded(foundation.id)}
+                />
+
+                {/* Lessons - Only show if expanded */}
+                {foundation.status !== 'locked' && expandedFoundations[foundation.id] && (
+                  <View style={styles.lessonsContainer}>
+                    {foundation.lessons.map((lesson, lessonIndex) => {
+                      const position = lessonIndex % 3 === 0 ? 'left' : lessonIndex % 3 === 1 ? 'center' : 'right';
+                      return (
+                        <LessonBubble
+                          key={lesson.id}
+                          lesson={{
+                            id: lesson.id,
+                            title: lesson.title,
+                            icon: lesson.icon,
+                            xp: lesson.xp,
+                            duration: lesson.estimatedTime,
+                            status: lesson.status,
+                          }}
+                          color={foundation.color || colors.mental}
+                          onPress={() => handleLessonPress(foundation, lesson)}
+                          position={position}
+                        />
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+            );
+          })}
+        </View>
+
+        <View style={styles.bottomSpacer} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.backgroundGray,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  backIcon: {
-    fontSize: 24,
-    color: colors.text,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
+  scrollView: {
+    flex: 1,
   },
   content: {
-    flex: 1,
-    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
-  introCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 24,
-    borderRadius: 16,
+  header: {
+    padding: 20,
+    paddingTop: 60,
+    backgroundColor: colors.background,
     alignItems: 'center',
-    marginTop: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    position: 'relative',
   },
-  introIcon: {
-    fontSize: 48,
-    marginBottom: 12,
+  backButton: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    zIndex: 10,
+    padding: 8,
   },
-  introTitle: {
-    fontSize: 24,
+  headerTitle: {
+    ...typography.heading,
+    fontSize: 28,
+    marginBottom: 8,
+  },
+  headerSubtitle: {
+    ...typography.caption,
+  },
+  // Tools Section
+  toolsSection: {
+    padding: 20,
+    backgroundColor: colors.background,
+    marginBottom: 8,
+  },
+  toolsSectionTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  introText: {
+  toolsSectionSubtitle: {
     fontSize: 14,
-    color: colors.textLight,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  progressCard: {
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    borderRadius: 12,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  progressLabel: {
-    fontSize: 14,
-    color: colors.textLight,
-    marginBottom: 8,
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: 8,
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  progressText: {
-    fontSize: 12,
-    color: colors.textLight,
-  },
-  foundationContainer: {
+    color: colors.textSecondary,
     marginBottom: 16,
   },
-  foundationHeader: {
+  toolsGrid: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  toolCard: {
+    backgroundColor: colors.backgroundGray,
+    width: (width - 52) / 2,
     padding: 16,
     borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    position: 'relative',
   },
-  foundationHeaderCompleted: {
-    backgroundColor: '#F5F3FF',
-    borderWidth: 1,
-    borderColor: '#8B5CF6',
-  },
-  foundationHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  foundationIconContainer: {
+  toolIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 24,
+    alignItems: 'center',
     justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  foundationIconCompleted: {
-    backgroundColor: '#8B5CF6',
-  },
-  foundationIcon: {
-    fontSize: 24,
-  },
-  foundationInfo: {
-    flex: 1,
-  },
-  foundationTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 2,
-  },
-  foundationSubtitle: {
-    fontSize: 13,
-    color: colors.textLight,
-    marginBottom: 4,
-  },
-  foundationProgress: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  expandIcon: {
-    fontSize: 16,
-    color: colors.textLight,
-    marginLeft: 8,
-  },
-  lessonsContainer: {
-    marginTop: 8,
-    paddingLeft: 12,
-  },
-  lessonCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  lessonLocked: {
-    opacity: 0.5,
-  },
-  lessonCurrent: {
-    borderColor: '#8B5CF6',
-    borderWidth: 2,
-    backgroundColor: '#F5F3FF',
-  },
-  lessonCompleted: {
-    backgroundColor: '#F9FAFB',
-  },
-  lessonLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  lessonNumber: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F3F4F6',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  lessonNumberCompleted: {
-    backgroundColor: '#8B5CF6',
-  },
-  lessonNumberCurrent: {
-    backgroundColor: '#8B5CF6',
-  },
-  lessonNumberText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  lessonCheckmark: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-  },
-  lessonInfo: {
-    flex: 1,
-  },
-  lessonTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 2,
-  },
-  lessonTitleLocked: {
-    color: colors.textLight,
-  },
-  lessonDetails: {
-    fontSize: 11,
-    color: '#8B5CF6',
-    fontWeight: '600',
-  },
-  lockIcon: {
-    fontSize: 16,
-    marginLeft: 8,
-  },
-  toolsSection: {
-    marginTop: 24,
-    marginBottom: 24,
-  },
-  toolsTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
     marginBottom: 12,
-  },
-  toolCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
   toolIcon: {
-    fontSize: 32,
-    marginRight: 12,
+    fontSize: 24,
   },
-  toolInfo: {
-    flex: 1,
-  },
-  toolName: {
-    fontSize: 15,
-    fontWeight: '600',
+  toolTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
     color: colors.text,
+    marginBottom: 4,
+  },
+  toolDescription: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginBottom: 8,
+  },
+  toolArrow: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+  },
+  // Divider
+  pathDivider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginVertical: 20,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+  },
+  dividerText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: colors.textSecondary,
+    marginHorizontal: 12,
+  },
+  path: {
+    padding: 20,
+  },
+  // Lessons
+  lessonsContainer: {
+    marginLeft: 28,
+    marginBottom: 16,
+  },
+  bottomSpacer: {
+    height: 40,
   },
 });

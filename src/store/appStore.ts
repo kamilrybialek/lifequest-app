@@ -20,6 +20,7 @@ import {
   sendLevelUpNotification,
   sendTaskCompletedNotification,
 } from '../utils/notifications';
+import { getSmartTasksForToday, loadTasks, saveTasks } from '../utils/intelligentTaskGenerator.web';
 
 interface AppState {
   // Progress
@@ -37,7 +38,8 @@ interface AppState {
   // Actions
   loadAppData: () => Promise<void>;
   loadDailyTasksFromDB: (userId: number) => Promise<void>;
-  generateDailyTasks: () => void;
+  generateDailyTasks: () => void; // Legacy - keeping for compatibility
+  generateSmartTasks: (userId: number) => Promise<void>; // NEW: Intelligent task generation
   completeTask: (taskId: string) => Promise<void>;
   updateStreak: (pillar: Pillar) => void;
   addPoints: (points: number) => Promise<void>;
@@ -170,12 +172,14 @@ export const useAppStore = create<AppState>((set, get) => ({
         const progressData = await AsyncStorage.getItem('progress');
         if (progressData) set({ progress: JSON.parse(progressData) });
 
-        const tasksData = await AsyncStorage.getItem('dailyTasks');
-        const tasks = tasksData ? JSON.parse(tasksData) : [];
+        // Try to load or generate smart tasks
+        const tasks = await loadTasks();
         if (tasks.length === 0) {
-          get().generateDailyTasks(); // Fallback to old random task generation
+          console.log('🧠 No tasks found, generating smart tasks...');
+          await get().generateSmartTasks(1); // Use userId 1 as default for web
         } else {
-          set({ dailyTasks: tasks });
+          console.log(`📥 Loaded ${tasks.length} existing tasks`);
+          set({ dailyTasks: tasks as any });
         }
       }
       console.log('✅ loadAppData: Complete!');
@@ -288,6 +292,55 @@ export const useAppStore = create<AppState>((set, get) => ({
     AsyncStorage.setItem('dailyTasks', JSON.stringify(shuffledTasks));
   },
 
+  // NEW: Intelligent task generation
+  generateSmartTasks: async (userId: number) => {
+    try {
+      console.log('🧠 Generating smart tasks for user:', userId);
+
+      // Try to load existing tasks from today first
+      const existingTasks = await loadTasks();
+
+      // Check if tasks are from today
+      const today = new Date().toISOString().split('T')[0];
+      const tasksDate = await AsyncStorage.getItem('tasks_generated_date');
+
+      if (tasksDate === today && existingTasks.length > 0) {
+        console.log('✅ Using existing tasks from today');
+        set({ dailyTasks: existingTasks as any });
+        return;
+      }
+
+      // Generate new smart tasks
+      const smartTasks = await getSmartTasksForToday(userId);
+
+      // Save generation date
+      await AsyncStorage.setItem('tasks_generated_date', today);
+
+      // Convert SmartTask to Task format for store
+      const tasks: Task[] = smartTasks.map(st => ({
+        id: st.id,
+        pillar: st.pillar,
+        title: st.title,
+        description: st.description,
+        duration: st.duration,
+        completed: st.completed,
+        points: st.points,
+        action_type: st.action_type,
+        action_screen: st.action_screen,
+        action_params: st.action_params,
+        difficulty: st.difficulty,
+        streak_eligible: st.streak_eligible,
+      }));
+
+      set({ dailyTasks: tasks });
+      console.log(`✅ Generated ${tasks.length} smart tasks`);
+    } catch (error) {
+      console.error('❌ Error generating smart tasks:', error);
+      // Fallback to old generator
+      get().generateDailyTasks();
+    }
+  },
+
   completeTask: async (taskId: string) => {
     const tasks = get().dailyTasks;
     const taskIndex = tasks.findIndex(t => t.id === taskId);
@@ -305,7 +358,10 @@ export const useAppStore = create<AppState>((set, get) => ({
     updatedTasks[taskIndex] = updatedTask;
 
     set({ dailyTasks: updatedTasks });
+
+    // Save to both old and new storage for compatibility
     await AsyncStorage.setItem('dailyTasks', JSON.stringify(updatedTasks));
+    await saveTasks(updatedTasks as any);
 
     // Add points and update streak
     get().addPoints(task.points);

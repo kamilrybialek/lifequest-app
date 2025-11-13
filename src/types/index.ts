@@ -23,6 +23,12 @@ export interface Task {
   completed: boolean;
   completedAt?: string;
   points: number;
+  // Smart task integration
+  action_type?: 'lesson' | 'tool' | 'habit' | 'challenge';
+  action_screen?: string; // Screen to navigate to when tapping task
+  action_params?: Record<string, any>; // Parameters for navigation
+  difficulty?: 'easy' | 'medium' | 'hard';
+  streak_eligible?: boolean;
 }
 
 export interface Streak {
