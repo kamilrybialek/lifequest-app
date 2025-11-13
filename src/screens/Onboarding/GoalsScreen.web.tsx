@@ -52,7 +52,7 @@ export const GoalsScreen = ({ navigation }: any) => {
   const handleNext = () => {
     updateData({ selectedGoals });
     setCurrentStep('assessment');
-    navigation.navigate('OnboardingResults');
+    navigation.navigate('Results');
   };
 
   const handleBack = () => {

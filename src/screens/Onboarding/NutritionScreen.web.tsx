@@ -20,7 +20,7 @@ export const NutritionScreen = ({ navigation }: any) => {
       dietQuality,
     });
     setCurrentStep('goals');
-    navigation.navigate('OnboardingGoals');
+    navigation.navigate('Goals');
   };
 
   const handleBack = () => {
@@ -132,7 +132,7 @@ export const NutritionScreen = ({ navigation }: any) => {
           </View>
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 200 }} />
       </ScrollView>
 
       <View style={styles.footer}>

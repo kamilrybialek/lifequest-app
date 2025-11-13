@@ -19,7 +19,7 @@ export const FinanceScreen = ({ navigation }: any) => {
       budgeting,
     });
     setCurrentStep('nutrition');
-    navigation.navigate('OnboardingNutrition');
+    navigation.navigate('Nutrition');
   };
 
   const handleBack = () => {
@@ -134,7 +134,7 @@ export const FinanceScreen = ({ navigation }: any) => {
           </View>
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 200 }} />
       </ScrollView>
 
       <View style={styles.footer}>

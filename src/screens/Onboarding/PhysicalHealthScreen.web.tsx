@@ -20,7 +20,7 @@ export const PhysicalHealthScreen = ({ navigation }: any) => {
       healthIssues,
     });
     setCurrentStep('mental');
-    navigation.navigate('OnboardingMental');
+    navigation.navigate('MentalHealth');
   };
 
   const handleBack = () => {
@@ -32,10 +32,13 @@ export const PhysicalHealthScreen = ({ navigation }: any) => {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
+        <TouchableOpacity onPress={handleBack} style={styles.backButtonHeader}>
+          <Text style={styles.backIcon}>←</Text>
+        </TouchableOpacity>
         <View style={styles.progressBar}>
-          <View style={[styles.progressFill, { width: '28%' }]} />
+          <View style={[styles.progressFill, { width: '62.5%' }]} />
         </View>
-        <Text style={styles.stepText}>Step 2 of 7</Text>
+        <Text style={styles.stepText}>Step 5 of 8</Text>
       </View>
 
       <ScrollView style={styles.content}>
@@ -129,22 +132,17 @@ export const PhysicalHealthScreen = ({ navigation }: any) => {
           </View>
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 200 }} />
       </ScrollView>
 
       <View style={styles.footer}>
-        <View style={styles.buttonRow}>
-          <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-            <Text style={styles.backButtonText}>Back</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.button, !isValid && styles.buttonDisabled]}
-            onPress={handleNext}
-            disabled={!isValid}
-          >
-            <Text style={styles.buttonText}>Next</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={[styles.button, !isValid && styles.buttonDisabled]}
+          onPress={handleNext}
+          disabled={!isValid}
+        >
+          <Text style={styles.buttonText}>Continue</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -159,6 +157,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingTop: 20,
     paddingBottom: 16,
+  },
+  backButtonHeader: {
+    marginBottom: 16,
+  },
+  backIcon: {
+    fontSize: 28,
+    color: colors.text,
   },
   progressBar: {
     height: 4,
@@ -239,26 +244,11 @@ const styles = StyleSheet.create({
   footer: {
     padding: 24,
     paddingBottom: 40,
-  },
-  buttonRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  backButton: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: colors.primary,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  backButtonText: {
-    color: colors.primary,
-    fontSize: 16,
-    fontWeight: '600',
+    backgroundColor: colors.background,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
   },
   button: {
-    flex: 2,
     backgroundColor: colors.primary,
     paddingVertical: 16,
     borderRadius: 12,

@@ -20,7 +20,7 @@ export const MentalHealthScreen = ({ navigation }: any) => {
       lifeQuality,
     });
     setCurrentStep('finance');
-    navigation.navigate('OnboardingFinance');
+    navigation.navigate('Finance');
   };
 
   const handleBack = () => {
@@ -129,7 +129,7 @@ export const MentalHealthScreen = ({ navigation }: any) => {
           </View>
         </View>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 200 }} />
       </ScrollView>
 
       <View style={styles.footer}>
