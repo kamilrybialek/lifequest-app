@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, RefreshControl, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { useAuthStore } from '../../store/authStore';
@@ -34,6 +35,42 @@ export const ProfileScreenNew = () => {
   const handleSettingPress = (setting: string) => {
     console.log('Setting pressed:', setting);
     // TODO: Implement settings navigation
+  };
+
+  const handleResetDatabase = () => {
+    Alert.alert(
+      '⚠️ Reset Database',
+      'This will delete ALL your data including onboarding, tasks, progress, and achievements. This action cannot be undone!\n\nAre you absolutely sure?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset Everything',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await AsyncStorage.clear();
+              Alert.alert(
+                'Success',
+                'Database has been reset. Please restart the app.',
+                [
+                  {
+                    text: 'Restart Now',
+                    onPress: () => {
+                      // Logout and refresh
+                      logout();
+                      window.location.reload();
+                    },
+                  },
+                ]
+              );
+            } catch (error) {
+              console.error('Error resetting database:', error);
+              Alert.alert('Error', 'Failed to reset database');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const unlockedAchievements = progress.achievements.filter(a => a.unlocked);
@@ -254,6 +291,19 @@ export const ProfileScreenNew = () => {
                 <Text style={styles.settingText}>About LifeQuest</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+            </TouchableOpacity>
+
+            <View style={styles.settingDivider} />
+
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={handleResetDatabase}
+            >
+              <View style={styles.settingLeft}>
+                <Ionicons name="trash-outline" size={24} color="#EF4444" />
+                <Text style={[styles.settingText, { color: '#EF4444' }]}>Reset Database (Dev)</Text>
+              </View>
+              <Ionicons name="warning-outline" size={20} color="#EF4444" />
             </TouchableOpacity>
           </View>
         </View>
