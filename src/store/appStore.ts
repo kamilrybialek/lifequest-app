@@ -21,6 +21,8 @@ import {
   sendTaskCompletedNotification,
 } from '../utils/notifications';
 import { getSmartTasksForToday, loadTasks, saveTasks } from '../utils/intelligentTaskGenerator.web';
+import { generateEnhancedTasks } from '../utils/enhancedTaskGenerator';
+import { SmartTask } from '../utils/intelligentTaskGenerator';
 
 interface AppState {
   // Progress
@@ -40,6 +42,7 @@ interface AppState {
   loadDailyTasksFromDB: (userId: number) => Promise<void>;
   generateDailyTasks: () => void; // Legacy - keeping for compatibility
   generateSmartTasks: (userId: number) => Promise<void>; // NEW: Intelligent task generation
+  checkAndGenerateEnhancedTasks: (userId: number) => Promise<boolean>; // ENHANCED: Data-driven task generation
   completeTask: (taskId: string) => Promise<void>;
   updateStreak: (pillar: Pillar) => void;
   addPoints: (points: number) => Promise<void>;
@@ -151,9 +154,9 @@ export const useAppStore = create<AppState>((set, get) => ({
           set({ progress: updatedProgress });
           console.log('✅ Loaded progress from SQLite:', updatedProgress);
 
-          // Generate daily tasks from database (new intelligent system)
-          console.log('🔍 loadAppData: Generating daily tasks...');
-          await checkAndGenerateTasks(userId);
+          // Generate daily tasks using ENHANCED data-driven generator
+          console.log('🔍 loadAppData: Generating enhanced tasks...');
+          await get().checkAndGenerateEnhancedTasks(userId);
           console.log('🔍 loadAppData: Loading daily tasks from DB...');
           await get().loadDailyTasksFromDB(userId);
           console.log('✅ loadAppData: Daily tasks loaded');
@@ -290,6 +293,54 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     set({ dailyTasks: shuffledTasks });
     AsyncStorage.setItem('dailyTasks', JSON.stringify(shuffledTasks));
+  },
+
+  // ENHANCED: Data-driven task generation using tool aggregator
+  checkAndGenerateEnhancedTasks: async (userId: number): Promise<boolean> => {
+    const db = await getDatabase();
+
+    // On web, db is null - skip task generation
+    if (!db) {
+      console.log('⚠️ Database not available on web, skipping enhanced task generation');
+      return false;
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+
+    try {
+      // Check if tasks already exist for today
+      const result = await db.getFirstAsync<{ count: number }>(
+        'SELECT COUNT(*) as count FROM daily_tasks WHERE user_id = ? AND task_date = ?',
+        [userId, today]
+      );
+
+      if (result && result.count > 0) {
+        console.log('✅ Enhanced tasks already exist for today');
+        return true;
+      }
+
+      // Generate new tasks using enhanced generator
+      console.log('🚀 Generating enhanced tasks based on tool data...');
+      const smartTasks = await generateEnhancedTasks(userId);
+      console.log(`✅ Generated ${smartTasks.length} enhanced tasks`);
+
+      // Save tasks to database
+      await db.runAsync('DELETE FROM daily_tasks WHERE user_id = ? AND task_date = ?', [userId, today]);
+
+      for (const task of smartTasks) {
+        await db.runAsync(
+          `INSERT INTO daily_tasks (user_id, task_date, pillar, title, description, completed, xp_reward)
+           VALUES (?, ?, ?, ?, ?, 0, ?)`,
+          [userId, today, task.pillar, task.title, task.description, task.xp_reward]
+        );
+      }
+
+      console.log('✅ Enhanced tasks saved to database');
+      return true;
+    } catch (error) {
+      console.error('❌ Error generating enhanced tasks:', error);
+      return false;
+    }
   },
 
   // NEW: Intelligent task generation

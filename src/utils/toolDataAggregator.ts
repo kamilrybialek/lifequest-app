@@ -10,7 +10,7 @@
 import { getFinanceProgress, getUserDebts, getEmergencyFundProgress } from '../database/finance';
 import { getMentalProgress } from '../database/mental';
 import { getPhysicalProgress } from '../database/physical';
-import { getNutritionProgress, getWaterIntake, getDailyCalories } from '../database/nutrition';
+import { getNutritionProgress, getWaterIntake, getDailyNutritionSummary } from '../database/nutrition';
 import { getDatabase } from '../database/init';
 
 // ============================================
@@ -322,8 +322,8 @@ export const collectNutritionToolData = async (userId: number): Promise<Nutritio
       [userId, today]
     );
 
-    // Daily calories
-    const calories = await getDailyCalories(userId, today);
+    // Daily calories summary
+    const nutritionSummary = await getDailyNutritionSummary(userId, today);
 
     return {
       water: {
@@ -333,8 +333,8 @@ export const collectNutritionToolData = async (userId: number): Promise<Nutritio
       },
       meals: {
         loggedToday: meals.length,
-        caloriesConsumed: calories?.consumed || 0,
-        caloriesGoal: calories?.goal || 2000,
+        caloriesConsumed: nutritionSummary?.total_calories || 0,
+        caloriesGoal: nutritionSummary?.calorie_goal || 2000,
       },
       macros: {
         protein: 0, // TODO: Calculate from meals

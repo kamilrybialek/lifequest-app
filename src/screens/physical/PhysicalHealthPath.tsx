@@ -23,7 +23,7 @@ const PHYSICAL_TOOLS = [
     title: 'Workout Tracker',
     icon: '💪',
     description: 'Track detailed workouts',
-    screen: 'WorkoutTracker',
+    screen: 'WorkoutTrackerScreen',
     color: colors.physical,
   },
   {
@@ -31,7 +31,7 @@ const PHYSICAL_TOOLS = [
     title: 'Exercise Logger',
     icon: '🏃',
     description: 'Quick exercise logging',
-    screen: 'ExerciseLogger',
+    screen: 'ExerciseLoggerScreen',
     color: '#FF6B6B',
   },
   {
@@ -39,7 +39,7 @@ const PHYSICAL_TOOLS = [
     title: 'Sleep Tracker',
     icon: '😴',
     description: 'Monitor sleep quality',
-    screen: 'SleepTracker',
+    screen: 'SleepTrackerScreen',
     color: '#CE82FF',
   },
   {
@@ -47,7 +47,7 @@ const PHYSICAL_TOOLS = [
     title: 'Body Measurements',
     icon: '⚖️',
     description: 'Track weight & BMI',
-    screen: 'BodyMeasurements',
+    screen: 'BodyMeasurementsScreen',
     color: '#4ECDC4',
   },
 ];
@@ -430,7 +430,6 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    paddingTop: 60,
     backgroundColor: colors.background,
     alignItems: 'center',
   },
