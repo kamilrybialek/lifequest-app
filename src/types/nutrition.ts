@@ -372,7 +372,7 @@ export const NUTRITION_TOOLS: NutritionTool[] = [
     title: 'Meal Logger',
     icon: '🍽️',
     description: 'Log meals with calories & macros',
-    screen: 'MealLogger',
+    screen: 'MealLoggerScreen',
     color: colors.nutrition,
   },
   {
@@ -380,7 +380,7 @@ export const NUTRITION_TOOLS: NutritionTool[] = [
     title: 'Calorie Calculator',
     icon: '🔥',
     description: 'Calculate BMR, TDEE & set goals',
-    screen: 'CalorieCounter',
+    screen: 'CalorieCalculatorScreen',
     color: '#FF9800',
   },
   {
@@ -388,7 +388,7 @@ export const NUTRITION_TOOLS: NutritionTool[] = [
     title: 'Water Tracker',
     icon: '💧',
     description: 'Track daily hydration (2L goal)',
-    screen: 'WaterTracker',
+    screen: 'WaterTrackerScreen',
     color: '#1CB0F6',
   },
 ];
