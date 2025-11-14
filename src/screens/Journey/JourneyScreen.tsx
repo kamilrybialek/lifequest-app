@@ -70,38 +70,50 @@ export const JourneyScreen: React.FC<JourneyScreenProps> = ({ navigation, route 
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Compact Tab Bar */}
-      <View style={styles.tabBar}>
-        {tabs.map((tab) => (
-          <TouchableOpacity
-            key={tab.pillar}
-            style={[
-              styles.tab,
-              selectedPath === tab.pillar && [
-                styles.tabActive,
-                { borderBottomColor: getPillarColor(tab.pillar) }
-              ]
-            ]}
-            onPress={() => setSelectedPath(tab.pillar)}
-          >
-            <Ionicons
-              name={tab.icon as any}
-              size={20}
-              color={selectedPath === tab.pillar ? getPillarColor(tab.pillar) : colors.textLight}
-            />
-            <Text
+      {/* Header with Back Button and Tabs */}
+      <View style={styles.header}>
+        {/* Back Button */}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="arrow-back" size={24} color={colors.text} />
+        </TouchableOpacity>
+
+        {/* Tab Bar */}
+        <View style={styles.tabBar}>
+          {tabs.map((tab) => (
+            <TouchableOpacity
+              key={tab.pillar}
               style={[
-                styles.tabLabel,
+                styles.tab,
                 selectedPath === tab.pillar && [
-                  styles.tabLabelActive,
-                  { color: getPillarColor(tab.pillar) }
+                  styles.tabActive,
+                  { borderBottomColor: getPillarColor(tab.pillar) }
                 ]
               ]}
+              onPress={() => setSelectedPath(tab.pillar)}
             >
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <Ionicons
+                name={tab.icon as any}
+                size={20}
+                color={selectedPath === tab.pillar ? getPillarColor(tab.pillar) : colors.textLight}
+              />
+              <Text
+                style={[
+                  styles.tabLabel,
+                  selectedPath === tab.pillar && [
+                    styles.tabLabelActive,
+                    { color: getPillarColor(tab.pillar) }
+                  ]
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       {/* Path Content */}
@@ -117,11 +129,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.backgroundGray,
   },
-  tabBar: {
-    flexDirection: 'row',
+  header: {
     backgroundColor: colors.background,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
+  },
+  backButton: {
+    padding: spacing.md,
+    paddingLeft: spacing.lg,
+  },
+  tabBar: {
+    flexDirection: 'row',
   },
   tab: {
     flex: 1,
