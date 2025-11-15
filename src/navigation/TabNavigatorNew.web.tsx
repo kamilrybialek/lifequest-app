@@ -7,6 +7,7 @@ import { colors } from '../theme/colors';
 // Import .web.tsx versions EXPLICITLY
 import { DashboardScreen } from '../screens/Dashboard/DashboardScreen.web';
 import { ToolsScreen } from '../screens/tools/ToolsScreen';
+import { TasksScreen } from '../screens/tasks/TasksScreen.web';
 import { JourneyScreen } from '../screens/Journey/JourneyScreen.web';
 import { ProfileScreenNew } from '../screens/Profile/ProfileScreenNew.web';
 
@@ -23,6 +24,8 @@ export const TabNavigatorNew = () => {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Tools') {
             iconName = focused ? 'construct' : 'construct-outline';
+          } else if (route.name === 'Tasks') {
+            iconName = focused ? 'checkbox' : 'checkbox-outline';
           } else if (route.name === 'Journey') {
             iconName = focused ? 'compass' : 'compass-outline';
           } else if (route.name === 'ProfileNew') {
@@ -62,6 +65,11 @@ export const TabNavigatorNew = () => {
         name="Tools"
         component={ToolsScreen}
         options={{ tabBarLabel: 'Tools' }}
+      />
+      <Tab.Screen
+        name="Tasks"
+        component={TasksScreen}
+        options={{ tabBarLabel: 'Tasks' }}
       />
       <Tab.Screen
         name="Journey"
