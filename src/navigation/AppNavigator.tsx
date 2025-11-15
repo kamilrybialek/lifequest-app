@@ -30,7 +30,7 @@ import { MorningRoutine } from '../screens/mental/tools/MorningRoutine';
 import { MeditationTimer } from '../screens/mental/tools/MeditationTimer';
 
 // Physical tool screens
-import { WorkoutTrackerScreen } from '../screens/physical/tools/WorkoutTrackerScreen';
+import { WorkoutTrackerScreenEnhanced } from '../screens/physical/tools/WorkoutTrackerScreenEnhanced';
 import { ExerciseLoggerScreen } from '../screens/physical/tools/ExerciseLoggerScreen';
 import { SleepTrackerScreen } from '../screens/physical/tools/SleepTrackerScreen';
 import { BodyMeasurementsScreen } from '../screens/physical/tools/BodyMeasurementsScreen';
@@ -40,11 +40,11 @@ import { MealLoggerScreen } from '../screens/nutrition/tools/MealLoggerScreen';
 import { WaterTrackerScreen } from '../screens/nutrition/tools/WaterTrackerScreen';
 import { CalorieCalculatorScreen } from '../screens/nutrition/tools/CalorieCalculatorScreen';
 
-// Finance tool screens
+// Finance tool screens - ENHANCED VERSIONS
 import { EmergencyFundScreen } from '../screens/finance/EmergencyFundScreen';
-import { DebtTrackerScreen } from '../screens/finance/DebtTrackerScreen';
+import { DebtTrackerScreenEnhanced } from '../screens/finance/DebtTrackerScreenEnhanced';
 import { ExpenseLoggerScreen } from '../screens/finance/ExpenseLoggerScreen';
-import { BudgetManagerScreen } from '../screens/finance/BudgetManagerScreen';
+import { BudgetManagerScreenEnhanced } from '../screens/finance/BudgetManagerScreenEnhanced';
 import { SubscriptionsScreen } from '../screens/finance/SubscriptionsScreen';
 import { SavingsGoalsScreen } from '../screens/finance/SavingsGoalsScreen';
 import { NetWorthCalculatorScreen } from '../screens/finance/NetWorthCalculatorScreen';
@@ -91,8 +91,8 @@ export const AppNavigator = () => {
             <Stack.Screen name="MorningRoutine" component={MorningRoutine} />
             <Stack.Screen name="MeditationTimer" component={MeditationTimer} />
 
-            {/* Physical tool screens */}
-            <Stack.Screen name="WorkoutTrackerScreen" component={WorkoutTrackerScreen} />
+            {/* Physical tool screens - ENHANCED */}
+            <Stack.Screen name="WorkoutTrackerScreen" component={WorkoutTrackerScreenEnhanced} />
             <Stack.Screen name="ExerciseLoggerScreen" component={ExerciseLoggerScreen} />
             <Stack.Screen name="SleepTrackerScreen" component={SleepTrackerScreen} />
             <Stack.Screen name="BodyMeasurementsScreen" component={BodyMeasurementsScreen} />
@@ -102,11 +102,11 @@ export const AppNavigator = () => {
             <Stack.Screen name="WaterTrackerScreen" component={WaterTrackerScreen} />
             <Stack.Screen name="CalorieCalculatorScreen" component={CalorieCalculatorScreen} />
 
-            {/* Finance tool screens */}
+            {/* Finance tool screens - ENHANCED */}
             <Stack.Screen name="EmergencyFundScreen" component={EmergencyFundScreen} />
-            <Stack.Screen name="DebtTrackerScreen" component={DebtTrackerScreen} />
+            <Stack.Screen name="DebtTrackerScreen" component={DebtTrackerScreenEnhanced} />
             <Stack.Screen name="ExpenseLoggerScreen" component={ExpenseLoggerScreen} />
-            <Stack.Screen name="BudgetManagerScreen" component={BudgetManagerScreen} />
+            <Stack.Screen name="BudgetManagerScreen" component={BudgetManagerScreenEnhanced} />
             <Stack.Screen name="SubscriptionsScreen" component={SubscriptionsScreen} />
             <Stack.Screen name="SavingsGoalsScreen" component={SavingsGoalsScreen} />
             <Stack.Screen name="NetWorthCalculatorScreen" component={NetWorthCalculatorScreen} />

@@ -21,6 +21,8 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { getUserAchievements } from '../../database/achievements';
 import { shareUserData } from '../../utils/exportUserData';
 
+const APP_VERSION = '2.0.0';
+
 interface ProfileScreenNewProps {
   navigation: any;
 }
@@ -331,7 +333,7 @@ export const ProfileScreenNew: React.FC<ProfileScreenNewProps> = ({ navigation }
               <Text style={styles.settingText}>About</Text>
             </View>
             <View style={styles.settingRight}>
-              <Text style={styles.settingValue}>v1.0.0</Text>
+              <Text style={styles.settingValue}>v{APP_VERSION}</Text>
               <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
             </View>
           </TouchableOpacity>
