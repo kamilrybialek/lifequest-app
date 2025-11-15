@@ -252,6 +252,19 @@ const updateTotalDebt = async (userId: number) => {
   }
 };
 
+export const deleteDebt = async (debtId: number, userId: number) => {
+  const db = await getDatabase();
+
+  // Delete the debt
+  await db.runAsync('DELETE FROM user_debts WHERE id = ?', [debtId]);
+
+  // Delete associated payments
+  await db.runAsync('DELETE FROM debt_payments WHERE debt_id = ?', [debtId]);
+
+  // Update total debt
+  await updateTotalDebt(userId);
+};
+
 // =====================
 // EXPENSES
 // =====================
