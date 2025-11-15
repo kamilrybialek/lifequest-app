@@ -2,8 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { TextInput, Button, Text, Title, HelperText } from 'react-native-paper';
 import { useAuthStore } from '../../store/authStore';
-
-const APP_VERSION = '2.0.0';
+import { APP_VERSION } from '../../config/version';
 
 export const LoginScreen = ({ navigation }: any) => {
   const [email, setEmail] = useState('');

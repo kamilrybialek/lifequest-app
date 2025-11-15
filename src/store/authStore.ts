@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../types';
 import { getUserByEmail, createUser as createUserInDB, updateUserOnboarding } from '../database/user';
+import { createDemoAccount, isDemoEmail, getDemoUserId } from '../utils/createDemoAccount';
 
 interface AuthState {
   user: User | null;
@@ -20,7 +21,40 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: true,
 
   login: async (email: string, password: string) => {
-    // Get user from database
+    // Handle demo account
+    if (isDemoEmail(email)) {
+      let userId = await getDemoUserId();
+
+      // Create demo account if it doesn't exist
+      if (!userId) {
+        console.log('Creating demo account with sample data...');
+        userId = await createDemoAccount();
+      }
+
+      // Load demo user from database
+      const dbUser: any = await getUserByEmail(email);
+
+      if (!dbUser) {
+        throw new Error('Demo account creation failed');
+      }
+
+      const user: User = {
+        id: dbUser.id,
+        email: dbUser.email,
+        age: dbUser.age,
+        weight: dbUser.weight,
+        height: dbUser.height,
+        gender: dbUser.gender,
+        onboarded: dbUser.onboarded === 1,
+        createdAt: dbUser.created_at,
+      };
+
+      await AsyncStorage.setItem('user', JSON.stringify(user));
+      set({ user, isAuthenticated: true });
+      return;
+    }
+
+    // Regular user login
     const dbUser: any = await getUserByEmail(email);
 
     if (!dbUser) {

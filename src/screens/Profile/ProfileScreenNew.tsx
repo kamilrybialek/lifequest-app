@@ -20,8 +20,7 @@ import { useAppStore } from '../../store/appStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { getUserAchievements } from '../../database/achievements';
 import { shareUserData } from '../../utils/exportUserData';
-
-const APP_VERSION = '2.0.0';
+import { APP_VERSION } from '../../config/version';
 
 interface ProfileScreenNewProps {
   navigation: any;
