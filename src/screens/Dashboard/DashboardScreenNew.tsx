@@ -69,6 +69,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
   ];
 
   useEffect(() => {
+    console.log('DashboardScreenNew mounted');
     loadFeed();
   }, []);
 
