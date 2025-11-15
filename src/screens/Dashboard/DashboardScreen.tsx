@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, SafeAreaView } from 'react-native';
+import { View, StyleSheet, ScrollView, RefreshControl, SafeAreaView, TouchableOpacity } from 'react-native';
 import { Text } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { TodaysFocus } from './components/TodaysFocus';
@@ -11,6 +11,8 @@ import { spacing } from '../../theme/spacing';
 import { useAppStore } from '../../store/appStore';
 import { useAuthStore } from '../../store/authStore';
 import { Pillar, Task } from '../../types';
+import { calculateTransformationMetrics, TransformationMetrics } from '../../utils/transformationCalculator';
+import { needsWeeklyCheckIn } from '../../database/transformation';
 
 interface DashboardScreenProps {
   navigation: any;
@@ -20,27 +22,56 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
   const { user } = useAuthStore();
   const { dailyTasks, progress, completeTask, loadAppData } = useAppStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [transformationMetrics, setTransformationMetrics] = useState<TransformationMetrics | null>(null);
+  const [showCheckInPrompt, setShowCheckInPrompt] = useState(false);
 
   useEffect(() => {
     loadAppData();
+    loadTransformationMetrics();
+    checkForWeeklyCheckIn();
   }, []);
+
+  const loadTransformationMetrics = async () => {
+    if (!user) return;
+    try {
+      const metrics = await calculateTransformationMetrics(user.id);
+      setTransformationMetrics(metrics);
+    } catch (error) {
+      console.error('Error loading transformation metrics:', error);
+    }
+  };
+
+  const checkForWeeklyCheckIn = async () => {
+    if (!user) return;
+    const needs = await needsWeeklyCheckIn(user.id);
+    setShowCheckInPrompt(needs);
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
     await loadAppData();
+    await loadTransformationMetrics();
+    await checkForWeeklyCheckIn();
     setRefreshing(false);
   };
 
   // Get today's focus task (first incomplete task)
   const todaysFocusTask = dailyTasks.find((task: Task) => !task.completed) || null;
 
-  // Calculate pillar progress
-  const pillarProgress = [
-    { pillar: 'finance' as Pillar, progress: progress.finance?.currentBabyStep ? (progress.finance.currentBabyStep / 7) * 100 : 0 },
-    { pillar: 'mental' as Pillar, progress: 45 }, // Mock data - replace with real progress
-    { pillar: 'physical' as Pillar, progress: 60 },
-    { pillar: 'nutrition' as Pillar, progress: 30 },
-  ];
+  // Calculate pillar progress from REAL TRANSFORMATION DATA
+  const pillarProgress = transformationMetrics
+    ? [
+        { pillar: 'finance' as Pillar, progress: transformationMetrics.finance.score },
+        { pillar: 'mental' as Pillar, progress: transformationMetrics.mental.score },
+        { pillar: 'physical' as Pillar, progress: transformationMetrics.physical.score },
+        { pillar: 'nutrition' as Pillar, progress: transformationMetrics.nutrition.score },
+      ]
+    : [
+        { pillar: 'finance' as Pillar, progress: 0 },
+        { pillar: 'mental' as Pillar, progress: 0 },
+        { pillar: 'physical' as Pillar, progress: 0 },
+        { pillar: 'nutrition' as Pillar, progress: 0 },
+      ];
 
   // Get streaks
   const streaks = [
@@ -96,6 +127,54 @@ export const DashboardScreen: React.FC<DashboardScreenProps> = ({ navigation }) 
             <Text style={styles.levelText}>Lvl {user?.level || 1}</Text>
           </View>
         </View>
+
+        {/* Weekly Check-in Prompt */}
+        {showCheckInPrompt && (
+          <TouchableOpacity
+            style={styles.checkInPrompt}
+            onPress={() => navigation.navigate('TransformationDashboard')}
+          >
+            <Ionicons name="clipboard" size={24} color="#fff" />
+            <View style={styles.checkInText}>
+              <Text style={styles.checkInTitle}>Weekly Check-in Due</Text>
+              <Text style={styles.checkInSubtitle}>Track your transformation (2 min)</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={24} color="#fff" />
+          </TouchableOpacity>
+        )}
+
+        {/* Transformation Dashboard Card */}
+        {transformationMetrics && (
+          <TouchableOpacity
+            style={styles.transformationCard}
+            onPress={() => navigation.navigate('TransformationDashboard')}
+          >
+            <View style={styles.transformationHeader}>
+              <Ionicons name="analytics" size={24} color={colors.primary} />
+              <Text style={styles.transformationTitle}>Your Transformation</Text>
+            </View>
+            <View style={styles.transformationScoreContainer}>
+              <Text style={styles.transformationScore}>
+                {transformationMetrics.overall.transformationScore}
+              </Text>
+              <View style={styles.transformationDetails}>
+                <Ionicons
+                  name={transformationMetrics.overall.trend === 'improving' ? 'trending-up' : 'remove'}
+                  size={20}
+                  color={transformationMetrics.overall.trend === 'improving' ? colors.success : colors.textSecondary}
+                />
+                <Text style={styles.transformationTrend}>{transformationMetrics.overall.trend}</Text>
+              </View>
+            </View>
+            <Text style={styles.transformationSubtitle}>
+              Real outcomes, not just tasks • {transformationMetrics.overall.daysTracking} days tracking
+            </Text>
+            <View style={styles.transformationCTA}>
+              <Text style={styles.transformationCTAText}>View Full Report</Text>
+              <Ionicons name="arrow-forward" size={16} color={colors.primary} />
+            </View>
+          </TouchableOpacity>
+        )}
 
         {/* Compact Stats */}
         <View style={styles.compactStats}>
@@ -197,6 +276,87 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 11,
     color: colors.textSecondary,
+  },
+  checkInPrompt: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    padding: spacing.lg,
+    borderRadius: 12,
+    marginBottom: spacing.md,
+    gap: spacing.md,
+  },
+  checkInText: {
+    flex: 1,
+  },
+  checkInTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  checkInSubtitle: {
+    color: '#fff',
+    fontSize: 14,
+    opacity: 0.9,
+    marginTop: spacing.xs / 2,
+  },
+  transformationCard: {
+    backgroundColor: colors.background,
+    padding: spacing.lg,
+    borderRadius: 12,
+    marginBottom: spacing.md,
+  },
+  transformationHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  transformationTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+  },
+  transformationScoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  transformationScore: {
+    fontSize: 48,
+    fontWeight: 'bold',
+    color: colors.primary,
+  },
+  transformationDetails: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  transformationTrend: {
+    fontSize: 16,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+    color: colors.text,
+  },
+  transformationSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: spacing.md,
+  },
+  transformationCTA: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  transformationCTAText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.primary,
   },
   bottomSpacer: {
     height: spacing.xl,

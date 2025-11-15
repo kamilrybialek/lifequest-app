@@ -49,6 +49,9 @@ import { SubscriptionsScreen } from '../screens/finance/SubscriptionsScreen';
 import { SavingsGoalsScreen } from '../screens/finance/SavingsGoalsScreen';
 import { NetWorthCalculatorScreen } from '../screens/finance/NetWorthCalculatorScreen';
 
+// Transformation Dashboard
+import { TransformationDashboard } from '../screens/TransformationDashboard';
+
 import { useAuthStore } from '../store/authStore';
 
 const Stack = createNativeStackNavigator();
@@ -110,6 +113,9 @@ export const AppNavigator = () => {
             <Stack.Screen name="SubscriptionsScreen" component={SubscriptionsScreen} />
             <Stack.Screen name="SavingsGoalsScreen" component={SavingsGoalsScreen} />
             <Stack.Screen name="NetWorthCalculatorScreen" component={NetWorthCalculatorScreen} />
+
+            {/* Transformation Dashboard */}
+            <Stack.Screen name="TransformationDashboard" component={TransformationDashboard} />
           </>
         )}
       </Stack.Navigator>

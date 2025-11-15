@@ -23,6 +23,7 @@ import {
 import { getSmartTasksForToday, loadTasks, saveTasks } from '../utils/intelligentTaskGenerator.web';
 import { generateEnhancedTasks } from '../utils/enhancedTaskGenerator';
 import { SmartTask } from '../utils/intelligentTaskGenerator';
+import { checkAndGenerateSnapshot, generateBaselineSnapshot } from '../utils/snapshotGenerator';
 
 interface AppState {
   // Progress
@@ -153,6 +154,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
           set({ progress: updatedProgress });
           console.log('✅ Loaded progress from SQLite:', updatedProgress);
+
+          // Generate transformation snapshot (for measuring real outcomes)
+          console.log('🔍 loadAppData: Checking transformation snapshot...');
+          await checkAndGenerateSnapshot(userId);
 
           // Generate daily tasks using ENHANCED data-driven generator
           console.log('🔍 loadAppData: Generating enhanced tasks...');

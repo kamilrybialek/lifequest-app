@@ -1,4 +1,5 @@
 import * as SQLite from 'expo-sqlite';
+import { initTransformationTables } from './transformation';
 
 const DB_NAME = 'lifequest.db';
 
@@ -1146,6 +1147,9 @@ export const initDatabase = async () => {
       console.log('ℹ️ pillar column already exists or migration not needed');
     }
   }
+
+  // Initialize transformation tracking tables
+  await initTransformationTables();
 
   console.log('✅ Database initialized successfully');
   return db;
