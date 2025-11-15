@@ -318,7 +318,9 @@ export const getTaskLists = async (userId: number): Promise<(TaskList & { task_c
 };
 
 export const initializeDefaultLists = async (userId: number): Promise<void> => {
-  const existingLists = await getTaskLists(userId);
+  // Use getAllTaskLists to avoid infinite recursion
+  const allLists = await getAllTaskLists();
+  const existingLists = allLists.filter(l => l.user_id === userId);
 
   if (existingLists.length > 0) {
     return; // Already initialized
