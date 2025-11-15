@@ -16,7 +16,9 @@ import {
   RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors, typography, spacing } from '../theme';
+import { colors } from '../theme/colors';
+import { typography } from '../theme/theme';
+import { spacing } from '../theme/spacing';
 import { useAuthStore } from '../store/authStore';
 import {
   calculateTransformationMetrics,
