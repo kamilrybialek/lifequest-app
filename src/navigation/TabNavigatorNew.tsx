@@ -5,8 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 
 // New screens
-import { DashboardScreen } from '../screens/Dashboard/DashboardScreen';
-import { TasksScreen } from '../screens/tasks/TasksScreen';
+import { DashboardScreenNew } from '../screens/Dashboard/DashboardScreenNew';
+import { TransformationDashboard } from '../screens/TransformationDashboard';
 import { JourneyScreen } from '../screens/Journey/JourneyScreen';
 import { ProfileScreenNew } from '../screens/Profile/ProfileScreenNew';
 
@@ -21,8 +21,8 @@ export const TabNavigatorNew = () => {
 
           if (route.name === 'Dashboard') {
             iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Tasks') {
-            iconName = focused ? 'checkbox' : 'checkbox-outline';
+          } else if (route.name === 'Progress') {
+            iconName = focused ? 'analytics' : 'analytics-outline';
           } else if (route.name === 'Journey') {
             iconName = focused ? 'compass' : 'compass-outline';
           } else if (route.name === 'ProfileNew') {
@@ -72,13 +72,13 @@ export const TabNavigatorNew = () => {
     >
       <Tab.Screen
         name="Dashboard"
-        component={DashboardScreen}
+        component={DashboardScreenNew}
         options={{ tabBarLabel: 'Home' }}
       />
       <Tab.Screen
-        name="Tasks"
-        component={TasksScreen}
-        options={{ tabBarLabel: 'Tasks' }}
+        name="Progress"
+        component={TransformationDashboard}
+        options={{ tabBarLabel: 'Progress' }}
       />
       <Tab.Screen
         name="Journey"

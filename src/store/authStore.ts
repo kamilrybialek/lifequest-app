@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../types';
 import { getUserByEmail, createUser as createUserInDB, updateUserOnboarding } from '../database/user';
+import { generateBaselineSnapshot } from '../utils/snapshotGenerator';
 
 interface AuthState {
   user: User | null;
@@ -79,6 +80,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const updatedUser = { ...currentUser, ...data };
     await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
     set({ user: updatedUser });
+
+    // Generate baseline transformation snapshot on first onboarding
+    if (data.onboarded && !currentUser.onboarded) {
+      console.log('🎯 Creating baseline transformation snapshot for new user');
+      await generateBaselineSnapshot(currentUser.id);
+    }
   },
 
   loadUser: async () => {
