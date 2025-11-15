@@ -24,8 +24,11 @@ export const colors = {
 
   // Status colors
   success: '#58CC02',
+  successBackground: '#E8F5E0',
   warning: '#FFC800',
+  warningBackground: '#FFF4E0',
   error: '#FF4B4B',
+  errorBackground: '#FFE5E5',
   info: '#1CB0F6',
 
   // Streak fire

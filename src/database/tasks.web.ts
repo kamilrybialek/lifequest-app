@@ -284,3 +284,185 @@ export const setTaskTags = async (taskId: number, tagIds: number[]): Promise<voi
 
 // Stub functions for completeness
 export const completeTask = toggleTaskComplete;
+
+// Task Lists - AsyncStorage implementation
+const TASK_LISTS_KEY = 'lifequest.db:task_lists';
+
+const getAllTaskLists = async (): Promise<TaskList[]> => {
+  const data = await AsyncStorage.getItem(TASK_LISTS_KEY);
+  return data ? JSON.parse(data) : [];
+};
+
+const saveAllTaskLists = async (lists: TaskList[]): Promise<void> => {
+  await AsyncStorage.setItem(TASK_LISTS_KEY, JSON.stringify(lists));
+};
+
+export const getTaskLists = async (userId: number): Promise<(TaskList & { task_count?: number })[]> => {
+  const lists = await getAllTaskLists();
+  const userLists = lists.filter(l => l.user_id === userId);
+
+  // Get task count for each list
+  const tasks = await getAllTasks();
+  const listsWithCounts = userLists.map(list => ({
+    ...list,
+    task_count: tasks.filter(t => t.list_id === list.id && t.completed === 0).length,
+  }));
+
+  // Sort: smart lists first, then by sort_order
+  return listsWithCounts.sort((a, b) => {
+    if (a.is_smart_list !== b.is_smart_list) {
+      return b.is_smart_list - a.is_smart_list;
+    }
+    return a.sort_order - b.sort_order;
+  });
+};
+
+export const initializeDefaultLists = async (userId: number): Promise<void> => {
+  // Use getAllTaskLists to avoid infinite recursion
+  const allLists = await getAllTaskLists();
+  const existingLists = allLists.filter(l => l.user_id === userId);
+
+  if (existingLists.length > 0) {
+    return; // Already initialized
+  }
+
+  const now = new Date().toISOString();
+  const defaultLists: TaskList[] = [
+    {
+      id: 1,
+      user_id: userId,
+      name: 'Today',
+      icon: '📅',
+      color: '#58CC02',
+      is_smart_list: 1,
+      smart_filter: 'today',
+      sort_order: 1,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 2,
+      user_id: userId,
+      name: 'Important',
+      icon: '⭐',
+      color: '#FF4B4B',
+      is_smart_list: 1,
+      smart_filter: 'important',
+      sort_order: 2,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 3,
+      user_id: userId,
+      name: 'All',
+      icon: '📋',
+      color: '#1CB0F6',
+      is_smart_list: 1,
+      smart_filter: 'all',
+      sort_order: 3,
+      created_at: now,
+      updated_at: now,
+    },
+    {
+      id: 4,
+      user_id: userId,
+      name: 'Completed',
+      icon: '✅',
+      color: '#58CC02',
+      is_smart_list: 1,
+      smart_filter: 'completed',
+      sort_order: 4,
+      created_at: now,
+      updated_at: now,
+    },
+  ];
+
+  await saveAllTaskLists(defaultLists);
+};
+
+export const createList = async (
+  userId: number,
+  name: string,
+  icon?: string,
+  color?: string
+): Promise<number> => {
+  const lists = await getAllTaskLists();
+  const newId = lists.length > 0 ? Math.max(...lists.map(l => l.id)) + 1 : 1;
+  const now = new Date().toISOString();
+
+  const newList: TaskList = {
+    id: newId,
+    user_id: userId,
+    name,
+    icon,
+    color,
+    is_smart_list: 0,
+    sort_order: lists.length + 1,
+    created_at: now,
+    updated_at: now,
+  };
+
+  lists.push(newList);
+  await saveAllTaskLists(lists);
+
+  return newId;
+};
+
+export const updateList = async (
+  listId: number,
+  name: string,
+  icon?: string,
+  color?: string
+): Promise<void> => {
+  const lists = await getAllTaskLists();
+  const listIndex = lists.findIndex(l => l.id === listId);
+
+  if (listIndex === -1) {
+    throw new Error('List not found');
+  }
+
+  lists[listIndex] = {
+    ...lists[listIndex],
+    name,
+    icon,
+    color,
+    updated_at: new Date().toISOString(),
+  };
+
+  await saveAllTaskLists(lists);
+};
+
+export const deleteList = async (listId: number): Promise<void> => {
+  const lists = await getAllTaskLists();
+  const filteredLists = lists.filter(l => l.id !== listId);
+  await saveAllTaskLists(filteredLists);
+
+  // Also delete all tasks in this list
+  const tasks = await getAllTasks();
+  const filteredTasks = tasks.filter(t => t.list_id !== listId);
+  await saveAllTasks(filteredTasks);
+};
+
+export const getTaskStats = async (userId: number): Promise<{
+  total: number;
+  active: number;
+  completed: number;
+  today: number;
+  overdue: number;
+}> => {
+  const tasks = await getAllTasks();
+  const userTasks = tasks.filter(t => t.user_id === userId);
+  const today = new Date().toISOString().split('T')[0];
+
+  return {
+    total: userTasks.length,
+    active: userTasks.filter(t => t.completed === 0).length,
+    completed: userTasks.filter(t => t.completed === 1).length,
+    today: userTasks.filter(t => t.due_date === today && t.completed === 0).length,
+    overdue: userTasks.filter(t => {
+      if (!t.due_date || t.completed === 1) return false;
+      return t.due_date < today;
+    }).length,
+  };
+};

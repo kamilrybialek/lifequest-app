@@ -252,6 +252,19 @@ const updateTotalDebt = async (userId: number) => {
   }
 };
 
+export const deleteDebt = async (debtId: number, userId: number) => {
+  const db = await getDatabase();
+
+  // Delete the debt
+  await db.runAsync('DELETE FROM user_debts WHERE id = ?', [debtId]);
+
+  // Delete associated payments
+  await db.runAsync('DELETE FROM debt_payments WHERE debt_id = ?', [debtId]);
+
+  // Update total debt
+  await updateTotalDebt(userId);
+};
+
 // =====================
 // EXPENSES
 // =====================
@@ -472,4 +485,70 @@ export const getExpensesByCategory = async (userId: number, month?: string) => {
   query += ' GROUP BY category ORDER BY total DESC';
 
   return await db.getAllAsync(query, params);
+};
+
+// =====================
+// ENHANCED BUDGET FUNCTIONS
+// =====================
+
+/**
+ * Get all budgets for a user (for trend analysis)
+ */
+export const getAllBudgetsForUser = async (userId: number, limit: number = 12) => {
+  const db = await getDatabase();
+  const budgets: any[] = await db.getAllAsync(
+    'SELECT * FROM user_budgets WHERE user_id = ? ORDER BY month DESC LIMIT ?',
+    [userId, limit]
+  );
+
+  // Load categories for each budget
+  const budgetsWithCategories = await Promise.all(
+    budgets.map(async (budget) => {
+      const categories = await db.getAllAsync(
+        'SELECT * FROM budget_categories WHERE budget_id = ?',
+        [budget.id]
+      );
+      return {
+        ...budget,
+        categories,
+      };
+    })
+  );
+
+  return budgetsWithCategories;
+};
+
+/**
+ * Get expenses by month (alias for consistency with enhanced features)
+ */
+export const getExpensesByMonth = async (userId: number, month: string) => {
+  return await getExpensesForMonth(userId, month);
+};
+
+/**
+ * Detect recurring expenses based on patterns
+ * (Simple algorithm: expenses with same description/amount occurring monthly)
+ */
+export const getRecurringExpenses = async (userId: number) => {
+  const db = await getDatabase();
+
+  // Find expenses that appear multiple times with similar patterns
+  const query = `
+    SELECT
+      category,
+      ROUND(amount, 2) as amount,
+      description,
+      COUNT(*) as occurrences,
+      MIN(expense_date) as first_occurrence,
+      MAX(expense_date) as last_occurrence
+    FROM user_expenses
+    WHERE user_id = ?
+      AND description != ''
+    GROUP BY category, ROUND(amount, 2), description
+    HAVING occurrences >= 2
+    ORDER BY occurrences DESC, amount DESC
+    LIMIT 20
+  `;
+
+  return await db.getAllAsync(query, [userId]);
 };

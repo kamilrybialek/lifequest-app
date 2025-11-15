@@ -5,7 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 
 // New screens
-import { DashboardScreen } from '../screens/Dashboard/DashboardScreen';
+import { DashboardScreenNew } from '../screens/Dashboard/DashboardScreenNew';
+import { ToolsScreen } from '../screens/tools/ToolsScreen';
 import { TasksScreen } from '../screens/tasks/TasksScreen';
 import { JourneyScreen } from '../screens/Journey/JourneyScreen';
 import { ProfileScreenNew } from '../screens/Profile/ProfileScreenNew';
@@ -21,6 +22,8 @@ export const TabNavigatorNew = () => {
 
           if (route.name === 'Dashboard') {
             iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'Tools') {
+            iconName = focused ? 'construct' : 'construct-outline';
           } else if (route.name === 'Tasks') {
             iconName = focused ? 'checkbox' : 'checkbox-outline';
           } else if (route.name === 'Journey') {
@@ -72,8 +75,13 @@ export const TabNavigatorNew = () => {
     >
       <Tab.Screen
         name="Dashboard"
-        component={DashboardScreen}
+        component={DashboardScreenNew}
         options={{ tabBarLabel: 'Home' }}
+      />
+      <Tab.Screen
+        name="Tools"
+        component={ToolsScreen}
+        options={{ tabBarLabel: 'Tools' }}
       />
       <Tab.Screen
         name="Tasks"

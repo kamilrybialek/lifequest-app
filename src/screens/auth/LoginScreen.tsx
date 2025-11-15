@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { TextInput, Button, Text, Title, HelperText } from 'react-native-paper';
 import { useAuthStore } from '../../store/authStore';
+import { APP_VERSION } from '../../config/version';
 
 export const LoginScreen = ({ navigation }: any) => {
   const [email, setEmail] = useState('');
@@ -75,6 +76,8 @@ export const LoginScreen = ({ navigation }: any) => {
         >
           {isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Login'}
         </Button>
+
+        <Text style={styles.version}>v{APP_VERSION}</Text>
       </View>
     </KeyboardAvoidingView>
   );
@@ -111,5 +114,12 @@ const styles = StyleSheet.create({
   },
   switchButton: {
     marginTop: 8,
+  },
+  version: {
+    position: 'absolute',
+    bottom: 20,
+    alignSelf: 'center',
+    fontSize: 12,
+    color: '#999',
   },
 });
