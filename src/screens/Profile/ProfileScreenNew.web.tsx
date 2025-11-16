@@ -65,11 +65,11 @@ export const ProfileScreenNew = () => {
     }
   };
 
-  const unlockedAchievements = progress.achievements.filter(a => a.unlocked);
-  const totalAchievements = progress.achievements.length;
-  const bestStreak = Math.max(...progress.streaks.map(s => s.longest), 0);
-  const currentStreakSum = progress.streaks.reduce((sum, s) => sum + s.current, 0);
-  const xpToNextLevel = (progress.level * 100) - progress.xp;
+  const unlockedAchievements = progress?.achievements?.filter(a => a.unlocked) || [];
+  const totalAchievements = progress?.achievements?.length || 0;
+  const bestStreak = progress?.streaks?.length > 0 ? Math.max(...progress.streaks.map(s => s.longest), 0) : 0;
+  const currentStreakSum = progress?.streaks?.reduce((sum, s) => sum + s.current, 0) || 0;
+  const xpToNextLevel = ((progress?.level || 1) * 100) - (progress?.xp || 0);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -95,10 +95,10 @@ export const ProfileScreenNew = () => {
         <View style={styles.levelCard}>
           <View style={styles.levelHeader}>
             <View style={styles.levelBadge}>
-              <Text style={styles.levelNumber}>{progress.level}</Text>
+              <Text style={styles.levelNumber}>{progress?.level || 1}</Text>
             </View>
             <View style={styles.levelInfo}>
-              <Text style={styles.levelTitle}>Level {progress.level}</Text>
+              <Text style={styles.levelTitle}>Level {progress?.level || 1}</Text>
               <Text style={styles.levelSubtitle}>{xpToNextLevel} XP to next level</Text>
             </View>
           </View>
@@ -107,11 +107,11 @@ export const ProfileScreenNew = () => {
               <View
                 style={[
                   styles.xpProgressFill,
-                  { width: `${(progress.xp % 100)}%` }
+                  { width: `${((progress?.xp || 0) % 100)}%` }
                 ]}
               />
             </View>
-            <Text style={styles.xpText}>{progress.xp} XP</Text>
+            <Text style={styles.xpText}>{progress?.xp || 0} XP</Text>
           </View>
         </View>
 
@@ -119,7 +119,7 @@ export const ProfileScreenNew = () => {
         <View style={styles.statsGrid}>
           <View style={styles.statCard}>
             <Ionicons name="star" size={32} color="#F59E0B" />
-            <Text style={styles.statValue}>{progress.totalPoints}</Text>
+            <Text style={styles.statValue}>{progress?.totalPoints || 0}</Text>
             <Text style={styles.statLabel}>Total XP</Text>
           </View>
           <View style={styles.statCard}>
@@ -146,7 +146,7 @@ export const ProfileScreenNew = () => {
             <Text style={styles.sectionSubtitle}>{unlockedAchievements.length}/{totalAchievements}</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.achievementsScroll}>
-            {progress.achievements.map((achievement) => (
+            {(progress?.achievements || []).map((achievement) => (
               <View
                 key={achievement.id}
                 style={[
@@ -185,7 +185,7 @@ export const ProfileScreenNew = () => {
         {/* Pillar Streaks */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>🔥 Current Streaks</Text>
-          {progress.streaks.map((streak) => {
+          {(progress?.streaks || []).map((streak) => {
             const pillarColors: Record<string, string> = {
               finance: '#10B981',
               mental: '#8B5CF6',

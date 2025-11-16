@@ -64,6 +64,7 @@ export const JourneyScreen = ({ navigation }: any) => {
   };
 
   const getStreakForPillar = (pillar: Pillar) => {
+    if (!progress?.streaks) return 0;
     const streak = progress.streaks.find(s => s.pillar === pillar);
     return streak?.current || 0;
   };
@@ -85,8 +86,8 @@ export const JourneyScreen = ({ navigation }: any) => {
     }
   };
 
-  const totalStreak = progress.streaks.reduce((sum, s) => sum + s.current, 0);
-  const bestStreak = Math.max(...progress.streaks.map(s => s.longest), 0);
+  const totalStreak = progress?.streaks?.reduce((sum, s) => sum + s.current, 0) || 0;
+  const bestStreak = progress?.streaks?.length > 0 ? Math.max(...progress.streaks.map(s => s.longest), 0) : 0;
 
   return (
     <SafeAreaView style={styles.container}>
