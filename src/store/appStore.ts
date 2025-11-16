@@ -20,9 +20,8 @@ import {
   sendLevelUpNotification,
   sendTaskCompletedNotification,
 } from '../utils/notifications';
-import { getSmartTasksForToday, loadTasks, saveTasks } from '../utils/intelligentTaskGenerator.web';
+import { getSmartTasksForToday, loadTasks, saveTasks, SmartTask } from '../utils/intelligentTaskGenerator.web';
 import { generateEnhancedTasks } from '../utils/enhancedTaskGenerator';
-import { SmartTask } from '../utils/intelligentTaskGenerator';
 
 interface AppState {
   // Progress
