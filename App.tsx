@@ -8,6 +8,8 @@ import { theme } from './src/theme/theme';
 import { initDatabase } from './src/database/init';
 import { initializeNotifications } from './src/utils/notifications';
 import Toast from 'react-native-toast-message';
+// Version checker for web platform (only loads on web)
+import { VersionChecker } from './src/components/VersionChecker.web';
 
 export default function App() {
   const [isInitializing, setIsInitializing] = useState(true);
@@ -86,6 +88,7 @@ export default function App() {
 
   return (
     <PaperProvider theme={theme}>
+      {Platform.OS === 'web' && <VersionChecker />}
       <AppNavigator />
       <Toast />
     </PaperProvider>

@@ -7,9 +7,10 @@
 
 // For React Native, we need to manually sync this with package.json
 // Update this value whenever you increment package.json version
-export const APP_VERSION = '2.2.1';
+export const APP_VERSION = '2.3.0';
 
 // Version history:
+// 2.3.0 - NEW: PWA version checker - shows update banner when new version is deployed
 // 2.2.1 - HOTFIX: Reverted to old DashboardScreen (DashboardScreenNew was causing white screen)
 // 2.2.0 - MAJOR: Created dedicated appStore.web.ts with ZERO SQLite imports for web platform
 // 2.1.5 - HOTFIX: Fixed appStore.ts importing user.ts and removed SQLite imports (dynamic import for mobile-only code)
