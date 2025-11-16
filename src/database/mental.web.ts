@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MENTAL_FOUNDATIONS } from '../types/mental';
-import { getCompletedLessons } from './lessons';
+import { getCompletedLessons } from './lessons.web';
 
 const MENTAL_PROGRESS_KEY = 'lifequest.db:mental_progress';
 const MENTAL_PROGRESS_NEXT_ID_KEY = 'lifequest.db:mental_progress:next_id';
