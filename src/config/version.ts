@@ -7,9 +7,10 @@
 
 // For React Native, we need to manually sync this with package.json
 // Update this value whenever you increment package.json version
-export const APP_VERSION = '2.4.4';
+export const APP_VERSION = '2.4.5';
 
 // Version history:
+// 2.4.5 - CRITICAL FIX: Fixed infinite render loop in Journey & Profile screens (null checks for progress.streaks/achievements)
 // 2.4.4 - CRITICAL FIX: Created App.web.tsx - Metro wasn't using .web files automatically!
 // 2.4.3 - CRITICAL FIX: AppNavigator was statically importing ALL screens (inc. SQLite ones) - now uses lazy loading
 // 2.4.2 - CRITICAL FIX: authStore & createDemoAccount were importing SQLite - created .web versions
