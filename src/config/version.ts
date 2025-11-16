@@ -7,9 +7,10 @@
 
 // For React Native, we need to manually sync this with package.json
 // Update this value whenever you increment package.json version
-export const APP_VERSION = '2.1.4';
+export const APP_VERSION = '2.1.5';
 
 // Version history:
+// 2.1.5 - HOTFIX: Fixed appStore.ts importing user.ts and removed SQLite imports (dynamic import for mobile-only code)
 // 2.1.4 - HOTFIX: Fixed appStore.ts importing SmartTask type from SQLite version
 // 2.1.3 - HOTFIX: Fixed mental.web.ts importing wrong lessons module (SQLite instead of AsyncStorage)
 // 2.1.2 - HOTFIX: Fixed infinite recursion in initializeDefaultLists

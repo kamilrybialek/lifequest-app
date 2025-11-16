@@ -11,8 +11,7 @@ import {
   NutritionData,
   Pillar,
 } from '../types';
-import { getUserStats, getAllStreaks, getDailyProgress } from '../database/user';
-import { checkAndGenerateTasks } from '../utils/taskGenerator';
+import { getUserStats, getAllStreaks, getDailyProgress } from '../database/user.web';
 import { getDatabase } from '../database/init';
 import {
   scheduleStreakProtectionNotification,
@@ -21,7 +20,7 @@ import {
   sendTaskCompletedNotification,
 } from '../utils/notifications';
 import { getSmartTasksForToday, loadTasks, saveTasks, SmartTask } from '../utils/intelligentTaskGenerator.web';
-import { generateEnhancedTasks } from '../utils/enhancedTaskGenerator';
+// Note: generateEnhancedTasks and checkAndGenerateTasks are dynamically imported only on mobile (where SQLite is available)
 
 interface AppState {
   // Progress
@@ -318,8 +317,9 @@ export const useAppStore = create<AppState>((set, get) => ({
         return true;
       }
 
-      // Generate new tasks using enhanced generator
+      // Generate new tasks using enhanced generator (dynamic import to avoid loading SQLite modules on web)
       console.log('🚀 Generating enhanced tasks based on tool data...');
+      const { generateEnhancedTasks } = await import('../utils/enhancedTaskGenerator');
       const smartTasks = await generateEnhancedTasks(userId);
       console.log(`✅ Generated ${smartTasks.length} enhanced tasks`);
 
