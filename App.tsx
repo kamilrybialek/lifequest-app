@@ -5,7 +5,8 @@ import { AppNavigator } from './src/navigation/AppNavigator';
 import { useAuthStore } from './src/store/authStore';
 import { useAppStore } from './src/store/appStore';
 import { theme } from './src/theme/theme';
-import { initDatabase } from './src/database/init';
+// CRITICAL: DO NOT import initDatabase statically - use dynamic import based on platform
+// import { initDatabase } from './src/database/init';
 import { initializeNotifications } from './src/utils/notifications';
 import Toast from 'react-native-toast-message';
 // Version checker for web platform (only loads on web)
@@ -20,8 +21,22 @@ export default function App() {
   useEffect(() => {
     const initialize = async () => {
       try {
-        // Initialize database first
+        // Initialize database first - use platform-specific version
         console.log('🔧 [1/4] Initializing database...');
+        console.log('📱 Platform:', Platform.OS);
+
+        // Dynamic import based on platform to avoid loading SQLite on web
+        let initDatabase;
+        if (Platform.OS === 'web') {
+          console.log('🌐 Loading web database init...');
+          const module = await import('./src/database/init.web');
+          initDatabase = module.initDatabase;
+        } else {
+          console.log('📱 Loading native database init...');
+          const module = await import('./src/database/init');
+          initDatabase = module.initDatabase;
+        }
+
         await initDatabase();
         console.log('✅ [1/4] Database initialized successfully');
 

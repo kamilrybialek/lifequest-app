@@ -48,12 +48,10 @@ export const DashboardScreenV2 = ({ navigation }: any) => {
   const { progress, dailyTasks, loadAppData } = useAppStore();
   const [refreshing, setRefreshing] = useState(false);
 
-  // CRITICAL: Load data on mount
+  // NOTE: loadAppData is already called in App.tsx during initialization
+  // No need to call it again here - data should already be loaded
   useEffect(() => {
-    console.log('📱 DashboardV2: Mounting...');
-    loadAppData().catch(err => {
-      console.error('❌ DashboardV2: Failed to load data:', err);
-    });
+    console.log('📱 DashboardV2: Mounted. Data should be loaded from App.tsx');
   }, []);
 
   const onRefresh = async () => {

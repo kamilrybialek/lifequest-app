@@ -7,9 +7,10 @@
 
 // For React Native, we need to manually sync this with package.json
 // Update this value whenever you increment package.json version
-export const APP_VERSION = '2.4.0';
+export const APP_VERSION = '2.4.1';
 
 // Version history:
+// 2.4.1 - CRITICAL FIX: App.tsx was importing SQLite on web causing stack overflow - now uses dynamic import
 // 2.4.0 - NEW: DashboardScreenV2 - Redesigned dashboard with proper type safety and bug fixes
 // 2.3.0 - NEW: PWA version checker - shows update banner when new version is deployed
 // 2.2.1 - HOTFIX: Reverted to old DashboardScreen (DashboardScreenNew was causing white screen)
