@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 
 // Import .web.tsx versions EXPLICITLY
-import { DashboardScreen } from '../screens/Dashboard/DashboardScreen.web';
+import { DashboardScreenV2 } from '../screens/Dashboard/DashboardScreenV2.web';
 import { ToolsScreen } from '../screens/tools/ToolsScreen';
 import { TasksScreen } from '../screens/tasks/TasksScreen.web';
 import { JourneyScreen } from '../screens/Journey/JourneyScreen.web';
@@ -58,7 +58,7 @@ export const TabNavigatorNew = () => {
     >
       <Tab.Screen
         name="Dashboard"
-        component={DashboardScreen}
+        component={DashboardScreenV2}
         options={{ tabBarLabel: 'Home' }}
       />
       <Tab.Screen
