@@ -7,9 +7,10 @@
 
 // For React Native, we need to manually sync this with package.json
 // Update this value whenever you increment package.json version
-export const APP_VERSION = '2.4.2';
+export const APP_VERSION = '2.4.3';
 
 // Version history:
+// 2.4.3 - CRITICAL FIX: AppNavigator was statically importing ALL screens (inc. SQLite ones) - now uses lazy loading
 // 2.4.2 - CRITICAL FIX: authStore & createDemoAccount were importing SQLite - created .web versions
 // 2.4.1 - CRITICAL FIX: App.tsx was importing SQLite on web causing stack overflow - now uses dynamic import
 // 2.4.0 - NEW: DashboardScreenV2 - Redesigned dashboard with proper type safety and bug fixes
