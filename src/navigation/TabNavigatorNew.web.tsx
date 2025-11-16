@@ -4,12 +4,16 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 
+console.log('🌐 TabNavigatorNew.WEB.tsx is loading!');
+
 // Import .web.tsx versions EXPLICITLY
 import { DashboardScreenV2 } from '../screens/Dashboard/DashboardScreenV2.web';
 import { ToolsScreen } from '../screens/tools/ToolsScreen';
 import { TasksScreen } from '../screens/tasks/TasksScreen.web';
 import { JourneyScreen } from '../screens/Journey/JourneyScreen.web';
 import { ProfileScreenNew } from '../screens/Profile/ProfileScreenNew.web';
+
+console.log('✅ All .web tab screens imported successfully in TabNavigatorNew.web');
 
 const Tab = createBottomTabNavigator();
 

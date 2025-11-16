@@ -3,9 +3,13 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { View, ActivityIndicator } from 'react-native';
 
+console.log('🌐 AppNavigator.WEB.tsx is loading!');
+
 // CRITICAL: Import TabNavigatorNew.web EXPLICITLY for web platform
 // This ensures we get the .web version with proper .web screen imports
 import { TabNavigatorNew } from './TabNavigatorNew.web';
+
+console.log('✅ TabNavigatorNew.web imported successfully in AppNavigator.web');
 
 // Auth screens - these are simple and don't use SQLite directly
 import { LoginScreen } from '../screens/auth/LoginScreen';
