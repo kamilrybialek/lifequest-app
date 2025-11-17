@@ -227,7 +227,7 @@ export const DashboardScreenV2 = ({ navigation }: any) => {
         )}
 
         {/* Recent Tasks Preview */}
-        {dailyTasks && dailyTasks.length > 0 && (
+        {dailyTasks && dailyTasks?.length > 0 && (
           <View style={styles.tasksCard}>
             <View style={styles.tasksHeader}>
               <Text style={styles.sectionTitle}>✅ Today's Tasks</Text>
@@ -235,7 +235,7 @@ export const DashboardScreenV2 = ({ navigation }: any) => {
                 <Text style={styles.viewAllText}>View All</Text>
               </TouchableOpacity>
             </View>
-            {dailyTasks.slice(0, 4).map((task) => (
+            {(dailyTasks || []).slice(0, 4).map((task) => (
               <View key={task.id} style={styles.taskRow}>
                 <Ionicons
                   name={task.completed ? 'checkmark-circle' : 'ellipse-outline'}

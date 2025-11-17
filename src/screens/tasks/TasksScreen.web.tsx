@@ -71,8 +71,8 @@ export const TasksScreen = ({ navigation }: any) => {
     }
   };
 
-  const completedCount = dailyTasks.filter(t => t.completed).length;
-  const totalCount = dailyTasks.length;
+  const completedCount = dailyTasks?.filter(t => t.completed).length || 0;
+  const totalCount = dailyTasks?.length || 0;
   const completionRate = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
 
   return (
@@ -107,11 +107,11 @@ export const TasksScreen = ({ navigation }: any) => {
               <Text style={styles.statLabel}>Tasks</Text>
             </View>
             <View style={styles.stat}>
-              <Text style={styles.statValue}>{dailyTasks.reduce((sum, t) => t.completed ? sum + t.points : sum, 0)}</Text>
+              <Text style={styles.statValue}>{(dailyTasks || []).reduce((sum, t) => t.completed ? sum + t.points : sum, 0)}</Text>
               <Text style={styles.statLabel}>XP Earned</Text>
             </View>
             <View style={styles.stat}>
-              <Text style={styles.statValue}>{progress.level}</Text>
+              <Text style={styles.statValue}>{progress?.level || 1}</Text>
               <Text style={styles.statLabel}>Level</Text>
             </View>
           </View>
@@ -127,7 +127,7 @@ export const TasksScreen = ({ navigation }: any) => {
               <Text style={styles.emptyStateSubtext}>Pull down to refresh and generate smart tasks</Text>
             </View>
           ) : (
-            dailyTasks.map((task) => (
+            (dailyTasks || []).map((task) => (
               <View
                 key={task.id}
                 style={[
