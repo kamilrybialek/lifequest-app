@@ -10,7 +10,7 @@ export const LoginScreen = ({ navigation }: any) => {
   const [isLogin, setIsLogin] = useState(true);
   const [error, setError] = useState('');
 
-  const { login, register } = useAuthStore();
+  const { login, register, loginAsDemo } = useAuthStore();
 
   const handleSubmit = async () => {
     setError('');
@@ -26,8 +26,17 @@ export const LoginScreen = ({ navigation }: any) => {
       } else {
         await register(email, password);
       }
-    } catch (err) {
-      setError('Authentication failed');
+    } catch (err: any) {
+      setError(err.message || 'Authentication failed');
+    }
+  };
+
+  const handleDemoLogin = async () => {
+    setError('');
+    try {
+      await loginAsDemo();
+    } catch (err: any) {
+      setError(err.message || 'Demo login failed');
     }
   };
 
@@ -77,6 +86,21 @@ export const LoginScreen = ({ navigation }: any) => {
           {isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Login'}
         </Button>
 
+        <View style={styles.divider}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>OR</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        <Button
+          mode="outlined"
+          onPress={handleDemoLogin}
+          style={styles.demoButton}
+          icon="account-circle"
+        >
+          Try Demo (demo/demo)
+        </Button>
+
         <Text style={styles.version}>v{APP_VERSION}</Text>
       </View>
     </KeyboardAvoidingView>
@@ -114,6 +138,25 @@ const styles = StyleSheet.create({
   },
   switchButton: {
     marginTop: 8,
+  },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#e0e0e0',
+  },
+  dividerText: {
+    marginHorizontal: 12,
+    color: '#999',
+    fontSize: 14,
+  },
+  demoButton: {
+    borderColor: '#6200ee',
+    borderWidth: 2,
   },
   version: {
     position: 'absolute',

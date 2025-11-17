@@ -11,9 +11,8 @@ import {
   NutritionData,
   Pillar,
 } from '../types';
-import { getUserStats, getAllStreaks, getDailyProgress } from '../database/user';
-import { checkAndGenerateTasks } from '../utils/taskGenerator';
-import { getDatabase } from '../database/init';
+// Use Firebase Firestore instead of local database
+import { getUserStats, getAllStreaks, getDailyTasks, addXP, updateStreak as firebaseUpdateStreak } from '../services/firebaseUserService';
 import {
   scheduleStreakProtectionNotification,
   sendAchievementNotification,
@@ -21,7 +20,6 @@ import {
   sendTaskCompletedNotification,
 } from '../utils/notifications';
 import { getSmartTasksForToday, loadTasks, saveTasks } from '../utils/intelligentTaskGenerator.web';
-import { generateEnhancedTasks } from '../utils/enhancedTaskGenerator';
 import { SmartTask } from '../utils/intelligentTaskGenerator';
 
 interface AppState {
@@ -39,10 +37,9 @@ interface AppState {
 
   // Actions
   loadAppData: () => Promise<void>;
-  loadDailyTasksFromDB: (userId: number) => Promise<void>;
+  loadDailyTasksFromSupabase: (userId: string) => Promise<void>;
   generateDailyTasks: () => void; // Legacy - keeping for compatibility
-  generateSmartTasks: (userId: number) => Promise<void>; // NEW: Intelligent task generation
-  checkAndGenerateEnhancedTasks: (userId: number) => Promise<boolean>; // ENHANCED: Data-driven task generation
+  generateSmartTasks: (userId: string) => Promise<void>; // NEW: Intelligent task generation
   completeTask: (taskId: string) => Promise<void>;
   updateStreak: (pillar: Pillar) => void;
   addPoints: (points: number) => Promise<void>;
@@ -120,15 +117,15 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (nutritionData) set({ nutritionData: JSON.parse(nutritionData) });
       console.log('✅ loadAppData: AsyncStorage data loaded');
 
-      // Load progress from SQLite (if user is logged in)
+      // Load progress from Firebase (if user is logged in)
       const { useAuthStore } = require('./authStore');
       const authStore = useAuthStore.getState();
       const userId = authStore.user?.id;
 
       if (userId) {
-        console.log('🔍 loadAppData: User logged in, loading from database...');
+        console.log('🔍 loadAppData: User logged in, loading from Firebase...');
         try {
-          // Get XP, level, and streaks from SQLite database
+          // Get XP, level, and streaks from Firebase
           console.log('🔍 loadAppData: Fetching user stats and streaks...');
           const [userStats, streaks] = await Promise.all([
             getUserStats(userId),
@@ -137,7 +134,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           console.log('✅ loadAppData: Got user stats:', userStats);
           console.log('✅ loadAppData: Got streaks:', streaks);
 
-          // Transform SQLite data into AppStore format
+          // Transform Firebase data into AppStore format
           const updatedProgress: UserProgress = {
             level: userStats?.level || 1,
             xp: userStats?.total_xp || 0,
@@ -152,19 +149,17 @@ export const useAppStore = create<AppState>((set, get) => ({
           };
 
           set({ progress: updatedProgress });
-          console.log('✅ Loaded progress from SQLite:', updatedProgress);
+          console.log('✅ Loaded progress from Firebase:', updatedProgress);
 
-          // Generate daily tasks using ENHANCED data-driven generator
-          console.log('🔍 loadAppData: Generating enhanced tasks...');
-          await get().checkAndGenerateEnhancedTasks(userId);
-          console.log('🔍 loadAppData: Loading daily tasks from DB...');
-          await get().loadDailyTasksFromDB(userId);
+          // Load daily tasks from Firebase
+          console.log('🔍 loadAppData: Loading daily tasks from Firebase...');
+          await get().loadDailyTasksFromSupabase(userId);
           console.log('✅ loadAppData: Daily tasks loaded');
         } catch (error) {
-          console.error('❌ Error loading progress from SQLite:', error);
+          console.error('❌ Error loading progress from Firebase:', error);
           console.error('❌ Error details:', error instanceof Error ? error.message : 'Unknown');
           console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack');
-          // Fall back to AsyncStorage if SQLite fails
+          // Fall back to AsyncStorage if Firebase fails
           console.log('⚠️ Falling back to AsyncStorage...');
           const progressData = await AsyncStorage.getItem('progress');
           if (progressData) set({ progress: JSON.parse(progressData) });
@@ -179,7 +174,7 @@ export const useAppStore = create<AppState>((set, get) => ({
         const tasks = await loadTasks();
         if (tasks.length === 0) {
           console.log('🧠 No tasks found, generating smart tasks...');
-          await get().generateSmartTasks(1); // Use userId 1 as default for web
+          await get().generateSmartTasks('web-user'); // Use dummy userId for web
         } else {
           console.log(`📥 Loaded ${tasks.length} existing tasks`);
           set({ dailyTasks: tasks as any });
@@ -194,45 +189,28 @@ export const useAppStore = create<AppState>((set, get) => ({
     }
   },
 
-  loadDailyTasksFromDB: async (userId: number) => {
+  loadDailyTasksFromSupabase: async (userId: string) => {
     try {
-      const db = await getDatabase();
+      console.log('🔍 Loading daily tasks from Firebase for user:', userId);
+      const tasks = await getDailyTasks(userId);
 
-      // On web, getDatabase returns null - use fallback
-      if (!db) {
-        console.log('⚠️ Database not available on web, using AsyncStorage fallback');
-        const tasksData = await AsyncStorage.getItem('dailyTasks');
-        const tasks = tasksData ? JSON.parse(tasksData) : [];
-        set({ dailyTasks: tasks });
-        return;
-      }
-
-      const today = new Date().toISOString().split('T')[0];
-
-      // Load tasks from database
-      const tasks = await db.getAllAsync<any>(
-        `SELECT id, pillar, title, description, completed, xp_reward
-         FROM daily_tasks
-         WHERE user_id = ? AND task_date = ?
-         ORDER BY id ASC`,
-        [userId, today]
-      );
-
-      // Transform database tasks to app format
+      // Transform Firebase tasks to app format
       const formattedTasks: Task[] = tasks.map((task: any) => ({
-        id: String(task.id),
+        id: task.id,
         pillar: task.pillar as Pillar,
         title: task.title,
         description: task.description || '',
         duration: 5, // Default duration
-        completed: task.completed === 1,
+        completed: task.completed || false,
         points: task.xp_reward || 10,
       }));
 
       set({ dailyTasks: formattedTasks });
-      console.log(`✅ Loaded ${formattedTasks.length} daily tasks from database`);
+      console.log(`✅ Loaded ${formattedTasks.length} daily tasks from Firebase`);
     } catch (error) {
-      console.error('Error loading daily tasks from DB:', error);
+      console.error('Error loading daily tasks from Firebase:', error);
+      // Fall back to empty array
+      set({ dailyTasks: [] });
     }
   },
 
@@ -295,56 +273,9 @@ export const useAppStore = create<AppState>((set, get) => ({
     AsyncStorage.setItem('dailyTasks', JSON.stringify(shuffledTasks));
   },
 
-  // ENHANCED: Data-driven task generation using tool aggregator
-  checkAndGenerateEnhancedTasks: async (userId: number): Promise<boolean> => {
-    const db = await getDatabase();
-
-    // On web, db is null - skip task generation
-    if (!db) {
-      console.log('⚠️ Database not available on web, skipping enhanced task generation');
-      return false;
-    }
-
-    const today = new Date().toISOString().split('T')[0];
-
-    try {
-      // Check if tasks already exist for today
-      const result = await db.getFirstAsync<{ count: number }>(
-        'SELECT COUNT(*) as count FROM daily_tasks WHERE user_id = ? AND task_date = ?',
-        [userId, today]
-      );
-
-      if (result && result.count > 0) {
-        console.log('✅ Enhanced tasks already exist for today');
-        return true;
-      }
-
-      // Generate new tasks using enhanced generator
-      console.log('🚀 Generating enhanced tasks based on tool data...');
-      const smartTasks = await generateEnhancedTasks(userId);
-      console.log(`✅ Generated ${smartTasks.length} enhanced tasks`);
-
-      // Save tasks to database
-      await db.runAsync('DELETE FROM daily_tasks WHERE user_id = ? AND task_date = ?', [userId, today]);
-
-      for (const task of smartTasks) {
-        await db.runAsync(
-          `INSERT INTO daily_tasks (user_id, task_date, pillar, title, description, completed, xp_reward)
-           VALUES (?, ?, ?, ?, ?, 0, ?)`,
-          [userId, today, task.pillar, task.title, task.description, task.xp_reward]
-        );
-      }
-
-      console.log('✅ Enhanced tasks saved to database');
-      return true;
-    } catch (error) {
-      console.error('❌ Error generating enhanced tasks:', error);
-      return false;
-    }
-  },
 
   // NEW: Intelligent task generation
-  generateSmartTasks: async (userId: number) => {
+  generateSmartTasks: async (userId: string) => {
     try {
       console.log('🧠 Generating smart tasks for user:', userId);
 
@@ -466,6 +397,17 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ progress: updatedProgress });
     AsyncStorage.setItem('progress', JSON.stringify(updatedProgress));
 
+    // Update in Supabase if user is logged in
+    const { useAuthStore } = require('./authStore');
+    const authStore = useAuthStore.getState();
+    const userId = authStore.user?.id;
+
+    if (userId) {
+      firebaseUpdateStreak(userId, pillar).catch(error => {
+        console.error('Error updating streak in Firebase:', error);
+      });
+    }
+
     // Check for streak achievement
     if (newCurrent >= 7) {
       get().unlockAchievement('week_streak');
@@ -488,6 +430,19 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     set({ progress: updatedProgress });
     await AsyncStorage.setItem('progress', JSON.stringify(updatedProgress));
+
+    // Update in Firebase if user is logged in
+    const { useAuthStore } = require('./authStore');
+    const authStore = useAuthStore.getState();
+    const userId = authStore.user?.id;
+
+    if (userId) {
+      try {
+        await addXP(userId, points);
+      } catch (error) {
+        console.error('Error updating XP in Firebase:', error);
+      }
+    }
 
     // Send level up notification if level changed
     if (newLevel > oldLevel) {

@@ -1,7 +1,7 @@
 export type Pillar = 'finance' | 'mental' | 'physical' | 'nutrition';
 
 export interface User {
-  id: number;
+  id: string; // Changed from number to string for Firebase UID compatibility
   email: string;
   age?: number;
   weight?: number;

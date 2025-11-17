@@ -1,8 +1,15 @@
 import * as SQLite from 'expo-sqlite';
+import { Platform } from 'react-native';
 
 const DB_NAME = 'lifequest.db';
 
 export const initDatabase = async () => {
+  // SQLite is not supported on web - skip initialization
+  if (Platform.OS === 'web') {
+    console.log('⚠️ Skipping database initialization on web platform');
+    return null;
+  }
+
   const db = await SQLite.openDatabaseAsync(DB_NAME);
 
   // Users table
@@ -1152,10 +1159,20 @@ export const initDatabase = async () => {
 };
 
 export const getDatabase = async () => {
+  // SQLite is not supported on web - return null
+  if (Platform.OS === 'web') {
+    return null;
+  }
   return await SQLite.openDatabaseAsync(DB_NAME);
 };
 
 export const resetUserData = async (userId: number) => {
+  // SQLite is not supported on web
+  if (Platform.OS === 'web') {
+    console.warn('⚠️ resetUserData not supported on web platform');
+    return;
+  }
+
   const db = await SQLite.openDatabaseAsync(DB_NAME);
 
   try {
@@ -1211,6 +1228,12 @@ export const resetUserData = async (userId: number) => {
 };
 
 export const resetDatabase = async () => {
+  // SQLite is not supported on web
+  if (Platform.OS === 'web') {
+    console.warn('⚠️ resetDatabase not supported on web platform');
+    return;
+  }
+
   const db = await SQLite.openDatabaseAsync(DB_NAME);
 
   // Drop all tables

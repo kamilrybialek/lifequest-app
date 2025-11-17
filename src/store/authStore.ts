@@ -1,14 +1,25 @@
 import { create } from 'zustand';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User } from '../types';
-import { getUserByEmail, createUser as createUserInDB, updateUserOnboarding } from '../database/user';
-import { createDemoAccount, isDemoEmail, getDemoUserId } from '../utils/createDemoAccount';
+import { auth } from '../config/firebase';
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  User as FirebaseUser
+} from 'firebase/auth';
+import {
+  createUserProfile,
+  getUserProfile,
+  updateUserProfile
+} from '../services/firebaseUserService';
 
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginAsDemo: () => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
@@ -21,112 +32,281 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: true,
 
   login: async (email: string, password: string) => {
-    // Handle demo account
-    if (isDemoEmail(email)) {
-      let userId = await getDemoUserId();
+    try {
+      console.log('🔐 Logging in with Firebase...');
 
-      // Create demo account if it doesn't exist
-      if (!userId) {
-        console.log('Creating demo account with sample data...');
-        userId = await createDemoAccount();
+      // Sign in with Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
+
+      console.log('✅ Firebase auth successful, loading user data...');
+
+      // Load user profile from Firestore
+      let userData = await getUserProfile(firebaseUser.uid);
+
+      // If user doesn't exist in Firestore, create profile
+      if (!userData) {
+        console.log('Creating user profile in Firestore...');
+        await createUserProfile(firebaseUser.uid, {
+          email: firebaseUser.email!,
+          onboarded: false,
+        });
+
+        userData = await getUserProfile(firebaseUser.uid);
       }
 
-      // Load demo user from database
-      const dbUser: any = await getUserByEmail(email);
-
-      if (!dbUser) {
-        throw new Error('Demo account creation failed');
+      if (!userData) {
+        throw new Error('Failed to load user profile');
       }
 
       const user: User = {
-        id: dbUser.id,
-        email: dbUser.email,
-        age: dbUser.age,
-        weight: dbUser.weight,
-        height: dbUser.height,
-        gender: dbUser.gender,
-        onboarded: dbUser.onboarded === 1,
-        createdAt: dbUser.created_at,
+        id: userData.id,
+        email: userData.email,
+        age: userData.age,
+        weight: userData.weight,
+        height: userData.height,
+        gender: userData.gender as 'male' | 'female' | 'other' | undefined,
+        onboarded: userData.onboarded ?? false,
+        createdAt: userData.created_at?.toDate?.()?.toISOString() ?? new Date().toISOString(),
       };
 
-      await AsyncStorage.setItem('user', JSON.stringify(user));
       set({ user, isAuthenticated: true });
-      return;
+      console.log('✅ User logged in successfully');
+    } catch (error: any) {
+      console.error('❌ Login error:', error);
+      // Provide user-friendly error messages
+      if (error.code === 'auth/user-not-found') {
+        throw new Error('No account found with this email. Please register first.');
+      } else if (error.code === 'auth/wrong-password') {
+        throw new Error('Incorrect password. Please try again.');
+      } else if (error.code === 'auth/invalid-email') {
+        throw new Error('Invalid email address.');
+      } else if (error.code === 'auth/too-many-requests') {
+        throw new Error('Too many failed login attempts. Please try again later.');
+      }
+      throw error;
     }
+  },
 
-    // Regular user login
-    const dbUser: any = await getUserByEmail(email);
+  loginAsDemo: async () => {
+    try {
+      console.log('🎭 Logging in as demo user...');
+      const demoEmail = 'demo@demo.com';
+      const demoPassword = 'demodemo';
 
-    if (!dbUser) {
-      throw new Error('User not found');
+      try {
+        // Try to login first
+        await get().login(demoEmail, demoPassword);
+        console.log('✅ Demo user logged in successfully');
+      } catch (error: any) {
+        // If user doesn't exist, create it
+        if (error.code === 'auth/user-not-found' || error.message?.includes('No account found')) {
+          console.log('📝 Demo user not found, creating...');
+
+          // Register demo user
+          const userCredential = await createUserWithEmailAndPassword(auth, demoEmail, demoPassword);
+          const firebaseUser = userCredential.user;
+
+          // Create profile with demo data (already onboarded)
+          await createUserProfile(firebaseUser.uid, {
+            email: firebaseUser.email!,
+            onboarded: true,
+            age: 25,
+            weight: 70,
+            height: 175,
+            gender: 'male',
+          });
+
+          const newUser: User = {
+            id: firebaseUser.uid,
+            email: firebaseUser.email!,
+            onboarded: true,
+            age: 25,
+            weight: 70,
+            height: 175,
+            gender: 'male',
+            createdAt: new Date().toISOString(),
+          };
+
+          set({ user: newUser, isAuthenticated: true });
+          console.log('✅ Demo user created and logged in successfully');
+        } else {
+          throw error;
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ Demo login error:', error);
+      throw new Error('Failed to login as demo user. Please try again.');
     }
-
-    const user: User = {
-      id: dbUser.id,
-      email: dbUser.email,
-      age: dbUser.age,
-      weight: dbUser.weight,
-      height: dbUser.height,
-      gender: dbUser.gender,
-      onboarded: dbUser.onboarded === 1,
-      createdAt: dbUser.created_at,
-    };
-
-    await AsyncStorage.setItem('user', JSON.stringify(user));
-    set({ user, isAuthenticated: true });
   },
 
   register: async (email: string, password: string) => {
-    // Create user in database
-    const userId = await createUserInDB(email, email.split('@')[0]);
+    try {
+      console.log('📝 Registering new user with Firebase...');
 
-    const newUser: User = {
-      id: userId,
-      email,
-      onboarded: false,
-      createdAt: new Date().toISOString(),
-    };
+      // Create auth user
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
 
-    await AsyncStorage.setItem('user', JSON.stringify(newUser));
-    set({ user: newUser, isAuthenticated: true });
+      console.log('✅ Firebase auth user created');
+
+      // Create user profile in Firestore
+      await createUserProfile(firebaseUser.uid, {
+        email: firebaseUser.email!,
+        onboarded: false,
+      });
+
+      const newUser: User = {
+        id: firebaseUser.uid,
+        email: firebaseUser.email!,
+        onboarded: false,
+        createdAt: new Date().toISOString(),
+      };
+
+      set({ user: newUser, isAuthenticated: true });
+      console.log('✅ User registered successfully');
+    } catch (error: any) {
+      console.error('❌ Registration error:', error);
+      // Provide user-friendly error messages
+      if (error.code === 'auth/email-already-in-use') {
+        throw new Error('An account with this email already exists. Please log in instead.');
+      } else if (error.code === 'auth/invalid-email') {
+        throw new Error('Invalid email address.');
+      } else if (error.code === 'auth/weak-password') {
+        throw new Error('Password is too weak. Please use at least 6 characters.');
+      }
+      throw error;
+    }
   },
 
   logout: async () => {
-    await AsyncStorage.removeItem('user');
-    set({ user: null, isAuthenticated: false });
+    try {
+      console.log('👋 Logging out...');
+      await signOut(auth);
+      set({ user: null, isAuthenticated: false });
+      console.log('✅ Logged out successfully');
+    } catch (error) {
+      console.error('❌ Logout error:', error);
+      throw error;
+    }
   },
 
   updateProfile: async (data: Partial<User>) => {
     const currentUser = get().user;
     if (!currentUser) return;
 
-    // Update in database
-    await updateUserOnboarding(currentUser.id, {
-      age: data.age,
-      weight: data.weight,
-      height: data.height,
-      gender: data.gender,
-      onboarded: data.onboarded ? 1 : 0,
-    });
+    try {
+      console.log('📝 Updating user profile...');
 
-    // Update in state and AsyncStorage
-    const updatedUser = { ...currentUser, ...data };
-    await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
-    set({ user: updatedUser });
+      // Update in Firestore
+      await updateUserProfile(currentUser.id, {
+        age: data.age,
+        weight: data.weight,
+        height: data.height,
+        gender: data.gender,
+        onboarded: data.onboarded,
+      });
+
+      // Update local state
+      const updatedUser = { ...currentUser, ...data };
+      set({ user: updatedUser });
+      console.log('✅ Profile updated successfully');
+    } catch (error) {
+      console.error('❌ Profile update error:', error);
+      throw error;
+    }
   },
 
   loadUser: async () => {
     try {
-      const userData = await AsyncStorage.getItem('user');
-      if (userData) {
-        const user = JSON.parse(userData);
-        set({ user, isAuthenticated: true, isLoading: false });
-      } else {
-        set({ isLoading: false });
+      console.log('🔍 Loading user session...');
+
+      const firebaseUser = auth.currentUser;
+
+      if (!firebaseUser) {
+        console.log('ℹ️ No active session found');
+        set({ isLoading: false, isAuthenticated: false, user: null });
+        return;
       }
+
+      console.log('✅ Active session found, loading user data...');
+
+      // Load user data from Firestore
+      let userData = await getUserProfile(firebaseUser.uid);
+
+      // If user doesn't exist in Firestore, create profile
+      if (!userData) {
+        console.log('Creating user profile in Firestore...');
+        await createUserProfile(firebaseUser.uid, {
+          email: firebaseUser.email!,
+          onboarded: false,
+        });
+
+        userData = await getUserProfile(firebaseUser.uid);
+      }
+
+      if (!userData) {
+        throw new Error('Failed to load user profile');
+      }
+
+      const user: User = {
+        id: userData.id,
+        email: userData.email,
+        age: userData.age,
+        weight: userData.weight,
+        height: userData.height,
+        gender: userData.gender as 'male' | 'female' | 'other' | undefined,
+        onboarded: userData.onboarded ?? false,
+        createdAt: userData.created_at?.toDate?.()?.toISOString() ?? new Date().toISOString(),
+      };
+
+      set({ user, isAuthenticated: true, isLoading: false });
+      console.log('✅ User loaded successfully');
     } catch (error) {
-      console.error('Error loading user:', error);
-      set({ isLoading: false });
+      console.error('❌ Error loading user:', error);
+      set({ isLoading: false, isAuthenticated: false, user: null });
     }
   },
 }));
+
+// Set up Firebase auth state change listener
+onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+  console.log('🔄 Auth state changed:', firebaseUser ? 'SIGNED_IN' : 'SIGNED_OUT');
+
+  if (!firebaseUser) {
+    // User signed out
+    useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: false });
+  } else {
+    // User signed in - reload user data
+    try {
+      let userData = await getUserProfile(firebaseUser.uid);
+
+      // Create profile if doesn't exist
+      if (!userData) {
+        await createUserProfile(firebaseUser.uid, {
+          email: firebaseUser.email!,
+          onboarded: false,
+        });
+        userData = await getUserProfile(firebaseUser.uid);
+      }
+
+      if (userData) {
+        const user: User = {
+          id: userData.id,
+          email: userData.email,
+          age: userData.age,
+          weight: userData.weight,
+          height: userData.height,
+          gender: userData.gender as 'male' | 'female' | 'other' | undefined,
+          onboarded: userData.onboarded ?? false,
+          createdAt: userData.created_at?.toDate?.()?.toISOString() ?? new Date().toISOString(),
+        };
+
+        useAuthStore.setState({ user, isAuthenticated: true, isLoading: false });
+      }
+    } catch (error) {
+      console.error('Error in auth state listener:', error);
+      useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: false });
+    }
+  }
+});
