@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, CACHE_SIZE_UNLIMITED } from 'firebase/firestore';
 
 // 🔥 FIREBASE CONFIGURATION
 // Configuration from Firebase Console
@@ -18,13 +18,21 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 // Initialize Firebase Auth
-// For web: Uses default localStorage persistence
-// For React Native: Will use AsyncStorage automatically when using @react-native-firebase/auth
-// For now, using web SDK which works on all platforms with localStorage/sessionStorage
 const auth = getAuth(app);
 
-// Initialize Firestore
-const db = getFirestore(app);
+// Initialize Firestore with cache settings to prevent connection issues
+let db;
+try {
+  db = initializeFirestore(app, {
+    cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+    experimentalForceLongPolling: true, // Use long polling instead of WebSocket
+  });
+  console.log('✅ Firestore initialized with long polling');
+} catch (error) {
+  console.error('❌ Error initializing Firestore:', error);
+  // Fallback to default Firestore
+  db = getFirestore(app);
+}
 
 export { auth, db };
 export default app;
