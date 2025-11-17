@@ -212,11 +212,11 @@ export const getDailyTasks = async (userId: string, date?: string) => {
     const taskDate = date || new Date().toISOString().split('T')[0];
 
     const tasksRef = collection(db, 'daily_tasks');
+    // Simplified query - removed orderBy to avoid composite index requirement
     const q = query(
       tasksRef,
       where('user_id', '==', userId),
-      where('task_date', '==', taskDate),
-      orderBy('created_at', 'asc')
+      where('task_date', '==', taskDate)
     );
 
     const querySnapshot = await getDocs(q);
@@ -224,6 +224,13 @@ export const getDailyTasks = async (userId: string, date?: string) => {
       id: doc.id,
       ...doc.data(),
     }));
+
+    // Sort in JavaScript instead of in Firestore query
+    tasks.sort((a: any, b: any) => {
+      const aTime = a.created_at?.toMillis?.() || 0;
+      const bTime = b.created_at?.toMillis?.() || 0;
+      return aTime - bTime;
+    });
 
     return tasks;
   } catch (error) {
