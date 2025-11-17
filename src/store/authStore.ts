@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { User } from '../types';
 import { auth } from '../config/firebase';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -90,50 +91,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   loginAsDemo: async () => {
     try {
-      console.log('🎭 Logging in as demo user...');
-      const demoEmail = 'demo@demo.com';
-      const demoPassword = 'demodemo';
+      console.log('🎭 Logging in as OFFLINE demo user (AsyncStorage only)...');
 
-      try {
-        // Try to login first
-        await get().login(demoEmail, demoPassword);
-        console.log('✅ Demo user logged in successfully');
-      } catch (error: any) {
-        // If user doesn't exist, create it
-        if (error.code === 'auth/user-not-found' || error.message?.includes('No account found')) {
-          console.log('📝 Demo user not found, creating...');
+      // Create demo user WITHOUT Firebase - just local AsyncStorage
+      const demoUser: User = {
+        id: 'demo-user-local',
+        email: 'demo@demo.com',
+        onboarded: true,
+        age: 25,
+        weight: 70,
+        height: 175,
+        gender: 'male',
+        createdAt: new Date().toISOString(),
+      };
 
-          // Register demo user
-          const userCredential = await createUserWithEmailAndPassword(auth, demoEmail, demoPassword);
-          const firebaseUser = userCredential.user;
+      // Save to AsyncStorage
+      await AsyncStorage.setItem('demo_user', JSON.stringify(demoUser));
 
-          // Create profile with demo data (already onboarded)
-          await createUserProfile(firebaseUser.uid, {
-            email: firebaseUser.email!,
-            onboarded: true,
-            age: 25,
-            weight: 70,
-            height: 175,
-            gender: 'male',
-          });
-
-          const newUser: User = {
-            id: firebaseUser.uid,
-            email: firebaseUser.email!,
-            onboarded: true,
-            age: 25,
-            weight: 70,
-            height: 175,
-            gender: 'male',
-            createdAt: new Date().toISOString(),
-          };
-
-          set({ user: newUser, isAuthenticated: true });
-          console.log('✅ Demo user created and logged in successfully');
-        } else {
-          throw error;
-        }
-      }
+      set({ user: demoUser, isAuthenticated: true });
+      console.log('✅ Demo user logged in successfully (OFFLINE mode)');
     } catch (error: any) {
       console.error('❌ Demo login error:', error);
       throw new Error('Failed to login as demo user. Please try again.');
@@ -220,6 +196,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   loadUser: async () => {
     try {
       console.log('🔍 Loading user session...');
+
+      // Check for demo user first (offline mode)
+      const demoUserData = await AsyncStorage.getItem('demo_user');
+      if (demoUserData) {
+        const demoUser = JSON.parse(demoUserData);
+        console.log('✅ Demo user found in AsyncStorage (OFFLINE mode)');
+        set({ user: demoUser, isAuthenticated: true, isLoading: false });
+        return;
+      }
 
       const firebaseUser = auth.currentUser;
 
