@@ -16,15 +16,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { useAuthStore } from '../../store/authStore';
-import { useFinanceStore } from '../../store/financeStore';
 import {
   addExpense,
-  getRecentExpenses,
+  getExpenses,
   deleteExpense,
   updateExpense,
-  searchExpenses,
-  getExpensesByCategory,
-} from '../../database/finance';
+} from '../../services/firebaseFinanceService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const EXPENSE_CATEGORIES = [
   { id: 'housing', label: 'Housing', icon: '🏠', color: colors.finance },
@@ -39,7 +37,9 @@ const EXPENSE_CATEGORIES = [
 
 export const ExpenseLoggerScreen = ({ navigation }: any) => {
   const { user } = useAuthStore();
-  const { recentExpenses, setRecentExpenses } = useFinanceStore();
+  const isDemoUser = user?.id === 'demo-user-local';
+
+  const [recentExpenses, setRecentExpenses] = useState<any[]>([]);
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('food');
@@ -66,16 +66,31 @@ export const ExpenseLoggerScreen = ({ navigation }: any) => {
     if (!user?.id) return;
 
     try {
-      let expenses: any;
+      let expenses: any[] = [];
 
-      // Apply filters if any are active
-      if (searchTerm || filterCategory) {
-        expenses = await searchExpenses(user.id, {
-          searchTerm: searchTerm || undefined,
-          category: filterCategory || undefined,
-        });
+      if (isDemoUser) {
+        // Load from AsyncStorage for demo user
+        const expensesData = await AsyncStorage.getItem('expenses');
+        if (expensesData) {
+          expenses = JSON.parse(expensesData);
+        }
       } else {
-        expenses = await getRecentExpenses(user.id, 50);
+        // Load from Firebase for real user
+        const currentMonth = new Date().toISOString().slice(0, 7);
+        expenses = await getExpenses(user.id, {
+          startDate: `${currentMonth}-01`,
+          endDate: `${currentMonth}-31`,
+          category: filterCategory || undefined,
+          limit: 50,
+        });
+      }
+
+      // Apply client-side filtering for search term
+      if (searchTerm) {
+        expenses = expenses.filter(exp =>
+          exp.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          exp.category.toLowerCase().includes(searchTerm.toLowerCase())
+        );
       }
 
       // Apply sorting
@@ -83,7 +98,7 @@ export const ExpenseLoggerScreen = ({ navigation }: any) => {
         expenses.sort((a: any, b: any) => b.amount - a.amount);
       } else {
         expenses.sort((a: any, b: any) =>
-          new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime()
+          new Date(b.date).getTime() - new Date(a.date).getTime()
         );
       }
 
@@ -112,26 +127,34 @@ export const ExpenseLoggerScreen = ({ navigation }: any) => {
 
     try {
       const categoryName = EXPENSE_CATEGORIES.find((c) => c.id === selectedCategory)?.label || 'Other';
+      const today = new Date().toISOString().split('T')[0];
 
-      await addExpense(user.id, {
+      const expenseData = {
         amount: expenseAmount,
         category: categoryName,
-        description,
-        expenseDate: new Date().toISOString().split('T')[0],
-      });
+        description: description || '',
+        date: today,
+        is_recurring: false,
+        tags: [],
+      };
 
-      // TODO: Future integration with Budget Manager
-      // When user logs an expense, automatically deduct from corresponding budget category
-      // Example: If user logs $20 for "Food", reduce "Food" budget's available amount by $20
-      // This will help users see real-time budget impact and prevent overspending
-      // Implementation plan:
-      // 1. Check if user has an active budget for current month
-      // 2. Find matching budget category (or "Other" category)
-      // 3. Update spent_amount in budget_categories table
-      // 4. Show alert if expense exceeds remaining budget for that category
-
-      // Reload expenses
-      await loadRecentExpenses();
+      if (isDemoUser) {
+        // Save to AsyncStorage for demo user
+        const newExpense = {
+          id: Date.now().toString(),
+          user_id: user.id,
+          ...expenseData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        const updatedExpenses = [newExpense, ...recentExpenses];
+        await AsyncStorage.setItem('expenses', JSON.stringify(updatedExpenses));
+        setRecentExpenses(updatedExpenses);
+      } else {
+        // Save to Firebase for real user
+        await addExpense(user.id, expenseData);
+        await loadRecentExpenses();
+      }
 
       // Clear form
       setAmount('');
@@ -146,7 +169,7 @@ export const ExpenseLoggerScreen = ({ navigation }: any) => {
     }
   };
 
-  const handleDeleteExpense = async (expenseId: number) => {
+  const handleDeleteExpense = async (expenseId: string) => {
     Alert.alert(
       'Delete Expense',
       'Are you sure you want to delete this expense?',
@@ -159,8 +182,16 @@ export const ExpenseLoggerScreen = ({ navigation }: any) => {
             if (!user?.id) return;
 
             try {
-              await deleteExpense(expenseId, user.id);
-              await loadRecentExpenses();
+              if (isDemoUser) {
+                // Delete from AsyncStorage
+                const updatedExpenses = recentExpenses.filter(exp => exp.id !== expenseId);
+                await AsyncStorage.setItem('expenses', JSON.stringify(updatedExpenses));
+                setRecentExpenses(updatedExpenses);
+              } else {
+                // Delete from Firebase
+                await deleteExpense(expenseId);
+                await loadRecentExpenses();
+              }
               Alert.alert('Deleted', 'Expense deleted successfully');
             } catch (error) {
               console.error('Error deleting expense:', error);
@@ -196,13 +227,27 @@ export const ExpenseLoggerScreen = ({ navigation }: any) => {
     try {
       const categoryName = EXPENSE_CATEGORIES.find((c) => c.id === editCategory)?.label || 'Other';
 
-      await updateExpense(editingExpense.id, user.id, {
+      const updates = {
         amount: expenseAmount,
         category: categoryName,
         description: editDescription,
-      });
+      };
 
-      await loadRecentExpenses();
+      if (isDemoUser) {
+        // Update in AsyncStorage
+        const updatedExpenses = recentExpenses.map(exp =>
+          exp.id === editingExpense.id
+            ? { ...exp, ...updates, updated_at: new Date().toISOString() }
+            : exp
+        );
+        await AsyncStorage.setItem('expenses', JSON.stringify(updatedExpenses));
+        setRecentExpenses(updatedExpenses);
+      } else {
+        // Update in Firebase
+        await updateExpense(editingExpense.id, updates);
+        await loadRecentExpenses();
+      }
+
       setEditModalVisible(false);
       Alert.alert('Updated', 'Expense updated successfully');
     } catch (error) {
@@ -237,7 +282,7 @@ export const ExpenseLoggerScreen = ({ navigation }: any) => {
   const getTodayTotal = () => {
     const today = new Date().toISOString().split('T')[0];
     return recentExpenses
-      .filter((expense: any) => expense.expense_date === today)
+      .filter((expense: any) => expense.date === today)
       .reduce((sum: number, expense: any) => sum + expense.amount, 0);
   };
 
@@ -254,7 +299,7 @@ export const ExpenseLoggerScreen = ({ navigation }: any) => {
           <View style={styles.expenseInfo}>
             <Text style={styles.expenseCategory}>{item.category}</Text>
             {item.description && <Text style={styles.expenseDescription}>{item.description}</Text>}
-            <Text style={styles.expenseDate}>{formatDate(item.expense_date)}</Text>
+            <Text style={styles.expenseDate}>{formatDate(item.date)}</Text>
           </View>
 
           <Text style={styles.expenseAmount}>-${item.amount.toFixed(2)}</Text>
