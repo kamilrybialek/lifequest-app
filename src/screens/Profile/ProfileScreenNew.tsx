@@ -7,6 +7,9 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Modal,
+  TextInput,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../components/ui/Card';
@@ -33,6 +36,8 @@ export const ProfileScreenNew: React.FC<ProfileScreenNewProps> = ({ navigation }
   const { progress } = useAppStore();
   const { darkMode, notificationsEnabled, toggleDarkMode } = useSettingsStore();
   const [achievements, setAchievements] = useState<any[]>([]);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [password, setPassword] = useState('');
 
   useEffect(() => {
     loadAchievements();
@@ -91,9 +96,9 @@ export const ProfileScreenNew: React.FC<ProfileScreenNewProps> = ({ navigation }
           text: 'Delete Account',
           style: 'destructive',
           onPress: async () => {
-            try {
-              if (isDemoUser) {
-                // Delete demo user data from AsyncStorage
+            if (isDemoUser) {
+              // Delete demo user - no password needed
+              try {
                 console.log('🗑️ Deleting demo user data...');
                 await AsyncStorage.removeItem('demo_user');
                 await AsyncStorage.removeItem('user_tasks');
@@ -106,30 +111,55 @@ export const ProfileScreenNew: React.FC<ProfileScreenNewProps> = ({ navigation }
                 await AsyncStorage.removeItem('nutritionData');
                 console.log('✅ Demo user data deleted');
 
-                // Logout
                 await logout();
                 Alert.alert('Success', 'Demo account deleted. You can create a new one anytime!');
-              } else {
-                // Delete real user from Firebase
-                console.log('🗑️ Deleting Firebase user account...');
-                await deleteUserAccount(user.id);
-                Alert.alert(
-                  'Success',
-                  'Your account has been permanently deleted. You can create a new account anytime.',
-                  [{ text: 'OK', onPress: () => logout() }]
-                );
+              } catch (error: any) {
+                console.error('❌ Error deleting demo account:', error);
+                Alert.alert('Error', 'Failed to delete demo account. Please try again.');
               }
-            } catch (error: any) {
-              console.error('❌ Error deleting account:', error);
-              Alert.alert(
-                'Error',
-                error?.message || 'Failed to delete account. Please try again or contact support.'
-              );
+            } else {
+              // Show password modal for Firebase user
+              setShowPasswordModal(true);
             }
           },
         },
       ]
     );
+  };
+
+  const handleConfirmDeleteWithPassword = async () => {
+    if (!user?.id || !password) {
+      Alert.alert('Error', 'Please enter your password');
+      return;
+    }
+
+    try {
+      console.log('🗑️ Deleting Firebase user account...');
+      setShowPasswordModal(false);
+
+      await deleteUserAccount(user.id, password);
+
+      setPassword(''); // Clear password
+      Alert.alert(
+        'Success',
+        'Your account has been permanently deleted. You can create a new account anytime.',
+        [{ text: 'OK', onPress: () => logout() }]
+      );
+    } catch (error: any) {
+      console.error('❌ Error deleting account:', error);
+      setPassword(''); // Clear password on error
+
+      let errorMessage = 'Failed to delete account. Please try again.';
+      if (error?.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password. Please try again.';
+      } else if (error?.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed attempts. Please try again later.';
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      Alert.alert('Error', errorMessage);
+    }
   };
 
   const xpToNextLevel = ((user?.level || 1) * 100) - (user?.xp || 0);
@@ -420,6 +450,56 @@ export const ProfileScreenNew: React.FC<ProfileScreenNewProps> = ({ navigation }
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
+
+      {/* Password Modal for Account Deletion */}
+      <Modal
+        visible={showPasswordModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setShowPasswordModal(false);
+          setPassword('');
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Confirm Account Deletion</Text>
+            <Text style={styles.modalMessage}>
+              Please enter your password to confirm account deletion:
+            </Text>
+
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="Enter your password"
+              placeholderTextColor={colors.textLight}
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+              autoFocus
+              autoCapitalize="none"
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setShowPasswordModal(false);
+                  setPassword('');
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.deleteButton]}
+                onPress={handleConfirmDeleteWithPassword}
+              >
+                <Text style={styles.deleteButtonText}>Delete Account</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -601,5 +681,70 @@ const styles = StyleSheet.create({
   },
   bottomSpacer: {
     height: spacing.xl,
+  },
+  // Password Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: spacing.xl,
+    width: '85%',
+    maxWidth: 400,
+    ...shadows.large,
+  },
+  modalTitle: {
+    ...typography.h3,
+    color: colors.text,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+    textAlign: 'center',
+  },
+  passwordInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    fontSize: 16,
+    color: colors.text,
+    backgroundColor: colors.backgroundGray,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  modalButton: {
+    flex: 1,
+    padding: spacing.md,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: colors.backgroundGray,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  cancelButtonText: {
+    ...typography.body,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  deleteButton: {
+    backgroundColor: colors.error,
+  },
+  deleteButtonText: {
+    ...typography.body,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

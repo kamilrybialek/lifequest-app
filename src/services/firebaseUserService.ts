@@ -18,7 +18,7 @@ import {
   Timestamp,
   serverTimestamp
 } from 'firebase/firestore';
-import { deleteUser } from 'firebase/auth';
+import { deleteUser, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { db, auth } from '../config/firebase';
 import { Pillar } from '../types';
 
@@ -396,10 +396,27 @@ export const updateUserProfile = async (userId: string, updates: {
 /**
  * Delete user account completely
  * DEVELOPER TOOL - Deletes all user data from Firestore and Firebase Auth
+ * @param userId - User ID to delete
+ * @param password - User's password for re-authentication (required for Firebase security)
  */
-export const deleteUserAccount = async (userId: string): Promise<void> => {
+export const deleteUserAccount = async (userId: string, password: string): Promise<void> => {
   try {
     console.log('🗑️ Starting complete user deletion for:', userId);
+
+    // Step 0: Re-authenticate user (required by Firebase for account deletion)
+    const currentUser = auth.currentUser;
+    if (!currentUser || currentUser.uid !== userId) {
+      throw new Error('User not currently authenticated');
+    }
+
+    if (!currentUser.email) {
+      throw new Error('User email not found');
+    }
+
+    console.log('🔐 Re-authenticating user for security...');
+    const credential = EmailAuthProvider.credential(currentUser.email, password);
+    await reauthenticateWithCredential(currentUser, credential);
+    console.log('✅ Re-authentication successful');
 
     // Step 1: Delete all user's daily tasks
     const dailyTasksRef = collection(db, 'daily_tasks');
@@ -462,13 +479,9 @@ export const deleteUserAccount = async (userId: string): Promise<void> => {
     }
 
     // Step 7: Delete user from Firebase Auth
-    const currentUser = auth.currentUser;
-    if (currentUser && currentUser.uid === userId) {
-      await deleteUser(currentUser);
-      console.log('✅ Deleted user from Firebase Auth');
-    } else {
-      console.log('⚠️ User not currently authenticated or different user');
-    }
+    // currentUser is already authenticated from Step 0
+    await deleteUser(currentUser);
+    console.log('✅ Deleted user from Firebase Auth');
 
     console.log('🎉 User account completely deleted!');
   } catch (error) {
