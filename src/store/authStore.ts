@@ -19,6 +19,7 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
+  loginAsDemo: () => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<User>) => Promise<void>;
@@ -84,6 +85,58 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         throw new Error('Too many failed login attempts. Please try again later.');
       }
       throw error;
+    }
+  },
+
+  loginAsDemo: async () => {
+    try {
+      console.log('🎭 Logging in as demo user...');
+      const demoEmail = 'demo@demo.com';
+      const demoPassword = 'demodemo';
+
+      try {
+        // Try to login first
+        await get().login(demoEmail, demoPassword);
+        console.log('✅ Demo user logged in successfully');
+      } catch (error: any) {
+        // If user doesn't exist, create it
+        if (error.code === 'auth/user-not-found' || error.message?.includes('No account found')) {
+          console.log('📝 Demo user not found, creating...');
+
+          // Register demo user
+          const userCredential = await createUserWithEmailAndPassword(auth, demoEmail, demoPassword);
+          const firebaseUser = userCredential.user;
+
+          // Create profile with demo data (already onboarded)
+          await createUserProfile(firebaseUser.uid, {
+            email: firebaseUser.email!,
+            onboarded: true,
+            age: 25,
+            weight: 70,
+            height: 175,
+            gender: 'male',
+          });
+
+          const newUser: User = {
+            id: firebaseUser.uid,
+            email: firebaseUser.email!,
+            onboarded: true,
+            age: 25,
+            weight: 70,
+            height: 175,
+            gender: 'male',
+            createdAt: new Date().toISOString(),
+          };
+
+          set({ user: newUser, isAuthenticated: true });
+          console.log('✅ Demo user created and logged in successfully');
+        } else {
+          throw error;
+        }
+      }
+    } catch (error: any) {
+      console.error('❌ Demo login error:', error);
+      throw new Error('Failed to login as demo user. Please try again.');
     }
   },
 
