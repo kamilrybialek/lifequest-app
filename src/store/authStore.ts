@@ -73,6 +73,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       set({ user, isAuthenticated: true });
       console.log('✅ User logged in successfully');
+
+      // Trigger app data reload after login
+      console.log('🔄 Reloading app data after login...');
+      const { useAppStore } = require('./appStore');
+      await useAppStore.getState().loadAppData();
+      console.log('✅ App data reloaded after login');
     } catch (error: any) {
       console.error('❌ Login error:', error);
       // Provide user-friendly error messages
@@ -110,6 +116,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       set({ user: demoUser, isAuthenticated: true });
       console.log('✅ Demo user logged in successfully (OFFLINE mode)');
+
+      // Trigger app data reload for demo user
+      console.log('🔄 Reloading app data for demo user...');
+      const { useAppStore } = require('./appStore');
+      await useAppStore.getState().loadAppData();
+      console.log('✅ App data reloaded for demo user');
     } catch (error: any) {
       console.error('❌ Demo login error:', error);
       throw new Error('Failed to login as demo user. Please try again.');
