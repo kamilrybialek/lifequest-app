@@ -85,11 +85,20 @@ export const updateUserStats = async (
   updates: Partial<Omit<UserStats, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
 ): Promise<void> => {
   try {
-    const userStatsRef = doc(db, 'user_stats', userId);
-    await updateDoc(userStatsRef, {
-      ...updates,
+    // Filter out undefined values - Firestore doesn't accept explicit undefined
+    const cleanUpdates: any = {
       updated_at: serverTimestamp(),
+    };
+
+    // Only include fields that are not undefined
+    Object.keys(updates).forEach(key => {
+      if ((updates as any)[key] !== undefined) {
+        cleanUpdates[key] = (updates as any)[key];
+      }
     });
+
+    const userStatsRef = doc(db, 'user_stats', userId);
+    await updateDoc(userStatsRef, cleanUpdates);
   } catch (error) {
     console.error('Error updating user stats:', error);
     throw error;
@@ -356,11 +365,19 @@ export const updateUserProfile = async (userId: string, updates: {
   onboarded?: boolean;
 }) => {
   try {
-    const userRef = doc(db, 'users', userId);
-    await updateDoc(userRef, {
-      ...updates,
+    // Filter out undefined values - Firestore doesn't accept explicit undefined
+    const cleanUpdates: any = {
       updated_at: serverTimestamp(),
-    });
+    };
+
+    if (updates.age !== undefined) cleanUpdates.age = updates.age;
+    if (updates.weight !== undefined) cleanUpdates.weight = updates.weight;
+    if (updates.height !== undefined) cleanUpdates.height = updates.height;
+    if (updates.gender !== undefined) cleanUpdates.gender = updates.gender;
+    if (updates.onboarded !== undefined) cleanUpdates.onboarded = updates.onboarded;
+
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, cleanUpdates);
   } catch (error) {
     console.error('Error updating user profile:', error);
     throw error;
