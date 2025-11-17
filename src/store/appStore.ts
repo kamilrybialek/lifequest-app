@@ -122,8 +122,11 @@ export const useAppStore = create<AppState>((set, get) => ({
       const authStore = useAuthStore.getState();
       const userId = authStore.user?.id;
 
-      if (userId) {
-        console.log('🔍 loadAppData: User logged in, loading from Firebase...');
+      // Check if this is a demo user (offline mode)
+      const isDemoUser = userId === 'demo-user-local';
+
+      if (userId && !isDemoUser) {
+        console.log('🔍 loadAppData: Real user logged in, loading from Firebase...');
         try {
           // Get XP, level, and streaks from Firebase
           console.log('🔍 loadAppData: Fetching user stats and streaks...');
@@ -163,6 +166,29 @@ export const useAppStore = create<AppState>((set, get) => ({
           console.log('⚠️ Falling back to AsyncStorage...');
           const progressData = await AsyncStorage.getItem('progress');
           if (progressData) set({ progress: JSON.parse(progressData) });
+        }
+      } else if (isDemoUser) {
+        console.log('🎭 loadAppData: Demo user detected - using OFFLINE mode (AsyncStorage only)');
+        // Demo user - skip Firebase entirely, use only AsyncStorage
+        const progressData = await AsyncStorage.getItem('progress');
+        if (progressData) {
+          set({ progress: JSON.parse(progressData) });
+          console.log('✅ Loaded demo user progress from AsyncStorage');
+        } else {
+          // Initialize fresh progress for demo user
+          set({ progress: initialProgress });
+          await AsyncStorage.setItem('progress', JSON.stringify(initialProgress));
+          console.log('✅ Initialized fresh progress for demo user');
+        }
+
+        // Load or generate smart tasks (offline)
+        const tasks = await loadTasks();
+        if (tasks.length === 0) {
+          console.log('🧠 No tasks found, generating smart tasks for demo user...');
+          await get().generateSmartTasks('demo-user-local');
+        } else {
+          console.log(`📥 Loaded ${tasks.length} existing tasks for demo user`);
+          set({ dailyTasks: tasks as any });
         }
       } else {
         console.log('🔍 loadAppData: No user logged in, using AsyncStorage fallback...');
@@ -397,15 +423,18 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ progress: updatedProgress });
     AsyncStorage.setItem('progress', JSON.stringify(updatedProgress));
 
-    // Update in Supabase if user is logged in
+    // Update in Firebase if user is logged in (skip for demo users)
     const { useAuthStore } = require('./authStore');
     const authStore = useAuthStore.getState();
     const userId = authStore.user?.id;
+    const isDemoUser = userId === 'demo-user-local';
 
-    if (userId) {
+    if (userId && !isDemoUser) {
       firebaseUpdateStreak(userId, pillar).catch(error => {
         console.error('Error updating streak in Firebase:', error);
       });
+    } else if (isDemoUser) {
+      console.log('🎭 Demo user - streak saved to AsyncStorage only');
     }
 
     // Check for streak achievement
@@ -431,17 +460,20 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ progress: updatedProgress });
     await AsyncStorage.setItem('progress', JSON.stringify(updatedProgress));
 
-    // Update in Firebase if user is logged in
+    // Update in Firebase if user is logged in (skip for demo users)
     const { useAuthStore } = require('./authStore');
     const authStore = useAuthStore.getState();
     const userId = authStore.user?.id;
+    const isDemoUser = userId === 'demo-user-local';
 
-    if (userId) {
+    if (userId && !isDemoUser) {
       try {
         await addXP(userId, points);
       } catch (error) {
         console.error('Error updating XP in Firebase:', error);
       }
+    } else if (isDemoUser) {
+      console.log('🎭 Demo user - XP saved to AsyncStorage only');
     }
 
     // Send level up notification if level changed

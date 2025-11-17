@@ -158,7 +158,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     try {
       console.log('👋 Logging out...');
+
+      // Clear demo user from AsyncStorage if present
+      await AsyncStorage.removeItem('demo_user');
+
+      // Sign out from Firebase (will be a no-op if not signed in)
       await signOut(auth);
+
       set({ user: null, isAuthenticated: false });
       console.log('✅ Logged out successfully');
     } catch (error) {
@@ -174,18 +180,30 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       console.log('📝 Updating user profile...');
 
-      // Update in Firestore
-      await updateUserProfile(currentUser.id, {
-        age: data.age,
-        weight: data.weight,
-        height: data.height,
-        gender: data.gender,
-        onboarded: data.onboarded,
-      });
+      const isDemoUser = currentUser.id === 'demo-user-local';
+
+      if (!isDemoUser) {
+        // Update in Firestore for real users
+        await updateUserProfile(currentUser.id, {
+          age: data.age,
+          weight: data.weight,
+          height: data.height,
+          gender: data.gender,
+          onboarded: data.onboarded,
+        });
+      } else {
+        console.log('🎭 Demo user - profile saved to AsyncStorage only');
+      }
 
       // Update local state
       const updatedUser = { ...currentUser, ...data };
       set({ user: updatedUser });
+
+      // Save to AsyncStorage for demo users
+      if (isDemoUser) {
+        await AsyncStorage.setItem('demo_user', JSON.stringify(updatedUser));
+      }
+
       console.log('✅ Profile updated successfully');
     } catch (error) {
       console.error('❌ Profile update error:', error);
@@ -259,7 +277,12 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
   console.log('🔄 Auth state changed:', firebaseUser ? 'SIGNED_IN' : 'SIGNED_OUT');
 
   if (!firebaseUser) {
-    // User signed out
+    // User signed out - but check for demo user in AsyncStorage
+    const demoUserData = await AsyncStorage.getItem('demo_user');
+    if (demoUserData) {
+      console.log('✅ Demo user still active in AsyncStorage, keeping session');
+      return; // Don't sign out demo user
+    }
     useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: false });
   } else {
     // User signed in - reload user data
