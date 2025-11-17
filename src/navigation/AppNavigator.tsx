@@ -50,11 +50,26 @@ import { SavingsGoalsScreen } from '../screens/finance/SavingsGoalsScreen';
 import { NetWorthCalculatorScreen } from '../screens/finance/NetWorthCalculatorScreen';
 
 import { useAuthStore } from '../store/authStore';
+import { useAppStore } from '../store/appStore';
+import React, { useEffect, useRef } from 'react';
 
 const Stack = createNativeStackNavigator();
 
 export const AppNavigator = () => {
   const { user, isAuthenticated, isLoading } = useAuthStore();
+  const { loadAppData } = useAppStore();
+  const previousAuthState = useRef(isAuthenticated);
+
+  // Reload app data when authentication state changes from false to true
+  useEffect(() => {
+    if (isAuthenticated && !previousAuthState.current && user) {
+      console.log('🔄 AppNavigator: User just logged in, reloading app data...');
+      loadAppData().catch((error) => {
+        console.error('❌ AppNavigator: Error reloading app data:', error);
+      });
+    }
+    previousAuthState.current = isAuthenticated;
+  }, [isAuthenticated, user?.id]);
 
   if (isLoading) {
     return null;

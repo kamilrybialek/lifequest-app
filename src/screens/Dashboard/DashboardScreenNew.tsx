@@ -54,7 +54,7 @@ interface QuickWin {
 
 export const DashboardScreenNew = ({ navigation }: any) => {
   const { user } = useAuthStore();
-  const { progress, loadAppData } = useAppStore();
+  const { progress } = useAppStore();
   const [refreshing, setRefreshing] = useState(false);
   const [feedCards, setFeedCards] = useState<FeedCard[]>([]);
 
@@ -67,18 +67,6 @@ export const DashboardScreenNew = ({ navigation }: any) => {
     { id: '5', title: 'Log Water', icon: '💧', color: colors.nutrition, time: '10 sec', action: 'WaterTrackerScreen' },
     { id: '6', title: 'Check Budget', icon: '📊', color: colors.finance, time: '1 min', action: 'BudgetManagerScreen' },
   ];
-
-  // Reload app data when user logs in
-  useEffect(() => {
-    if (user) {
-      console.log('🔄 DashboardScreenNew: User detected, reloading app data...');
-      loadAppData().then(() => {
-        console.log('✅ DashboardScreenNew: App data reloaded');
-      }).catch((error) => {
-        console.error('❌ DashboardScreenNew: Error reloading app data:', error);
-      });
-    }
-  }, [user?.id]);
 
   useEffect(() => {
     loadFeed();
