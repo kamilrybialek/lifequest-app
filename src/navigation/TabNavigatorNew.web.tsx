@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 
 // Import .web.tsx versions EXPLICITLY
-import { DashboardScreenNew } from '../screens/Dashboard/DashboardScreenNew.web';
+import { DashboardScreenNew } from '../screens/Dashboard/DashboardScreenNew';
 import { ToolsScreen } from '../screens/tools/ToolsScreen';
 import { TasksScreen } from '../screens/tasks/TasksScreen.web';
 import { JourneyScreen } from '../screens/Journey/JourneyScreen.web';
