@@ -11,8 +11,8 @@ import {
   NutritionData,
   Pillar,
 } from '../types';
-// Use Supabase instead of local database
-import { getUserStats, getAllStreaks, getDailyTasks, addXP, updateStreak as supabaseUpdateStreak } from '../services/supabaseUserService';
+// Use Firebase Firestore instead of local database
+import { getUserStats, getAllStreaks, getDailyTasks, addXP, updateStreak as firebaseUpdateStreak } from '../services/firebaseUserService';
 import {
   scheduleStreakProtectionNotification,
   sendAchievementNotification,
@@ -117,15 +117,15 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (nutritionData) set({ nutritionData: JSON.parse(nutritionData) });
       console.log('✅ loadAppData: AsyncStorage data loaded');
 
-      // Load progress from Supabase (if user is logged in)
+      // Load progress from Firebase (if user is logged in)
       const { useAuthStore } = require('./authStore');
       const authStore = useAuthStore.getState();
       const userId = authStore.user?.id;
 
       if (userId) {
-        console.log('🔍 loadAppData: User logged in, loading from Supabase...');
+        console.log('🔍 loadAppData: User logged in, loading from Firebase...');
         try {
-          // Get XP, level, and streaks from Supabase
+          // Get XP, level, and streaks from Firebase
           console.log('🔍 loadAppData: Fetching user stats and streaks...');
           const [userStats, streaks] = await Promise.all([
             getUserStats(userId),
@@ -134,7 +134,7 @@ export const useAppStore = create<AppState>((set, get) => ({
           console.log('✅ loadAppData: Got user stats:', userStats);
           console.log('✅ loadAppData: Got streaks:', streaks);
 
-          // Transform Supabase data into AppStore format
+          // Transform Firebase data into AppStore format
           const updatedProgress: UserProgress = {
             level: userStats?.level || 1,
             xp: userStats?.total_xp || 0,
@@ -149,17 +149,17 @@ export const useAppStore = create<AppState>((set, get) => ({
           };
 
           set({ progress: updatedProgress });
-          console.log('✅ Loaded progress from Supabase:', updatedProgress);
+          console.log('✅ Loaded progress from Firebase:', updatedProgress);
 
-          // Load daily tasks from Supabase
-          console.log('🔍 loadAppData: Loading daily tasks from Supabase...');
+          // Load daily tasks from Firebase
+          console.log('🔍 loadAppData: Loading daily tasks from Firebase...');
           await get().loadDailyTasksFromSupabase(userId);
           console.log('✅ loadAppData: Daily tasks loaded');
         } catch (error) {
-          console.error('❌ Error loading progress from Supabase:', error);
+          console.error('❌ Error loading progress from Firebase:', error);
           console.error('❌ Error details:', error instanceof Error ? error.message : 'Unknown');
           console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack');
-          // Fall back to AsyncStorage if Supabase fails
+          // Fall back to AsyncStorage if Firebase fails
           console.log('⚠️ Falling back to AsyncStorage...');
           const progressData = await AsyncStorage.getItem('progress');
           if (progressData) set({ progress: JSON.parse(progressData) });
@@ -191,10 +191,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   loadDailyTasksFromSupabase: async (userId: string) => {
     try {
-      console.log('🔍 Loading daily tasks from Supabase for user:', userId);
+      console.log('🔍 Loading daily tasks from Firebase for user:', userId);
       const tasks = await getDailyTasks(userId);
 
-      // Transform Supabase tasks to app format
+      // Transform Firebase tasks to app format
       const formattedTasks: Task[] = tasks.map((task: any) => ({
         id: task.id,
         pillar: task.pillar as Pillar,
@@ -206,9 +206,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       }));
 
       set({ dailyTasks: formattedTasks });
-      console.log(`✅ Loaded ${formattedTasks.length} daily tasks from Supabase`);
+      console.log(`✅ Loaded ${formattedTasks.length} daily tasks from Firebase`);
     } catch (error) {
-      console.error('Error loading daily tasks from Supabase:', error);
+      console.error('Error loading daily tasks from Firebase:', error);
       // Fall back to empty array
       set({ dailyTasks: [] });
     }
@@ -403,8 +403,8 @@ export const useAppStore = create<AppState>((set, get) => ({
     const userId = authStore.user?.id;
 
     if (userId) {
-      supabaseUpdateStreak(userId, pillar).catch(error => {
-        console.error('Error updating streak in Supabase:', error);
+      firebaseUpdateStreak(userId, pillar).catch(error => {
+        console.error('Error updating streak in Firebase:', error);
       });
     }
 
@@ -431,7 +431,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     set({ progress: updatedProgress });
     await AsyncStorage.setItem('progress', JSON.stringify(updatedProgress));
 
-    // Update in Supabase if user is logged in
+    // Update in Firebase if user is logged in
     const { useAuthStore } = require('./authStore');
     const authStore = useAuthStore.getState();
     const userId = authStore.user?.id;
@@ -440,7 +440,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       try {
         await addXP(userId, points);
       } catch (error) {
-        console.error('Error updating XP in Supabase:', error);
+        console.error('Error updating XP in Firebase:', error);
       }
     }
 

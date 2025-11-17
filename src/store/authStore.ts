@@ -1,6 +1,18 @@
 import { create } from 'zustand';
 import { User } from '../types';
-import { supabase } from '../config/supabase';
+import { auth } from '../config/firebase';
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  User as FirebaseUser
+} from 'firebase/auth';
+import {
+  createUserProfile,
+  getUserProfile,
+  updateUserProfile
+} from '../services/firebaseUserService';
 
 interface AuthState {
   user: User | null;
@@ -20,53 +32,30 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   login: async (email: string, password: string) => {
     try {
-      console.log('🔐 Logging in with Supabase...');
+      console.log('🔐 Logging in with Firebase...');
 
-      // Sign in with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      // Sign in with Firebase Auth
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
 
-      if (authError) throw authError;
+      console.log('✅ Firebase auth successful, loading user data...');
 
-      if (!authData.user) {
-        throw new Error('No user data returned from Supabase');
+      // Load user profile from Firestore
+      let userData = await getUserProfile(firebaseUser.uid);
+
+      // If user doesn't exist in Firestore, create profile
+      if (!userData) {
+        console.log('Creating user profile in Firestore...');
+        await createUserProfile(firebaseUser.uid, {
+          email: firebaseUser.email!,
+          onboarded: false,
+        });
+
+        userData = await getUserProfile(firebaseUser.uid);
       }
 
-      console.log('✅ Supabase auth successful, loading user data...');
-
-      // Load user profile from our users table
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', authData.user.id)
-        .single();
-
-      if (userError) {
-        console.error('Error loading user data:', userError);
-        // If user doesn't exist in users table, create it
-        const { data: newUser, error: insertError } = await supabase
-          .from('users')
-          .insert({
-            id: authData.user.id,
-            email: authData.user.email!,
-            onboarded: false,
-          })
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-
-        const user: User = {
-          id: newUser.id,
-          email: newUser.email,
-          onboarded: false,
-          createdAt: newUser.created_at,
-        };
-
-        set({ user, isAuthenticated: true });
-        return;
+      if (!userData) {
+        throw new Error('Failed to load user profile');
       }
 
       const user: User = {
@@ -76,60 +65,63 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         weight: userData.weight,
         height: userData.height,
         gender: userData.gender,
-        onboarded: userData.onboarded,
-        createdAt: userData.created_at,
+        onboarded: userData.onboarded ?? false,
+        createdAt: userData.created_at?.toDate?.()?.toISOString() ?? new Date().toISOString(),
       };
 
       set({ user, isAuthenticated: true });
       console.log('✅ User logged in successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Login error:', error);
+      // Provide user-friendly error messages
+      if (error.code === 'auth/user-not-found') {
+        throw new Error('No account found with this email. Please register first.');
+      } else if (error.code === 'auth/wrong-password') {
+        throw new Error('Incorrect password. Please try again.');
+      } else if (error.code === 'auth/invalid-email') {
+        throw new Error('Invalid email address.');
+      } else if (error.code === 'auth/too-many-requests') {
+        throw new Error('Too many failed login attempts. Please try again later.');
+      }
       throw error;
     }
   },
 
   register: async (email: string, password: string) => {
     try {
-      console.log('📝 Registering new user with Supabase...');
+      console.log('📝 Registering new user with Firebase...');
 
       // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
+
+      console.log('✅ Firebase auth user created');
+
+      // Create user profile in Firestore
+      await createUserProfile(firebaseUser.uid, {
+        email: firebaseUser.email!,
+        onboarded: false,
       });
 
-      if (authError) throw authError;
-
-      if (!authData.user) {
-        throw new Error('No user data returned from Supabase');
-      }
-
-      console.log('✅ Supabase auth user created');
-
-      // Create user profile in users table (will be auto-created by trigger, but we'll ensure it)
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .upsert({
-          id: authData.user.id,
-          email: authData.user.email!,
-          onboarded: false,
-        })
-        .select()
-        .single();
-
-      if (userError) throw userError;
-
       const newUser: User = {
-        id: userData.id,
-        email: userData.email,
+        id: firebaseUser.uid,
+        email: firebaseUser.email!,
         onboarded: false,
-        createdAt: userData.created_at,
+        createdAt: new Date().toISOString(),
       };
 
       set({ user: newUser, isAuthenticated: true });
       console.log('✅ User registered successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Registration error:', error);
+      // Provide user-friendly error messages
+      if (error.code === 'auth/email-already-in-use') {
+        throw new Error('An account with this email already exists. Please log in instead.');
+      } else if (error.code === 'auth/invalid-email') {
+        throw new Error('Invalid email address.');
+      } else if (error.code === 'auth/weak-password') {
+        throw new Error('Password is too weak. Please use at least 6 characters.');
+      }
       throw error;
     }
   },
@@ -137,7 +129,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     try {
       console.log('👋 Logging out...');
-      await supabase.auth.signOut();
+      await signOut(auth);
       set({ user: null, isAuthenticated: false });
       console.log('✅ Logged out successfully');
     } catch (error) {
@@ -153,19 +145,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       console.log('📝 Updating user profile...');
 
-      // Update in Supabase
-      const { error } = await supabase
-        .from('users')
-        .update({
-          age: data.age,
-          weight: data.weight,
-          height: data.height,
-          gender: data.gender,
-          onboarded: data.onboarded,
-        })
-        .eq('id', currentUser.id);
-
-      if (error) throw error;
+      // Update in Firestore
+      await updateUserProfile(currentUser.id, {
+        age: data.age,
+        weight: data.weight,
+        height: data.height,
+        gender: data.gender,
+        onboarded: data.onboarded,
+      });
 
       // Update local state
       const updatedUser = { ...currentUser, ...data };
@@ -181,10 +168,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       console.log('🔍 Loading user session...');
 
-      // Check if there's an active session
-      const { data: { session } } = await supabase.auth.getSession();
+      const firebaseUser = auth.currentUser;
 
-      if (!session) {
+      if (!firebaseUser) {
         console.log('ℹ️ No active session found');
         set({ isLoading: false, isAuthenticated: false, user: null });
         return;
@@ -192,37 +178,22 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       console.log('✅ Active session found, loading user data...');
 
-      // Load user data from database
-      const { data: userData, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
+      // Load user data from Firestore
+      let userData = await getUserProfile(firebaseUser.uid);
 
-      if (error) {
-        console.error('❌ Error loading user data:', error);
-        // Create user if doesn't exist
-        const { data: newUser, error: insertError } = await supabase
-          .from('users')
-          .insert({
-            id: session.user.id,
-            email: session.user.email!,
-            onboarded: false,
-          })
-          .select()
-          .single();
-
-        if (insertError) throw insertError;
-
-        const user: User = {
-          id: newUser.id,
-          email: newUser.email,
+      // If user doesn't exist in Firestore, create profile
+      if (!userData) {
+        console.log('Creating user profile in Firestore...');
+        await createUserProfile(firebaseUser.uid, {
+          email: firebaseUser.email!,
           onboarded: false,
-          createdAt: newUser.created_at,
-        };
+        });
 
-        set({ user, isAuthenticated: true, isLoading: false });
-        return;
+        userData = await getUserProfile(firebaseUser.uid);
+      }
+
+      if (!userData) {
+        throw new Error('Failed to load user profile');
       }
 
       const user: User = {
@@ -232,8 +203,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         weight: userData.weight,
         height: userData.height,
         gender: userData.gender,
-        onboarded: userData.onboarded,
-        createdAt: userData.created_at,
+        onboarded: userData.onboarded ?? false,
+        createdAt: userData.created_at?.toDate?.()?.toISOString() ?? new Date().toISOString(),
       };
 
       set({ user, isAuthenticated: true, isLoading: false });
@@ -245,14 +216,44 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 }));
 
-// Set up auth state change listener
-supabase.auth.onAuthStateChange((event, session) => {
-  console.log('🔄 Auth state changed:', event);
+// Set up Firebase auth state change listener
+onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+  console.log('🔄 Auth state changed:', firebaseUser ? 'SIGNED_IN' : 'SIGNED_OUT');
 
-  if (event === 'SIGNED_OUT') {
-    useAuthStore.setState({ user: null, isAuthenticated: false });
-  } else if (event === 'SIGNED_IN' && session) {
-    // Reload user data when signed in
-    useAuthStore.getState().loadUser();
+  if (!firebaseUser) {
+    // User signed out
+    useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: false });
+  } else {
+    // User signed in - reload user data
+    try {
+      let userData = await getUserProfile(firebaseUser.uid);
+
+      // Create profile if doesn't exist
+      if (!userData) {
+        await createUserProfile(firebaseUser.uid, {
+          email: firebaseUser.email!,
+          onboarded: false,
+        });
+        userData = await getUserProfile(firebaseUser.uid);
+      }
+
+      if (userData) {
+        const user: User = {
+          id: userData.id,
+          email: userData.email,
+          age: userData.age,
+          weight: userData.weight,
+          height: userData.height,
+          gender: userData.gender,
+          onboarded: userData.onboarded ?? false,
+          createdAt: userData.created_at?.toDate?.()?.toISOString() ?? new Date().toISOString(),
+        };
+
+        useAuthStore.setState({ user, isAuthenticated: true, isLoading: false });
+      }
+    } catch (error) {
+      console.error('Error in auth state listener:', error);
+      useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: false });
+    }
   }
 });

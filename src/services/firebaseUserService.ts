@@ -1,10 +1,23 @@
 /**
- * Supabase User Service
+ * Firebase User Service
  *
- * Handles all user-related database operations using Supabase
+ * Handles all user-related database operations using Firestore
  */
 
-import { supabase } from '../config/supabase';
+import {
+  collection,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  query,
+  where,
+  getDocs,
+  orderBy,
+  Timestamp,
+  serverTimestamp
+} from 'firebase/firestore';
+import { db } from '../config/firebase';
 import { Pillar } from '../types';
 
 export interface UserStats {
@@ -17,8 +30,8 @@ export interface UserStats {
   physical_streak: number;
   nutrition_streak: number;
   last_active_date?: string;
-  created_at: string;
-  updated_at: string;
+  created_at: any;
+  updated_at: any;
 }
 
 /**
@@ -26,36 +39,38 @@ export interface UserStats {
  */
 export const getUserStats = async (userId: string): Promise<UserStats | null> => {
   try {
-    const { data, error } = await supabase
-      .from('user_stats')
-      .select('*')
-      .eq('user_id', userId)
-      .single();
+    const userStatsRef = doc(db, 'user_stats', userId);
+    const userStatsSnap = await getDoc(userStatsRef);
 
-    if (error) {
+    if (!userStatsSnap.exists()) {
       // If stats don't exist, create them
-      if (error.code === 'PGRST116') {
-        const { data: newStats, error: insertError } = await supabase
-          .from('user_stats')
-          .insert({
-            user_id: userId,
-            total_xp: 0,
-            level: 1,
-            finance_streak: 0,
-            mental_streak: 0,
-            physical_streak: 0,
-            nutrition_streak: 0,
-          })
-          .select()
-          .single();
+      const newStats: Omit<UserStats, 'id'> = {
+        user_id: userId,
+        total_xp: 0,
+        level: 1,
+        finance_streak: 0,
+        mental_streak: 0,
+        physical_streak: 0,
+        nutrition_streak: 0,
+        created_at: serverTimestamp(),
+        updated_at: serverTimestamp(),
+      };
 
-        if (insertError) throw insertError;
-        return newStats;
-      }
-      throw error;
+      await setDoc(userStatsRef, newStats);
+
+      return {
+        id: userId,
+        ...newStats,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
     }
 
-    return data;
+    const data = userStatsSnap.data();
+    return {
+      id: userStatsSnap.id,
+      ...data,
+    } as UserStats;
   } catch (error) {
     console.error('Error getting user stats:', error);
     return null;
@@ -70,12 +85,11 @@ export const updateUserStats = async (
   updates: Partial<Omit<UserStats, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
 ): Promise<void> => {
   try {
-    const { error } = await supabase
-      .from('user_stats')
-      .update(updates)
-      .eq('user_id', userId);
-
-    if (error) throw error;
+    const userStatsRef = doc(db, 'user_stats', userId);
+    await updateDoc(userStatsRef, {
+      ...updates,
+      updated_at: serverTimestamp(),
+    });
   } catch (error) {
     console.error('Error updating user stats:', error);
     throw error;
@@ -188,16 +202,21 @@ export const getDailyTasks = async (userId: string, date?: string) => {
   try {
     const taskDate = date || new Date().toISOString().split('T')[0];
 
-    const { data, error } = await supabase
-      .from('daily_tasks')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('task_date', taskDate)
-      .order('created_at', { ascending: true });
+    const tasksRef = collection(db, 'daily_tasks');
+    const q = query(
+      tasksRef,
+      where('user_id', '==', userId),
+      where('task_date', '==', taskDate),
+      orderBy('created_at', 'asc')
+    );
 
-    if (error) throw error;
+    const querySnapshot = await getDocs(q);
+    const tasks = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
 
-    return data || [];
+    return tasks;
   } catch (error) {
     console.error('Error getting daily tasks:', error);
     return [];
@@ -209,16 +228,22 @@ export const getDailyTasks = async (userId: string, date?: string) => {
  */
 export const completeTask = async (taskId: string, userId: string) => {
   try {
-    const { error } = await supabase
-      .from('daily_tasks')
-      .update({
-        completed: true,
-        completed_at: new Date().toISOString(),
-      })
-      .eq('id', taskId)
-      .eq('user_id', userId);
+    const taskRef = doc(db, 'daily_tasks', taskId);
+    const taskSnap = await getDoc(taskRef);
 
-    if (error) throw error;
+    if (!taskSnap.exists()) {
+      throw new Error('Task not found');
+    }
+
+    const taskData = taskSnap.data();
+    if (taskData.user_id !== userId) {
+      throw new Error('Unauthorized');
+    }
+
+    await updateDoc(taskRef, {
+      completed: true,
+      completed_at: serverTimestamp(),
+    });
   } catch (error) {
     console.error('Error completing task:', error);
     throw error;
@@ -236,23 +261,96 @@ export const createDailyTasks = async (userId: string, tasks: Array<{
 }>) => {
   try {
     const today = new Date().toISOString().split('T')[0];
+    const createdTasks = [];
 
-    const tasksToInsert = tasks.map(task => ({
-      user_id: userId,
-      task_date: today,
-      ...task,
-    }));
+    for (const task of tasks) {
+      const taskRef = doc(collection(db, 'daily_tasks'));
+      const taskData = {
+        user_id: userId,
+        task_date: today,
+        ...task,
+        completed: false,
+        created_at: serverTimestamp(),
+      };
 
-    const { data, error } = await supabase
-      .from('daily_tasks')
-      .insert(tasksToInsert)
-      .select();
+      await setDoc(taskRef, taskData);
+      createdTasks.push({
+        id: taskRef.id,
+        ...taskData,
+      });
+    }
 
-    if (error) throw error;
-
-    return data;
+    return createdTasks;
   } catch (error) {
     console.error('Error creating daily tasks:', error);
+    throw error;
+  }
+};
+
+/**
+ * Create or update user profile in Firestore
+ */
+export const createUserProfile = async (userId: string, data: {
+  email: string;
+  age?: number;
+  weight?: number;
+  height?: number;
+  gender?: string;
+  onboarded?: boolean;
+}) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await setDoc(userRef, {
+      ...data,
+      created_at: serverTimestamp(),
+      updated_at: serverTimestamp(),
+    }, { merge: true });
+  } catch (error) {
+    console.error('Error creating user profile:', error);
+    throw error;
+  }
+};
+
+/**
+ * Get user profile from Firestore
+ */
+export const getUserProfile = async (userId: string) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+
+    if (!userSnap.exists()) {
+      return null;
+    }
+
+    return {
+      id: userSnap.id,
+      ...userSnap.data(),
+    };
+  } catch (error) {
+    console.error('Error getting user profile:', error);
+    return null;
+  }
+};
+
+/**
+ * Update user profile
+ */
+export const updateUserProfile = async (userId: string, updates: {
+  age?: number;
+  weight?: number;
+  height?: number;
+  gender?: string;
+  onboarded?: boolean;
+}) => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, {
+      ...updates,
+      updated_at: serverTimestamp(),
+    });
+  } catch (error) {
+    console.error('Error updating user profile:', error);
     throw error;
   }
 };
