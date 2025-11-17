@@ -1,9 +1,6 @@
 import { create } from 'zustand';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
 import { User } from '../types';
-import { getUserByEmail, createUser as createUserInDB, updateUserOnboarding } from '../database/user';
-import { createDemoAccount, isDemoEmail, getDemoUserId } from '../utils/createDemoAccount';
+import { supabase } from '../config/supabase';
 
 interface AuthState {
   user: User | null;
@@ -22,188 +19,240 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: true,
 
   login: async (email: string, password: string) => {
-    // On web platform, use AsyncStorage-only authentication
-    if (Platform.OS === 'web') {
-      console.log('🌐 Web platform: Using AsyncStorage authentication');
+    try {
+      console.log('🔐 Logging in with Supabase...');
 
-      // Check if user exists in AsyncStorage
-      const usersData = await AsyncStorage.getItem('web_users');
-      const users = usersData ? JSON.parse(usersData) : [];
-      const existingUser = users.find((u: any) => u.email === email);
+      // Sign in with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      if (!existingUser) {
-        throw new Error('User not found. Please register first.');
+      if (authError) throw authError;
+
+      if (!authData.user) {
+        throw new Error('No user data returned from Supabase');
+      }
+
+      console.log('✅ Supabase auth successful, loading user data...');
+
+      // Load user profile from our users table
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', authData.user.id)
+        .single();
+
+      if (userError) {
+        console.error('Error loading user data:', userError);
+        // If user doesn't exist in users table, create it
+        const { data: newUser, error: insertError } = await supabase
+          .from('users')
+          .insert({
+            id: authData.user.id,
+            email: authData.user.email!,
+            onboarded: false,
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+
+        const user: User = {
+          id: newUser.id,
+          email: newUser.email,
+          onboarded: false,
+          createdAt: newUser.created_at,
+        };
+
+        set({ user, isAuthenticated: true });
+        return;
       }
 
       const user: User = {
-        id: existingUser.id,
-        email: existingUser.email,
-        age: existingUser.age,
-        weight: existingUser.weight,
-        height: existingUser.height,
-        gender: existingUser.gender,
-        onboarded: existingUser.onboarded || false,
-        createdAt: existingUser.createdAt || new Date().toISOString(),
+        id: userData.id,
+        email: userData.email,
+        age: userData.age,
+        weight: userData.weight,
+        height: userData.height,
+        gender: userData.gender,
+        onboarded: userData.onboarded,
+        createdAt: userData.created_at,
       };
 
-      await AsyncStorage.setItem('user', JSON.stringify(user));
       set({ user, isAuthenticated: true });
-      return;
+      console.log('✅ User logged in successfully');
+    } catch (error) {
+      console.error('❌ Login error:', error);
+      throw error;
     }
-
-    // Mobile platform: Use database
-    // Handle demo account
-    if (isDemoEmail(email)) {
-      let userId = await getDemoUserId();
-
-      // Create demo account if it doesn't exist
-      if (!userId) {
-        console.log('Creating demo account with sample data...');
-        userId = await createDemoAccount();
-      }
-
-      // Load demo user from database
-      const dbUser: any = await getUserByEmail(email);
-
-      if (!dbUser) {
-        throw new Error('Demo account creation failed');
-      }
-
-      const user: User = {
-        id: dbUser.id,
-        email: dbUser.email,
-        age: dbUser.age,
-        weight: dbUser.weight,
-        height: dbUser.height,
-        gender: dbUser.gender,
-        onboarded: dbUser.onboarded === 1,
-        createdAt: dbUser.created_at,
-      };
-
-      await AsyncStorage.setItem('user', JSON.stringify(user));
-      set({ user, isAuthenticated: true });
-      return;
-    }
-
-    // Regular user login
-    const dbUser: any = await getUserByEmail(email);
-
-    if (!dbUser) {
-      throw new Error('User not found');
-    }
-
-    const user: User = {
-      id: dbUser.id,
-      email: dbUser.email,
-      age: dbUser.age,
-      weight: dbUser.weight,
-      height: dbUser.height,
-      gender: dbUser.gender,
-      onboarded: dbUser.onboarded === 1,
-      createdAt: dbUser.created_at,
-    };
-
-    await AsyncStorage.setItem('user', JSON.stringify(user));
-    set({ user, isAuthenticated: true });
   },
 
   register: async (email: string, password: string) => {
-    // On web platform, use AsyncStorage-only authentication
-    if (Platform.OS === 'web') {
-      console.log('🌐 Web platform: Registering user in AsyncStorage');
+    try {
+      console.log('📝 Registering new user with Supabase...');
 
-      // Load existing users
-      const usersData = await AsyncStorage.getItem('web_users');
-      const users = usersData ? JSON.parse(usersData) : [];
+      // Create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
 
-      // Check if user already exists
-      if (users.find((u: any) => u.email === email)) {
-        throw new Error('User already exists');
+      if (authError) throw authError;
+
+      if (!authData.user) {
+        throw new Error('No user data returned from Supabase');
       }
 
-      // Generate new user ID
-      const newUserId = users.length > 0 ? Math.max(...users.map((u: any) => u.id)) + 1 : 1;
+      console.log('✅ Supabase auth user created');
+
+      // Create user profile in users table (will be auto-created by trigger, but we'll ensure it)
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .upsert({
+          id: authData.user.id,
+          email: authData.user.email!,
+          onboarded: false,
+        })
+        .select()
+        .single();
+
+      if (userError) throw userError;
 
       const newUser: User = {
-        id: newUserId,
-        email,
+        id: userData.id,
+        email: userData.email,
         onboarded: false,
-        createdAt: new Date().toISOString(),
+        createdAt: userData.created_at,
       };
 
-      // Save to web_users list
-      users.push(newUser);
-      await AsyncStorage.setItem('web_users', JSON.stringify(users));
-
-      // Set as current user
-      await AsyncStorage.setItem('user', JSON.stringify(newUser));
       set({ user: newUser, isAuthenticated: true });
-      return;
+      console.log('✅ User registered successfully');
+    } catch (error) {
+      console.error('❌ Registration error:', error);
+      throw error;
     }
-
-    // Mobile platform: Use database
-    const userId = await createUserInDB(email, email.split('@')[0]);
-
-    const newUser: User = {
-      id: userId,
-      email,
-      onboarded: false,
-      createdAt: new Date().toISOString(),
-    };
-
-    await AsyncStorage.setItem('user', JSON.stringify(newUser));
-    set({ user: newUser, isAuthenticated: true });
   },
 
   logout: async () => {
-    await AsyncStorage.removeItem('user');
-    set({ user: null, isAuthenticated: false });
+    try {
+      console.log('👋 Logging out...');
+      await supabase.auth.signOut();
+      set({ user: null, isAuthenticated: false });
+      console.log('✅ Logged out successfully');
+    } catch (error) {
+      console.error('❌ Logout error:', error);
+      throw error;
+    }
   },
 
   updateProfile: async (data: Partial<User>) => {
     const currentUser = get().user;
     if (!currentUser) return;
 
-    // Update in state and AsyncStorage
-    const updatedUser = { ...currentUser, ...data };
-    await AsyncStorage.setItem('user', JSON.stringify(updatedUser));
+    try {
+      console.log('📝 Updating user profile...');
 
-    // On web, also update in web_users list
-    if (Platform.OS === 'web') {
-      const usersData = await AsyncStorage.getItem('web_users');
-      const users = usersData ? JSON.parse(usersData) : [];
-      const userIndex = users.findIndex((u: any) => u.id === currentUser.id);
+      // Update in Supabase
+      const { error } = await supabase
+        .from('users')
+        .update({
+          age: data.age,
+          weight: data.weight,
+          height: data.height,
+          gender: data.gender,
+          onboarded: data.onboarded,
+        })
+        .eq('id', currentUser.id);
 
-      if (userIndex !== -1) {
-        users[userIndex] = updatedUser;
-        await AsyncStorage.setItem('web_users', JSON.stringify(users));
-      }
-    } else {
-      // Mobile: Update in database
-      await updateUserOnboarding(currentUser.id, {
-        age: data.age,
-        weight: data.weight,
-        height: data.height,
-        gender: data.gender,
-        onboarded: data.onboarded ? 1 : 0,
-      });
+      if (error) throw error;
+
+      // Update local state
+      const updatedUser = { ...currentUser, ...data };
+      set({ user: updatedUser });
+      console.log('✅ Profile updated successfully');
+    } catch (error) {
+      console.error('❌ Profile update error:', error);
+      throw error;
     }
-
-    set({ user: updatedUser });
   },
 
   loadUser: async () => {
     try {
-      const userData = await AsyncStorage.getItem('user');
-      if (userData) {
-        const user = JSON.parse(userData);
-        set({ user, isAuthenticated: true, isLoading: false });
-      } else {
-        set({ isLoading: false });
+      console.log('🔍 Loading user session...');
+
+      // Check if there's an active session
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        console.log('ℹ️ No active session found');
+        set({ isLoading: false, isAuthenticated: false, user: null });
+        return;
       }
+
+      console.log('✅ Active session found, loading user data...');
+
+      // Load user data from database
+      const { data: userData, error } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (error) {
+        console.error('❌ Error loading user data:', error);
+        // Create user if doesn't exist
+        const { data: newUser, error: insertError } = await supabase
+          .from('users')
+          .insert({
+            id: session.user.id,
+            email: session.user.email!,
+            onboarded: false,
+          })
+          .select()
+          .single();
+
+        if (insertError) throw insertError;
+
+        const user: User = {
+          id: newUser.id,
+          email: newUser.email,
+          onboarded: false,
+          createdAt: newUser.created_at,
+        };
+
+        set({ user, isAuthenticated: true, isLoading: false });
+        return;
+      }
+
+      const user: User = {
+        id: userData.id,
+        email: userData.email,
+        age: userData.age,
+        weight: userData.weight,
+        height: userData.height,
+        gender: userData.gender,
+        onboarded: userData.onboarded,
+        createdAt: userData.created_at,
+      };
+
+      set({ user, isAuthenticated: true, isLoading: false });
+      console.log('✅ User loaded successfully');
     } catch (error) {
-      console.error('Error loading user:', error);
-      set({ isLoading: false });
+      console.error('❌ Error loading user:', error);
+      set({ isLoading: false, isAuthenticated: false, user: null });
     }
   },
 }));
+
+// Set up auth state change listener
+supabase.auth.onAuthStateChange((event, session) => {
+  console.log('🔄 Auth state changed:', event);
+
+  if (event === 'SIGNED_OUT') {
+    useAuthStore.setState({ user: null, isAuthenticated: false });
+  } else if (event === 'SIGNED_IN' && session) {
+    // Reload user data when signed in
+    useAuthStore.getState().loadUser();
+  }
+});
