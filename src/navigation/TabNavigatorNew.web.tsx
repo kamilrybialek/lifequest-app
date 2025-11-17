@@ -7,7 +7,7 @@ import { colors } from '../theme/colors';
 // Import .web.tsx versions EXPLICITLY
 import { DashboardScreenNew } from '../screens/Dashboard/DashboardScreenNew';
 import { ToolsScreen } from '../screens/tools/ToolsScreen';
-import { TasksScreen } from '../screens/tasks/TasksScreen.web';
+import { TasksScreenNew } from '../screens/tasks/TasksScreenNew';
 import { JourneyScreen } from '../screens/Journey/JourneyScreen.web';
 import { ProfileScreenNew } from '../screens/Profile/ProfileScreenNew.web';
 
@@ -68,7 +68,7 @@ export const TabNavigatorNew = () => {
       />
       <Tab.Screen
         name="Tasks"
-        component={TasksScreen}
+        component={TasksScreenNew}
         options={{ tabBarLabel: 'Tasks' }}
       />
       <Tab.Screen

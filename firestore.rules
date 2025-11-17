@@ -43,5 +43,29 @@ service cloud.firestore {
       allow create: if isAuthenticated() &&
                        request.resource.data.user_id == request.auth.uid;
     }
+
+    // User tasks (Apple Reminders style) - users can only access their own
+    match /user_tasks/{taskId} {
+      allow read, write: if isAuthenticated() &&
+                            resource.data.user_id == request.auth.uid;
+      allow create: if isAuthenticated() &&
+                       request.resource.data.user_id == request.auth.uid;
+    }
+
+    // Task tags - users can only access their own
+    match /task_tags/{tagId} {
+      allow read, write: if isAuthenticated() &&
+                            resource.data.user_id == request.auth.uid;
+      allow create: if isAuthenticated() &&
+                       request.resource.data.user_id == request.auth.uid;
+    }
+
+    // Task lists - users can only access their own
+    match /task_lists/{listId} {
+      allow read, write: if isAuthenticated() &&
+                            resource.data.user_id == request.auth.uid;
+      allow create: if isAuthenticated() &&
+                       request.resource.data.user_id == request.auth.uid;
+    }
   }
 }

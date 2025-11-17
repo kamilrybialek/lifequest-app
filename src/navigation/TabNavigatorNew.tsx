@@ -7,7 +7,7 @@ import { colors } from '../theme/colors';
 // New screens
 import { DashboardScreenNew } from '../screens/Dashboard/DashboardScreenNew';
 import { ToolsScreen } from '../screens/tools/ToolsScreen';
-import { TasksScreen } from '../screens/tasks/TasksScreen';
+import { TasksScreenNew } from '../screens/tasks/TasksScreenNew';
 import { JourneyScreen } from '../screens/Journey/JourneyScreen';
 import { ProfileScreenNew } from '../screens/Profile/ProfileScreenNew';
 
@@ -85,7 +85,7 @@ export const TabNavigatorNew = () => {
       />
       <Tab.Screen
         name="Tasks"
-        component={TasksScreen}
+        component={TasksScreenNew}
         options={{ tabBarLabel: 'Tasks' }}
       />
       <Tab.Screen

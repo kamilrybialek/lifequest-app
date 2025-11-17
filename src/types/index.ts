@@ -31,6 +31,42 @@ export interface Task {
   streak_eligible?: boolean;
 }
 
+// User Task - Apple Reminders style with tags
+export interface UserTask {
+  id: string;
+  user_id: string;
+  title: string;
+  notes?: string;
+  completed: boolean;
+  completed_at?: string;
+  due_date?: string;
+  priority: 'none' | 'low' | 'medium' | 'high';
+  tags: string[]; // Tag names
+  list_id?: string; // Optional list grouping
+  flagged: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Task Tag
+export interface TaskTag {
+  id: string;
+  user_id: string;
+  name: string;
+  color: string;
+  created_at: string;
+}
+
+// Task List (like Apple Reminders lists)
+export interface TaskList {
+  id: string;
+  user_id: string;
+  name: string;
+  color: string;
+  icon: string;
+  created_at: string;
+}
+
 export interface Streak {
   pillar: Pillar;
   current: number;

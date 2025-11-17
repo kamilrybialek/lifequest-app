@@ -7,9 +7,10 @@
 
 // For React Native, we need to manually sync this with package.json
 // Update this value whenever you increment package.json version
-export const APP_VERSION = '2.1.2';
+export const APP_VERSION = '2.2.0';
 
 // Version history:
+// 2.2.0 - NEW: Firebase Tasks integration with tags (Apple Reminders-style), Demo mode fully offline
 // 2.1.2 - HOTFIX: Fixed infinite recursion in initializeDefaultLists
 // 2.1.1 - FIXED: Tasks not persisting on web (added missing AsyncStorage functions)
 // 2.1.0 - NEW DASHBOARD: Activity feed with infinite scroll, quick wins, time-based suggestions
