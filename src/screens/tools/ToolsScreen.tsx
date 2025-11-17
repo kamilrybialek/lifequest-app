@@ -29,13 +29,7 @@ interface Tool {
 }
 
 const FINANCE_TOOLS: Tool[] = [
-  { name: 'Budget Manager', icon: '💰', screen: 'BudgetManagerScreen', description: 'AI insights & templates', enhanced: true },
-  { name: 'Debt Tracker', icon: '🎯', screen: 'DebtTrackerScreen', description: '3 payoff strategies', enhanced: true },
-  { name: 'Expense Logger', icon: '📝', screen: 'ExpenseLoggerScreen', description: 'Track spending' },
-  { name: 'Emergency Fund', icon: '🚨', screen: 'EmergencyFundScreen', description: 'Build your safety net' },
-  { name: 'Net Worth', icon: '💎', screen: 'NetWorthCalculatorScreen', description: 'Track assets & liabilities' },
-  { name: 'Savings Goals', icon: '🎯', screen: 'SavingsGoalsScreen', description: 'Set & track goals' },
-  { name: 'Subscriptions', icon: '📱', screen: 'SubscriptionsScreen', description: 'Manage recurring bills' },
+  { name: 'Finance Dashboard', icon: '💰', screen: 'FinanceDashboard', description: 'Complete financial control center', enhanced: true },
 ];
 
 const MENTAL_TOOLS: Tool[] = [

@@ -154,6 +154,8 @@ export const ProfileScreenNew: React.FC<ProfileScreenNewProps> = ({ navigation }
         errorMessage = 'Incorrect password. Please try again.';
       } else if (error?.code === 'auth/too-many-requests') {
         errorMessage = 'Too many failed attempts. Please try again later.';
+      } else if (error?.code === 'auth/missing-password') {
+        errorMessage = 'Password is required. Please enter your password to delete your account.';
       } else if (error?.message) {
         errorMessage = error.message;
       }

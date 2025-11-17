@@ -413,6 +413,13 @@ export const deleteUserAccount = async (userId: string, password: string): Promi
       throw new Error('User email not found');
     }
 
+    // Validate password before attempting re-authentication
+    if (!password || password.trim() === '') {
+      const error: any = new Error('Password is required for account deletion');
+      error.code = 'auth/missing-password';
+      throw error;
+    }
+
     console.log('🔐 Re-authenticating user for security...');
     const credential = EmailAuthProvider.credential(currentUser.email, password);
     await reauthenticateWithCredential(currentUser, credential);
