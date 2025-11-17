@@ -120,12 +120,13 @@ export const useAppStore = create<AppState>((set, get) => ({
       if (nutritionData) set({ nutritionData: JSON.parse(nutritionData) });
       console.log('✅ loadAppData: AsyncStorage data loaded');
 
-      // Load progress from SQLite (if user is logged in)
+      // Load progress from SQLite (if user is logged in AND not on web)
       const { useAuthStore } = require('./authStore');
+      const { Platform } = require('react-native');
       const authStore = useAuthStore.getState();
       const userId = authStore.user?.id;
 
-      if (userId) {
+      if (userId && Platform.OS !== 'web') {
         console.log('🔍 loadAppData: User logged in, loading from database...');
         try {
           // Get XP, level, and streaks from SQLite database
