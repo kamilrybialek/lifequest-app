@@ -21,6 +21,8 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { getUserAchievements } from '../../database/achievements';
 import { shareUserData } from '../../utils/exportUserData';
 import { APP_VERSION } from '../../config/version';
+import { deleteUserAccount } from '../../services/firebaseUserService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface ProfileScreenNewProps {
   navigation: any;
@@ -70,6 +72,63 @@ export const ProfileScreenNew: React.FC<ProfileScreenNewProps> = ({ navigation }
       'Dark Mode',
       `Dark Mode ${!darkMode ? 'enabled' : 'disabled'}. This feature will be fully implemented soon.`,
       [{ text: 'OK' }]
+    );
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!user?.id) return;
+
+    const isDemoUser = user.id === 'demo-user-local';
+
+    Alert.alert(
+      '⚠️ Delete Account',
+      isDemoUser
+        ? 'This will permanently delete all demo data from this device. You can create a new demo account anytime.\n\nThis action cannot be undone.'
+        : 'This will permanently delete your account and all associated data from Firebase.\n\nThis action cannot be undone. You will need to create a new account to use the app again.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              if (isDemoUser) {
+                // Delete demo user data from AsyncStorage
+                console.log('🗑️ Deleting demo user data...');
+                await AsyncStorage.removeItem('demo_user');
+                await AsyncStorage.removeItem('user_tasks');
+                await AsyncStorage.removeItem('user_tags');
+                await AsyncStorage.removeItem('progress');
+                await AsyncStorage.removeItem('dailyTasks');
+                await AsyncStorage.removeItem('financeData');
+                await AsyncStorage.removeItem('mentalHealthData');
+                await AsyncStorage.removeItem('physicalHealthData');
+                await AsyncStorage.removeItem('nutritionData');
+                console.log('✅ Demo user data deleted');
+
+                // Logout
+                await logout();
+                Alert.alert('Success', 'Demo account deleted. You can create a new one anytime!');
+              } else {
+                // Delete real user from Firebase
+                console.log('🗑️ Deleting Firebase user account...');
+                await deleteUserAccount(user.id);
+                Alert.alert(
+                  'Success',
+                  'Your account has been permanently deleted. You can create a new account anytime.',
+                  [{ text: 'OK', onPress: () => logout() }]
+                );
+              }
+            } catch (error: any) {
+              console.error('❌ Error deleting account:', error);
+              Alert.alert(
+                'Error',
+                error?.message || 'Failed to delete account. Please try again or contact support.'
+              );
+            }
+          },
+        },
+      ]
     );
   };
 
@@ -338,18 +397,10 @@ export const ProfileScreenNew: React.FC<ProfileScreenNewProps> = ({ navigation }
           </TouchableOpacity>
         </Card>
 
-        {/* Danger Zone */}
-        <Text style={styles.sectionTitle}>DANGER ZONE</Text>
+        {/* Developer Tools */}
+        <Text style={styles.sectionTitle}>DEVELOPER TOOLS</Text>
         <Card variant="elevated" style={styles.settingsCard}>
-          <TouchableOpacity style={styles.settingItem}>
-            <View style={styles.settingLeft}>
-              <Ionicons name="refresh-outline" size={22} color={colors.warning} />
-              <Text style={[styles.settingText, { color: colors.warning }]}>Reset Progress</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.settingItem}>
+          <TouchableOpacity style={styles.settingItem} onPress={handleDeleteAccount}>
             <View style={styles.settingLeft}>
               <Ionicons name="trash-outline" size={22} color={colors.error} />
               <Text style={[styles.settingText, { color: colors.error }]}>Delete Account</Text>

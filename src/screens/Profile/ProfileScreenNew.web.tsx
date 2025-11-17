@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
+import { deleteUserAccount } from '../../services/firebaseUserService';
 
 export const ProfileScreenNew = () => {
   const { user, logout } = useAuthStore();
@@ -34,33 +35,50 @@ export const ProfileScreenNew = () => {
     // TODO: Implement settings navigation
   };
 
-  const handleResetDatabase = async () => {
+  const handleDeleteAccount = async () => {
+    if (!user?.id) return;
+
+    const isDemoUser = user.id === 'demo-user-local';
+
     const confirmed = window.confirm(
-      '⚠️ RESET DATABASE\n\n' +
-      'This will delete ALL your data including:\n' +
-      '- Onboarding data\n' +
-      '- Tasks and progress\n' +
-      '- Achievements and streaks\n' +
-      '- User authentication\n\n' +
-      'This action CANNOT be undone!\n\n' +
+      '⚠️ DELETE ACCOUNT\n\n' +
+      (isDemoUser
+        ? 'This will permanently delete all demo data from this device. You can create a new demo account anytime.\n\n'
+        : 'This will permanently delete your account and all associated data from Firebase.\n\nThis action cannot be undone. You will need to create a new account to use the app again.\n\n') +
       'Are you absolutely sure?'
     );
 
     if (confirmed) {
       try {
-        console.log('Resetting database...');
-        await AsyncStorage.clear();
-        console.log('Database cleared, reloading...');
+        if (isDemoUser) {
+          // Delete demo user data from AsyncStorage
+          console.log('🗑️ Deleting demo user data...');
+          await AsyncStorage.removeItem('demo_user');
+          await AsyncStorage.removeItem('user_tasks');
+          await AsyncStorage.removeItem('user_tags');
+          await AsyncStorage.removeItem('progress');
+          await AsyncStorage.removeItem('dailyTasks');
+          await AsyncStorage.removeItem('financeData');
+          await AsyncStorage.removeItem('mentalHealthData');
+          await AsyncStorage.removeItem('physicalHealthData');
+          await AsyncStorage.removeItem('nutritionData');
+          console.log('✅ Demo user data deleted');
 
-        // Show success message
-        window.alert('✅ Database has been reset successfully!\n\nThe app will now reload.');
-
-        // Logout and reload
-        await logout();
-        window.location.reload();
-      } catch (error) {
-        console.error('Error resetting database:', error);
-        window.alert('❌ Error: Failed to reset database. Please try again.');
+          // Logout
+          await logout();
+          window.alert('✅ Demo account deleted. You can create a new one anytime!');
+          window.location.reload();
+        } else {
+          // Delete real user from Firebase
+          console.log('🗑️ Deleting Firebase user account...');
+          await deleteUserAccount(user.id);
+          window.alert('✅ Your account has been permanently deleted. You can create a new account anytime.');
+          await logout();
+          window.location.reload();
+        }
+      } catch (error: any) {
+        console.error('❌ Error deleting account:', error);
+        window.alert('❌ Error: ' + (error?.message || 'Failed to delete account. Please try again.'));
       }
     }
   };
@@ -289,11 +307,11 @@ export const ProfileScreenNew = () => {
 
             <TouchableOpacity
               style={styles.settingItem}
-              onPress={handleResetDatabase}
+              onPress={handleDeleteAccount}
             >
               <View style={styles.settingLeft}>
                 <Ionicons name="trash-outline" size={24} color="#EF4444" />
-                <Text style={[styles.settingText, { color: '#EF4444' }]}>Reset Database (Dev)</Text>
+                <Text style={[styles.settingText, { color: '#EF4444' }]}>Delete Account (Dev)</Text>
               </View>
               <Ionicons name="warning-outline" size={20} color="#EF4444" />
             </TouchableOpacity>

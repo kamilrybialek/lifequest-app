@@ -10,6 +10,7 @@ import {
   getDoc,
   setDoc,
   updateDoc,
+  deleteDoc,
   query,
   where,
   getDocs,
@@ -17,7 +18,8 @@ import {
   Timestamp,
   serverTimestamp
 } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { deleteUser } from 'firebase/auth';
+import { db, auth } from '../config/firebase';
 import { Pillar } from '../types';
 
 export interface UserStats {
@@ -387,6 +389,90 @@ export const updateUserProfile = async (userId: string, updates: {
     await updateDoc(userRef, cleanUpdates);
   } catch (error) {
     console.error('Error updating user profile:', error);
+    throw error;
+  }
+};
+
+/**
+ * Delete user account completely
+ * DEVELOPER TOOL - Deletes all user data from Firestore and Firebase Auth
+ */
+export const deleteUserAccount = async (userId: string): Promise<void> => {
+  try {
+    console.log('🗑️ Starting complete user deletion for:', userId);
+
+    // Step 1: Delete all user's daily tasks
+    const dailyTasksRef = collection(db, 'daily_tasks');
+    const dailyTasksQuery = query(dailyTasksRef, where('user_id', '==', userId));
+    const dailyTasksSnapshot = await getDocs(dailyTasksQuery);
+
+    const dailyTasksDeletes = dailyTasksSnapshot.docs.map(docSnapshot =>
+      deleteDoc(doc(db, 'daily_tasks', docSnapshot.id))
+    );
+    await Promise.all(dailyTasksDeletes);
+    console.log(`✅ Deleted ${dailyTasksSnapshot.size} daily tasks`);
+
+    // Step 2: Delete all user tasks (Apple Reminders style)
+    const userTasksRef = collection(db, 'user_tasks');
+    const userTasksQuery = query(userTasksRef, where('user_id', '==', userId));
+    const userTasksSnapshot = await getDocs(userTasksQuery);
+
+    const userTasksDeletes = userTasksSnapshot.docs.map(docSnapshot =>
+      deleteDoc(doc(db, 'user_tasks', docSnapshot.id))
+    );
+    await Promise.all(userTasksDeletes);
+    console.log(`✅ Deleted ${userTasksSnapshot.size} user tasks`);
+
+    // Step 3: Delete all task tags
+    const tagsRef = collection(db, 'task_tags');
+    const tagsQuery = query(tagsRef, where('user_id', '==', userId));
+    const tagsSnapshot = await getDocs(tagsQuery);
+
+    const tagsDeletes = tagsSnapshot.docs.map(docSnapshot =>
+      deleteDoc(doc(db, 'task_tags', docSnapshot.id))
+    );
+    await Promise.all(tagsDeletes);
+    console.log(`✅ Deleted ${tagsSnapshot.size} task tags`);
+
+    // Step 4: Delete all task lists
+    const listsRef = collection(db, 'task_lists');
+    const listsQuery = query(listsRef, where('user_id', '==', userId));
+    const listsSnapshot = await getDocs(listsQuery);
+
+    const listsDeletes = listsSnapshot.docs.map(docSnapshot =>
+      deleteDoc(doc(db, 'task_lists', docSnapshot.id))
+    );
+    await Promise.all(listsDeletes);
+    console.log(`✅ Deleted ${listsSnapshot.size} task lists`);
+
+    // Step 5: Delete user stats
+    try {
+      await deleteDoc(doc(db, 'user_stats', userId));
+      console.log('✅ Deleted user stats');
+    } catch (error) {
+      console.log('⚠️ No user stats to delete');
+    }
+
+    // Step 6: Delete user profile
+    try {
+      await deleteDoc(doc(db, 'users', userId));
+      console.log('✅ Deleted user profile');
+    } catch (error) {
+      console.log('⚠️ No user profile to delete');
+    }
+
+    // Step 7: Delete user from Firebase Auth
+    const currentUser = auth.currentUser;
+    if (currentUser && currentUser.uid === userId) {
+      await deleteUser(currentUser);
+      console.log('✅ Deleted user from Firebase Auth');
+    } else {
+      console.log('⚠️ User not currently authenticated or different user');
+    }
+
+    console.log('🎉 User account completely deleted!');
+  } catch (error) {
+    console.error('❌ Error deleting user account:', error);
     throw error;
   }
 };
