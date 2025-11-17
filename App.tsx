@@ -42,12 +42,15 @@ export default function App() {
         console.error('❌ Initialization error:', error);
         console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
         const errorMessage = error instanceof Error ? error.message : 'Unknown initialization error';
-        setInitError(`Failed to initialize app: ${errorMessage}`);
 
-        // On web, still allow app to continue with limited functionality
+        // On web, allow app to continue with limited functionality (don't set error)
         if (Platform.OS === 'web') {
           console.warn('⚠️ Running in degraded mode on web platform');
           console.warn('⚠️ Error was:', errorMessage);
+          // Don't set initError for web - let the app continue
+        } else {
+          // On mobile, show error screen
+          setInitError(`Failed to initialize app: ${errorMessage}`);
         }
       } finally {
         console.log('📍 Setting isInitializing to false');

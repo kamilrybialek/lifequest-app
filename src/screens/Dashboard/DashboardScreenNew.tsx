@@ -314,10 +314,12 @@ export const DashboardScreenNew = ({ navigation }: any) => {
         <View style={styles.headerRight}>
           <View style={styles.streakBadge}>
             <Text style={styles.streakIcon}>🔥</Text>
-            <Text style={styles.streakText}>{progress?.currentStreak || 0}</Text>
+            <Text style={styles.streakText}>
+              {Math.max(...(progress?.streaks?.map(s => s.current) || [0]), 0)}
+            </Text>
           </View>
           <View style={styles.levelBadge}>
-            <Text style={styles.levelText}>Lv {Math.floor((progress?.totalXP || 0) / 100) + 1}</Text>
+            <Text style={styles.levelText}>Lv {progress?.level || 1}</Text>
           </View>
         </View>
       </View>
