@@ -64,7 +64,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         age: userData.age,
         weight: userData.weight,
         height: userData.height,
-        gender: userData.gender,
+        gender: userData.gender as 'male' | 'female' | 'other' | undefined,
         onboarded: userData.onboarded ?? false,
         createdAt: userData.created_at?.toDate?.()?.toISOString() ?? new Date().toISOString(),
       };
@@ -202,7 +202,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         age: userData.age,
         weight: userData.weight,
         height: userData.height,
-        gender: userData.gender,
+        gender: userData.gender as 'male' | 'female' | 'other' | undefined,
         onboarded: userData.onboarded ?? false,
         createdAt: userData.created_at?.toDate?.()?.toISOString() ?? new Date().toISOString(),
       };
@@ -244,7 +244,7 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
           age: userData.age,
           weight: userData.weight,
           height: userData.height,
-          gender: userData.gender,
+          gender: userData.gender as 'male' | 'female' | 'other' | undefined,
           onboarded: userData.onboarded ?? false,
           createdAt: userData.created_at?.toDate?.()?.toISOString() ?? new Date().toISOString(),
         };

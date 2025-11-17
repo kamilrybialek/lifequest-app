@@ -32,7 +32,7 @@ export interface SmartTask {
 /**
  * Main entry point - generates intelligent daily tasks for WEB
  */
-export const generateIntelligentTasks = async (userId: number): Promise<SmartTask[]> => {
+export const generateIntelligentTasks = async (userId: string | number): Promise<SmartTask[]> => {
   const tasks: SmartTask[] = [];
 
   try {
@@ -450,7 +450,7 @@ export const loadTasks = async (): Promise<SmartTask[]> => {
 /**
  * Export for use in stores
  */
-export const getSmartTasksForToday = async (userId: number): Promise<SmartTask[]> => {
+export const getSmartTasksForToday = async (userId: string | number): Promise<SmartTask[]> => {
   console.log('🧠 Generating intelligent tasks for user:', userId);
   const tasks = await generateIntelligentTasks(userId);
   await saveTasks(tasks);

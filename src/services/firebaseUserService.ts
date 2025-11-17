@@ -311,10 +311,22 @@ export const createUserProfile = async (userId: string, data: {
   }
 };
 
+export interface UserProfile {
+  id: string;
+  email: string;
+  age?: number;
+  weight?: number;
+  height?: number;
+  gender?: string;
+  onboarded: boolean;
+  created_at?: any;
+  updated_at?: any;
+}
+
 /**
  * Get user profile from Firestore
  */
-export const getUserProfile = async (userId: string) => {
+export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
   try {
     const userRef = doc(db, 'users', userId);
     const userSnap = await getDoc(userRef);
@@ -326,7 +338,7 @@ export const getUserProfile = async (userId: string) => {
     return {
       id: userSnap.id,
       ...userSnap.data(),
-    };
+    } as UserProfile;
   } catch (error) {
     console.error('Error getting user profile:', error);
     return null;

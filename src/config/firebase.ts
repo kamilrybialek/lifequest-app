@@ -1,8 +1,6 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
-import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 🔥 FIREBASE CONFIGURATION
 // Configuration from Firebase Console
@@ -19,17 +17,11 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Auth with AsyncStorage persistence for React Native
-let auth;
-if (Platform.OS === 'web') {
-  // On web, use default persistence (localStorage)
-  auth = getAuth(app);
-} else {
-  // On mobile, use AsyncStorage for persistence
-  auth = initializeAuth(app, {
-    persistence: getReactNativePersistence(AsyncStorage)
-  });
-}
+// Initialize Firebase Auth
+// For web: Uses default localStorage persistence
+// For React Native: Will use AsyncStorage automatically when using @react-native-firebase/auth
+// For now, using web SDK which works on all platforms with localStorage/sessionStorage
+const auth = getAuth(app);
 
 // Initialize Firestore
 const db = getFirestore(app);
