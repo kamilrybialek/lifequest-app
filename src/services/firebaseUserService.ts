@@ -462,6 +462,67 @@ export const deleteUserAccount = async (userId: string, password: string): Promi
     await Promise.all(listsDeletes);
     console.log(`✅ Deleted ${listsSnapshot.size} task lists`);
 
+    // ============================================
+    // FINANCIAL DATA DELETION
+    // ============================================
+
+    // Delete all expenses
+    const expensesRef = collection(db, 'expenses');
+    const expensesQuery = query(expensesRef, where('user_id', '==', userId));
+    const expensesSnapshot = await getDocs(expensesQuery);
+    await Promise.all(expensesSnapshot.docs.map(doc => deleteDoc(doc.ref)));
+    console.log(`✅ Deleted ${expensesSnapshot.size} expenses`);
+
+    // Delete all income records
+    const incomeRef = collection(db, 'income');
+    const incomeQuery = query(incomeRef, where('user_id', '==', userId));
+    const incomeSnapshot = await getDocs(incomeQuery);
+    await Promise.all(incomeSnapshot.docs.map(doc => deleteDoc(doc.ref)));
+    console.log(`✅ Deleted ${incomeSnapshot.size} income records`);
+
+    // Delete all debts
+    const debtsRef = collection(db, 'debts');
+    const debtsQuery = query(debtsRef, where('user_id', '==', userId));
+    const debtsSnapshot = await getDocs(debtsQuery);
+    await Promise.all(debtsSnapshot.docs.map(doc => deleteDoc(doc.ref)));
+    console.log(`✅ Deleted ${debtsSnapshot.size} debts`);
+
+    // Delete all budgets
+    const budgetsRef = collection(db, 'budgets');
+    const budgetsQuery = query(budgetsRef, where('user_id', '==', userId));
+    const budgetsSnapshot = await getDocs(budgetsQuery);
+    await Promise.all(budgetsSnapshot.docs.map(doc => deleteDoc(doc.ref)));
+    console.log(`✅ Deleted ${budgetsSnapshot.size} budgets`);
+
+    // Delete all savings goals
+    const savingsGoalsRef = collection(db, 'savings_goals');
+    const savingsGoalsQuery = query(savingsGoalsRef, where('user_id', '==', userId));
+    const savingsGoalsSnapshot = await getDocs(savingsGoalsQuery);
+    await Promise.all(savingsGoalsSnapshot.docs.map(doc => deleteDoc(doc.ref)));
+    console.log(`✅ Deleted ${savingsGoalsSnapshot.size} savings goals`);
+
+    // Delete all subscriptions
+    const subscriptionsRef = collection(db, 'subscriptions');
+    const subscriptionsQuery = query(subscriptionsRef, where('user_id', '==', userId));
+    const subscriptionsSnapshot = await getDocs(subscriptionsQuery);
+    await Promise.all(subscriptionsSnapshot.docs.map(doc => deleteDoc(doc.ref)));
+    console.log(`✅ Deleted ${subscriptionsSnapshot.size} subscriptions`);
+
+    // Delete all net worth history
+    const netWorthRef = collection(db, 'net_worth_history');
+    const netWorthQuery = query(netWorthRef, where('user_id', '==', userId));
+    const netWorthSnapshot = await getDocs(netWorthQuery);
+    await Promise.all(netWorthSnapshot.docs.map(doc => deleteDoc(doc.ref)));
+    console.log(`✅ Deleted ${netWorthSnapshot.size} net worth snapshots`);
+
+    // Delete financial profile
+    try {
+      await deleteDoc(doc(db, 'financial_profiles', userId));
+      console.log('✅ Deleted financial profile');
+    } catch (error) {
+      console.log('⚠️ No financial profile to delete');
+    }
+
     // Step 5: Delete user stats
     try {
       await deleteDoc(doc(db, 'user_stats', userId));
