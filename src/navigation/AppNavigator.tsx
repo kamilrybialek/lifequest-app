@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
@@ -51,7 +51,6 @@ import { NetWorthCalculatorScreen } from '../screens/finance/NetWorthCalculatorS
 
 import { useAuthStore } from '../store/authStore';
 import { useAppStore } from '../store/appStore';
-import React, { useEffect, useRef } from 'react';
 
 const Stack = createNativeStackNavigator();
 
