@@ -279,15 +279,21 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
   } else {
     // User signed in - reload user data
     try {
+      console.log('🔍 onAuthStateChanged: Loading user profile from Firestore...');
+      console.log('🔍 User ID:', firebaseUser.uid);
+
       let userData = await getUserProfile(firebaseUser.uid);
+      console.log('✅ onAuthStateChanged: Got user profile:', userData);
 
       // Create profile if doesn't exist
       if (!userData) {
+        console.log('📝 onAuthStateChanged: Creating user profile...');
         await createUserProfile(firebaseUser.uid, {
           email: firebaseUser.email!,
           onboarded: false,
         });
         userData = await getUserProfile(firebaseUser.uid);
+        console.log('✅ onAuthStateChanged: Created user profile:', userData);
       }
 
       if (userData) {
@@ -302,11 +308,28 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
           createdAt: userData.created_at?.toDate?.()?.toISOString() ?? new Date().toISOString(),
         };
 
+        console.log('✅ onAuthStateChanged: Setting user in store:', user);
         useAuthStore.setState({ user, isAuthenticated: true, isLoading: false });
+      } else {
+        console.error('❌ onAuthStateChanged: Failed to load or create user profile');
+        useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: false });
       }
-    } catch (error) {
-      console.error('Error in auth state listener:', error);
-      useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: false });
+    } catch (error: any) {
+      console.error('❌ Error in auth state listener:', error);
+      console.error('❌ Error code:', error?.code);
+      console.error('❌ Error message:', error?.message);
+      console.error('❌ Error details:', JSON.stringify(error, null, 2));
+
+      // Don't completely fail - set user from Firebase Auth even if Firestore fails
+      const user: User = {
+        id: firebaseUser.uid,
+        email: firebaseUser.email!,
+        onboarded: false,
+        createdAt: new Date().toISOString(),
+      };
+
+      console.log('⚠️ Using fallback user data (Auth only, no Firestore):', user);
+      useAuthStore.setState({ user, isAuthenticated: true, isLoading: false });
     }
   }
 });
