@@ -63,6 +63,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const user: User = {
         id: userData.id,
         email: userData.email,
+        firstName: userData.firstName,
         age: userData.age,
         weight: userData.weight,
         height: userData.height,
@@ -185,6 +186,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       if (!isDemoUser) {
         // Update in Firestore for real users
         await updateUserProfile(currentUser.id, {
+          firstName: data.firstName,
           age: data.age,
           weight: data.weight,
           height: data.height,
@@ -255,6 +257,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const user: User = {
         id: userData.id,
         email: userData.email,
+        firstName: userData.firstName,
         age: userData.age,
         weight: userData.weight,
         height: userData.height,

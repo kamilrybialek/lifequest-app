@@ -28,6 +28,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { useAuthStore } from '../../store/authStore';
 import { UserTask, TaskTag } from '../../types';
+import { DuolingoHeader } from '../../components/DuolingoHeader';
 import {
   getUserTasks,
   createTask,
@@ -228,11 +229,12 @@ export const TasksScreenNew = ({ navigation }: any) => {
   const completedCount = tasks.filter(t => t.completed).length;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.title}>📝 Tasks</Text>
-        <Text style={styles.subtitle}>
+      <DuolingoHeader title="Tasks" />
+
+      <View style={styles.statsRow}>
+        <Text style={styles.statsText}>
           {completedCount} of {totalCount} completed
         </Text>
       </View>
@@ -460,7 +462,7 @@ export const TasksScreenNew = ({ navigation }: any) => {
           </TouchableOpacity>
         </KeyboardAvoidingView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -548,6 +550,18 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 14,
     color: colors.textLight,
+  },
+  statsRow: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  statsText: {
+    fontSize: 14,
+    color: colors.textLight,
+    fontWeight: '600',
   },
   searchContainer: {
     flexDirection: 'row',

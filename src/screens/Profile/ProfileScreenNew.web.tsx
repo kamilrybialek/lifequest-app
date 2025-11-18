@@ -1,38 +1,84 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, RefreshControl } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  Modal,
+  TextInput,
+  Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Card } from '../../components/ui/Card';
+import { ProgressBar } from '../../components/ui/ProgressBar';
+import { Button } from '../../components/ui/Button';
 import { colors } from '../../theme/colors';
+import { typography, shadows } from '../../theme/theme';
+import { spacing } from '../../theme/spacing';
 import { useAuthStore } from '../../store/authStore';
+import { DuolingoHeader } from '../../components/DuolingoHeader';
 import { useAppStore } from '../../store/appStore';
+import { useSettingsStore } from '../../store/settingsStore';
+import { getUserAchievements } from '../../database/achievements';
+import { shareUserData } from '../../utils/exportUserData';
+import { APP_VERSION } from '../../config/version';
 import { deleteUserAccount } from '../../services/firebaseUserService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export const ProfileScreenNew = () => {
+interface ProfileScreenNewProps {
+  navigation: any;
+}
+
+export const ProfileScreenNew: React.FC<ProfileScreenNewProps> = ({ navigation }) => {
   const { user, logout } = useAuthStore();
-  const { progress, loadAppData } = useAppStore();
-  const [refreshing, setRefreshing] = useState(false);
+  const { progress } = useAppStore();
+  const { darkMode, notificationsEnabled, toggleDarkMode } = useSettingsStore();
+  const [achievements, setAchievements] = useState<any[]>([]);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [password, setPassword] = useState('');
 
-  const onRefresh = async () => {
-    setRefreshing(true);
+  useEffect(() => {
+    loadAchievements();
+  }, []);
+
+  const loadAchievements = async () => {
+    if (!user?.id) return;
     try {
-      await loadAppData();
+      const data = await getUserAchievements(user.id);
+      setAchievements(data.filter((a: any) => a.unlocked).slice(0, 5));
     } catch (error) {
-      console.error('Error refreshing:', error);
+      console.error('Error loading achievements:', error);
     }
-    setRefreshing(false);
   };
 
   const handleLogout = () => {
-    const confirmed = window.confirm('Are you sure you want to logout?');
-    if (confirmed) {
-      console.log('Logging out...');
-      logout();
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Logout', onPress: logout, style: 'destructive' },
+    ]);
+  };
+
+  const handleExportData = async () => {
+    if (!user?.id) return;
+    try {
+      await shareUserData(user.id);
+      Alert.alert('Success', 'Your data has been exported successfully!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to export data. Please try again.');
+      console.error('Export error:', error);
     }
   };
 
-  const handleSettingPress = (setting: string) => {
-    console.log('Setting pressed:', setting);
-    // TODO: Implement settings navigation
+  const handleToggleDarkMode = () => {
+    toggleDarkMode();
+    Alert.alert(
+      'Dark Mode',
+      `Dark Mode ${!darkMode ? 'enabled' : 'disabled'}. This feature will be fully implemented soon.`,
+      [{ text: 'OK' }]
+    );
   };
 
   const handleDeleteAccount = async () => {
@@ -40,556 +86,689 @@ export const ProfileScreenNew = () => {
 
     const isDemoUser = user.id === 'demo-user-local';
 
-    const confirmed = window.confirm(
-      '⚠️ DELETE ACCOUNT\n\n' +
-      (isDemoUser
-        ? 'This will permanently delete all demo data from this device. You can create a new demo account anytime.\n\n'
-        : 'This will permanently delete your account and all associated data from Firebase.\n\nThis action cannot be undone. You will need to create a new account to use the app again.\n\n') +
-      'Are you absolutely sure?'
+    Alert.alert(
+      '⚠️ Delete Account',
+      isDemoUser
+        ? 'This will permanently delete all demo data from this device. You can create a new demo account anytime.\n\nThis action cannot be undone.'
+        : 'This will permanently delete your account and all associated data from Firebase.\n\nThis action cannot be undone. You will need to create a new account to use the app again.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Account',
+          style: 'destructive',
+          onPress: async () => {
+            if (isDemoUser) {
+              // Delete demo user - no password needed
+              try {
+                console.log('🗑️ Deleting demo user data...');
+                await AsyncStorage.removeItem('demo_user');
+                await AsyncStorage.removeItem('user_tasks');
+                await AsyncStorage.removeItem('user_tags');
+                await AsyncStorage.removeItem('progress');
+                await AsyncStorage.removeItem('dailyTasks');
+                await AsyncStorage.removeItem('financeData');
+                await AsyncStorage.removeItem('mentalHealthData');
+                await AsyncStorage.removeItem('physicalHealthData');
+                await AsyncStorage.removeItem('nutritionData');
+                console.log('✅ Demo user data deleted');
+
+                await logout();
+                Alert.alert('Success', 'Demo account deleted. You can create a new one anytime!');
+              } catch (error: any) {
+                console.error('❌ Error deleting demo account:', error);
+                Alert.alert('Error', 'Failed to delete demo account. Please try again.');
+              }
+            } else {
+              // Show password modal for Firebase user
+              setShowPasswordModal(true);
+            }
+          },
+        },
+      ]
     );
+  };
 
-    if (confirmed) {
-      try {
-        if (isDemoUser) {
-          // Delete demo user data from AsyncStorage
-          console.log('🗑️ Deleting demo user data...');
-          await AsyncStorage.removeItem('demo_user');
-          await AsyncStorage.removeItem('user_tasks');
-          await AsyncStorage.removeItem('user_tags');
-          await AsyncStorage.removeItem('progress');
-          await AsyncStorage.removeItem('dailyTasks');
-          await AsyncStorage.removeItem('financeData');
-          await AsyncStorage.removeItem('mentalHealthData');
-          await AsyncStorage.removeItem('physicalHealthData');
-          await AsyncStorage.removeItem('nutritionData');
-          console.log('✅ Demo user data deleted');
+  const handleConfirmDeleteWithPassword = async () => {
+    if (!user?.id || !password) {
+      Alert.alert('Error', 'Please enter your password');
+      return;
+    }
 
-          // Logout
-          await logout();
-          window.alert('✅ Demo account deleted. You can create a new one anytime!');
-          window.location.reload();
-        } else {
-          // Delete real user from Firebase
-          console.log('🗑️ Deleting Firebase user account...');
-          await deleteUserAccount(user.id);
-          window.alert('✅ Your account has been permanently deleted. You can create a new account anytime.');
-          await logout();
-          window.location.reload();
-        }
-      } catch (error: any) {
-        console.error('❌ Error deleting account:', error);
-        window.alert('❌ Error: ' + (error?.message || 'Failed to delete account. Please try again.'));
+    try {
+      console.log('🗑️ Deleting Firebase user account...');
+      setShowPasswordModal(false);
+
+      await deleteUserAccount(user.id, password);
+
+      setPassword(''); // Clear password
+      Alert.alert(
+        'Success',
+        'Your account has been permanently deleted. You can create a new account anytime.',
+        [{ text: 'OK', onPress: () => logout() }]
+      );
+    } catch (error: any) {
+      console.error('❌ Error deleting account:', error);
+      setPassword(''); // Clear password on error
+
+      let errorMessage = 'Failed to delete account. Please try again.';
+      if (error?.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password. Please try again.';
+      } else if (error?.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed attempts. Please try again later.';
+      } else if (error?.code === 'auth/missing-password') {
+        errorMessage = 'Password is required. Please enter your password to delete your account.';
+      } else if (error?.message) {
+        errorMessage = error.message;
       }
+
+      Alert.alert('Error', errorMessage);
     }
   };
 
-  const unlockedAchievements = progress.achievements.filter(a => a.unlocked);
-  const totalAchievements = progress.achievements.length;
-  const bestStreak = Math.max(...progress.streaks.map(s => s.longest), 0);
-  const currentStreakSum = progress.streaks.reduce((sum, s) => sum + s.current, 0);
-  const xpToNextLevel = (progress.level * 100) - progress.xp;
+  const xpToNextLevel = ((user?.level || 1) * 100) - (user?.xp || 0);
+  const levelProgress = ((user?.xp || 0) % 100);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>👤 Profile</Text>
-            {user?.email && (
-              <Text style={styles.email}>{user.email}</Text>
-            )}
-          </View>
-          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-            <Ionicons name="log-out-outline" size={24} color="#EF4444" />
-          </TouchableOpacity>
-        </View>
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.headerWrapper}>
+        <DuolingoHeader title="Profile" />
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
+          <Ionicons name="log-out-outline" size={24} color="#FFF" />
+        </TouchableOpacity>
+      </View>
 
-        {/* Level Card */}
-        <View style={styles.levelCard}>
-          <View style={styles.levelHeader}>
-            <View style={styles.levelBadge}>
-              <Text style={styles.levelNumber}>{progress.level}</Text>
-            </View>
-            <View style={styles.levelInfo}>
-              <Text style={styles.levelTitle}>Level {progress.level}</Text>
-              <Text style={styles.levelSubtitle}>{xpToNextLevel} XP to next level</Text>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+
+        {/* User Card */}
+        <Card variant="elevated" style={styles.userCard}>
+          <View style={styles.avatarContainer}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {user?.name?.charAt(0).toUpperCase() || 'U'}
+              </Text>
             </View>
           </View>
-          <View style={styles.xpProgressContainer}>
-            <View style={styles.xpProgressBar}>
-              <View
-                style={[
-                  styles.xpProgressFill,
-                  { width: `${(progress.xp % 100)}%` }
-                ]}
-              />
+
+          <Text style={styles.userName}>{user?.name || 'User'}</Text>
+          <Text style={styles.userEmail}>{user?.email}</Text>
+
+          {/* Level Progress */}
+          <View style={styles.levelContainer}>
+            <View style={styles.levelHeader}>
+              <View style={styles.levelBadge}>
+                <Ionicons name="star" size={20} color={colors.xpGold} />
+                <Text style={styles.levelText}>Level {user?.level || 1}</Text>
+              </View>
+              <Text style={styles.xpText}>{xpToNextLevel} XP to next level</Text>
             </View>
-            <Text style={styles.xpText}>{progress.xp} XP</Text>
+            <ProgressBar progress={levelProgress} color={colors.xpGold} height={8} />
           </View>
-        </View>
+        </Card>
 
         {/* Stats Grid */}
         <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <Ionicons name="star" size={32} color="#F59E0B" />
-            <Text style={styles.statValue}>{progress.totalPoints}</Text>
+          <Card variant="elevated" style={styles.statCard}>
+            <Ionicons name="flash" size={32} color={colors.xpGold} />
+            <Text style={styles.statValue}>{user?.xp || 0}</Text>
             <Text style={styles.statLabel}>Total XP</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Ionicons name="flame" size={32} color="#EF4444" />
-            <Text style={styles.statValue}>{bestStreak}</Text>
+          </Card>
+
+          <Card variant="elevated" style={styles.statCard}>
+            <Ionicons name="flame" size={32} color={colors.error} />
+            <Text style={styles.statValue}>
+              {Math.max(
+                progress.finance?.streak || 0,
+                progress.mental?.streak || 0,
+                progress.physical?.streak || 0,
+                progress.nutrition?.streak || 0
+              )}
+            </Text>
             <Text style={styles.statLabel}>Best Streak</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Ionicons name="trophy" size={32} color="#10B981" />
-            <Text style={styles.statValue}>{unlockedAchievements.length}/{totalAchievements}</Text>
+          </Card>
+
+          <Card variant="elevated" style={styles.statCard}>
+            <Ionicons name="trophy" size={32} color={colors.primary} />
+            <Text style={styles.statValue}>{achievements.length}</Text>
             <Text style={styles.statLabel}>Achievements</Text>
-          </View>
-          <View style={styles.statCard}>
-            <Ionicons name="calendar" size={32} color="#8B5CF6" />
-            <Text style={styles.statValue}>{currentStreakSum}</Text>
-            <Text style={styles.statLabel}>Current Streak</Text>
-          </View>
+          </Card>
+
+          <Card variant="elevated" style={styles.statCard}>
+            <Ionicons name="calendar" size={32} color={colors.info} />
+            <Text style={styles.statValue}>
+              {Math.floor((Date.now() - new Date(user?.createdAt || Date.now()).getTime()) / (1000 * 60 * 60 * 24))}
+            </Text>
+            <Text style={styles.statLabel}>Days Active</Text>
+          </Card>
         </View>
 
-        {/* Achievements Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>🏆 Achievements</Text>
-            <Text style={styles.sectionSubtitle}>{unlockedAchievements.length}/{totalAchievements}</Text>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.achievementsScroll}>
-            {progress.achievements.map((achievement) => (
-              <View
-                key={achievement.id}
-                style={[
-                  styles.achievementCard,
-                  !achievement.unlocked && styles.achievementCardLocked,
-                ]}
-              >
-                <Text style={[
-                  styles.achievementIcon,
-                  !achievement.unlocked && styles.achievementIconLocked,
-                ]}>
-                  {achievement.icon}
-                </Text>
-                <Text style={[
-                  styles.achievementName,
-                  !achievement.unlocked && styles.achievementTextLocked,
-                ]}>
-                  {achievement.name}
-                </Text>
-                <Text style={[
-                  styles.achievementDescription,
-                  !achievement.unlocked && styles.achievementTextLocked,
-                ]}>
-                  {achievement.description}
-                </Text>
-                {achievement.unlocked && (
-                  <View style={styles.achievementUnlocked}>
-                    <Ionicons name="checkmark-circle" size={20} color="#10B981" />
-                  </View>
-                )}
-              </View>
-            ))}
-          </ScrollView>
-        </View>
+        {/* Achievements Preview */}
+        {achievements.length > 0 && (
+          <Card variant="elevated" style={styles.achievementsCard}>
+            <View style={styles.achievementsHeader}>
+              <Text style={styles.achievementsTitle}>Recent Achievements</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Achievements')}>
+                <Text style={styles.viewAllText}>View All</Text>
+              </TouchableOpacity>
+            </View>
 
-        {/* Pillar Streaks */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔥 Current Streaks</Text>
-          {progress.streaks.map((streak) => {
-            const pillarColors: Record<string, string> = {
-              finance: '#10B981',
-              mental: '#8B5CF6',
-              physical: '#F59E0B',
-              nutrition: '#EC4899',
-            };
-            const pillarIcons: Record<string, string> = {
-              finance: '💰',
-              mental: '🧠',
-              physical: '💪',
-              nutrition: '🥗',
-            };
-            return (
-              <View key={streak.pillar} style={styles.streakCard}>
-                <View style={styles.streakLeft}>
-                  <View style={[styles.streakIcon, { backgroundColor: pillarColors[streak.pillar] }]}>
-                    <Text style={styles.streakEmoji}>{pillarIcons[streak.pillar]}</Text>
-                  </View>
-                  <View>
-                    <Text style={styles.streakPillar}>{streak.pillar.charAt(0).toUpperCase() + streak.pillar.slice(1)}</Text>
-                    <Text style={styles.streakLongest}>Longest: {streak.longest} days</Text>
-                  </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              {achievements.map((achievement: any) => (
+                <View key={achievement.id} style={styles.achievementBadge}>
+                  <Text style={styles.achievementIcon}>{achievement.icon}</Text>
+                  <Text style={styles.achievementName} numberOfLines={2}>
+                    {achievement.name}
+                  </Text>
                 </View>
-                <View style={styles.streakRight}>
-                  <Text style={styles.streakCurrent}>{streak.current}</Text>
-                  <Text style={styles.streakLabel}>days</Text>
-                </View>
-              </View>
-            );
-          })}
-        </View>
+              ))}
+            </ScrollView>
+          </Card>
+        )}
 
-        {/* Settings */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>⚙️ Settings</Text>
-          <View style={styles.settingsCard}>
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={() => handleSettingPress('notifications')}
-            >
-              <View style={styles.settingLeft}>
-                <Ionicons name="notifications-outline" size={24} color={colors.text} />
-                <Text style={styles.settingText}>Notifications</Text>
-              </View>
+        {/* Account Section */}
+        <Text style={styles.sectionTitle}>ACCOUNT</Text>
+        <Card variant="elevated" style={styles.settingsCard}>
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="person-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Edit Profile</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="key-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Change Password</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="mail-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Email Preferences</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+          </TouchableOpacity>
+        </Card>
+
+        {/* Preferences Section */}
+        <Text style={styles.sectionTitle}>PREFERENCES</Text>
+        <Card variant="elevated" style={styles.settingsCard}>
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={() => navigation.navigate('NotificationsSettings')}
+          >
+            <View style={styles.settingLeft}>
+              <Ionicons name="notifications-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Notifications</Text>
+            </View>
+            <View style={styles.settingRight}>
+              <Text style={styles.settingValue}>{notificationsEnabled ? 'On' : 'Off'}</Text>
               <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
-            </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
 
-            <View style={styles.settingDivider} />
-
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={() => handleSettingPress('account')}
-            >
-              <View style={styles.settingLeft}>
-                <Ionicons name="person-outline" size={24} color={colors.text} />
-                <Text style={styles.settingText}>Account Settings</Text>
-              </View>
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={handleToggleDarkMode}
+          >
+            <View style={styles.settingLeft}>
+              <Ionicons name="moon-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Dark Mode</Text>
+            </View>
+            <View style={styles.settingRight}>
+              <Text style={styles.settingValue}>{darkMode ? 'On' : 'Off'}</Text>
               <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
-            </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
 
-            <View style={styles.settingDivider} />
-
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={() => handleSettingPress('data')}
-            >
-              <View style={styles.settingLeft}>
-                <Ionicons name="download-outline" size={24} color={colors.text} />
-                <Text style={styles.settingText}>Export Data</Text>
-              </View>
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="language-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Language</Text>
+            </View>
+            <View style={styles.settingRight}>
+              <Text style={styles.settingValue}>English</Text>
               <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
-            </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
 
-            <View style={styles.settingDivider} />
-
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={() => handleSettingPress('privacy')}
-            >
-              <View style={styles.settingLeft}>
-                <Ionicons name="shield-outline" size={24} color={colors.text} />
-                <Text style={styles.settingText}>Privacy & Security</Text>
-              </View>
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="timer-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Daily Reminder</Text>
+            </View>
+            <View style={styles.settingRight}>
+              <Text style={styles.settingValue}>9:00 AM</Text>
               <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
-            </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </Card>
 
-            <View style={styles.settingDivider} />
+        {/* Data & Privacy Section */}
+        <Text style={styles.sectionTitle}>DATA & PRIVACY</Text>
+        <Card variant="elevated" style={styles.settingsCard}>
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={handleExportData}
+          >
+            <View style={styles.settingLeft}>
+              <Ionicons name="cloud-download-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Export Data</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={() => handleSettingPress('about')}
-            >
-              <View style={styles.settingLeft}>
-                <Ionicons name="information-circle-outline" size={24} color={colors.text} />
-                <Text style={styles.settingText}>About LifeQuest</Text>
-              </View>
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="sync-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Backup & Sync</Text>
+            </View>
+            <View style={styles.settingRight}>
+              <Text style={styles.settingValue}>Off</Text>
               <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
-            </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
 
-            <View style={styles.settingDivider} />
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="shield-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Privacy Policy</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={handleDeleteAccount}
-            >
-              <View style={styles.settingLeft}>
-                <Ionicons name="trash-outline" size={24} color="#EF4444" />
-                <Text style={[styles.settingText, { color: '#EF4444' }]}>Delete Account (Dev)</Text>
-              </View>
-              <Ionicons name="warning-outline" size={20} color="#EF4444" />
-            </TouchableOpacity>
-          </View>
-        </View>
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="document-text-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Terms of Service</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+          </TouchableOpacity>
+        </Card>
 
-        <View style={{ height: 40 }} />
+        {/* Support Section */}
+        <Text style={styles.sectionTitle}>SUPPORT</Text>
+        <Card variant="elevated" style={styles.settingsCard}>
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="help-circle-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Help Center</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="chatbubble-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Contact Support</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.settingItem}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="star-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>Rate App</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={() => navigation.navigate('About')}
+          >
+            <View style={styles.settingLeft}>
+              <Ionicons name="information-circle-outline" size={22} color={colors.textSecondary} />
+              <Text style={styles.settingText}>About</Text>
+            </View>
+            <View style={styles.settingRight}>
+              <Text style={styles.settingValue}>v{APP_VERSION}</Text>
+              <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+            </View>
+          </TouchableOpacity>
+        </Card>
+
+        {/* Developer Tools */}
+        <Text style={styles.sectionTitle}>DEVELOPER TOOLS</Text>
+        <Card variant="elevated" style={styles.settingsCard}>
+          <TouchableOpacity style={styles.settingItem} onPress={handleDeleteAccount}>
+            <View style={styles.settingLeft}>
+              <Ionicons name="trash-outline" size={22} color={colors.error} />
+              <Text style={[styles.settingText, { color: colors.error }]}>Delete Account</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+          </TouchableOpacity>
+        </Card>
+
+        {/* Logout Button */}
+        <Button
+          title="Logout"
+          variant="outline"
+          icon="log-out-outline"
+          onPress={handleLogout}
+          style={styles.logoutButton}
+        />
+
+        <View style={styles.bottomSpacer} />
       </ScrollView>
-    </SafeAreaView>
+
+      {/* Password Modal for Account Deletion */}
+      <Modal
+        visible={showPasswordModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setShowPasswordModal(false);
+          setPassword('');
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Confirm Account Deletion</Text>
+            <Text style={styles.modalMessage}>
+              Please enter your password to confirm account deletion:
+            </Text>
+
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="Enter your password"
+              placeholderTextColor={colors.textLight}
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+              autoFocus
+              autoCapitalize="none"
+            />
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setShowPasswordModal(false);
+                  setPassword('');
+                }}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.deleteButton]}
+                onPress={handleConfirmDeleteWithPassword}
+              >
+                <Text style={styles.deleteButtonText}>Delete Account</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.backgroundGray,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  content: {
+    padding: spacing.md,
   },
   header: {
-    padding: 20,
-    paddingTop: 40,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: spacing.lg,
+    paddingTop: spacing.md,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  email: {
-    fontSize: 14,
-    color: colors.textLight,
-    marginTop: 4,
+  headerWrapper: {
+    position: 'relative',
   },
   logoutButton: {
-    padding: 8,
-  },
-  levelCard: {
-    margin: 20,
-    marginTop: 0,
-    padding: 20,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    zIndex: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(239, 68, 68, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.25,
     shadowRadius: 4,
-    elevation: 3,
+    elevation: 5,
+  },
+  headerTitle: {
+    ...typography.h2,
+    color: colors.text,
+  },
+  userCard: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
+    marginBottom: spacing.lg,
+  },
+  avatarContainer: {
+    marginBottom: spacing.md,
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.primary + '20',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: colors.primary,
+  },
+  userName: {
+    ...typography.h3,
+    color: colors.text,
+    marginBottom: spacing.xs,
+  },
+  userEmail: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+  },
+  levelContainer: {
+    width: '100%',
   },
   levelHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: spacing.sm,
   },
   levelBadge: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
-    marginRight: 16,
+    gap: spacing.xs,
   },
-  levelNumber: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  levelInfo: {
-    flex: 1,
-  },
-  levelTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  levelText: {
+    ...typography.bodyBold,
     color: colors.text,
-    marginBottom: 4,
-  },
-  levelSubtitle: {
-    fontSize: 14,
-    color: colors.textLight,
-  },
-  xpProgressContainer: {
-    gap: 8,
-  },
-  xpProgressBar: {
-    height: 8,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  xpProgressFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: 4,
   },
   xpText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    textAlign: 'right',
+    fontSize: 12,
+    color: colors.textSecondary,
   },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 20,
-    gap: 12,
+    gap: spacing.md,
+    marginBottom: spacing.lg,
   },
   statCard: {
-    flex: 1,
-    minWidth: '45%',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    width: '48%',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    paddingVertical: spacing.lg,
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
+    ...typography.h2,
     color: colors.text,
-    marginTop: 8,
-    marginBottom: 4,
+    marginTop: spacing.sm,
   },
   statLabel: {
     fontSize: 12,
-    color: colors.textLight,
-    textAlign: 'center',
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
   },
-  section: {
-    paddingHorizontal: 20,
-    marginTop: 24,
+  achievementsCard: {
+    marginBottom: spacing.lg,
   },
-  sectionHeader: {
+  achievementsHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: spacing.md,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '600',
+  achievementsTitle: {
+    ...typography.h4,
     color: colors.text,
   },
-  sectionSubtitle: {
+  viewAllText: {
     fontSize: 14,
-    color: colors.textLight,
+    color: colors.primary,
+    fontWeight: '600',
   },
-  achievementsScroll: {
-    marginHorizontal: -20,
-    paddingHorizontal: 20,
-  },
-  achievementCard: {
-    width: 140,
-    padding: 16,
-    marginRight: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+  achievementBadge: {
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  achievementCardLocked: {
-    opacity: 0.5,
-    backgroundColor: '#F9FAFB',
+    marginRight: spacing.md,
+    width: 80,
   },
   achievementIcon: {
     fontSize: 40,
-    marginBottom: 8,
-  },
-  achievementIconLocked: {
-    opacity: 0.3,
+    marginBottom: spacing.xs,
   },
   achievementName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    textAlign: 'center',
-    marginBottom: 4,
-  },
-  achievementDescription: {
     fontSize: 11,
-    color: colors.textLight,
+    color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 16,
-  },
-  achievementTextLocked: {
-    color: colors.textLight,
-  },
-  achievementUnlocked: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-  },
-  streakCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
-    marginBottom: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  streakLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  streakIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  streakEmoji: {
-    fontSize: 24,
-  },
-  streakPillar: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 2,
-  },
-  streakLongest: {
-    fontSize: 12,
-    color: colors.textLight,
-  },
-  streakRight: {
-    alignItems: 'center',
-  },
-  streakCurrent: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.primary,
-  },
-  streakLabel: {
-    fontSize: 12,
-    color: colors.textLight,
   },
   settingsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    marginBottom: spacing.lg,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    marginTop: spacing.lg,
+    marginBottom: spacing.sm,
+    paddingHorizontal: spacing.xs,
+  },
+  settingsTitle: {
+    ...typography.h4,
+    color: colors.text,
+    marginBottom: spacing.md,
   },
   settingItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    paddingVertical: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
   settingLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: spacing.md,
+    flex: 1,
+  },
+  settingRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
   },
   settingText: {
-    fontSize: 16,
+    ...typography.body,
+    fontSize: 15,
     color: colors.text,
   },
-  settingDivider: {
-    height: 1,
-    backgroundColor: '#F3F4F6',
-    marginLeft: 52,
+  settingValue: {
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  logoutButton: {
+    marginTop: spacing.md,
+  },
+  bottomSpacer: {
+    height: spacing.xl,
+  },
+  // Password Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: spacing.xl,
+    width: '85%',
+    maxWidth: 400,
+    ...shadows.large,
+  },
+  modalTitle: {
+    ...typography.h3,
+    color: colors.text,
+    marginBottom: spacing.sm,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    ...typography.body,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+    textAlign: 'center',
+  },
+  passwordInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: spacing.md,
+    marginBottom: spacing.lg,
+    fontSize: 16,
+    color: colors.text,
+    backgroundColor: colors.backgroundGray,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  modalButton: {
+    flex: 1,
+    padding: spacing.md,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: colors.backgroundGray,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  cancelButtonText: {
+    ...typography.body,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  deleteButton: {
+    backgroundColor: colors.error,
+  },
+  deleteButtonText: {
+    ...typography.body,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

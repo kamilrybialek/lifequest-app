@@ -19,6 +19,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+import { DuolingoHeader } from '../../components/DuolingoHeader';
 
 interface Tool {
   name: string;
@@ -88,13 +89,8 @@ export const ToolsScreen = ({ navigation }: any) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>🛠️ Tools</Text>
-          <Text style={styles.headerSubtitle}>All your life management tools</Text>
-        </View>
-      </View>
+    <View style={styles.container}>
+      <DuolingoHeader title="Tools" />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {renderToolSection('Finance', FINANCE_TOOLS, colors.finance)}
@@ -104,7 +100,7 @@ export const ToolsScreen = ({ navigation }: any) => {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

@@ -27,6 +27,7 @@ import { colors } from '../../theme/colors';
 import { designSystem } from '../../theme/designSystem';
 import { useAuthStore } from '../../store/authStore';
 import { getDashboardStats, getDashboardInsights, type DashboardStats, type DashboardInsight } from '../../services/dashboardService';
+import { DuolingoHeader } from '../../components/DuolingoHeader';
 
 const { width } = Dimensions.get('window');
 
@@ -351,21 +352,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
   return (
     <View style={styles.container}>
       {/* Header with Gradient */}
-      <LinearGradient
-        colors={['#4A90E2', '#5FA3E8']}
-        style={styles.header}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-      >
-        <View style={styles.headerContent}>
-          <Text style={styles.greeting}>{getGreeting()} 👋</Text>
-          <Text style={styles.userName}>{user?.email?.split('@')[0] || 'Champion'}!</Text>
-        </View>
-        <TouchableOpacity style={styles.levelBadge}>
-          <Ionicons name="star" size={20} color="#FFD700" />
-          <Text style={styles.levelText}>Level 1</Text>
-        </TouchableOpacity>
-      </LinearGradient>
+      <DuolingoHeader />
 
       <FlatList
         data={feedCards}

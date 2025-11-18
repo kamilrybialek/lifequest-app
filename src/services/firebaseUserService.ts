@@ -310,6 +310,7 @@ export const createDailyTasks = async (userId: string, tasks: Array<{
  */
 export const createUserProfile = async (userId: string, data: {
   email: string;
+  firstName?: string;
   age?: number;
   weight?: number;
   height?: number;
@@ -332,6 +333,7 @@ export const createUserProfile = async (userId: string, data: {
 export interface UserProfile {
   id: string;
   email: string;
+  firstName?: string;
   age?: number;
   weight?: number;
   height?: number;
@@ -367,6 +369,7 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
  * Update user profile
  */
 export const updateUserProfile = async (userId: string, updates: {
+  firstName?: string;
   age?: number;
   weight?: number;
   height?: number;
@@ -379,6 +382,7 @@ export const updateUserProfile = async (userId: string, updates: {
       updated_at: serverTimestamp(),
     };
 
+    if (updates.firstName !== undefined) cleanUpdates.firstName = updates.firstName;
     if (updates.age !== undefined) cleanUpdates.age = updates.age;
     if (updates.weight !== undefined) cleanUpdates.weight = updates.weight;
     if (updates.height !== undefined) cleanUpdates.height = updates.height;

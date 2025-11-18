@@ -19,6 +19,7 @@ import { colors } from '../../theme/colors';
 import { typography, shadows } from '../../theme/theme';
 import { spacing } from '../../theme/spacing';
 import { useAuthStore } from '../../store/authStore';
+import { DuolingoHeader } from '../../components/DuolingoHeader';
 import { useAppStore } from '../../store/appStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { getUserAchievements } from '../../database/achievements';
@@ -168,15 +169,16 @@ export const ProfileScreenNew: React.FC<ProfileScreenNewProps> = ({ navigation }
   const levelProgress = ((user?.xp || 0) % 100);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.headerWrapper}>
+        <DuolingoHeader title="Profile" />
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout} activeOpacity={0.8}>
+          <Ionicons name="log-out-outline" size={24} color="#FFF" />
+        </TouchableOpacity>
+      </View>
+
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Profile</Text>
-          <TouchableOpacity onPress={handleLogout}>
-            <Ionicons name="log-out-outline" size={24} color={colors.error} />
-          </TouchableOpacity>
-        </View>
 
         {/* User Card */}
         <Card variant="elevated" style={styles.userCard}>
@@ -502,7 +504,7 @@ export const ProfileScreenNew: React.FC<ProfileScreenNewProps> = ({ navigation }
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -523,6 +525,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.lg,
     paddingTop: spacing.md,
+  },
+  headerWrapper: {
+    position: 'relative',
+  },
+  logoutButton: {
+    position: 'absolute',
+    top: 60,
+    right: 20,
+    zIndex: 10,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(239, 68, 68, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
   headerTitle: {
     ...typography.h2,

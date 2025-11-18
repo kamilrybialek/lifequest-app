@@ -86,9 +86,16 @@ export const useOnboardingStore = create<OnboardingState>((set, get) => ({
 
       console.log('✅ Onboarding data saved successfully');
 
-      // Mark user as onboarded in auth store
+      // Mark user as onboarded in auth store and save firstName
       const { updateProfile } = useAuthStore.getState();
-      await updateProfile({ onboarded: true });
+      await updateProfile({
+        firstName: data.firstName,
+        age: data.age,
+        weight: data.weightKg,
+        height: data.heightCm,
+        gender: data.gender,
+        onboarded: true
+      });
 
       console.log('✅ User marked as onboarded, navigating to main app...');
 

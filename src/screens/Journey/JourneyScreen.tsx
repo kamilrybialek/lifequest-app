@@ -24,6 +24,7 @@ import { spacing } from '../../theme/spacing';
 import { useAppStore } from '../../store/appStore';
 import { useAuthStore } from '../../store/authStore';
 import { Pillar } from '../../types';
+import { DuolingoHeader } from '../../components/DuolingoHeader';
 
 const { width } = Dimensions.get('window');
 
@@ -193,19 +194,15 @@ export const JourneyScreen: React.FC<JourneyScreenProps> = ({ navigation, route 
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
+      {/* Header */}
+      <DuolingoHeader title="Journey" />
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.greeting}>
-            Hey {user?.email?.split('@')[0] || 'Champion'}! 👋
-          </Text>
-          <Text style={styles.tagline}>Choose Your Learning Path</Text>
-        </View>
 
         {/* Daily Streak Card */}
         <LinearGradient
@@ -239,7 +236,7 @@ export const JourneyScreen: React.FC<JourneyScreenProps> = ({ navigation, route 
           </Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
