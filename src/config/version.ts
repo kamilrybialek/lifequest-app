@@ -7,9 +7,10 @@
 
 // For React Native, we need to manually sync this with package.json
 // Update this value whenever you increment package.json version
-export const APP_VERSION = 'alpha 0.1.9';
+export const APP_VERSION = 'alpha 0.2.0';
 
 // Version history:
+// alpha 0.2.0 - Official Duolingo Design System applied across app
 // alpha 0.1.9 - Design System established! Official Duolingo-style language + Login screen redesign
 // alpha 0.1.8 - Duolingo-style redesign: colorful Journey selector & Finance Path with bubbles
 // alpha 0.1.7 - Finance Journey integration: interactive lessons save data to Firebase

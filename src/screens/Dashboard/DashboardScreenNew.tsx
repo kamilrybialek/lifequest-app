@@ -1,12 +1,12 @@
 /**
- * DASHBOARD - COMBINED BEST OF BOTH VERSIONS
+ * DASHBOARD - Duolingo Style
  *
- * Combines visual appeal of old dashboard with real data integration:
+ * Modern, colorful dashboard with:
+ * - Welcome header with greeting
  * - Quick Actions (horizontal scroll)
  * - Stats grid 2x2 with real data
- * - Time-based suggestions with gradients
- * - Real insights as visual cards
- * - Activity feed approach with actual data
+ * - Activity feed with gradients
+ * - Uses official Design System
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -24,6 +24,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../theme/colors';
+import { designSystem } from '../../theme/designSystem';
 import { useAuthStore } from '../../store/authStore';
 import { getDashboardStats, getDashboardInsights, type DashboardStats, type DashboardInsight } from '../../services/dashboardService';
 
