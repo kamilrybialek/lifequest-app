@@ -37,7 +37,7 @@ export const FinancePathNew = ({ navigation }: any) => {
 
     try {
       const completedLessonIds = await getCompletedLessons(user.id);
-      const financeProgress = await getFinanceProgress(user.id);
+      const financeProgress = await getFinanceProgress(parseInt(user.id, 10));
       let currentStep = (financeProgress as any)?.current_step || 1;
       let foundNextLesson: any = null;
 
@@ -157,7 +157,7 @@ export const FinancePathNew = ({ navigation }: any) => {
         >
           <Animated.View style={{ transform: [{ scale: scaleAnims[animKey] }] }}>
             <LinearGradient
-              colors={getBubbleColor()}
+              colors={getBubbleColor() as any}
               style={styles.bubble}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
@@ -203,8 +203,8 @@ export const FinancePathNew = ({ navigation }: any) => {
         <LinearGradient
           colors={
             step.status === 'locked'
-              ? ['#999999', '#CCCCCC']
-              : ['#4A90E2', '#5FA3E8']
+              ? (['#999999', '#CCCCCC'] as const)
+              : (['#4A90E2', '#5FA3E8'] as const)
           }
           style={styles.stepHeader}
           start={{ x: 0, y: 0 }}
@@ -289,7 +289,7 @@ export const FinancePathNew = ({ navigation }: any) => {
             activeOpacity={0.9}
           >
             <LinearGradient
-              colors={['#FFD700', '#FFA000']}
+              colors={['#FFD700', '#FFA000'] as const}
               style={styles.nextLessonGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}

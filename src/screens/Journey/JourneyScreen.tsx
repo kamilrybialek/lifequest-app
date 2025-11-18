@@ -137,7 +137,7 @@ export const JourneyScreen: React.FC<JourneyScreenProps> = ({ navigation, route 
           disabled={isLocked}
         >
           <LinearGradient
-            colors={isLocked ? ['#CCCCCC', '#999999'] : path.gradient}
+            colors={isLocked ? (['#CCCCCC', '#999999'] as const) : (path.gradient as any)}
             style={styles.pathCard}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -202,14 +202,14 @@ export const JourneyScreen: React.FC<JourneyScreenProps> = ({ navigation, route 
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.greeting}>
-            Hey {user?.displayName?.split(' ')[0] || 'Champion'}! 👋
+            Hey {user?.email?.split('@')[0] || 'Champion'}! 👋
           </Text>
           <Text style={styles.tagline}>Choose Your Learning Path</Text>
         </View>
 
         {/* Daily Streak Card */}
         <LinearGradient
-          colors={['#FFD700', '#FFA000']}
+          colors={['#FFD700', '#FFA000'] as const}
           style={styles.streakCard}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
