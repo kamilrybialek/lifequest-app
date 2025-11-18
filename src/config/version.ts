@@ -7,9 +7,10 @@
 
 // For React Native, we need to manually sync this with package.json
 // Update this value whenever you increment package.json version
-export const APP_VERSION = '2.2.0';
+export const APP_VERSION = 'alpha 0.1.1';
 
 // Version history:
+// alpha 0.1.1 - Login loading animation, optimized Tasks filter chips, unified Finance Dashboard
 // 2.2.0 - NEW: Firebase Tasks integration with tags (Apple Reminders-style), Demo mode fully offline
 // 2.1.2 - HOTFIX: Fixed infinite recursion in initializeDefaultLists
 // 2.1.1 - FIXED: Tasks not persisting on web (added missing AsyncStorage functions)
