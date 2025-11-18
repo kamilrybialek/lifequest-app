@@ -321,6 +321,66 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
   };
 
   // ============================================
+  // FINANCIAL HEALTH SCORE CALCULATION (0-100)
+  // ============================================
+
+  const calculateFinancialHealthScore = (): number => {
+    let score = 0;
+
+    // 1. Emergency Fund (0-20 points)
+    // $1,000 starter emergency fund
+    const emergencyFundScore = Math.min((emergencyFund / 1000) * 20, 20);
+    score += emergencyFundScore;
+
+    // 2. Debt-to-Income Ratio (0-25 points)
+    // Lower is better. 0% = 25 pts, 50%+ = 0 pts
+    if (monthlyIncome > 0) {
+      const debtRatio = (totalDebt / (monthlyIncome * 12)) * 100;
+      const debtScore = Math.max(25 - (debtRatio / 2), 0);
+      score += debtScore;
+    }
+
+    // 3. Savings Rate (0-20 points)
+    // 20%+ savings rate = full points
+    const savingsRateScore = Math.min((savingsRate / 20) * 20, 20);
+    score += savingsRateScore;
+
+    // 4. Budget Adherence (0-15 points)
+    // If spending is within budget
+    const budgetInc = parseFloat(budgetIncome) || 0;
+    if (budgetInc > 0 && monthlyExpenses <= budgetInc) {
+      score += 15;
+    } else if (budgetInc > 0 && monthlyExpenses <= budgetInc * 1.1) {
+      score += 10; // Within 10% of budget
+    } else if (budgetInc > 0 && monthlyExpenses <= budgetInc * 1.2) {
+      score += 5; // Within 20% of budget
+    }
+
+    // 5. Positive Net Worth (0-20 points)
+    if (netWorth >= 0) {
+      // Gradual points based on net worth
+      const netWorthScore = Math.min((netWorth / 10000) * 20, 20);
+      score += netWorthScore;
+    }
+
+    return Math.round(Math.min(score, 100));
+  };
+
+  const getHealthScoreColor = (score: number): [string, string] => {
+    if (score >= 80) return ['#58CC02', '#46A302']; // Excellent - Green
+    if (score >= 60) return ['#FFB800', '#FFA000']; // Good - Yellow
+    if (score >= 40) return ['#FF9500', '#FF8000']; // Fair - Orange
+    return ['#FF4B4B', '#CC0000']; // Needs Work - Red
+  };
+
+  const getHealthScoreLabel = (score: number): string => {
+    if (score >= 80) return 'Excellent';
+    if (score >= 60) return 'Good';
+    if (score >= 40) return 'Fair';
+    return 'Needs Work';
+  };
+
+  // ============================================
   // EXPENSE OPERATIONS
   // ============================================
 
@@ -480,33 +540,40 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
 
   const renderOverviewTab = () => {
     const cashFlow = monthlyIncome - monthlyExpenses;
+    const healthScore = calculateFinancialHealthScore();
+    const scoreColors = getHealthScoreColor(healthScore);
+    const scoreLabel = getHealthScoreLabel(healthScore);
 
     return (
       <ScrollView
         style={styles.tabContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* Net Worth Card */}
+        {/* Financial Health Score Card */}
         <LinearGradient
-          colors={netWorth >= 0 ? ['#58CC02', '#46A302'] : ['#FF4B4B', '#CC0000']}
+          colors={scoreColors}
           style={styles.netWorthCard}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
           <View style={styles.netWorthHeader}>
-            <Ionicons name="wallet" size={32} color="#FFFFFF" />
-            <Text style={styles.netWorthLabel}>Net Worth</Text>
+            <Ionicons name="fitness" size={32} color="#FFFFFF" />
+            <Text style={styles.netWorthLabel}>Kondycja Finansowa</Text>
           </View>
-          <Text style={styles.netWorthAmount}>${netWorth.toFixed(2)}</Text>
+          <View style={styles.scoreContainer}>
+            <Text style={styles.scoreValue}>{healthScore}</Text>
+            <Text style={styles.scoreOutOf}>/100</Text>
+          </View>
+          <Text style={styles.scoreLabel}>{scoreLabel}</Text>
           <View style={styles.netWorthBreakdown}>
             <View style={styles.netWorthItem}>
-              <Text style={styles.netWorthItemLabel}>Assets</Text>
-              <Text style={styles.netWorthItemValue}>${(netWorth + totalDebt).toFixed(0)}</Text>
+              <Text style={styles.netWorthItemLabel}>Net Worth</Text>
+              <Text style={styles.netWorthItemValue}>${netWorth.toFixed(0)}</Text>
             </View>
             <View style={styles.netWorthDivider} />
             <View style={styles.netWorthItem}>
-              <Text style={styles.netWorthItemLabel}>Liabilities</Text>
-              <Text style={styles.netWorthItemValue}>${totalDebt.toFixed(0)}</Text>
+              <Text style={styles.netWorthItemLabel}>Savings</Text>
+              <Text style={styles.netWorthItemValue}>{savingsRate.toFixed(0)}%</Text>
             </View>
           </View>
         </LinearGradient>
@@ -1542,6 +1609,33 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: '#FFFFFF',
     marginBottom: spacing.md,
+  },
+  scoreContainer: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    justifyContent: 'center',
+    marginBottom: spacing.xs,
+  },
+  scoreValue: {
+    fontSize: 72,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -2,
+  },
+  scoreOutOf: {
+    fontSize: 32,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginLeft: 4,
+  },
+  scoreLabel: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: spacing.md,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   netWorthBreakdown: {
     flexDirection: 'row',
