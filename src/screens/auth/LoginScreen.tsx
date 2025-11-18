@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { TextInput, Button, Text, Title, HelperText } from 'react-native-paper';
 import { useAuthStore } from '../../store/authStore';
 import { APP_VERSION } from '../../config/version';
@@ -9,14 +9,17 @@ export const LoginScreen = ({ navigation }: any) => {
   const [password, setPassword] = useState('');
   const [isLogin, setIsLogin] = useState(true);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const { login, register, loginAsDemo } = useAuthStore();
 
   const handleSubmit = async () => {
     setError('');
+    setLoading(true);
 
     if (!email || !password) {
       setError('Please fill in all fields');
+      setLoading(false);
       return;
     }
 
@@ -28,15 +31,18 @@ export const LoginScreen = ({ navigation }: any) => {
       }
     } catch (err: any) {
       setError(err.message || 'Authentication failed');
+      setLoading(false);
     }
   };
 
   const handleDemoLogin = async () => {
     setError('');
+    setLoading(true);
     try {
       await loginAsDemo();
     } catch (err: any) {
       setError(err.message || 'Demo login failed');
+      setLoading(false);
     }
   };
 
@@ -74,6 +80,8 @@ export const LoginScreen = ({ navigation }: any) => {
           mode="contained"
           onPress={handleSubmit}
           style={styles.button}
+          disabled={loading}
+          loading={loading}
         >
           {isLogin ? 'Login' : 'Sign Up'}
         </Button>
@@ -82,6 +90,7 @@ export const LoginScreen = ({ navigation }: any) => {
           mode="text"
           onPress={() => setIsLogin(!isLogin)}
           style={styles.switchButton}
+          disabled={loading}
         >
           {isLogin ? "Don't have an account? Sign Up" : 'Already have an account? Login'}
         </Button>
@@ -97,9 +106,18 @@ export const LoginScreen = ({ navigation }: any) => {
           onPress={handleDemoLogin}
           style={styles.demoButton}
           icon="account-circle"
+          disabled={loading}
+          loading={loading}
         >
           Try Demo (demo/demo)
         </Button>
+
+        {loading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color="#6200ee" />
+            <Text style={styles.loadingText}>Logging in...</Text>
+          </View>
+        )}
 
         <Text style={styles.version}>v{APP_VERSION}</Text>
       </View>
@@ -164,5 +182,16 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     fontSize: 12,
     color: '#999',
+  },
+  loadingOverlay: {
+    marginTop: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#6200ee',
+    fontWeight: '600',
   },
 });
