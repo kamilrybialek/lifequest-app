@@ -239,7 +239,7 @@ export const TasksScreenNew = ({ navigation }: any) => {
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={16} color={colors.textLight} style={styles.searchIcon} />
+        <Ionicons name="search" size={18} color={colors.textLight} style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search by title or tags..."
@@ -249,7 +249,7 @@ export const TasksScreenNew = ({ navigation }: any) => {
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
-            <Ionicons name="close-circle" size={16} color={colors.textLight} />
+            <Ionicons name="close-circle" size={18} color={colors.textLight} />
           </TouchableOpacity>
         )}
       </View>
@@ -267,7 +267,7 @@ export const TasksScreenNew = ({ navigation }: any) => {
         >
           <Ionicons
             name="list"
-            size={12}
+            size={16}
             color={filter === 'all' ? '#FFFFFF' : colors.text}
           />
           <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>
@@ -281,7 +281,7 @@ export const TasksScreenNew = ({ navigation }: any) => {
         >
           <Ionicons
             name="today"
-            size={12}
+            size={16}
             color={filter === 'today' ? '#FFFFFF' : colors.text}
           />
           <Text style={[styles.filterText, filter === 'today' && styles.filterTextActive]}>
@@ -295,7 +295,7 @@ export const TasksScreenNew = ({ navigation }: any) => {
         >
           <Ionicons
             name="flag"
-            size={12}
+            size={16}
             color={filter === 'flagged' ? '#FFFFFF' : colors.text}
           />
           <Text style={[styles.filterText, filter === 'flagged' && styles.filterTextActive]}>
@@ -309,7 +309,7 @@ export const TasksScreenNew = ({ navigation }: any) => {
         >
           <Ionicons
             name="checkmark-circle"
-            size={12}
+            size={16}
             color={filter === 'completed' ? '#FFFFFF' : colors.text}
           />
           <Text style={[styles.filterText, filter === 'completed' && styles.filterTextActive]}>
@@ -532,40 +532,40 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8FAFC',
   },
   header: {
-    paddingHorizontal: 16,
-    paddingTop: Platform.OS === 'web' ? 8 : 4,
-    paddingBottom: 6,
+    paddingHorizontal: 20,
+    paddingTop: Platform.OS === 'web' ? 20 : 10,
+    paddingBottom: 16,
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
   },
   title: {
-    fontSize: 20,
+    fontSize: 28,
     fontWeight: '700',
     color: colors.text,
-    marginBottom: 2,
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 14,
     color: colors.textLight,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
   },
   searchIcon: {
-    marginRight: 6,
+    marginRight: 8,
   },
   searchInput: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
     color: colors.text,
-    paddingVertical: 2,
+    paddingVertical: 4,
   },
   clearButton: {
     padding: 4,
@@ -576,25 +576,25 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E2E8F0',
   },
   filtersContent: {
-    paddingHorizontal: 12,
-    paddingVertical: 1,
-    gap: 4,
+    paddingHorizontal: 20,
+    paddingVertical: 6,
+    gap: 8,
   },
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 6,
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
     backgroundColor: '#F1F5F9',
-    marginRight: 4,
+    marginRight: 6,
   },
   filterChipActive: {
     backgroundColor: colors.primary,
   },
   filterText: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: '600',
     color: colors.text,
   },
