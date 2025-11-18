@@ -267,7 +267,7 @@ export const TasksScreenNew = ({ navigation }: any) => {
         >
           <Ionicons
             name="list"
-            size={16}
+            size={14}
             color={filter === 'all' ? '#FFFFFF' : colors.text}
           />
           <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>
@@ -281,7 +281,7 @@ export const TasksScreenNew = ({ navigation }: any) => {
         >
           <Ionicons
             name="today"
-            size={16}
+            size={14}
             color={filter === 'today' ? '#FFFFFF' : colors.text}
           />
           <Text style={[styles.filterText, filter === 'today' && styles.filterTextActive]}>
@@ -295,7 +295,7 @@ export const TasksScreenNew = ({ navigation }: any) => {
         >
           <Ionicons
             name="flag"
-            size={16}
+            size={14}
             color={filter === 'flagged' ? '#FFFFFF' : colors.text}
           />
           <Text style={[styles.filterText, filter === 'flagged' && styles.filterTextActive]}>
@@ -309,7 +309,7 @@ export const TasksScreenNew = ({ navigation }: any) => {
         >
           <Ionicons
             name="checkmark-circle"
-            size={16}
+            size={14}
             color={filter === 'completed' ? '#FFFFFF' : colors.text}
           />
           <Text style={[styles.filterText, filter === 'completed' && styles.filterTextActive]}>
@@ -577,18 +577,18 @@ const styles = StyleSheet.create({
   },
   filtersContent: {
     paddingHorizontal: 20,
-    paddingVertical: 6,
-    gap: 8,
+    paddingVertical: 4,
+    gap: 6,
   },
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
     backgroundColor: '#F1F5F9',
-    marginRight: 6,
+    marginRight: 5,
   },
   filterChipActive: {
     backgroundColor: colors.primary,
