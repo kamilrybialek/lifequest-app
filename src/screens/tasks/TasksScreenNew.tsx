@@ -239,7 +239,7 @@ export const TasksScreenNew = ({ navigation }: any) => {
 
       {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={18} color={colors.textLight} style={styles.searchIcon} />
+        <Ionicons name="search" size={16} color={colors.textLight} style={styles.searchIcon} />
         <TextInput
           style={styles.searchInput}
           placeholder="Search by title or tags..."
@@ -249,7 +249,7 @@ export const TasksScreenNew = ({ navigation }: any) => {
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
-            <Ionicons name="close-circle" size={18} color={colors.textLight} />
+            <Ionicons name="close-circle" size={16} color={colors.textLight} />
           </TouchableOpacity>
         )}
       </View>
@@ -267,7 +267,7 @@ export const TasksScreenNew = ({ navigation }: any) => {
         >
           <Ionicons
             name="list"
-            size={14}
+            size={12}
             color={filter === 'all' ? '#FFFFFF' : colors.text}
           />
           <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>
@@ -281,7 +281,7 @@ export const TasksScreenNew = ({ navigation }: any) => {
         >
           <Ionicons
             name="today"
-            size={14}
+            size={12}
             color={filter === 'today' ? '#FFFFFF' : colors.text}
           />
           <Text style={[styles.filterText, filter === 'today' && styles.filterTextActive]}>
@@ -295,7 +295,7 @@ export const TasksScreenNew = ({ navigation }: any) => {
         >
           <Ionicons
             name="flag"
-            size={14}
+            size={12}
             color={filter === 'flagged' ? '#FFFFFF' : colors.text}
           />
           <Text style={[styles.filterText, filter === 'flagged' && styles.filterTextActive]}>
@@ -309,7 +309,7 @@ export const TasksScreenNew = ({ navigation }: any) => {
         >
           <Ionicons
             name="checkmark-circle"
-            size={14}
+            size={12}
             color={filter === 'completed' ? '#FFFFFF' : colors.text}
           />
           <Text style={[styles.filterText, filter === 'completed' && styles.filterTextActive]}>
@@ -553,19 +553,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
     borderBottomWidth: 1,
     borderBottomColor: '#E2E8F0',
   },
   searchIcon: {
-    marginRight: 8,
+    marginRight: 6,
   },
   searchInput: {
     flex: 1,
-    fontSize: 15,
+    fontSize: 14,
     color: colors.text,
-    paddingVertical: 4,
+    paddingVertical: 2,
   },
   clearButton: {
     padding: 4,
@@ -576,25 +576,25 @@ const styles = StyleSheet.create({
     borderBottomColor: '#E2E8F0',
   },
   filtersContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    gap: 4,
   },
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 16,
+    gap: 3,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
     backgroundColor: '#F1F5F9',
-    marginRight: 6,
+    marginRight: 4,
   },
   filterChipActive: {
     backgroundColor: colors.primary,
   },
   filterText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: colors.text,
   },
