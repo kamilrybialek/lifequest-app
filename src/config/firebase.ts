@@ -20,6 +20,10 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firebase Auth
 const auth = getAuth(app);
 
+// IMPORTANT: Auth persistence is set by default to LOCAL on web
+// This means users stay logged in after page refresh
+console.log('✅ Firebase Auth initialized with default LOCAL persistence');
+
 // Initialize Firestore with cache settings to prevent connection issues
 let db;
 try {
