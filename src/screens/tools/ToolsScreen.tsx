@@ -89,7 +89,7 @@ export const ToolsScreen = ({ navigation }: any) => {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <DuolingoHeader title="Tools" />
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -100,7 +100,7 @@ export const ToolsScreen = ({ navigation }: any) => {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

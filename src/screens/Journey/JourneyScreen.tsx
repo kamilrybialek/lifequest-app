@@ -194,7 +194,7 @@ export const JourneyScreen: React.FC<JourneyScreenProps> = ({ navigation, route 
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <DuolingoHeader title="Journey" />
 
@@ -236,7 +236,7 @@ export const JourneyScreen: React.FC<JourneyScreenProps> = ({ navigation, route 
           </Text>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

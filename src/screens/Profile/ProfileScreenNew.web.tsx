@@ -169,7 +169,7 @@ export const ProfileScreenNew: React.FC<ProfileScreenNewProps> = ({ navigation }
   const levelProgress = ((user?.xp || 0) % 100);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.headerWrapper}>
         <DuolingoHeader title="Profile" />
@@ -504,7 +504,7 @@ export const ProfileScreenNew: React.FC<ProfileScreenNewProps> = ({ navigation }
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 

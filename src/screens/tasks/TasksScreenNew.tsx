@@ -229,7 +229,7 @@ export const TasksScreenNew = ({ navigation }: any) => {
   const completedCount = tasks.filter(t => t.completed).length;
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header */}
       <DuolingoHeader title="Tasks" />
 
@@ -462,7 +462,7 @@ export const TasksScreenNew = ({ navigation }: any) => {
           </TouchableOpacity>
         </KeyboardAvoidingView>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 

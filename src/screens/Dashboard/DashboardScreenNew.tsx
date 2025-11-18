@@ -20,6 +20,7 @@ import {
   FlatList,
   Dimensions,
   ActivityIndicator,
+  SafeAreaView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -350,7 +351,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       {/* Header with Gradient */}
       <DuolingoHeader />
 
@@ -439,7 +440,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
         contentContainerStyle={styles.feedContainer}
         showsVerticalScrollIndicator={false}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
