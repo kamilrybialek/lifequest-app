@@ -1,6 +1,6 @@
 {
   "name": "lifequest",
-  "version": "0.1.5-alpha",
+  "version": "0.1.6-alpha",
   "main": "index.ts",
   "scripts": {
     "start": "expo start",

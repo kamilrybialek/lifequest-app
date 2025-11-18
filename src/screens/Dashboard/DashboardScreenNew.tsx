@@ -1,12 +1,12 @@
 /**
- * NEW DASHBOARD - INTEGRATED WITH REAL DATA
+ * DASHBOARD - COMBINED BEST OF BOTH VERSIONS
  *
- * Real-time dashboard with data from all pillars:
- * - Finance stats from Firebase
- * - Task completion from Firebase/AsyncStorage
- * - Physical/Mental/Nutrition from AsyncStorage
- * - Personalized insights based on actual user data
- * - Quick actions for common tasks
+ * Combines visual appeal of old dashboard with real data integration:
+ * - Quick Actions (horizontal scroll)
+ * - Stats grid 2x2 with real data
+ * - Time-based suggestions with gradients
+ * - Real insights as visual cards
+ * - Activity feed approach with actual data
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -38,6 +38,12 @@ interface QuickWin {
   screen: string;
 }
 
+interface FeedCard {
+  id: string;
+  type: 'time-suggestion' | 'insight' | 'stat-highlight';
+  data: any;
+}
+
 export const DashboardScreenNew = ({ navigation }: any) => {
   const { user } = useAuthStore();
   const isDemoUser = user?.id === 'demo-user-local';
@@ -46,8 +52,9 @@ export const DashboardScreenNew = ({ navigation }: any) => {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [insights, setInsights] = useState<DashboardInsight[]>([]);
+  const [feedCards, setFeedCards] = useState<FeedCard[]>([]);
 
-  // Quick wins - horizontal scroll
+  // Quick Actions
   const quickWins: QuickWin[] = [
     { id: '1', title: 'Finance', icon: '💰', color: colors.finance, time: '30 sec', screen: 'FinanceDashboard' },
     { id: '2', title: 'Add Task', icon: '✅', color: colors.primary, time: '10 sec', screen: 'TasksNew' },
@@ -75,11 +82,95 @@ export const DashboardScreenNew = ({ navigation }: any) => {
 
       setStats(dashboardStats);
       setInsights(dashboardInsights);
+      buildFeedCards(dashboardStats, dashboardInsights);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const buildFeedCards = (stats: DashboardStats, insights: DashboardInsight[]) => {
+    const cards: FeedCard[] = [];
+    const currentHour = new Date().getHours();
+
+    // Time-based suggestions
+    if (currentHour >= 6 && currentHour < 10) {
+      cards.push({
+        id: 'morning-routine',
+        type: 'time-suggestion',
+        data: {
+          title: '☀️ Good Morning!',
+          description: 'Start your day with a 5-minute meditation',
+          icon: 'sunny',
+          color: colors.mental,
+          action: 'Start',
+          screen: 'MentalHealthPath',
+        },
+      });
+    } else if (currentHour >= 12 && currentHour < 14) {
+      cards.push({
+        id: 'lunch',
+        type: 'time-suggestion',
+        data: {
+          title: '🍽️ Lunch Time',
+          description: 'Log your lunch to track your nutrition goals',
+          icon: 'restaurant',
+          color: colors.nutrition,
+          action: 'Log Meal',
+          screen: 'NutritionPath',
+        },
+      });
+    } else if (currentHour >= 17 && currentHour < 20) {
+      cards.push({
+        id: 'workout',
+        type: 'time-suggestion',
+        data: {
+          title: '🏋️ Evening Workout',
+          description: 'Perfect time for your daily workout',
+          icon: 'barbell',
+          color: colors.physical,
+          action: 'Start',
+          screen: 'PhysicalHealthPath',
+        },
+      });
+    }
+
+    // Add stat highlights for impressive numbers
+    if (stats.tasks.completionRate >= 80) {
+      cards.push({
+        id: 'task-highlight',
+        type: 'stat-highlight',
+        data: {
+          title: '🎯 Task Master!',
+          description: `${stats.tasks.completionRate.toFixed(0)}% completion rate`,
+          color: '#FFD700',
+        },
+      });
+    }
+
+    if (stats.physical.currentStreak >= 7) {
+      cards.push({
+        id: 'streak-highlight',
+        type: 'stat-highlight',
+        data: {
+          title: '🔥 On Fire!',
+          description: `${stats.physical.currentStreak} day workout streak`,
+          color: '#FF4500',
+        },
+      });
+    }
+
+    // Add insights
+    insights.forEach(insight => {
+      cards.push({
+        id: insight.id,
+        type: 'insight',
+        data: insight,
+      });
+    });
+
+    setFeedCards(cards);
   };
 
   const onRefresh = useCallback(async () => {
@@ -126,32 +217,84 @@ export const DashboardScreenNew = ({ navigation }: any) => {
     </TouchableOpacity>
   );
 
-  const renderInsight = ({ item }: { item: DashboardInsight }) => {
-    const getInsightIcon = () => {
-      if (item.type === 'achievement') return 'trophy';
-      if (item.type === 'warning') return 'warning';
-      if (item.type === 'suggestion') return 'bulb';
-      return 'information-circle';
-    };
+  const renderFeedCard = ({ item }: { item: FeedCard }) => {
+    if (item.type === 'time-suggestion') {
+      return (
+        <TouchableOpacity
+          style={styles.feedCard}
+          onPress={() => navigation.navigate(item.data.screen)}
+          activeOpacity={0.9}
+        >
+          <LinearGradient
+            colors={[item.data.color + '20', item.data.color + '05']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.suggestionGradient}
+          >
+            <View style={styles.suggestionContent}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.suggestionTitle}>{item.data.title}</Text>
+                <Text style={styles.suggestionDescription}>{item.data.description}</Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.suggestionButton, { backgroundColor: item.data.color }]}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.suggestionButtonText}>{item.data.action}</Text>
+                <Ionicons name="arrow-forward" size={16} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+      );
+    }
 
-    return (
-      <TouchableOpacity
-        style={styles.insightCard}
-        onPress={() => item.action && navigation.navigate(item.action.screen)}
-        activeOpacity={0.9}
-      >
-        <View style={[styles.insightIconContainer, { backgroundColor: item.color + '20' }]}>
-          <Ionicons name={getInsightIcon() as any} size={24} color={item.color} />
-        </View>
-        <View style={styles.insightContent}>
-          <Text style={styles.insightTitle}>{item.title}</Text>
-          <Text style={styles.insightDescription}>{item.description}</Text>
-        </View>
-        {item.action && (
-          <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
-        )}
-      </TouchableOpacity>
-    );
+    if (item.type === 'stat-highlight') {
+      return (
+        <TouchableOpacity style={styles.feedCard} activeOpacity={0.9}>
+          <LinearGradient
+            colors={[item.data.color, item.data.color + 'CC']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.achievementGradient}
+          >
+            <Text style={styles.achievementTitle}>{item.data.title}</Text>
+            <Text style={styles.achievementDescription}>{item.data.description}</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      );
+    }
+
+    if (item.type === 'insight') {
+      const insight = item.data as DashboardInsight;
+      const getInsightIcon = () => {
+        if (insight.type === 'achievement') return 'trophy';
+        if (insight.type === 'warning') return 'warning';
+        if (insight.type === 'suggestion') return 'bulb';
+        return 'information-circle';
+      };
+
+      return (
+        <TouchableOpacity
+          style={styles.insightCard}
+          onPress={() => insight.action && navigation.navigate(insight.action.screen)}
+          activeOpacity={0.9}
+        >
+          <View style={[styles.insightIconContainer, { backgroundColor: insight.color + '20' }]}>
+            <Ionicons name={getInsightIcon() as any} size={24} color={insight.color} />
+          </View>
+          <View style={styles.insightContent}>
+            <Text style={styles.insightTitle}>{insight.title}</Text>
+            <Text style={styles.insightDescription}>{insight.description}</Text>
+          </View>
+          {insight.action && (
+            <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+          )}
+        </TouchableOpacity>
+      );
+    }
+
+    return null;
   };
 
   const getGreeting = () => {
@@ -187,15 +330,15 @@ export const DashboardScreenNew = ({ navigation }: any) => {
       </View>
 
       <FlatList
-        data={insights}
-        renderItem={renderInsight}
+        data={feedCards}
+        renderItem={renderFeedCard}
         keyExtractor={(item) => item.id}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
         ListHeaderComponent={
           <>
-            {/* Quick Wins Section */}
+            {/* Quick Actions */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>⚡ Quick Actions</Text>
               <ScrollView
@@ -207,12 +350,11 @@ export const DashboardScreenNew = ({ navigation }: any) => {
               </ScrollView>
             </View>
 
-            {/* Stats Overview */}
+            {/* Stats Grid */}
             {stats && (
               <View style={styles.section}>
                 <Text style={styles.sectionTitle}>📊 Your Progress</Text>
                 <View style={styles.statsGrid}>
-                  {/* Finance Stats */}
                   {renderStatsCard(
                     'Budget Usage',
                     `${stats.finance.budgetUsagePercent.toFixed(0)}%`,
@@ -222,7 +364,6 @@ export const DashboardScreenNew = ({ navigation }: any) => {
                     () => navigation.navigate('FinanceDashboard')
                   )}
 
-                  {/* Task Stats */}
                   {renderStatsCard(
                     'Tasks',
                     `${stats.tasks.completedTasks}/${stats.tasks.totalTasks}`,
@@ -232,7 +373,6 @@ export const DashboardScreenNew = ({ navigation }: any) => {
                     () => navigation.navigate('TasksNew')
                   )}
 
-                  {/* Physical Stats */}
                   {renderStatsCard(
                     'Workouts',
                     `${stats.physical.workoutsThisWeek}/${stats.physical.workoutGoal}`,
@@ -242,7 +382,6 @@ export const DashboardScreenNew = ({ navigation }: any) => {
                     () => navigation.navigate('PhysicalHealthPath')
                   )}
 
-                  {/* Nutrition Stats */}
                   {renderStatsCard(
                     'Calories',
                     `${stats.nutrition.caloriesConsumed}`,
@@ -255,20 +394,22 @@ export const DashboardScreenNew = ({ navigation }: any) => {
               </View>
             )}
 
-            {/* Insights Section Header */}
-            {insights.length > 0 && (
-              <Text style={styles.sectionTitle}>💡 Insights & Recommendations</Text>
+            {/* Activity Feed Title */}
+            {feedCards.length > 0 && (
+              <Text style={styles.sectionTitle}>📱 Your Activity Feed</Text>
             )}
           </>
         }
         ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Ionicons name="leaf" size={64} color={colors.textLight} />
-            <Text style={styles.emptyText}>You're all caught up!</Text>
-            <Text style={styles.emptySubtext}>
-              Start tracking your activities to see personalized insights here
-            </Text>
-          </View>
+          !loading && (
+            <View style={styles.emptyState}>
+              <Ionicons name="leaf" size={64} color={colors.textLight} />
+              <Text style={styles.emptyText}>You're all caught up!</Text>
+              <Text style={styles.emptySubtext}>
+                Start tracking your activities to see personalized insights here
+              </Text>
+            </View>
+          )
         }
         contentContainerStyle={styles.feedContainer}
         showsVerticalScrollIndicator={false}
@@ -418,6 +559,67 @@ const styles = StyleSheet.create({
   feedContainer: {
     paddingHorizontal: 16,
     paddingBottom: 100,
+  },
+  feedCard: {
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    marginBottom: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  suggestionGradient: {
+    padding: 16,
+  },
+  suggestionContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 12,
+  },
+  suggestionTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 6,
+  },
+  suggestionDescription: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+  suggestionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    gap: 6,
+  },
+  suggestionButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  achievementGradient: {
+    padding: 20,
+    alignItems: 'center',
+  },
+  achievementTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  achievementDescription: {
+    fontSize: 14,
+    color: '#FFFFFF',
+    opacity: 0.9,
+    textAlign: 'center',
   },
   insightCard: {
     flexDirection: 'row',
