@@ -16,6 +16,7 @@ import { PhysicalHealthPath } from '../screens/physical/PhysicalHealthPath';
 import { NutritionPath } from '../screens/nutrition/NutritionPath';
 
 // Lesson screens
+import { FinanceLessonContent } from '../screens/finance/FinanceLessonContent';
 import { MentalLessonIntro } from '../screens/mental/MentalLessonIntro';
 import { MentalLessonContent } from '../screens/mental/MentalLessonContent';
 import { PhysicalLessonIntro } from '../screens/physical/PhysicalLessonIntro';
@@ -94,6 +95,7 @@ export const AppNavigator = () => {
             <Stack.Screen name="NutritionPath" component={NutritionPath} />
 
             {/* Lesson screens */}
+            <Stack.Screen name="FinanceLessonContent" component={FinanceLessonContent} />
             <Stack.Screen name="MentalLessonIntro" component={MentalLessonIntro} />
             <Stack.Screen name="MentalLessonContent" component={MentalLessonContent} />
             <Stack.Screen name="PhysicalLessonIntro" component={PhysicalLessonIntro} />

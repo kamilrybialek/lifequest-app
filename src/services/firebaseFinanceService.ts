@@ -854,3 +854,99 @@ export const getFinancialOverview = async (userId: string) => {
     throw error;
   }
 };
+
+// ============================================
+// INCOME SOURCES (for Journey integration)
+// ============================================
+
+export const saveIncomeSource = async (
+  userId: string,
+  incomeData: {
+    source_name: string;
+    amount: number;
+    frequency: string;
+    is_active: boolean;
+  }
+): Promise<string> => {
+  try {
+    const incomeRef = collection(db, 'income_sources');
+    const docRef = await addDoc(incomeRef, {
+      user_id: userId,
+      ...incomeData,
+      created_at: serverTimestamp(),
+      updated_at: serverTimestamp(),
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error('Error saving income source:', error);
+    throw error;
+  }
+};
+
+export const getIncomeSources = async (userId: string): Promise<any[]> => {
+  try {
+    const incomeRef = collection(db, 'income_sources');
+    const q = query(incomeRef, where('user_id', '==', userId));
+    const querySnapshot = await getDocs(q);
+
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+  } catch (error) {
+    console.error('Error getting income sources:', error);
+    throw error;
+  }
+};
+
+// ============================================
+// DEBTS (for Journey integration)
+// ============================================
+
+export const saveDebt = async (
+  userId: string,
+  debtData: {
+    name: string;
+    type: string;
+    original_amount: number;
+    remaining_amount: number;
+    interest_rate: number;
+    minimum_payment: number;
+    status: string;
+  }
+): Promise<string> => {
+  try {
+    const debtsRef = collection(db, 'debts');
+    const docRef = await addDoc(debtsRef, {
+      user_id: userId,
+      ...debtData,
+      priority: 1,
+      created_at: serverTimestamp(),
+      updated_at: serverTimestamp(),
+    });
+    return docRef.id;
+  } catch (error) {
+    console.error('Error saving debt:', error);
+    throw error;
+  }
+};
+
+export const getUserDebts = async (userId: string): Promise<Debt[]> => {
+  try {
+    const debtsRef = collection(db, 'debts');
+    const q = query(
+      debtsRef,
+      where('user_id', '==', userId),
+      orderBy('remaining_amount', 'asc')
+    );
+    const querySnapshot = await getDocs(q);
+
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Debt[];
+  } catch (error) {
+    console.error('Error getting debts:', error);
+    throw error;
+  }
+};

@@ -137,13 +137,16 @@ export const saveQuizQuestionResult = async (
 /**
  * Get all completed lessons for a user
  */
-export const getCompletedLessons = async (userId: number): Promise<string[]> => {
+export const getCompletedLessons = async (userId: string | number): Promise<string[]> => {
   const db = await getDatabase();
+
+  // Convert userId to number if it's a string
+  const userIdNum = typeof userId === 'string' ? parseInt(userId, 10) : userId;
 
   const result = await db.getAllAsync<{ lesson_id: string }>(
     `SELECT lesson_id FROM lesson_progress
      WHERE user_id = ? AND completed = 1`,
-    [userId]
+    [userIdNum]
   );
 
   return result.map((row) => row.lesson_id);
@@ -344,4 +347,27 @@ export const getNextIncompleteLesson = async (
   }
 
   return null; // All lessons completed
+};
+
+/**
+ * Mark lesson as complete - simple wrapper for Finance Journey
+ * Automatically determines XP based on lesson ID
+ */
+export const markLessonComplete = async (
+  userId: string | number,
+  lessonId: string,
+  xpEarned: number = 15
+): Promise<void> => {
+  // Convert userId to number if it's a string
+  const userIdNum = typeof userId === 'string' ? parseInt(userId, 10) : userId;
+
+  // Extract step ID from lesson ID (e.g., "step1" from "step1-lesson1")
+  const stepId = lessonId.split('-')[0];
+
+  // Default XP values by lesson type (can be overridden)
+  const defaultXP = xpEarned || 15;
+
+  await completeLesson(userIdNum, lessonId, defaultXP, 'finance');
+
+  console.log(`✅ Finance lesson marked complete: ${lessonId} (+${defaultXP} XP)`);
 };
