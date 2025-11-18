@@ -35,7 +35,7 @@
       "themeColor": "#58CC02",
       "display": "standalone",
       "orientation": "portrait",
-      "bundler": "metro",
+      "bundler": "webpack",
       "preferRelatedApplications": false,
       "categories": ["health", "lifestyle", "productivity"],
       "meta": {
