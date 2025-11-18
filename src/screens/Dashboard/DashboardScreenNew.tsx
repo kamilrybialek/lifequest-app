@@ -55,14 +55,14 @@ export const DashboardScreenNew = ({ navigation }: any) => {
   const [insights, setInsights] = useState<DashboardInsight[]>([]);
   const [feedCards, setFeedCards] = useState<FeedCard[]>([]);
 
-  // Quick Actions
+  // Quick Actions with gradients
   const quickWins: QuickWin[] = [
-    { id: '1', title: 'Finance', icon: '💰', color: colors.finance, time: '30 sec', screen: 'FinanceDashboard' },
-    { id: '2', title: 'Add Task', icon: '✅', color: colors.primary, time: '10 sec', screen: 'TasksNew' },
-    { id: '3', title: 'Physical', icon: '💪', color: colors.physical, time: '2 min', screen: 'PhysicalHealthPath' },
-    { id: '4', title: 'Mental', icon: '🧘', color: colors.mental, time: '5 min', screen: 'MentalHealthPath' },
-    { id: '5', title: 'Nutrition', icon: '🍽️', color: colors.nutrition, time: '1 min', screen: 'NutritionPath' },
-    { id: '6', title: 'Journey', icon: '📚', color: colors.primary, time: '2 min', screen: 'Journey' },
+    { id: '1', title: 'Finance', icon: '💰', color: '#4A90E2', time: '30 sec', screen: 'FinanceDashboard' },
+    { id: '2', title: 'Add Task', icon: '✅', color: '#58CC02', time: '10 sec', screen: 'TasksNew' },
+    { id: '3', title: 'Physical', icon: '💪', color: '#FF6B6B', time: '2 min', screen: 'PhysicalHealthPath' },
+    { id: '4', title: 'Mental', icon: '🧘', color: '#9C27B0', time: '5 min', screen: 'MentalHealthPath' },
+    { id: '5', title: 'Nutrition', icon: '🍽️', color: '#4CAF50', time: '1 min', screen: 'NutritionPath' },
+    { id: '6', title: 'Journey', icon: '📚', color: '#FFD700', time: '2 min', screen: 'Journey' },
   ];
 
   useEffect(() => {
@@ -180,18 +180,36 @@ export const DashboardScreenNew = ({ navigation }: any) => {
     setRefreshing(false);
   }, [user?.id]);
 
-  const renderQuickWin = (item: QuickWin) => (
-    <TouchableOpacity
-      key={item.id}
-      style={[styles.quickWinCard, { borderColor: item.color }]}
-      onPress={() => navigation.navigate(item.screen)}
-      activeOpacity={0.8}
-    >
-      <Text style={styles.quickWinIcon}>{item.icon}</Text>
-      <Text style={styles.quickWinTitle}>{item.title}</Text>
-      <Text style={styles.quickWinTime}>{item.time}</Text>
-    </TouchableOpacity>
-  );
+  const renderQuickWin = (item: QuickWin) => {
+    const getGradient = (color: string) => {
+      if (color === '#4A90E2') return ['#4A90E2', '#5FA3E8']; // Finance
+      if (color === '#FF6B6B') return ['#FF6B6B', '#FF8787']; // Physical
+      if (color === '#9C27B0') return ['#9C27B0', '#BA68C8']; // Mental
+      if (color === '#4CAF50') return ['#4CAF50', '#66BB6A']; // Nutrition
+      if (color === '#FFD700') return ['#FFD700', '#FFA000']; // Gold
+      return ['#58CC02', '#89E219']; // Default green
+    };
+
+    return (
+      <TouchableOpacity
+        key={item.id}
+        onPress={() => navigation.navigate(item.screen)}
+        activeOpacity={0.8}
+        style={styles.quickWinWrapper}
+      >
+        <LinearGradient
+          colors={getGradient(item.color) as any}
+          style={styles.quickWinCard}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <Text style={styles.quickWinIcon}>{item.icon}</Text>
+          <Text style={styles.quickWinTitle}>{item.title}</Text>
+          <Text style={styles.quickWinTime}>{item.time}</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    );
+  };
 
   const renderStatsCard = (
     title: string,
@@ -200,23 +218,39 @@ export const DashboardScreenNew = ({ navigation }: any) => {
     icon: any,
     color: string,
     onPress?: () => void
-  ) => (
-    <TouchableOpacity
-      style={styles.statsCard}
-      onPress={onPress}
-      activeOpacity={onPress ? 0.7 : 1}
-      disabled={!onPress}
-    >
-      <View style={[styles.statsIconContainer, { backgroundColor: color + '20' }]}>
-        <Ionicons name={icon} size={24} color={color} />
-      </View>
-      <View style={styles.statsContent}>
-        <Text style={styles.statsValue}>{value}</Text>
-        <Text style={styles.statsTitle}>{title}</Text>
-        <Text style={styles.statsSubtitle}>{subtitle}</Text>
-      </View>
-    </TouchableOpacity>
-  );
+  ) => {
+    const getGradient = (color: string) => {
+      if (color.includes('finance') || color === colors.finance) return ['#4A90E2', '#5FA3E8'];
+      if (color.includes('physical') || color === colors.physical) return ['#FF6B6B', '#FF8787'];
+      if (color.includes('mental') || color === colors.mental) return ['#1CB0F6', '#5ED4FF'];
+      if (color.includes('nutrition') || color === colors.nutrition) return ['#4CAF50', '#66BB6A'];
+      if (color.includes('primary') || color === colors.primary) return ['#58CC02', '#89E219'];
+      return ['#58CC02', '#89E219'];
+    };
+
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={onPress ? 0.8 : 1}
+        disabled={!onPress}
+        style={styles.statsCardWrapper}
+      >
+        <LinearGradient
+          colors={getGradient(color) as any}
+          style={styles.statsCard}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.statsIconContainer}>
+            <Ionicons name={icon} size={28} color="#FFF" />
+          </View>
+          <Text style={styles.statsValue}>{value}</Text>
+          <Text style={styles.statsTitle}>{title}</Text>
+          <Text style={styles.statsSubtitle}>{subtitle}</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    );
+  };
 
   const renderFeedCard = ({ item }: { item: FeedCard }) => {
     if (item.type === 'time-suggestion') {
@@ -316,19 +350,22 @@ export const DashboardScreenNew = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>{getGreeting()}</Text>
-          <Text style={styles.userName}>{user?.email?.split('@')[0] || 'User'}</Text>
+      {/* Header with Gradient */}
+      <LinearGradient
+        colors={['#4A90E2', '#5FA3E8']}
+        style={styles.header}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0 }}
+      >
+        <View style={styles.headerContent}>
+          <Text style={styles.greeting}>{getGreeting()} 👋</Text>
+          <Text style={styles.userName}>{user?.email?.split('@')[0] || 'Champion'}!</Text>
         </View>
-        <View style={styles.headerRight}>
-          <View style={styles.levelBadge}>
-            <Ionicons name="star" size={16} color={colors.primary} />
-            <Text style={styles.levelText}>Level 1</Text>
-          </View>
-        </View>
-      </View>
+        <TouchableOpacity style={styles.levelBadge}>
+          <Ionicons name="star" size={20} color="#FFD700" />
+          <Text style={styles.levelText}>Level 1</Text>
+        </TouchableOpacity>
+      </LinearGradient>
 
       <FlatList
         data={feedCards}
@@ -422,7 +459,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundGray,
+    backgroundColor: designSystem.colors.background,
   },
   centerContent: {
     justifyContent: 'center',
@@ -439,36 +476,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 60,
-    paddingBottom: 20,
-    backgroundColor: colors.background,
+    paddingBottom: 24,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  headerContent: {
+    flex: 1,
   },
   greeting: {
-    fontSize: 14,
-    color: colors.textSecondary,
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.9)',
     marginBottom: 4,
+    fontWeight: '600',
   },
   userName: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    gap: 8,
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#FFF',
   },
   levelBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary + '20',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 20,
-    gap: 4,
+    gap: 6,
   },
   levelText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
-    color: colors.primary,
+    color: '#FFF',
   },
   section: {
     marginTop: 20,
@@ -484,35 +527,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 12,
   },
+  quickWinWrapper: {
+    borderRadius: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
   quickWinCard: {
-    width: 100,
-    height: 100,
-    backgroundColor: colors.background,
-    borderRadius: 16,
-    padding: 12,
+    width: 110,
+    height: 110,
+    borderRadius: 20,
+    padding: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
   quickWinIcon: {
-    fontSize: 28,
-    marginBottom: 6,
+    fontSize: 32,
+    marginBottom: 8,
   },
   quickWinTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.text,
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#FFF',
     textAlign: 'center',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   quickWinTime: {
-    fontSize: 10,
-    color: colors.textSecondary,
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.8)',
+    fontWeight: '600',
   },
   statsGrid: {
     flexDirection: 'row',
@@ -520,42 +565,49 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     justifyContent: 'space-between',
   },
-  statsCard: {
+  statsCardWrapper: {
     width: '48%',
-    backgroundColor: colors.background,
-    borderRadius: 16,
-    padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
   },
-  statsIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+  statsCard: {
+    borderRadius: 20,
+    padding: 20,
+    minHeight: 160,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 6,
   },
-  statsContent: {
-    gap: 2,
+  statsIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
   },
   statsValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: colors.text,
+    fontSize: 28,
+    fontWeight: '800',
+    color: '#FFF',
+    marginBottom: 4,
   },
   statsTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFF',
+    textAlign: 'center',
+    marginBottom: 2,
   },
   statsSubtitle: {
     fontSize: 12,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.85)',
+    textAlign: 'center',
+    fontWeight: '600',
   },
   feedContainer: {
     paddingHorizontal: 16,
