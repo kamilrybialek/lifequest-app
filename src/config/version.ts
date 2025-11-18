@@ -7,9 +7,10 @@
 
 // For React Native, we need to manually sync this with package.json
 // Update this value whenever you increment package.json version
-export const APP_VERSION = 'alpha 0.1.4';
+export const APP_VERSION = 'alpha 0.1.5';
 
 // Version history:
+// alpha 0.1.5 - Fixed Dashboard stats layout to proper 2x2 grid
 // alpha 0.1.4 - Dashboard now displays real user data from all pillars with insights
 // alpha 0.1.3 - Added Dashboard data integration service for real-time stats
 // alpha 0.1.2 - Minimized Tasks screen header to absolute minimum height
