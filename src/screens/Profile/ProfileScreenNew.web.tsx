@@ -700,9 +700,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textSecondary,
   },
-  logoutButton: {
-    marginTop: spacing.md,
-  },
   bottomSpacer: {
     height: spacing.xl,
   },
