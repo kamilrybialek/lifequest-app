@@ -1,13 +1,12 @@
 /**
- * NEW DASHBOARD - ACTIVITY FEED APPROACH
+ * NEW DASHBOARD - INTEGRATED WITH REAL DATA
  *
- * Infinite scroll feed with actionable cards:
- * - Quick Wins (horizontal scroll)
- * - Incomplete tasks
- * - Suggested activities (time-based)
- * - Progress cards per pillar
- * - Achievements
- * - Learning opportunities
+ * Real-time dashboard with data from all pillars:
+ * - Finance stats from Firebase
+ * - Task completion from Firebase/AsyncStorage
+ * - Physical/Mental/Nutrition from AsyncStorage
+ * - Personalized insights based on actual user data
+ * - Quick actions for common tasks
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -20,28 +19,15 @@ import {
   RefreshControl,
   FlatList,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../theme/colors';
 import { useAuthStore } from '../../store/authStore';
-import { useAppStore } from '../../store/appStore';
+import { getDashboardStats, getDashboardInsights, type DashboardStats, type DashboardInsight } from '../../services/dashboardService';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = width - 32;
-
-interface FeedCard {
-  id: string;
-  type: 'quick-win' | 'task' | 'suggestion' | 'progress' | 'achievement' | 'learning';
-  title: string;
-  description?: string;
-  icon: string;
-  color: string;
-  action?: string;
-  actionIcon?: string;
-  progress?: number;
-  pillar?: 'finance' | 'mental' | 'physical' | 'nutrition';
-}
 
 interface QuickWin {
   id: string;
@@ -49,137 +35,64 @@ interface QuickWin {
   icon: string;
   color: string;
   time: string;
-  action: string;
+  screen: string;
 }
 
 export const DashboardScreenNew = ({ navigation }: any) => {
   const { user } = useAuthStore();
-  const { progress } = useAppStore();
+  const isDemoUser = user?.id === 'demo-user-local';
+
   const [refreshing, setRefreshing] = useState(false);
-  const [feedCards, setFeedCards] = useState<FeedCard[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [insights, setInsights] = useState<DashboardInsight[]>([]);
 
   // Quick wins - horizontal scroll
   const quickWins: QuickWin[] = [
-    { id: '1', title: 'Log Workout', icon: '💪', color: colors.physical, time: '2 min', action: 'WorkoutTrackerScreen' },
-    { id: '2', title: 'Track Meal', icon: '🍽️', color: colors.nutrition, time: '1 min', action: 'MealLoggerScreen' },
-    { id: '3', title: 'Add Expense', icon: '💰', color: colors.finance, time: '30 sec', action: 'ExpenseLoggerScreen' },
-    { id: '4', title: 'Meditate', icon: '🧘', color: colors.mental, time: '5 min', action: 'MeditationTimer' },
-    { id: '5', title: 'Log Water', icon: '💧', color: colors.nutrition, time: '10 sec', action: 'WaterTrackerScreen' },
-    { id: '6', title: 'Check Budget', icon: '📊', color: colors.finance, time: '1 min', action: 'BudgetManagerScreen' },
+    { id: '1', title: 'Finance', icon: '💰', color: colors.finance, time: '30 sec', screen: 'FinanceDashboard' },
+    { id: '2', title: 'Add Task', icon: '✅', color: colors.primary, time: '10 sec', screen: 'TasksNew' },
+    { id: '3', title: 'Physical', icon: '💪', color: colors.physical, time: '2 min', screen: 'PhysicalHealthPath' },
+    { id: '4', title: 'Mental', icon: '🧘', color: colors.mental, time: '5 min', screen: 'MentalHealthPath' },
+    { id: '5', title: 'Nutrition', icon: '🍽️', color: colors.nutrition, time: '1 min', screen: 'NutritionPath' },
+    { id: '6', title: 'Journey', icon: '📚', color: colors.primary, time: '2 min', screen: 'Journey' },
   ];
 
   useEffect(() => {
-    loadFeed();
-  }, []);
-
-  const loadFeed = () => {
-    const currentHour = new Date().getHours();
-    const feed: FeedCard[] = [];
-
-    // Time-based suggestions
-    if (currentHour >= 6 && currentHour < 10) {
-      feed.push({
-        id: 'morning-routine',
-        type: 'suggestion',
-        title: '☀️ Good Morning!',
-        description: 'Start your day with a 5-minute meditation',
-        icon: 'sunny',
-        color: colors.mental,
-        action: 'Start',
-        actionIcon: 'play',
-      });
-    } else if (currentHour >= 12 && currentHour < 14) {
-      feed.push({
-        id: 'lunch',
-        type: 'suggestion',
-        title: '🍽️ Lunch Time',
-        description: 'Log your lunch to track your nutrition goals',
-        icon: 'restaurant',
-        color: colors.nutrition,
-        action: 'Log Meal',
-        actionIcon: 'add',
-      });
-    } else if (currentHour >= 17 && currentHour < 20) {
-      feed.push({
-        id: 'workout',
-        type: 'suggestion',
-        title: '🏋️ Evening Workout',
-        description: 'Perfect time for your daily workout',
-        icon: 'barbell',
-        color: colors.physical,
-        action: 'Start',
-        actionIcon: 'play',
-      });
+    if (user?.id) {
+      loadDashboardData();
     }
+  }, [user?.id]);
 
-    // Progress cards
-    feed.push({
-      id: 'finance-progress',
-      type: 'progress',
-      title: 'Finance Progress',
-      description: 'You\'ve tracked 12 expenses this week',
-      icon: 'wallet',
-      color: colors.finance,
-      progress: 0.6,
-      pillar: 'finance',
-    });
+  const loadDashboardData = async () => {
+    if (!user?.id) return;
 
-    feed.push({
-      id: 'physical-progress',
-      type: 'progress',
-      title: 'Physical Activity',
-      description: '3/5 workouts completed this week',
-      icon: 'fitness',
-      color: colors.physical,
-      progress: 0.6,
-      pillar: 'physical',
-    });
+    try {
+      setLoading(true);
+      const [dashboardStats, dashboardInsights] = await Promise.all([
+        getDashboardStats(user.id, isDemoUser),
+        getDashboardInsights(user.id, isDemoUser),
+      ]);
 
-    feed.push({
-      id: 'mental-streak',
-      type: 'achievement',
-      title: '🔥 7-Day Meditation Streak!',
-      description: 'Keep going! You\'re on fire',
-      icon: 'flame',
-      color: colors.streak,
-    });
-
-    feed.push({
-      id: 'nutrition-progress',
-      type: 'progress',
-      title: 'Nutrition Tracking',
-      description: 'Track 2 more meals to hit your daily goal',
-      icon: 'nutrition',
-      color: colors.nutrition,
-      progress: 0.67,
-      pillar: 'nutrition',
-    });
-
-    feed.push({
-      id: 'learning',
-      type: 'learning',
-      title: 'Continue Learning',
-      description: 'Finance Path: Lesson 3 - Emergency Fund waiting',
-      icon: 'school',
-      color: colors.primary,
-      action: 'Continue',
-      actionIcon: 'arrow-forward',
-    });
-
-    setFeedCards(feed);
+      setStats(dashboardStats);
+      setInsights(dashboardInsights);
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const onRefresh = useCallback(() => {
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    loadFeed();
-    setTimeout(() => setRefreshing(false), 1000);
-  }, []);
+    await loadDashboardData();
+    setRefreshing(false);
+  }, [user?.id]);
 
   const renderQuickWin = (item: QuickWin) => (
     <TouchableOpacity
       key={item.id}
       style={[styles.quickWinCard, { borderColor: item.color }]}
-      onPress={() => navigation.navigate(item.action)}
+      onPress={() => navigation.navigate(item.screen)}
       activeOpacity={0.8}
     >
       <Text style={styles.quickWinIcon}>{item.icon}</Text>
@@ -188,145 +101,94 @@ export const DashboardScreenNew = ({ navigation }: any) => {
     </TouchableOpacity>
   );
 
-  const renderFeedCard = ({ item }: { item: FeedCard }) => {
-    if (item.type === 'progress') {
-      return (
-        <TouchableOpacity
-          style={styles.feedCard}
-          onPress={() => {
-            if (item.pillar === 'finance') navigation.navigate('FinancePathNew');
-            else if (item.pillar === 'mental') navigation.navigate('MentalHealthPath');
-            else if (item.pillar === 'physical') navigation.navigate('PhysicalHealthPath');
-            else if (item.pillar === 'nutrition') navigation.navigate('NutritionPath');
-          }}
-          activeOpacity={0.9}
-        >
-          <View style={styles.feedCardHeader}>
-            <View style={[styles.feedCardIconContainer, { backgroundColor: item.color + '20' }]}>
-              <Ionicons name={item.icon as any} size={24} color={item.color} />
-            </View>
-            <View style={styles.feedCardHeaderText}>
-              <Text style={styles.feedCardTitle}>{item.title}</Text>
-              <Text style={styles.feedCardDescription}>{item.description}</Text>
-            </View>
-          </View>
-          {item.progress !== undefined && (
-            <View style={styles.progressBarContainer}>
-              <View style={styles.progressBarBackground}>
-                <View
-                  style={[
-                    styles.progressBarFill,
-                    { width: `${item.progress * 100}%`, backgroundColor: item.color },
-                  ]}
-                />
-              </View>
-              <Text style={styles.progressText}>{Math.round(item.progress * 100)}%</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-      );
-    }
+  const renderStatsCard = (
+    title: string,
+    value: string | number,
+    subtitle: string,
+    icon: any,
+    color: string,
+    onPress?: () => void
+  ) => (
+    <TouchableOpacity
+      style={styles.statsCard}
+      onPress={onPress}
+      activeOpacity={onPress ? 0.7 : 1}
+      disabled={!onPress}
+    >
+      <View style={[styles.statsIconContainer, { backgroundColor: color + '20' }]}>
+        <Ionicons name={icon} size={24} color={color} />
+      </View>
+      <View style={styles.statsContent}>
+        <Text style={styles.statsValue}>{value}</Text>
+        <Text style={styles.statsTitle}>{title}</Text>
+        <Text style={styles.statsSubtitle}>{subtitle}</Text>
+      </View>
+    </TouchableOpacity>
+  );
 
-    if (item.type === 'suggestion') {
-      return (
-        <TouchableOpacity style={styles.feedCard} activeOpacity={0.9}>
-          <LinearGradient
-            colors={[item.color + '20', item.color + '05']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.suggestionGradient}
-          >
-            <View style={styles.suggestionContent}>
-              <View>
-                <Text style={styles.suggestionTitle}>{item.title}</Text>
-                <Text style={styles.suggestionDescription}>{item.description}</Text>
-              </View>
-              {item.action && (
-                <TouchableOpacity
-                  style={[styles.suggestionButton, { backgroundColor: item.color }]}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.suggestionButtonText}>{item.action}</Text>
-                  {item.actionIcon && (
-                    <Ionicons name={item.actionIcon as any} size={16} color="#FFFFFF" />
-                  )}
-                </TouchableOpacity>
-              )}
-            </View>
-          </LinearGradient>
-        </TouchableOpacity>
-      );
-    }
+  const renderInsight = ({ item }: { item: DashboardInsight }) => {
+    const getInsightIcon = () => {
+      if (item.type === 'achievement') return 'trophy';
+      if (item.type === 'warning') return 'warning';
+      if (item.type === 'suggestion') return 'bulb';
+      return 'information-circle';
+    };
 
-    if (item.type === 'achievement') {
-      return (
-        <TouchableOpacity style={styles.feedCard} activeOpacity={0.9}>
-          <LinearGradient
-            colors={['#FF9500', '#FF6B00']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.achievementGradient}
-          >
-            <Text style={styles.achievementTitle}>{item.title}</Text>
-            <Text style={styles.achievementDescription}>{item.description}</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      );
-    }
-
-    if (item.type === 'learning') {
-      return (
-        <TouchableOpacity
-          style={styles.feedCard}
-          onPress={() => navigation.navigate('FinancePathNew')}
-          activeOpacity={0.9}
-        >
-          <View style={styles.feedCardHeader}>
-            <View style={[styles.feedCardIconContainer, { backgroundColor: item.color + '20' }]}>
-              <Ionicons name={item.icon as any} size={24} color={item.color} />
-            </View>
-            <View style={styles.feedCardHeaderText}>
-              <Text style={styles.feedCardTitle}>{item.title}</Text>
-              <Text style={styles.feedCardDescription}>{item.description}</Text>
-            </View>
-            {item.actionIcon && (
-              <Ionicons name={item.actionIcon as any} size={24} color={colors.textLight} />
-            )}
-          </View>
-        </TouchableOpacity>
-      );
-    }
-
-    return null;
+    return (
+      <TouchableOpacity
+        style={styles.insightCard}
+        onPress={() => item.action && navigation.navigate(item.action.screen)}
+        activeOpacity={0.9}
+      >
+        <View style={[styles.insightIconContainer, { backgroundColor: item.color + '20' }]}>
+          <Ionicons name={getInsightIcon() as any} size={24} color={item.color} />
+        </View>
+        <View style={styles.insightContent}>
+          <Text style={styles.insightTitle}>{item.title}</Text>
+          <Text style={styles.insightDescription}>{item.description}</Text>
+        </View>
+        {item.action && (
+          <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+        )}
+      </TouchableOpacity>
+    );
   };
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good Morning';
+    if (hour < 18) return 'Good Afternoon';
+    return 'Good Evening';
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text style={styles.loadingText}>Loading your dashboard...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>
-            {new Date().getHours() < 12 ? 'Good Morning' :
-             new Date().getHours() < 18 ? 'Good Afternoon' : 'Good Evening'}
-          </Text>
+          <Text style={styles.greeting}>{getGreeting()}</Text>
           <Text style={styles.userName}>{user?.email?.split('@')[0] || 'User'}</Text>
         </View>
         <View style={styles.headerRight}>
-          <View style={styles.streakBadge}>
-            <Text style={styles.streakIcon}>🔥</Text>
-            <Text style={styles.streakText}>
-              {Math.max(...(progress?.streaks?.map(s => s.current) || [0]), 0)}
-            </Text>
-          </View>
           <View style={styles.levelBadge}>
-            <Text style={styles.levelText}>Lv {progress?.level || 1}</Text>
+            <Ionicons name="star" size={16} color={colors.primary} />
+            <Text style={styles.levelText}>Level 1</Text>
           </View>
         </View>
       </View>
 
       <FlatList
-        data={feedCards}
-        renderItem={renderFeedCard}
+        data={insights}
+        renderItem={renderInsight}
         keyExtractor={(item) => item.id}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
@@ -335,7 +197,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
           <>
             {/* Quick Wins Section */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>⚡ Quick Wins</Text>
+              <Text style={styles.sectionTitle}>⚡ Quick Actions</Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -345,22 +207,72 @@ export const DashboardScreenNew = ({ navigation }: any) => {
               </ScrollView>
             </View>
 
-            {/* Activity Feed Title */}
-            <Text style={styles.feedTitle}>📱 Your Activity Feed</Text>
+            {/* Stats Overview */}
+            {stats && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>📊 Your Progress</Text>
+                <View style={styles.statsGrid}>
+                  {/* Finance Stats */}
+                  {renderStatsCard(
+                    'Budget Usage',
+                    `${stats.finance.budgetUsagePercent.toFixed(0)}%`,
+                    `$${stats.finance.budgetRemaining.toFixed(0)} remaining`,
+                    'wallet',
+                    colors.finance,
+                    () => navigation.navigate('FinanceDashboard')
+                  )}
+
+                  {/* Task Stats */}
+                  {renderStatsCard(
+                    'Tasks',
+                    `${stats.tasks.completedTasks}/${stats.tasks.totalTasks}`,
+                    `${stats.tasks.completionRate.toFixed(0)}% complete`,
+                    'checkmark-circle',
+                    colors.primary,
+                    () => navigation.navigate('TasksNew')
+                  )}
+
+                  {/* Physical Stats */}
+                  {renderStatsCard(
+                    'Workouts',
+                    `${stats.physical.workoutsThisWeek}/${stats.physical.workoutGoal}`,
+                    'This week',
+                    'fitness',
+                    colors.physical,
+                    () => navigation.navigate('PhysicalHealthPath')
+                  )}
+
+                  {/* Nutrition Stats */}
+                  {renderStatsCard(
+                    'Calories',
+                    `${stats.nutrition.caloriesConsumed}`,
+                    `of ${stats.nutrition.calorieGoal} goal`,
+                    'restaurant',
+                    colors.nutrition,
+                    () => navigation.navigate('NutritionPath')
+                  )}
+                </View>
+              </View>
+            )}
+
+            {/* Insights Section Header */}
+            {insights.length > 0 && (
+              <Text style={styles.sectionTitle}>💡 Insights & Recommendations</Text>
+            )}
           </>
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <Ionicons name="leaf" size={64} color={colors.textLight} />
+            <Text style={styles.emptyText}>You're all caught up!</Text>
+            <Text style={styles.emptySubtext}>
+              Start tracking your activities to see personalized insights here
+            </Text>
+          </View>
         }
         contentContainerStyle={styles.feedContainer}
         showsVerticalScrollIndicator={false}
       />
-
-      {/* Floating Action Button */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => {/* Quick add menu */}}
-        activeOpacity={0.9}
-      >
-        <Ionicons name="add" size={28} color="#FFFFFF" />
-      </TouchableOpacity>
     </View>
   );
 };
@@ -369,6 +281,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.backgroundGray,
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: colors.textLight,
   },
   header: {
     flexDirection: 'row',
@@ -393,28 +314,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
   },
-  streakBadge: {
+  levelBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FF950020',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  streakIcon: {
-    fontSize: 16,
-    marginRight: 4,
-  },
-  streakText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: colors.streak,
-  },
-  levelBadge: {
     backgroundColor: colors.primary + '20',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
+    gap: 4,
   },
   levelText: {
     fontSize: 14,
@@ -436,8 +343,8 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   quickWinCard: {
-    width: 120,
-    height: 120,
+    width: 100,
+    height: 100,
     backgroundColor: colors.background,
     borderRadius: 16,
     padding: 12,
@@ -451,49 +358,80 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   quickWinIcon: {
-    fontSize: 32,
-    marginBottom: 8,
+    fontSize: 28,
+    marginBottom: 6,
   },
   quickWinTitle: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '600',
     color: colors.text,
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 2,
   },
   quickWinTime: {
-    fontSize: 11,
+    fontSize: 10,
     color: colors.textSecondary,
   },
-  feedTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.text,
-    marginLeft: 20,
-    marginTop: 24,
-    marginBottom: 12,
-  },
-  feedContainer: {
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     paddingHorizontal: 16,
-    paddingBottom: 100,
+    gap: 12,
   },
-  feedCard: {
+  statsCard: {
+    width: (width - 44) / 2,
     backgroundColor: colors.background,
     borderRadius: 16,
-    marginBottom: 12,
-    overflow: 'hidden',
+    padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
   },
-  feedCardHeader: {
+  statsIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  statsContent: {
+    gap: 2,
+  },
+  statsValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  statsTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  statsSubtitle: {
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  feedContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 100,
+  },
+  insightCard: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: colors.background,
+    borderRadius: 16,
     padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  feedCardIconContainer: {
+  insightIconContainer: {
     width: 48,
     height: 48,
     borderRadius: 12,
@@ -501,109 +439,37 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: 12,
   },
-  feedCardHeaderText: {
+  insightContent: {
     flex: 1,
   },
-  feedCardTitle: {
+  insightTitle: {
     fontSize: 16,
     fontWeight: '700',
     color: colors.text,
     marginBottom: 4,
   },
-  feedCardDescription: {
+  insightDescription: {
     fontSize: 14,
     color: colors.textSecondary,
     lineHeight: 20,
   },
-  progressBarContainer: {
-    flexDirection: 'row',
+  emptyState: {
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-    gap: 12,
-  },
-  progressBarBackground: {
-    flex: 1,
-    height: 8,
-    backgroundColor: colors.border,
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    borderRadius: 4,
-  },
-  progressText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    minWidth: 45,
-    textAlign: 'right',
-  },
-  suggestionGradient: {
-    padding: 16,
-  },
-  suggestionContent: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  suggestionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 6,
-  },
-  suggestionDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
-    maxWidth: '70%',
-  },
-  suggestionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    gap: 6,
-  },
-  suggestionButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  achievementGradient: {
-    padding: 20,
-    alignItems: 'center',
-  },
-  achievementTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  achievementDescription: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    opacity: 0.9,
-    textAlign: 'center',
-  },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.primary,
     justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    paddingVertical: 60,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    maxWidth: 280,
+    lineHeight: 20,
   },
 });
