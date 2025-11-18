@@ -558,7 +558,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
         >
           <View style={styles.netWorthHeader}>
             <Ionicons name="fitness" size={32} color="#FFFFFF" />
-            <Text style={styles.netWorthLabel}>Kondycja Finansowa</Text>
+            <Text style={styles.netWorthLabel}>Financial Health</Text>
           </View>
           <View style={styles.scoreContainer}>
             <Text style={styles.scoreValue}>{healthScore}</Text>

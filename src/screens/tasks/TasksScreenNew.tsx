@@ -22,6 +22,7 @@ import {
   TextInput,
   Modal,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
@@ -65,6 +66,8 @@ export const TasksScreenNew = ({ navigation }: any) => {
   const [showNewTaskModal, setShowNewTaskModal] = useState(false);
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [selectedPriority, setSelectedPriority] = useState<'none' | 'low' | 'medium' | 'high'>('none');
+  const [newTaskTags, setNewTaskTags] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Load tasks and tags
   useEffect(() => {
@@ -131,12 +134,18 @@ export const TasksScreenNew = ({ navigation }: any) => {
   const handleCreateTask = async () => {
     if (!newTaskTitle.trim() || !user?.id) return;
 
+    // Parse tags from comma-separated string
+    const taskTags = newTaskTags
+      .split(',')
+      .map(tag => tag.trim())
+      .filter(tag => tag.length > 0);
+
     const newTask: Omit<UserTask, 'id' | 'user_id' | 'created_at' | 'updated_at'> = {
       title: newTaskTitle.trim(),
       notes: '',
       completed: false,
       priority: selectedPriority,
-      tags: [],
+      tags: taskTags,
       flagged: false,
     };
 
@@ -162,6 +171,7 @@ export const TasksScreenNew = ({ navigation }: any) => {
 
       setNewTaskTitle('');
       setSelectedPriority('none');
+      setNewTaskTags('');
       setShowNewTaskModal(false);
     } catch (error) {
       console.error('Error creating task:', error);
@@ -185,8 +195,20 @@ export const TasksScreenNew = ({ navigation }: any) => {
     }
   };
 
-  // Filter tasks based on selected filter
+  // Filter tasks based on selected filter and search query
   const filteredTasks = tasks.filter(task => {
+    // Apply search filter (title or tags)
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      const matchesTitle = task.title.toLowerCase().includes(query);
+      const matchesTags = task.tags?.some(tag => tag.toLowerCase().includes(query));
+
+      if (!matchesTitle && !matchesTags) {
+        return false;
+      }
+    }
+
+    // Apply category filter
     if (filter === 'today') {
       // Show tasks due today or overdue
       if (!task.due_date) return false;
@@ -213,6 +235,23 @@ export const TasksScreenNew = ({ navigation }: any) => {
         <Text style={styles.subtitle}>
           {completedCount} of {totalCount} completed
         </Text>
+      </View>
+
+      {/* Search Bar */}
+      <View style={styles.searchContainer}>
+        <Ionicons name="search" size={18} color={colors.textLight} style={styles.searchIcon} />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Search by title or tags..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholderTextColor={colors.textLight}
+        />
+        {searchQuery.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchQuery('')} style={styles.clearButton}>
+            <Ionicons name="close-circle" size={18} color={colors.textLight} />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Filters */}
@@ -339,66 +378,87 @@ export const TasksScreenNew = ({ navigation }: any) => {
         transparent={true}
         onRequestClose={() => setShowNewTaskModal(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>New Task</Text>
-              <TouchableOpacity onPress={() => setShowNewTaskModal(false)}>
-                <Ionicons name="close" size={24} color={colors.text} />
-              </TouchableOpacity>
-            </View>
-
-            <TextInput
-              style={styles.input}
-              placeholder="Task title"
-              value={newTaskTitle}
-              onChangeText={setNewTaskTitle}
-              autoFocus
-            />
-
-            <Text style={styles.label}>Priority</Text>
-            <View style={styles.priorityButtons}>
-              {(['none', 'low', 'medium', 'high'] as const).map(priority => (
-                <TouchableOpacity
-                  key={priority}
-                  style={[
-                    styles.priorityButton,
-                    selectedPriority === priority && {
-                      backgroundColor: priorityColors[priority] + '20',
-                      borderColor: priorityColors[priority],
-                    },
-                  ]}
-                  onPress={() => setSelectedPriority(priority)}
-                >
-                  <Ionicons
-                    name={priorityIcons[priority] as any}
-                    size={20}
-                    color={priorityColors[priority]}
-                  />
-                  <Text
-                    style={[
-                      styles.priorityText,
-                      { color: priorityColors[priority] },
-                    ]}
-                  >
-                    {priority.charAt(0).toUpperCase() + priority.slice(1)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <TouchableOpacity
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowNewTaskModal(false)}
+          >
             <TouchableOpacity
-              style={[
-                styles.createButton,
-                !newTaskTitle.trim() && styles.createButtonDisabled,
-              ]}
-              onPress={handleCreateTask}
-              disabled={!newTaskTitle.trim()}
+              activeOpacity={1}
+              onPress={(e) => e.stopPropagation()}
+              style={styles.modalContent}
             >
-              <Text style={styles.createButtonText}>Create Task</Text>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>New Task</Text>
+                <TouchableOpacity onPress={() => setShowNewTaskModal(false)}>
+                  <Ionicons name="close" size={24} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              <TextInput
+                style={styles.input}
+                placeholder="Task title"
+                value={newTaskTitle}
+                onChangeText={setNewTaskTitle}
+                autoFocus
+              />
+
+              <Text style={styles.label}>Tags (comma separated)</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g., work, urgent, project-x"
+                value={newTaskTags}
+                onChangeText={setNewTaskTags}
+              />
+
+              <Text style={styles.label}>Priority</Text>
+              <View style={styles.priorityButtons}>
+                {(['none', 'low', 'medium', 'high'] as const).map(priority => (
+                  <TouchableOpacity
+                    key={priority}
+                    style={[
+                      styles.priorityButton,
+                      selectedPriority === priority && {
+                        backgroundColor: priorityColors[priority] + '20',
+                        borderColor: priorityColors[priority],
+                      },
+                    ]}
+                    onPress={() => setSelectedPriority(priority)}
+                  >
+                    <Ionicons
+                      name={priorityIcons[priority] as any}
+                      size={20}
+                      color={priorityColors[priority]}
+                    />
+                    <Text
+                      style={[
+                        styles.priorityText,
+                        { color: priorityColors[priority] },
+                      ]}
+                    >
+                      {priority.charAt(0).toUpperCase() + priority.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.createButton,
+                  !newTaskTitle.trim() && styles.createButtonDisabled,
+                ]}
+                onPress={handleCreateTask}
+                disabled={!newTaskTitle.trim()}
+              >
+                <Text style={styles.createButtonText}>Create Task</Text>
+              </TouchableOpacity>
             </TouchableOpacity>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -448,6 +508,15 @@ const TaskItem = ({
             </Text>
           )}
         </View>
+        {task.tags && task.tags.length > 0 && (
+          <View style={styles.tagsContainer}>
+            {task.tags.map((tag, index) => (
+              <View key={index} style={styles.tagBadge}>
+                <Text style={styles.tagText}>#{tag}</Text>
+              </View>
+            ))}
+          </View>
+        )}
       </View>
 
       <TouchableOpacity onPress={onDelete} style={styles.deleteButton}>
@@ -480,6 +549,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: colors.textLight,
   },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E8F0',
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: colors.text,
+    paddingVertical: 4,
+  },
+  clearButton: {
+    padding: 4,
+  },
   filtersContainer: {
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
@@ -487,24 +577,24 @@ const styles = StyleSheet.create({
   },
   filtersContent: {
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 6,
     gap: 8,
   },
   filterChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
     backgroundColor: '#F1F5F9',
-    marginRight: 8,
+    marginRight: 6,
   },
   filterChipActive: {
     backgroundColor: colors.primary,
   },
   filterText: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
     color: colors.text,
   },
@@ -575,6 +665,23 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     padding: 8,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 6,
+  },
+  tagBadge: {
+    backgroundColor: '#E0E7FF',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 8,
+  },
+  tagText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#4F46E5',
   },
   emptyState: {
     alignItems: 'center',
