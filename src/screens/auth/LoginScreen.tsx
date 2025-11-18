@@ -79,7 +79,7 @@ export const LoginScreen = ({ navigation }: any) => {
       >
         {/* Hero Section with Gradient */}
         <LinearGradient
-          colors={designSystem.gradients.finance as any}
+          colors={['#4A90E2', '#5FA3E8']}
           style={styles.heroSection}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -172,7 +172,7 @@ export const LoginScreen = ({ navigation }: any) => {
           {/* Error Message */}
           {error ? (
             <View style={styles.errorContainer}>
-              <Ionicons name="alert-circle" size={16} color={designSystem.colors.error[0]} />
+              <Ionicons name="alert-circle" size={16} color="#F44336" />
               <Text style={styles.errorText}>{error}</Text>
             </View>
           ) : null}
@@ -184,7 +184,7 @@ export const LoginScreen = ({ navigation }: any) => {
             activeOpacity={0.8}
           >
             <LinearGradient
-              colors={loading ? designSystem.gradients.gray as const : designSystem.gradients.finance as const}
+              colors={loading ? ['#CCCCCC', '#999999'] : ['#4A90E2', '#5FA3E8']}
               style={styles.submitButton}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     ...designSystem.typography.small,
-    color: designSystem.colors.error[0],
+    color: '#F44336',
     flex: 1,
   },
   submitButton: {
