@@ -235,12 +235,9 @@ export const FinanceLessonContent: React.FC<LessonContentProps> = ({ navigation,
   const handleNext = () => {
     if (currentSection < totalSections - 1) {
       setCurrentSection(currentSection + 1);
-    } else if (!quizCompleted && lesson.quiz) {
-      // Start quiz
-      setQuizCompleted(false);
     } else {
-      // Show action task
-      setShowActionTask(true);
+      // Move to quiz by incrementing currentSection beyond sections
+      setCurrentSection(totalSections);
     }
   };
 

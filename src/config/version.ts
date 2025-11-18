@@ -7,9 +7,10 @@
 
 // For React Native, we need to manually sync this with package.json
 // Update this value whenever you increment package.json version
-export const APP_VERSION = 'alpha 0.1.7';
+export const APP_VERSION = 'alpha 0.1.8';
 
 // Version history:
+// alpha 0.1.8 - Duolingo-style redesign: colorful Journey selector & Finance Path with bubbles
 // alpha 0.1.7 - Finance Journey integration: interactive lessons save data to Firebase
 // alpha 0.1.6 - Combined old & new Dashboard: visual feed + real data integration
 // alpha 0.1.5 - Fixed Dashboard stats layout to proper 2x2 grid
