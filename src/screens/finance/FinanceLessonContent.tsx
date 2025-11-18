@@ -292,7 +292,6 @@ export const FinanceLessonContent: React.FC<LessonContentProps> = ({ navigation,
         // Save to Firebase
         await updateFinancialProfile(user.id, {
           net_worth: netWorth,
-          updated_at: new Date().toISOString(),
         });
 
         Alert.alert(

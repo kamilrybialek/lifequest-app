@@ -186,12 +186,17 @@ export const updateFinancialProfile = async (
 ): Promise<void> => {
   try {
     const profileRef = doc(db, 'financial_profiles', userId);
-    await updateDoc(profileRef, {
+
+    // Use setDoc with merge to create if doesn't exist
+    await setDoc(profileRef, {
+      user_id: userId,
       ...updates,
       updated_at: serverTimestamp(),
-    });
+    }, { merge: true });
+
+    console.log('✅ Financial profile updated successfully');
   } catch (error) {
-    console.error('Error updating financial profile:', error);
+    console.error('❌ Error updating financial profile:', error);
     throw error;
   }
 };
