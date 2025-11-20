@@ -13,12 +13,26 @@ import { ProfileScreenNew } from '../screens/Profile/ProfileScreenNew';
 
 const Tab = createBottomTabNavigator();
 
+// Debug: track TabNavigatorNew renders
+let tabNavigatorRenderCount = 0;
+
 export const TabNavigatorNew = () => {
+  // Debug: log every render
+  tabNavigatorRenderCount++;
+  console.log(`📑 TabNavigatorNew render #${tabNavigatorRenderCount}`);
+
+  if (tabNavigatorRenderCount > 100) {
+    console.error('🔴 INFINITE RENDER in TabNavigatorNew!');
+    throw new Error('Infinite render loop detected in TabNavigatorNew');
+  }
+
   return (
     <Tab.Navigator
-      screenOptions={({ route }) => ({
-        tabBarIcon: ({ focused, color, size }) => {
-          let iconName: any;
+      screenOptions={({ route }) => {
+        console.log(`🎨 TabNavigator screenOptions called for route: ${route.name}`);
+        return {
+          tabBarIcon: ({ focused, color, size }) => {
+            let iconName: any;
 
           if (route.name === 'Dashboard') {
             iconName = focused ? 'home' : 'home-outline';
