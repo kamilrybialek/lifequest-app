@@ -2,7 +2,6 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-// Import ONLY TabNavigatorNew - this avoids importing all the problematic screens
 import { TabNavigatorNew } from './TabNavigatorNew';
 
 // Auth screens - these are simple and don't use expo-file-system
@@ -53,12 +52,35 @@ import { useAuthStore } from '../store/authStore';
 
 const Stack = createNativeStackNavigator();
 
+// Debug: track AppNavigator renders
+let appNavigatorRenderCount = 0;
+let previousValues = { isAuth: false, isLoading: true, userId: undefined as string | undefined };
+
 export const AppNavigator = () => {
   const { user, isAuthenticated, isLoading } = useAuthStore();
+
+  // Debug: log every render
+  appNavigatorRenderCount++;
+  const changed: string[] = [];
+  if (previousValues.isAuth !== isAuthenticated) changed.push(`isAuth: ${previousValues.isAuth} → ${isAuthenticated}`);
+  if (previousValues.isLoading !== isLoading) changed.push(`isLoading: ${previousValues.isLoading} → ${isLoading}`);
+  if (previousValues.userId !== user?.id) changed.push(`userId: ${previousValues.userId} → ${user?.id}`);
+
+  console.log(`📱 AppNavigator render #${appNavigatorRenderCount}, isAuth: ${isAuthenticated}, isLoading: ${isLoading}, user: ${user?.id}${changed.length > 0 ? ` [CHANGED: ${changed.join(', ')}]` : ' [NO CHANGE!]'}`);
+
+  previousValues = { isAuth: isAuthenticated, isLoading: isLoading, userId: user?.id };
+
+  if (appNavigatorRenderCount > 100) {
+    console.error('🔴 INFINITE RENDER in AppNavigator!');
+    throw new Error('Infinite render loop detected in AppNavigator');
+  }
 
   if (isLoading) {
     return null;
   }
+
+  // TEMPORARY DEBUG: Log before returning JSX
+  console.log(`📱 About to return JSX, branch: ${!isAuthenticated ? 'Login' : !user?.onboarded ? 'Onboarding' : 'Main'}`);
 
   return (
     <NavigationContainer>
@@ -71,6 +93,7 @@ export const AppNavigator = () => {
           <>
             <Stack.Screen name="Main" component={TabNavigatorNew} />
 
+            {/* TEMPORARY: Comment out all other screens for debugging */}
             {/* Path screens - accessible from Journey */}
             <Stack.Screen name="FinancePathNew" component={FinancePathNew} />
             <Stack.Screen name="MentalHealthPath" component={MentalHealthPath} />

@@ -22,11 +22,20 @@ import { getUserAchievements } from '../../database/achievements';
 import { shareUserData } from '../../utils/exportUserData';
 import { APP_VERSION } from '../../config/version';
 
+let profileScreenNewRenderCount = 0;
+
 interface ProfileScreenNewProps {
   navigation: any;
 }
 
 export const ProfileScreenNew: React.FC<ProfileScreenNewProps> = ({ navigation }) => {
+  profileScreenNewRenderCount++;
+  console.log(`👤 ProfileScreenNew render #${profileScreenNewRenderCount}`);
+  if (profileScreenNewRenderCount > 100) {
+    console.error('🔴 INFINITE RENDER in ProfileScreenNew!');
+    throw new Error('Infinite render loop detected in ProfileScreenNew');
+  }
+
   const { user, logout } = useAuthStore();
   const { progress } = useAppStore();
   const { darkMode, notificationsEnabled, toggleDarkMode } = useSettingsStore();

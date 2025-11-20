@@ -8,7 +8,7 @@
  * - Nutrition Tools
  */
 
-import React from 'react';
+import React, { useRef } from 'react';
 import {
   View,
   Text,
@@ -19,6 +19,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
+
+// Debug: track renders
+let toolsScreenRenderCount = 0;
 
 interface Tool {
   name: string;
@@ -59,6 +62,15 @@ const NUTRITION_TOOLS: Tool[] = [
 ];
 
 export const ToolsScreen = ({ navigation }: any) => {
+  // Debug: track renders
+  toolsScreenRenderCount++;
+  console.log(`🛠️ ToolsScreen render #${toolsScreenRenderCount}`);
+
+  if (toolsScreenRenderCount > 100) {
+    console.error('🔴 INFINITE RENDER in ToolsScreen!');
+    throw new Error('Infinite render loop detected in ToolsScreen');
+  }
+
   const renderToolSection = (title: string, tools: Tool[], color: string) => {
     return (
       <View style={styles.section}>

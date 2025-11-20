@@ -14,12 +14,21 @@ import { MentalHealthPath } from '../mental/MentalHealthPath';
 import { PhysicalHealthPath } from '../physical/PhysicalHealthPath';
 import { NutritionPath } from '../nutrition/NutritionPath';
 
+let journeyScreenRenderCount = 0;
+
 interface JourneyScreenProps {
   navigation: any;
   route?: any;
 }
 
 export const JourneyScreen: React.FC<JourneyScreenProps> = ({ navigation, route }) => {
+  journeyScreenRenderCount++;
+  console.log(`🗺️ JourneyScreen render #${journeyScreenRenderCount}`);
+  if (journeyScreenRenderCount > 100) {
+    console.error('🔴 INFINITE RENDER in JourneyScreen!');
+    throw new Error('Infinite render loop detected in JourneyScreen');
+  }
+
   const { progress } = useAppStore();
   const [selectedPath, setSelectedPath] = useState<Pillar>(
     route?.params?.selectedPillar || 'finance'
