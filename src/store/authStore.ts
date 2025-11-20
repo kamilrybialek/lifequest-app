@@ -326,23 +326,27 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
           // Only update if user data actually changed (shallow comparison)
           const currentUser = useAuthStore.getState().user;
 
-          // Debug: log detailed comparison
-          console.log('🔍 Comparing users:', {
-            current: currentUser ? {
-              id: currentUser.id,
-              email: currentUser.email,
-              firstName: currentUser.firstName,
-              age: currentUser.age,
-              onboarded: currentUser.onboarded,
-            } : null,
-            new: {
-              id: newUser.id,
-              email: newUser.email,
-              firstName: newUser.firstName,
-              age: newUser.age,
-              onboarded: newUser.onboarded,
-            }
-          });
+          // Debug: log detailed comparison with JSON.stringify to see exact values
+          console.log('🔍 Comparing users (current):', currentUser ? JSON.stringify({
+            id: currentUser.id,
+            email: currentUser.email,
+            firstName: currentUser.firstName,
+            age: currentUser.age,
+            weight: currentUser.weight,
+            height: currentUser.height,
+            gender: currentUser.gender,
+            onboarded: currentUser.onboarded,
+          }) : 'null');
+          console.log('🔍 Comparing users (new):', JSON.stringify({
+            id: newUser.id,
+            email: newUser.email,
+            firstName: newUser.firstName,
+            age: newUser.age,
+            weight: newUser.weight,
+            height: newUser.height,
+            gender: newUser.gender,
+            onboarded: newUser.onboarded,
+          }));
 
           const hasChanged = !currentUser ||
             currentUser.id !== newUser.id ||
@@ -355,7 +359,21 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
             currentUser.onboarded !== newUser.onboarded;
 
           if (hasChanged) {
-            console.log('📝 User data changed, updating state');
+            // Debug: log WHY it changed
+            if (!currentUser) {
+              console.log('📝 User data changed: no current user (first login)');
+            } else {
+              const changedFields: string[] = [];
+              if (currentUser.id !== newUser.id) changedFields.push(`id: ${currentUser.id} → ${newUser.id}`);
+              if (currentUser.email !== newUser.email) changedFields.push(`email: ${currentUser.email} → ${newUser.email}`);
+              if (currentUser.firstName !== newUser.firstName) changedFields.push(`firstName: ${currentUser.firstName} → ${newUser.firstName}`);
+              if (currentUser.age !== newUser.age) changedFields.push(`age: ${currentUser.age} → ${newUser.age}`);
+              if (currentUser.weight !== newUser.weight) changedFields.push(`weight: ${currentUser.weight} → ${newUser.weight}`);
+              if (currentUser.height !== newUser.height) changedFields.push(`height: ${currentUser.height} → ${newUser.height}`);
+              if (currentUser.gender !== newUser.gender) changedFields.push(`gender: ${currentUser.gender} → ${newUser.gender}`);
+              if (currentUser.onboarded !== newUser.onboarded) changedFields.push(`onboarded: ${currentUser.onboarded} → ${newUser.onboarded}`);
+              console.log('📝 User data changed:', changedFields.join(', '));
+            }
             useAuthStore.setState({ user: newUser, isAuthenticated: true, isLoading: false });
           } else {
             console.log('✓ User data unchanged, skipping state update');

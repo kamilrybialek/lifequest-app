@@ -54,13 +54,21 @@ const Stack = createNativeStackNavigator();
 
 // Debug: track AppNavigator renders
 let appNavigatorRenderCount = 0;
+let previousValues = { isAuth: false, isLoading: true, userId: undefined as string | undefined };
 
 export const AppNavigator = () => {
   const { user, isAuthenticated, isLoading } = useAuthStore();
 
   // Debug: log every render
   appNavigatorRenderCount++;
-  console.log(`📱 AppNavigator render #${appNavigatorRenderCount}, isAuth: ${isAuthenticated}, isLoading: ${isLoading}, user: ${user?.id}`);
+  const changed: string[] = [];
+  if (previousValues.isAuth !== isAuthenticated) changed.push(`isAuth: ${previousValues.isAuth} → ${isAuthenticated}`);
+  if (previousValues.isLoading !== isLoading) changed.push(`isLoading: ${previousValues.isLoading} → ${isLoading}`);
+  if (previousValues.userId !== user?.id) changed.push(`userId: ${previousValues.userId} → ${user?.id}`);
+
+  console.log(`📱 AppNavigator render #${appNavigatorRenderCount}, isAuth: ${isAuthenticated}, isLoading: ${isLoading}, user: ${user?.id}${changed.length > 0 ? ` [CHANGED: ${changed.join(', ')}]` : ' [NO CHANGE!]'}`);
+
+  previousValues = { isAuth: isAuthenticated, isLoading: isLoading, userId: user?.id };
 
   if (appNavigatorRenderCount > 100) {
     console.error('🔴 INFINITE RENDER in AppNavigator!');
