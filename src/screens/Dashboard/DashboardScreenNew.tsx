@@ -302,7 +302,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
     }
   }, [user?.id]); // Only depend on user ID, calculate isDemoUser inside
 
-  const renderQuickWin = (item: QuickWin) => {
+  const renderQuickWin = useCallback((item: QuickWin) => {
     const getGradient = (color: string) => {
       if (color === '#4A90E2') return ['#4A90E2', '#5FA3E8']; // Finance
       if (color === '#FF6B6B') return ['#FF6B6B', '#FF8787']; // Physical
@@ -331,9 +331,9 @@ export const DashboardScreenNew = ({ navigation }: any) => {
         </LinearGradient>
       </TouchableOpacity>
     );
-  };
+  }, [navigation]);
 
-  const renderStatsCard = (
+  const renderStatsCard = useCallback((
     title: string,
     value: string | number,
     subtitle: string,
@@ -372,9 +372,9 @@ export const DashboardScreenNew = ({ navigation }: any) => {
         </LinearGradient>
       </TouchableOpacity>
     );
-  };
+  }, [navigation]);
 
-  const renderFeedCard = ({ item }: { item: FeedCard }) => {
+  const renderFeedCard = useCallback(({ item }: { item: FeedCard }) => {
     if (item.type === 'time-suggestion') {
       return (
         <TouchableOpacity
@@ -452,14 +452,14 @@ export const DashboardScreenNew = ({ navigation }: any) => {
     }
 
     return null;
-  };
+  }, [navigation]);
 
-  const getGreeting = () => {
+  const getGreeting = useCallback(() => {
     const hour = new Date().getHours();
     if (hour < 12) return 'Good Morning';
     if (hour < 18) return 'Good Afternoon';
     return 'Good Evening';
-  };
+  }, []);
 
   if (loading) {
     return (
