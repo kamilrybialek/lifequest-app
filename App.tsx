@@ -10,6 +10,9 @@ import { initializeNotifications } from './src/utils/notifications';
 import Toast from 'react-native-toast-message';
 
 export default function App() {
+  // PWA FIX: Force new bundle hash for Vercel deployment
+  console.log('🚀 LifeQuest v2.1.3-pwa-fix - PWA PlaceholderScreen workaround active');
+
   const [isInitializing, setIsInitializing] = useState(true);
   const [initError, setInitError] = useState<string | null>(null);
   const loadUser = useAuthStore((state) => state.loadUser);
