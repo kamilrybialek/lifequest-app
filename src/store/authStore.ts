@@ -62,6 +62,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const user: User = {
         id: userData.id,
         email: userData.email,
+        firstName: userData.firstName,
         age: userData.age,
         weight: userData.weight,
         height: userData.height,
@@ -120,6 +121,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           const newUser: User = {
             id: firebaseUser.uid,
             email: firebaseUser.email!,
+            firstName: undefined,
             onboarded: true,
             age: 25,
             weight: 70,
@@ -159,6 +161,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const newUser: User = {
         id: firebaseUser.uid,
         email: firebaseUser.email!,
+        firstName: undefined,
         onboarded: false,
         createdAt: new Date().toISOString(),
       };
@@ -252,6 +255,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const user: User = {
         id: userData.id,
         email: userData.email,
+        firstName: userData.firstName,
         age: userData.age,
         weight: userData.weight,
         height: userData.height,
@@ -310,6 +314,7 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
           const newUser: User = {
             id: userData.id,
             email: userData.email,
+            firstName: userData.firstName,
             age: userData.age,
             weight: userData.weight,
             height: userData.height,
@@ -320,6 +325,25 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
 
           // Only update if user data actually changed (shallow comparison)
           const currentUser = useAuthStore.getState().user;
+
+          // Debug: log detailed comparison
+          console.log('🔍 Comparing users:', {
+            current: currentUser ? {
+              id: currentUser.id,
+              email: currentUser.email,
+              firstName: currentUser.firstName,
+              age: currentUser.age,
+              onboarded: currentUser.onboarded,
+            } : null,
+            new: {
+              id: newUser.id,
+              email: newUser.email,
+              firstName: newUser.firstName,
+              age: newUser.age,
+              onboarded: newUser.onboarded,
+            }
+          });
+
           const hasChanged = !currentUser ||
             currentUser.id !== newUser.id ||
             currentUser.email !== newUser.email ||
