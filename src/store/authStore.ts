@@ -269,69 +269,87 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 }));
 
+// Guard to prevent multiple simultaneous onAuthStateChanged calls
+let isHandlingAuthChange = false;
+
 // Set up Firebase auth state change listener
 onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
   console.log('🔄 Auth state changed:', firebaseUser ? 'SIGNED_IN' : 'SIGNED_OUT');
 
-  if (!firebaseUser) {
-    // User signed out
-    const currentState = useAuthStore.getState();
-    // Only update if state actually changed
-    if (currentState.user !== null || currentState.isAuthenticated !== false) {
-      useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: false });
-    }
-  } else {
-    // User signed in - reload user data
-    try {
-      let userData = await getUserProfile(firebaseUser.uid);
+  // Prevent multiple simultaneous calls
+  if (isHandlingAuthChange) {
+    console.log('⏸️ Already handling auth change, skipping...');
+    return;
+  }
 
-      // Create profile if doesn't exist
-      if (!userData) {
-        await createUserProfile(firebaseUser.uid, {
-          email: firebaseUser.email!,
-          onboarded: false,
-        });
-        userData = await getUserProfile(firebaseUser.uid);
+  try {
+    isHandlingAuthChange = true;
+
+    if (!firebaseUser) {
+      // User signed out
+      const currentState = useAuthStore.getState();
+      // Only update if state actually changed
+      if (currentState.user !== null || currentState.isAuthenticated !== false) {
+        useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: false });
       }
+    } else {
+      // User signed in - reload user data
+      try {
+        let userData = await getUserProfile(firebaseUser.uid);
 
-      if (userData) {
-        const newUser: User = {
-          id: userData.id,
-          email: userData.email,
-          age: userData.age,
-          weight: userData.weight,
-          height: userData.height,
-          gender: userData.gender as 'male' | 'female' | 'other' | undefined,
-          onboarded: userData.onboarded ?? false,
-          createdAt: userData.created_at?.toDate?.()?.toISOString() ?? new Date().toISOString(),
-        };
+        // Create profile if doesn't exist
+        if (!userData) {
+          await createUserProfile(firebaseUser.uid, {
+            email: firebaseUser.email!,
+            onboarded: false,
+          });
+          userData = await getUserProfile(firebaseUser.uid);
+        }
 
-        // Only update if user data actually changed (shallow comparison)
-        const currentUser = useAuthStore.getState().user;
-        const hasChanged = !currentUser ||
-          currentUser.id !== newUser.id ||
-          currentUser.email !== newUser.email ||
-          currentUser.age !== newUser.age ||
-          currentUser.weight !== newUser.weight ||
-          currentUser.height !== newUser.height ||
-          currentUser.gender !== newUser.gender ||
-          currentUser.onboarded !== newUser.onboarded;
+        if (userData) {
+          const newUser: User = {
+            id: userData.id,
+            email: userData.email,
+            age: userData.age,
+            weight: userData.weight,
+            height: userData.height,
+            gender: userData.gender as 'male' | 'female' | 'other' | undefined,
+            onboarded: userData.onboarded ?? false,
+            createdAt: userData.created_at?.toDate?.()?.toISOString() ?? new Date().toISOString(),
+          };
 
-        if (hasChanged) {
-          console.log('📝 User data changed, updating state');
-          useAuthStore.setState({ user: newUser, isAuthenticated: true, isLoading: false });
-        } else {
-          console.log('✓ User data unchanged, skipping state update');
-          // Still update loading state if needed
-          const currentState = useAuthStore.getState();
-          if (currentState.isLoading !== false || currentState.isAuthenticated !== true) {
-            useAuthStore.setState({ isAuthenticated: true, isLoading: false });
+          // Only update if user data actually changed (shallow comparison)
+          const currentUser = useAuthStore.getState().user;
+          const hasChanged = !currentUser ||
+            currentUser.id !== newUser.id ||
+            currentUser.email !== newUser.email ||
+            currentUser.age !== newUser.age ||
+            currentUser.weight !== newUser.weight ||
+            currentUser.height !== newUser.height ||
+            currentUser.gender !== newUser.gender ||
+            currentUser.onboarded !== newUser.onboarded;
+
+          if (hasChanged) {
+            console.log('📝 User data changed, updating state');
+            useAuthStore.setState({ user: newUser, isAuthenticated: true, isLoading: false });
+          } else {
+            console.log('✓ User data unchanged, skipping state update');
+            // Still update loading state if needed
+            const currentState = useAuthStore.getState();
+            if (currentState.isLoading !== false || currentState.isAuthenticated !== true) {
+              useAuthStore.setState({ isAuthenticated: true, isLoading: false });
+            }
           }
         }
+      } catch (error) {
+        console.error('Error in auth state listener:', error);
+        useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: false });
       }
-    } catch (error) {
-      console.error('Error in auth state listener:', error);
-      useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: false });
     }
+  } finally {
+    // Release guard after a small delay to prevent rapid-fire calls
+    setTimeout(() => {
+      isHandlingAuthChange = false;
+    }, 100);
   }
 });
