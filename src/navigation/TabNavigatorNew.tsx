@@ -1,14 +1,77 @@
-import React from 'react';
-import { Platform } from 'react-native';
+import React, { Suspense, lazy } from 'react';
+import { Platform, View, ActivityIndicator } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 
-import { DashboardScreenNew } from '../screens/Dashboard/DashboardScreenNew';
-import { ToolsScreen } from '../screens/tools/ToolsScreen';
-import { TasksScreen } from '../screens/tasks/TasksScreen';
-import { JourneyScreen } from '../screens/Journey/JourneyScreen';
-import { ProfileScreenNew } from '../screens/Profile/ProfileScreenNew';
+// Use lazy loading ONLY on web to avoid circular dependency issues
+const DashboardScreenNew = Platform.OS === 'web'
+  ? lazy(() => import('../screens/Dashboard/DashboardScreenNew').then(m => ({ default: m.DashboardScreenNew })))
+  : require('../screens/Dashboard/DashboardScreenNew').DashboardScreenNew;
+
+const ToolsScreen = Platform.OS === 'web'
+  ? lazy(() => import('../screens/tools/ToolsScreen').then(m => ({ default: m.ToolsScreen })))
+  : require('../screens/tools/ToolsScreen').ToolsScreen;
+
+const TasksScreen = Platform.OS === 'web'
+  ? lazy(() => import('../screens/tasks/TasksScreen').then(m => ({ default: m.TasksScreen })))
+  : require('../screens/tasks/TasksScreen').TasksScreen;
+
+const JourneyScreen = Platform.OS === 'web'
+  ? lazy(() => import('../screens/Journey/JourneyScreen').then(m => ({ default: m.JourneyScreen })))
+  : require('../screens/Journey/JourneyScreen').JourneyScreen;
+
+const ProfileScreenNew = Platform.OS === 'web'
+  ? lazy(() => import('../screens/Profile/ProfileScreenNew').then(m => ({ default: m.ProfileScreenNew })))
+  : require('../screens/Profile/ProfileScreenNew').ProfileScreenNew;
+
+// Loading fallback for Suspense
+const LoadingFallback = () => (
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+    <ActivityIndicator size="large" color={colors.primary} />
+  </View>
+);
+
+// Wrapper components for Suspense (web only)
+const DashboardWrapper = (props: any) => (
+  Platform.OS === 'web' ? (
+    <Suspense fallback={<LoadingFallback />}>
+      <DashboardScreenNew {...props} />
+    </Suspense>
+  ) : <DashboardScreenNew {...props} />
+);
+
+const ToolsWrapper = (props: any) => (
+  Platform.OS === 'web' ? (
+    <Suspense fallback={<LoadingFallback />}>
+      <ToolsScreen {...props} />
+    </Suspense>
+  ) : <ToolsScreen {...props} />
+);
+
+const TasksWrapper = (props: any) => (
+  Platform.OS === 'web' ? (
+    <Suspense fallback={<LoadingFallback />}>
+      <TasksScreen {...props} />
+    </Suspense>
+  ) : <TasksScreen {...props} />
+);
+
+const JourneyWrapper = (props: any) => (
+  Platform.OS === 'web' ? (
+    <Suspense fallback={<LoadingFallback />}>
+      <JourneyScreen {...props} />
+    </Suspense>
+  ) : <JourneyScreen {...props} />
+);
+
+const ProfileWrapper = (props: any) => (
+  Platform.OS === 'web' ? (
+    <Suspense fallback={<LoadingFallback />}>
+      <ProfileScreenNew {...props} />
+    </Suspense>
+  ) : <ProfileScreenNew {...props} />
+);
 
 const Tab = createBottomTabNavigator();
 
@@ -88,27 +151,27 @@ export const TabNavigatorNew = () => {
     >
       <Tab.Screen
         name="Dashboard"
-        component={DashboardScreenNew}
+        component={DashboardWrapper}
         options={{ tabBarLabel: 'Home' }}
       />
       <Tab.Screen
         name="Tools"
-        component={ToolsScreen}
+        component={ToolsWrapper}
         options={{ tabBarLabel: 'Tools' }}
       />
       <Tab.Screen
         name="Tasks"
-        component={TasksScreen}
+        component={TasksWrapper}
         options={{ tabBarLabel: 'Tasks' }}
       />
       <Tab.Screen
         name="Journey"
-        component={JourneyScreen}
+        component={JourneyWrapper}
         options={{ tabBarLabel: 'Journey' }}
       />
       <Tab.Screen
         name="ProfileNew"
-        component={ProfileScreenNew}
+        component={ProfileWrapper}
         options={{ tabBarLabel: 'Profile' }}
       />
     </Tab.Navigator>
