@@ -86,6 +86,9 @@ export const DashboardScreenNew = ({ navigation }: any) => {
         lastUserIdRef.current = user.id;
         setLoading(true);
 
+        // Calculate isDemoUser inside useEffect to avoid dependency issues
+        const isDemoUser = user.id === 'demo-user-local';
+
         const [dashboardStats, dashboardInsights] = await Promise.all([
           getDashboardStats(user.id, isDemoUser),
           getDashboardInsights(user.id, isDemoUser),
@@ -184,13 +187,17 @@ export const DashboardScreenNew = ({ navigation }: any) => {
     };
 
     loadData();
-  }, [user?.id, isDemoUser]);
+  }, [user?.id]); // Only depend on user ID, calculate isDemoUser inside
 
   const onRefresh = useCallback(async () => {
     if (!user?.id) return;
 
     try {
       setRefreshing(true);
+
+      // Calculate isDemoUser inside to avoid dependency issues
+      const isDemoUser = user.id === 'demo-user-local';
+
       const [dashboardStats, dashboardInsights] = await Promise.all([
         getDashboardStats(user.id, isDemoUser),
         getDashboardInsights(user.id, isDemoUser),
@@ -285,7 +292,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
     } finally {
       setRefreshing(false);
     }
-  }, [user?.id, isDemoUser]);
+  }, [user?.id]); // Only depend on user ID, calculate isDemoUser inside
 
   const renderQuickWin = (item: QuickWin) => {
     const getGradient = (color: string) => {
