@@ -78,7 +78,88 @@ export const DashboardScreenNew = ({ navigation }: any) => {
 
       setStats(dashboardStats);
       setInsights(dashboardInsights);
-      buildFeedCards(dashboardStats, dashboardInsights);
+
+      // Build feed cards inline to avoid dependency issues
+      const cards: FeedCard[] = [];
+      const currentHour = new Date().getHours();
+
+      // Time-based suggestions
+      if (currentHour >= 6 && currentHour < 10) {
+        cards.push({
+          id: 'morning-routine',
+          type: 'time-suggestion',
+          data: {
+            title: '☀️ Good Morning!',
+            description: 'Start your day with a 5-minute meditation',
+            icon: 'sunny',
+            color: colors.mental,
+            action: 'Start',
+            screen: 'MentalHealthPath',
+          },
+        });
+      } else if (currentHour >= 12 && currentHour < 14) {
+        cards.push({
+          id: 'lunch',
+          type: 'time-suggestion',
+          data: {
+            title: '🍽️ Lunch Time',
+            description: 'Log your lunch to track your nutrition goals',
+            icon: 'restaurant',
+            color: colors.nutrition,
+            action: 'Log Meal',
+            screen: 'NutritionPath',
+          },
+        });
+      } else if (currentHour >= 17 && currentHour < 20) {
+        cards.push({
+          id: 'workout',
+          type: 'time-suggestion',
+          data: {
+            title: '🏋️ Evening Workout',
+            description: 'Perfect time for your daily workout',
+            icon: 'barbell',
+            color: colors.physical,
+            action: 'Start',
+            screen: 'PhysicalHealthPath',
+          },
+        });
+      }
+
+      // Add stat highlights for impressive numbers
+      if (dashboardStats.tasks.completionRate >= 80) {
+        cards.push({
+          id: 'task-highlight',
+          type: 'stat-highlight',
+          data: {
+            title: '🎯 Task Master!',
+            description: `${dashboardStats.tasks.completionRate.toFixed(0)}% completion rate`,
+            color: '#FFD700',
+          },
+        });
+      }
+
+      if (dashboardStats.physical.currentStreak >= 7) {
+        cards.push({
+          id: 'streak-highlight',
+          type: 'stat-highlight',
+          data: {
+            title: '🔥 On Fire!',
+            description: `${dashboardStats.physical.currentStreak} day workout streak`,
+            color: '#FF4500',
+          },
+        });
+      }
+
+      // Add insights
+      dashboardInsights.forEach(insight => {
+        cards.push({
+          id: insight.id,
+          type: 'insight',
+          data: insight,
+        });
+      });
+
+      setFeedCards(cards);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
     } finally {
@@ -91,89 +172,6 @@ export const DashboardScreenNew = ({ navigation }: any) => {
       loadDashboardData();
     }
   }, [user?.id, loadDashboardData]);
-
-  const buildFeedCards = (stats: DashboardStats, insights: DashboardInsight[]) => {
-    const cards: FeedCard[] = [];
-    const currentHour = new Date().getHours();
-
-    // Time-based suggestions
-    if (currentHour >= 6 && currentHour < 10) {
-      cards.push({
-        id: 'morning-routine',
-        type: 'time-suggestion',
-        data: {
-          title: '☀️ Good Morning!',
-          description: 'Start your day with a 5-minute meditation',
-          icon: 'sunny',
-          color: colors.mental,
-          action: 'Start',
-          screen: 'MentalHealthPath',
-        },
-      });
-    } else if (currentHour >= 12 && currentHour < 14) {
-      cards.push({
-        id: 'lunch',
-        type: 'time-suggestion',
-        data: {
-          title: '🍽️ Lunch Time',
-          description: 'Log your lunch to track your nutrition goals',
-          icon: 'restaurant',
-          color: colors.nutrition,
-          action: 'Log Meal',
-          screen: 'NutritionPath',
-        },
-      });
-    } else if (currentHour >= 17 && currentHour < 20) {
-      cards.push({
-        id: 'workout',
-        type: 'time-suggestion',
-        data: {
-          title: '🏋️ Evening Workout',
-          description: 'Perfect time for your daily workout',
-          icon: 'barbell',
-          color: colors.physical,
-          action: 'Start',
-          screen: 'PhysicalHealthPath',
-        },
-      });
-    }
-
-    // Add stat highlights for impressive numbers
-    if (stats.tasks.completionRate >= 80) {
-      cards.push({
-        id: 'task-highlight',
-        type: 'stat-highlight',
-        data: {
-          title: '🎯 Task Master!',
-          description: `${stats.tasks.completionRate.toFixed(0)}% completion rate`,
-          color: '#FFD700',
-        },
-      });
-    }
-
-    if (stats.physical.currentStreak >= 7) {
-      cards.push({
-        id: 'streak-highlight',
-        type: 'stat-highlight',
-        data: {
-          title: '🔥 On Fire!',
-          description: `${stats.physical.currentStreak} day workout streak`,
-          color: '#FF4500',
-        },
-      });
-    }
-
-    // Add insights
-    insights.forEach(insight => {
-      cards.push({
-        id: insight.id,
-        type: 'insight',
-        data: insight,
-      });
-    });
-
-    setFeedCards(cards);
-  };
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
