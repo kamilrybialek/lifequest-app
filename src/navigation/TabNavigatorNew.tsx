@@ -1,77 +1,34 @@
-import React, { Suspense, lazy } from 'react';
-import { Platform, View, ActivityIndicator } from 'react-native';
+import React from 'react';
+import { Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 
-// Use lazy loading ONLY on web to avoid circular dependency issues
+// TEMPORARY WORKAROUND: Use PlaceholderScreen on web to bypass "Object.get [as DashboardScreenNew]" bundler bug
+// The real screens cause an infinite loop in the module loader on web
+// TODO: Investigate webpack/metro bundler configuration
+import { PlaceholderScreen } from '../screens/PlaceholderScreen';
+
+// On native, use real screens (they work fine there)
 const DashboardScreenNew = Platform.OS === 'web'
-  ? lazy(() => import('../screens/Dashboard/DashboardScreenNew').then(m => ({ default: m.DashboardScreenNew })))
+  ? PlaceholderScreen
   : require('../screens/Dashboard/DashboardScreenNew').DashboardScreenNew;
 
 const ToolsScreen = Platform.OS === 'web'
-  ? lazy(() => import('../screens/tools/ToolsScreen').then(m => ({ default: m.ToolsScreen })))
+  ? PlaceholderScreen
   : require('../screens/tools/ToolsScreen').ToolsScreen;
 
 const TasksScreen = Platform.OS === 'web'
-  ? lazy(() => import('../screens/tasks/TasksScreen').then(m => ({ default: m.TasksScreen })))
+  ? PlaceholderScreen
   : require('../screens/tasks/TasksScreen').TasksScreen;
 
 const JourneyScreen = Platform.OS === 'web'
-  ? lazy(() => import('../screens/Journey/JourneyScreen').then(m => ({ default: m.JourneyScreen })))
+  ? PlaceholderScreen
   : require('../screens/Journey/JourneyScreen').JourneyScreen;
 
 const ProfileScreenNew = Platform.OS === 'web'
-  ? lazy(() => import('../screens/Profile/ProfileScreenNew').then(m => ({ default: m.ProfileScreenNew })))
+  ? PlaceholderScreen
   : require('../screens/Profile/ProfileScreenNew').ProfileScreenNew;
-
-// Loading fallback for Suspense
-const LoadingFallback = () => (
-  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-    <ActivityIndicator size="large" color={colors.primary} />
-  </View>
-);
-
-// Wrapper components for Suspense (web only)
-const DashboardWrapper = (props: any) => (
-  Platform.OS === 'web' ? (
-    <Suspense fallback={<LoadingFallback />}>
-      <DashboardScreenNew {...props} />
-    </Suspense>
-  ) : <DashboardScreenNew {...props} />
-);
-
-const ToolsWrapper = (props: any) => (
-  Platform.OS === 'web' ? (
-    <Suspense fallback={<LoadingFallback />}>
-      <ToolsScreen {...props} />
-    </Suspense>
-  ) : <ToolsScreen {...props} />
-);
-
-const TasksWrapper = (props: any) => (
-  Platform.OS === 'web' ? (
-    <Suspense fallback={<LoadingFallback />}>
-      <TasksScreen {...props} />
-    </Suspense>
-  ) : <TasksScreen {...props} />
-);
-
-const JourneyWrapper = (props: any) => (
-  Platform.OS === 'web' ? (
-    <Suspense fallback={<LoadingFallback />}>
-      <JourneyScreen {...props} />
-    </Suspense>
-  ) : <JourneyScreen {...props} />
-);
-
-const ProfileWrapper = (props: any) => (
-  Platform.OS === 'web' ? (
-    <Suspense fallback={<LoadingFallback />}>
-      <ProfileScreenNew {...props} />
-    </Suspense>
-  ) : <ProfileScreenNew {...props} />
-);
 
 const Tab = createBottomTabNavigator();
 
@@ -151,27 +108,27 @@ export const TabNavigatorNew = () => {
     >
       <Tab.Screen
         name="Dashboard"
-        component={DashboardWrapper}
+        component={DashboardScreenNew}
         options={{ tabBarLabel: 'Home' }}
       />
       <Tab.Screen
         name="Tools"
-        component={ToolsWrapper}
+        component={ToolsScreen}
         options={{ tabBarLabel: 'Tools' }}
       />
       <Tab.Screen
         name="Tasks"
-        component={TasksWrapper}
+        component={TasksScreen}
         options={{ tabBarLabel: 'Tasks' }}
       />
       <Tab.Screen
         name="Journey"
-        component={JourneyWrapper}
+        component={JourneyScreen}
         options={{ tabBarLabel: 'Journey' }}
       />
       <Tab.Screen
         name="ProfileNew"
-        component={ProfileWrapper}
+        component={ProfileScreenNew}
         options={{ tabBarLabel: 'Profile' }}
       />
     </Tab.Navigator>
