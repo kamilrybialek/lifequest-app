@@ -46,9 +46,18 @@ interface FeedCard {
   data: any;
 }
 
+// Quick Actions - moved outside component to avoid recreating on every render
+const QUICK_WINS: QuickWin[] = [
+  { id: '1', title: 'Finance', icon: '💰', color: '#4A90E2', time: '30 sec', screen: 'FinanceDashboard' },
+  { id: '2', title: 'Add Task', icon: '✅', color: '#58CC02', time: '10 sec', screen: 'TasksNew' },
+  { id: '3', title: 'Physical', icon: '💪', color: '#FF6B6B', time: '2 min', screen: 'PhysicalHealthPath' },
+  { id: '4', title: 'Mental', icon: '🧘', color: '#9C27B0', time: '5 min', screen: 'MentalHealthPath' },
+  { id: '5', title: 'Nutrition', icon: '🍽️', color: '#4CAF50', time: '1 min', screen: 'NutritionPath' },
+  { id: '6', title: 'Journey', icon: '📚', color: '#FFD700', time: '2 min', screen: 'Journey' },
+];
+
 export const DashboardScreenNew = ({ navigation }: any) => {
   const { user } = useAuthStore();
-  const isDemoUser = user?.id === 'demo-user-local';
 
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -59,16 +68,15 @@ export const DashboardScreenNew = ({ navigation }: any) => {
   // Track if we're currently loading to prevent multiple simultaneous loads
   const isLoadingRef = useRef(false);
   const lastUserIdRef = useRef<string | null>(null);
+  const renderCountRef = useRef(0);
 
-  // Quick Actions with gradients
-  const quickWins: QuickWin[] = [
-    { id: '1', title: 'Finance', icon: '💰', color: '#4A90E2', time: '30 sec', screen: 'FinanceDashboard' },
-    { id: '2', title: 'Add Task', icon: '✅', color: '#58CC02', time: '10 sec', screen: 'TasksNew' },
-    { id: '3', title: 'Physical', icon: '💪', color: '#FF6B6B', time: '2 min', screen: 'PhysicalHealthPath' },
-    { id: '4', title: 'Mental', icon: '🧘', color: '#9C27B0', time: '5 min', screen: 'MentalHealthPath' },
-    { id: '5', title: 'Nutrition', icon: '🍽️', color: '#4CAF50', time: '1 min', screen: 'NutritionPath' },
-    { id: '6', title: 'Journey', icon: '📚', color: '#FFD700', time: '2 min', screen: 'Journey' },
-  ];
+  // Debug: track renders
+  renderCountRef.current += 1;
+  if (renderCountRef.current > 100) {
+    console.error('🔴 INFINITE RENDER DETECTED - stopping useEffect');
+    throw new Error('Infinite render loop detected in Dashboard');
+  }
+  console.log(`🔄 Dashboard render #${renderCountRef.current}, user.id: ${user?.id}`);
 
   // Load dashboard data on mount and when user changes
   useEffect(() => {
@@ -498,7 +506,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.quickWinsContainer}
               >
-                {quickWins.map(renderQuickWin)}
+                {QUICK_WINS.map(renderQuickWin)}
               </ScrollView>
             </View>
 
