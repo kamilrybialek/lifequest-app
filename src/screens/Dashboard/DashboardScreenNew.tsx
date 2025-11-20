@@ -66,11 +66,117 @@ export const DashboardScreenNew = ({ navigation }: any) => {
     { id: '6', title: 'Journey', icon: '📚', color: '#FFD700', time: '2 min', screen: 'Journey' },
   ];
 
-  const loadDashboardData = useCallback(async () => {
+  // Load dashboard data on mount and when user changes
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        const [dashboardStats, dashboardInsights] = await Promise.all([
+          getDashboardStats(user.id, isDemoUser),
+          getDashboardInsights(user.id, isDemoUser),
+        ]);
+
+        setStats(dashboardStats);
+        setInsights(dashboardInsights);
+
+        // Build feed cards inline to avoid dependency issues
+        const cards: FeedCard[] = [];
+        const currentHour = new Date().getHours();
+
+        // Time-based suggestions
+        if (currentHour >= 6 && currentHour < 10) {
+          cards.push({
+            id: 'morning-routine',
+            type: 'time-suggestion',
+            data: {
+              title: '☀️ Good Morning!',
+              description: 'Start your day with a 5-minute meditation',
+              icon: 'sunny',
+              color: colors.mental,
+              action: 'Start',
+              screen: 'MentalHealthPath',
+            },
+          });
+        } else if (currentHour >= 12 && currentHour < 14) {
+          cards.push({
+            id: 'lunch',
+            type: 'time-suggestion',
+            data: {
+              title: '🍽️ Lunch Time',
+              description: 'Log your lunch to track your nutrition goals',
+              icon: 'restaurant',
+              color: colors.nutrition,
+              action: 'Log Meal',
+              screen: 'NutritionPath',
+            },
+          });
+        } else if (currentHour >= 17 && currentHour < 20) {
+          cards.push({
+            id: 'workout',
+            type: 'time-suggestion',
+            data: {
+              title: '🏋️ Evening Workout',
+              description: 'Perfect time for your daily workout',
+              icon: 'barbell',
+              color: colors.physical,
+              action: 'Start',
+              screen: 'PhysicalHealthPath',
+            },
+          });
+        }
+
+        // Add stat highlights for impressive numbers
+        if (dashboardStats.tasks.completionRate >= 80) {
+          cards.push({
+            id: 'task-highlight',
+            type: 'stat-highlight',
+            data: {
+              title: '🎯 Task Master!',
+              description: `${dashboardStats.tasks.completionRate.toFixed(0)}% completion rate`,
+              color: '#FFD700',
+            },
+          });
+        }
+
+        if (dashboardStats.physical.currentStreak >= 7) {
+          cards.push({
+            id: 'streak-highlight',
+            type: 'stat-highlight',
+            data: {
+              title: '🔥 On Fire!',
+              description: `${dashboardStats.physical.currentStreak} day workout streak`,
+              color: '#FF4500',
+            },
+          });
+        }
+
+        // Add insights
+        dashboardInsights.forEach(insight => {
+          cards.push({
+            id: insight.id,
+            type: 'insight',
+            data: insight,
+          });
+        });
+
+        setFeedCards(cards);
+      } catch (error) {
+        console.error('Error loading dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [user?.id, isDemoUser]);
+
+  const onRefresh = useCallback(async () => {
     if (!user?.id) return;
 
     try {
-      setLoading(true);
+      setRefreshing(true);
       const [dashboardStats, dashboardInsights] = await Promise.all([
         getDashboardStats(user.id, isDemoUser),
         getDashboardInsights(user.id, isDemoUser),
@@ -79,7 +185,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
       setStats(dashboardStats);
       setInsights(dashboardInsights);
 
-      // Build feed cards inline to avoid dependency issues
+      // Build feed cards
       const cards: FeedCard[] = [];
       const currentHour = new Date().getHours();
 
@@ -125,7 +231,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
         });
       }
 
-      // Add stat highlights for impressive numbers
+      // Add stat highlights
       if (dashboardStats.tasks.completionRate >= 80) {
         cards.push({
           id: 'task-highlight',
@@ -161,23 +267,11 @@ export const DashboardScreenNew = ({ navigation }: any) => {
 
       setFeedCards(cards);
     } catch (error) {
-      console.error('Error loading dashboard data:', error);
+      console.error('Error refreshing dashboard:', error);
     } finally {
-      setLoading(false);
+      setRefreshing(false);
     }
   }, [user?.id, isDemoUser]);
-
-  useEffect(() => {
-    if (user?.id) {
-      loadDashboardData();
-    }
-  }, [user?.id, loadDashboardData]);
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await loadDashboardData();
-    setRefreshing(false);
-  }, [loadDashboardData]);
 
   const renderQuickWin = (item: QuickWin) => {
     const getGradient = (color: string) => {
