@@ -275,7 +275,11 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
 
   if (!firebaseUser) {
     // User signed out
-    useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: false });
+    const currentState = useAuthStore.getState();
+    // Only update if state actually changed
+    if (currentState.user !== null || currentState.isAuthenticated !== false) {
+      useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: false });
+    }
   } else {
     // User signed in - reload user data
     try {
@@ -291,7 +295,7 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       }
 
       if (userData) {
-        const user: User = {
+        const newUser: User = {
           id: userData.id,
           email: userData.email,
           age: userData.age,
@@ -302,7 +306,28 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
           createdAt: userData.created_at?.toDate?.()?.toISOString() ?? new Date().toISOString(),
         };
 
-        useAuthStore.setState({ user, isAuthenticated: true, isLoading: false });
+        // Only update if user data actually changed (shallow comparison)
+        const currentUser = useAuthStore.getState().user;
+        const hasChanged = !currentUser ||
+          currentUser.id !== newUser.id ||
+          currentUser.email !== newUser.email ||
+          currentUser.age !== newUser.age ||
+          currentUser.weight !== newUser.weight ||
+          currentUser.height !== newUser.height ||
+          currentUser.gender !== newUser.gender ||
+          currentUser.onboarded !== newUser.onboarded;
+
+        if (hasChanged) {
+          console.log('📝 User data changed, updating state');
+          useAuthStore.setState({ user: newUser, isAuthenticated: true, isLoading: false });
+        } else {
+          console.log('✓ User data unchanged, skipping state update');
+          // Still update loading state if needed
+          const currentState = useAuthStore.getState();
+          if (currentState.isLoading !== false || currentState.isAuthenticated !== true) {
+            useAuthStore.setState({ isAuthenticated: true, isLoading: false });
+          }
+        }
       }
     } catch (error) {
       console.error('Error in auth state listener:', error);
