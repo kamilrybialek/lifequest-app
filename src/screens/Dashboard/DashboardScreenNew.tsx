@@ -66,13 +66,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
     { id: '6', title: 'Journey', icon: '📚', color: '#FFD700', time: '2 min', screen: 'Journey' },
   ];
 
-  useEffect(() => {
-    if (user?.id) {
-      loadDashboardData();
-    }
-  }, [user?.id]);
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     if (!user?.id) return;
 
     try {
@@ -90,7 +84,13 @@ export const DashboardScreenNew = ({ navigation }: any) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id, isDemoUser]);
+
+  useEffect(() => {
+    if (user?.id) {
+      loadDashboardData();
+    }
+  }, [user?.id, loadDashboardData]);
 
   const buildFeedCards = (stats: DashboardStats, insights: DashboardInsight[]) => {
     const cards: FeedCard[] = [];
@@ -179,7 +179,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
     setRefreshing(true);
     await loadDashboardData();
     setRefreshing(false);
-  }, [user?.id]);
+  }, [loadDashboardData]);
 
   const renderQuickWin = (item: QuickWin) => {
     const getGradient = (color: string) => {
