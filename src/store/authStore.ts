@@ -323,6 +323,7 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
           const hasChanged = !currentUser ||
             currentUser.id !== newUser.id ||
             currentUser.email !== newUser.email ||
+            currentUser.firstName !== newUser.firstName ||
             currentUser.age !== newUser.age ||
             currentUser.weight !== newUser.weight ||
             currentUser.height !== newUser.height ||
