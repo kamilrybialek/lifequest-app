@@ -72,6 +72,9 @@ export const AppNavigator = () => {
     return null;
   }
 
+  // TEMPORARY DEBUG: Log before returning JSX
+  console.log(`📱 About to return JSX, branch: ${!isAuthenticated ? 'Login' : !user?.onboarded ? 'Onboarding' : 'Main'}`);
+
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
