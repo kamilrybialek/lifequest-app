@@ -2,9 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-// TEMPORARY: Import PlaceholderScreen directly instead of TabNavigatorNew
-import { PlaceholderScreen } from '../screens/PlaceholderScreen';
-// import { TabNavigatorNew } from './TabNavigatorNew';
+import { TabNavigatorNew } from './TabNavigatorNew';
 
 // Auth screens - these are simple and don't use expo-file-system
 import { LoginScreen } from '../screens/auth/LoginScreen';
@@ -85,7 +83,7 @@ export const AppNavigator = () => {
           <Stack.Screen name="Onboarding" component={OnboardingScreen} />
         ) : (
           <>
-            <Stack.Screen name="Main" component={PlaceholderScreen} />
+            <Stack.Screen name="Main" component={TabNavigatorNew} />
 
             {/* TEMPORARY: Comment out all other screens for debugging */}
             {/* Path screens - accessible from Journey */}

@@ -4,15 +4,11 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 
-// Import ONLY TabNavigatorNew - this avoids importing all the problematic screens
-import { PlaceholderScreen } from '../screens/PlaceholderScreen';
-
-// TEMPORARILY COMMENT OUT REAL SCREENS FOR DEBUGGING
-// import { DashboardScreenNew } from '../screens/Dashboard/DashboardScreenNew';
-// import { ToolsScreen } from '../screens/tools/ToolsScreen';
-// import { TasksScreen } from '../screens/tasks/TasksScreen';
-// import { JourneyScreen } from '../screens/Journey/JourneyScreen';
-// import { ProfileScreenNew } from '../screens/Profile/ProfileScreenNew';
+import { DashboardScreenNew } from '../screens/Dashboard/DashboardScreenNew';
+import { ToolsScreen } from '../screens/tools/ToolsScreen';
+import { TasksScreen } from '../screens/tasks/TasksScreen';
+import { JourneyScreen } from '../screens/Journey/JourneyScreen';
+import { ProfileScreenNew } from '../screens/Profile/ProfileScreenNew';
 
 const Tab = createBottomTabNavigator();
 
@@ -92,27 +88,27 @@ export const TabNavigatorNew = () => {
     >
       <Tab.Screen
         name="Dashboard"
-        component={PlaceholderScreen}
+        component={DashboardScreenNew}
         options={{ tabBarLabel: 'Home' }}
       />
       <Tab.Screen
         name="Tools"
-        component={PlaceholderScreen}
+        component={ToolsScreen}
         options={{ tabBarLabel: 'Tools' }}
       />
       <Tab.Screen
         name="Tasks"
-        component={PlaceholderScreen}
+        component={TasksScreen}
         options={{ tabBarLabel: 'Tasks' }}
       />
       <Tab.Screen
         name="Journey"
-        component={PlaceholderScreen}
+        component={JourneyScreen}
         options={{ tabBarLabel: 'Journey' }}
       />
       <Tab.Screen
         name="ProfileNew"
-        component={PlaceholderScreen}
+        component={ProfileScreenNew}
         options={{ tabBarLabel: 'Profile' }}
       />
     </Tab.Navigator>
