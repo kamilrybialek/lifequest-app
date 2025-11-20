@@ -53,8 +53,20 @@ import { useAuthStore } from '../store/authStore';
 
 const Stack = createNativeStackNavigator();
 
+// Debug: track AppNavigator renders
+let appNavigatorRenderCount = 0;
+
 export const AppNavigator = () => {
   const { user, isAuthenticated, isLoading } = useAuthStore();
+
+  // Debug: log every render
+  appNavigatorRenderCount++;
+  console.log(`📱 AppNavigator render #${appNavigatorRenderCount}, isAuth: ${isAuthenticated}, isLoading: ${isLoading}, user: ${user?.id}`);
+
+  if (appNavigatorRenderCount > 100) {
+    console.error('🔴 INFINITE RENDER in AppNavigator!');
+    throw new Error('Infinite render loop detected in AppNavigator');
+  }
 
   if (isLoading) {
     return null;
