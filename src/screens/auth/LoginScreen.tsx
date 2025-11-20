@@ -172,7 +172,7 @@ export const LoginScreen = ({ navigation }: any) => {
           {/* Error Message */}
           {error ? (
             <View style={styles.errorContainer}>
-              <Ionicons name="alert-circle" size={16} color={designSystem.colors.error[0]} />
+              <Ionicons name="alert-circle" size={16} color={designSystem.gradients.error[0]} />
               <Text style={styles.errorText}>{error}</Text>
             </View>
           ) : null}
@@ -377,7 +377,7 @@ const styles = StyleSheet.create({
   },
   errorText: {
     ...designSystem.typography.small,
-    color: designSystem.colors.error[0],
+    color: designSystem.gradients.error[0],
     flex: 1,
   },
   submitButton: {
