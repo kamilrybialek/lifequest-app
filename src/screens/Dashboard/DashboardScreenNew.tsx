@@ -9,7 +9,7 @@
  * - Uses official Design System
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -56,6 +56,10 @@ export const DashboardScreenNew = ({ navigation }: any) => {
   const [insights, setInsights] = useState<DashboardInsight[]>([]);
   const [feedCards, setFeedCards] = useState<FeedCard[]>([]);
 
+  // Track if we're currently loading to prevent multiple simultaneous loads
+  const isLoadingRef = useRef(false);
+  const lastUserIdRef = useRef<string | null>(null);
+
   // Quick Actions with gradients
   const quickWins: QuickWin[] = [
     { id: '1', title: 'Finance', icon: '💰', color: '#4A90E2', time: '30 sec', screen: 'FinanceDashboard' },
@@ -70,9 +74,18 @@ export const DashboardScreenNew = ({ navigation }: any) => {
   useEffect(() => {
     if (!user?.id) return;
 
+    // Prevent multiple simultaneous loads
+    if (isLoadingRef.current && lastUserIdRef.current === user.id) {
+      console.log('⏸️ Skipping duplicate load for same user');
+      return;
+    }
+
     const loadData = async () => {
       try {
+        isLoadingRef.current = true;
+        lastUserIdRef.current = user.id;
         setLoading(true);
+
         const [dashboardStats, dashboardInsights] = await Promise.all([
           getDashboardStats(user.id, isDemoUser),
           getDashboardInsights(user.id, isDemoUser),
@@ -166,6 +179,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
         console.error('Error loading dashboard data:', error);
       } finally {
         setLoading(false);
+        isLoadingRef.current = false;
       }
     };
 
