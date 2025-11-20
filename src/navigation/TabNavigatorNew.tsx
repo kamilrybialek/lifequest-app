@@ -4,12 +4,15 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 
-// New screens
-import { DashboardScreenNew } from '../screens/Dashboard/DashboardScreenNew';
-import { ToolsScreen } from '../screens/tools/ToolsScreen';
-import { TasksScreen } from '../screens/tasks/TasksScreen';
-import { JourneyScreen } from '../screens/Journey/JourneyScreen';
-import { ProfileScreenNew } from '../screens/Profile/ProfileScreenNew';
+// Import ONLY TabNavigatorNew - this avoids importing all the problematic screens
+import { PlaceholderScreen } from '../screens/PlaceholderScreen';
+
+// TEMPORARILY COMMENT OUT REAL SCREENS FOR DEBUGGING
+// import { DashboardScreenNew } from '../screens/Dashboard/DashboardScreenNew';
+// import { ToolsScreen } from '../screens/tools/ToolsScreen';
+// import { TasksScreen } from '../screens/tasks/TasksScreen';
+// import { JourneyScreen } from '../screens/Journey/JourneyScreen';
+// import { ProfileScreenNew } from '../screens/Profile/ProfileScreenNew';
 
 const Tab = createBottomTabNavigator();
 
@@ -89,27 +92,27 @@ export const TabNavigatorNew = () => {
     >
       <Tab.Screen
         name="Dashboard"
-        component={DashboardScreenNew}
+        component={PlaceholderScreen}
         options={{ tabBarLabel: 'Home' }}
       />
       <Tab.Screen
         name="Tools"
-        component={ToolsScreen}
+        component={PlaceholderScreen}
         options={{ tabBarLabel: 'Tools' }}
       />
       <Tab.Screen
         name="Tasks"
-        component={TasksScreen}
+        component={PlaceholderScreen}
         options={{ tabBarLabel: 'Tasks' }}
       />
       <Tab.Screen
         name="Journey"
-        component={JourneyScreen}
+        component={PlaceholderScreen}
         options={{ tabBarLabel: 'Journey' }}
       />
       <Tab.Screen
         name="ProfileNew"
-        component={ProfileScreenNew}
+        component={PlaceholderScreen}
         options={{ tabBarLabel: 'Profile' }}
       />
     </Tab.Navigator>
