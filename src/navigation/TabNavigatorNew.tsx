@@ -4,31 +4,13 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 
-// TEMPORARY WORKAROUND: Use PlaceholderScreen on web to bypass "Object.get [as DashboardScreenNew]" bundler bug
-// The real screens cause an infinite loop in the module loader on web
-// TODO: Investigate webpack/metro bundler configuration
-import { PlaceholderScreen } from '../screens/PlaceholderScreen';
-
-// On native, use real screens (they work fine there)
-const DashboardScreenNew = Platform.OS === 'web'
-  ? PlaceholderScreen
-  : require('../screens/Dashboard/DashboardScreenNew').DashboardScreenNew;
-
-const ToolsScreen = Platform.OS === 'web'
-  ? PlaceholderScreen
-  : require('../screens/tools/ToolsScreen').ToolsScreen;
-
-const TasksScreen = Platform.OS === 'web'
-  ? PlaceholderScreen
-  : require('../screens/tasks/TasksScreen').TasksScreen;
-
-const JourneyScreen = Platform.OS === 'web'
-  ? PlaceholderScreen
-  : require('../screens/Journey/JourneyScreen').JourneyScreen;
-
-const ProfileScreenNew = Platform.OS === 'web'
-  ? PlaceholderScreen
-  : require('../screens/Profile/ProfileScreenNew').ProfileScreenNew;
+// NORMAL IMPORTS for native platform
+// Metro will automatically use .web.tsx version for web builds
+import { DashboardScreenNew } from '../screens/Dashboard/DashboardScreenNew';
+import { ToolsScreen } from '../screens/tools/ToolsScreen';
+import { TasksScreen } from '../screens/tasks/TasksScreen';
+import { JourneyScreen } from '../screens/Journey/JourneyScreen';
+import { ProfileScreenNew } from '../screens/Profile/ProfileScreenNew';
 
 const Tab = createBottomTabNavigator();
 
