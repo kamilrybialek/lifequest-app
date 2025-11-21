@@ -111,7 +111,7 @@ const DEFAULT_CATEGORIES = [
   { name: 'Utilities', emoji: '💡', allocatedAmount: 0, spent: 0, color: '#FFA07A' },
   { name: 'Insurance', emoji: '🛡️', allocatedAmount: 0, spent: 0, color: '#98D8C8' },
   { name: 'Savings', emoji: '💰', allocatedAmount: 0, spent: 0, color: '#58CC02' },
-  { name: 'Entertainment', emoji: '🎬', allocatedAmount: 0, spent: 0, color: '#CE82FF' },
+  { name: 'Entertainment', emoji: '🎬', allocatedAmount: 0, spent: 0, color: '#4A90E2' },
   { name: 'Other', emoji: '📦', allocatedAmount: 0, spent: 0, color: '#95A5A6' },
 ];
 
@@ -120,7 +120,7 @@ const EXPENSE_CATEGORIES = [
   { id: 'food', label: 'Food', icon: '🍔', color: '#4ECDC4' },
   { id: 'transportation', label: 'Transportation', icon: '🚗', color: '#45B7D1' },
   { id: 'utilities', label: 'Utilities', icon: '💡', color: '#FFA07A' },
-  { id: 'entertainment', label: 'Entertainment', icon: '🎬', color: '#CE82FF' },
+  { id: 'entertainment', label: 'Entertainment', icon: '🎬', color: '#4A90E2' },
   { id: 'shopping', label: 'Shopping', icon: '🛍️', color: '#FFB800' },
   { id: 'health', label: 'Health', icon: '🏥', color: '#FF6B9D' },
   { id: 'other', label: 'Other', icon: '📦', color: '#95A5A6' },
@@ -129,7 +129,7 @@ const EXPENSE_CATEGORIES = [
 const INCOME_CATEGORIES = [
   { id: 'salary', label: 'Salary', icon: '💼', color: colors.success },
   { id: 'freelance', label: 'Freelance', icon: '💻', color: '#FFB800' },
-  { id: 'investment', label: 'Investment', icon: '📈', color: '#7C4DFF' },
+  { id: 'investment', label: 'Investment', icon: '📈', color: '#4A90E2' },
   { id: 'bonus', label: 'Bonus', icon: '🎁', color: '#FF6B9D' },
   { id: 'other', label: 'Other', icon: '💰', color: colors.finance },
 ];
