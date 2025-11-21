@@ -1,6 +1,6 @@
 /**
- * Finance Dashboard - Web Version
- * Simplified for web compatibility
+ * Finance Dashboard - Duolingo Style (Web Version)
+ * Matching Journey, Tasks, and Profile screen design language
  */
 
 import React, { useState, useEffect } from 'react';
@@ -46,6 +46,8 @@ export const FinanceDashboard = ({ navigation }: any) => {
   const [monthlyExpenses, setMonthlyExpenses] = useState(2800);
   const [savingsRate, setSavingsRate] = useState(20);
 
+  const firstName = user?.firstName || user?.email?.split('@')[0] || 'Champion';
+
   useEffect(() => {
     loadFinancialData();
   }, []);
@@ -86,111 +88,137 @@ export const FinanceDashboard = ({ navigation }: any) => {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
+        {/* Header - Duolingo Style */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color="white" />
+            <Ionicons name="arrow-back" size={24} color="rgba(255,255,255,0.9)" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Financial Hub</Text>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerEmoji}>💰</Text>
+            <Text style={styles.headerTitle}>Financial Hub</Text>
+            <Text style={styles.headerSubtitle}>Grow your wealth, {firstName}!</Text>
+          </View>
           <View style={styles.placeholder} />
         </View>
 
-        {/* Net Worth Card */}
-        <View style={styles.netWorthCard}>
-          <Text style={styles.netWorthLabel}>Net Worth</Text>
-          <Text style={styles.netWorthAmount}>{formatCurrency(netWorth)}</Text>
-          <View style={styles.netWorthDetails}>
-            <View style={styles.netWorthItem}>
-              <Ionicons name="trending-up" size={16} color="rgba(255,255,255,0.8)" />
-              <Text style={styles.netWorthItemText}>Assets: {formatCurrency(netWorth + 8000)}</Text>
-            </View>
-            <View style={styles.netWorthItem}>
-              <Ionicons name="trending-down" size={16} color="rgba(255,255,255,0.8)" />
-              <Text style={styles.netWorthItemText}>Debt: {formatCurrency(8000)}</Text>
-            </View>
+        {/* Stats Bar - overlapping header */}
+        <View style={styles.statsBar}>
+          <View style={styles.statItem}>
+            <Ionicons name="arrow-down" size={20} color="#58CC02" />
+            <Text style={styles.statValue}>{formatCurrency(monthlyIncome)}</Text>
+            <Text style={styles.statLabel}>Income</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="arrow-up" size={20} color="#FF4B4B" />
+            <Text style={styles.statValue}>{formatCurrency(monthlyExpenses)}</Text>
+            <Text style={styles.statLabel}>Expenses</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name={netCashFlow >= 0 ? 'checkmark-circle' : 'close-circle'} size={20} color={netCashFlow >= 0 ? '#58CC02' : '#FF4B4B'} />
+            <Text style={[styles.statValue, { color: netCashFlow >= 0 ? '#58CC02' : '#FF4B4B' }]}>
+              {netCashFlow >= 0 ? '+' : ''}{formatCurrency(netCashFlow)}
+            </Text>
+            <Text style={styles.statLabel}>Cash Flow</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="wallet" size={20} color="#00CD9C" />
+            <Text style={styles.statValue}>{savingsRate.toFixed(0)}%</Text>
+            <Text style={styles.statLabel}>Savings Rate</Text>
           </View>
         </View>
 
-        {/* Quick Stats */}
-        <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: '#58CC0220' }]}>
-              <Ionicons name="arrow-down" size={20} color="#58CC02" />
+        {/* Net Worth Card - Colorful Duolingo Style */}
+        <View style={styles.netWorthSection}>
+          <TouchableOpacity style={styles.netWorthCard} activeOpacity={0.8}>
+            <View style={styles.netWorthCardContent}>
+              <View style={styles.netWorthIconContainer}>
+                <Ionicons name="trending-up" size={32} color="white" />
+              </View>
+              <View style={styles.netWorthInfo}>
+                <Text style={styles.netWorthLabel}>Net Worth</Text>
+                <Text style={styles.netWorthAmount}>{formatCurrency(netWorth)}</Text>
+                {/* Progress details */}
+                <View style={styles.netWorthDetails}>
+                  <View style={styles.netWorthDetailItem}>
+                    <Text style={styles.netWorthDetailLabel}>Assets</Text>
+                    <Text style={styles.netWorthDetailValue}>{formatCurrency(netWorth + 8000)}</Text>
+                  </View>
+                  <View style={styles.netWorthDetailDivider} />
+                  <View style={styles.netWorthDetailItem}>
+                    <Text style={styles.netWorthDetailLabel}>Debt</Text>
+                    <Text style={styles.netWorthDetailValue}>{formatCurrency(8000)}</Text>
+                  </View>
+                </View>
+              </View>
             </View>
-            <Text style={styles.statLabel}>Income</Text>
-            <Text style={styles.statValue}>{formatCurrency(monthlyIncome)}</Text>
-            <Text style={styles.statPeriod}>This month</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: '#FF4B4B20' }]}>
-              <Ionicons name="arrow-up" size={20} color="#FF4B4B" />
-            </View>
-            <Text style={styles.statLabel}>Expenses</Text>
-            <Text style={styles.statValue}>{formatCurrency(monthlyExpenses)}</Text>
-            <Text style={styles.statPeriod}>This month</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: netCashFlow >= 0 ? '#58CC0220' : '#FF4B4B20' }]}>
-              <Ionicons name={netCashFlow >= 0 ? 'checkmark-circle' : 'close-circle'} size={20} color={netCashFlow >= 0 ? '#58CC02' : '#FF4B4B'} />
-            </View>
-            <Text style={styles.statLabel}>Cash Flow</Text>
-            <Text style={[styles.statValue, { color: netCashFlow >= 0 ? '#58CC02' : '#FF4B4B' }]}>
-              {netCashFlow >= 0 ? '+' : '-'}{formatCurrency(netCashFlow)}
-            </Text>
-            <Text style={styles.statPeriod}>Net this month</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: '#00CD9C20' }]}>
-              <Ionicons name="wallet" size={20} color="#00CD9C" />
-            </View>
-            <Text style={styles.statLabel}>Savings Rate</Text>
-            <Text style={styles.statValue}>{savingsRate.toFixed(0)}%</Text>
-            <Text style={styles.statPeriod}>Of income</Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* Financial Tools */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Financial Tools</Text>
+          <Text style={styles.sectionTitle}>💼 Financial Tools</Text>
           <Text style={styles.sectionSubtitle}>Manage every aspect of your finances</Text>
 
           <View style={styles.toolsGrid}>
             {FINANCIAL_TOOLS.map(tool => (
               <TouchableOpacity
                 key={tool.id}
-                style={styles.toolCard}
+                style={[styles.toolCard, { backgroundColor: tool.color }]}
                 onPress={() => navigation.navigate(tool.screen)}
+                activeOpacity={0.8}
               >
-                <View style={[styles.toolIconContainer, { backgroundColor: tool.color + '15' }]}>
-                  <Ionicons name={tool.icon as any} size={28} color={tool.color} />
+                <View style={styles.toolCardContent}>
+                  <View style={styles.toolIconContainer}>
+                    <Ionicons name={tool.icon as any} size={32} color="white" />
+                  </View>
+                  <View style={styles.toolInfo}>
+                    <Text style={styles.toolTitle}>{tool.title}</Text>
+                    <Text style={styles.toolDescription}>{tool.description}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.8)" />
                 </View>
-                <Text style={styles.toolTitle}>{tool.title}</Text>
-                <Text style={styles.toolDescription}>{tool.description}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
         {/* Quick Actions */}
-        <View style={styles.quickActions}>
-          <TouchableOpacity
-            style={[styles.quickActionButton, { backgroundColor: '#4A90E2' }]}
-            onPress={() => navigation.navigate('ExpenseLoggerScreen')}
-          >
-            <Ionicons name="add-circle" size={24} color="#fff" />
-            <Text style={styles.quickActionText}>Add Expense</Text>
-          </TouchableOpacity>
+        <View style={styles.quickActionsSection}>
+          <Text style={styles.sectionTitle}>⚡ Quick Actions</Text>
+          <View style={styles.quickActions}>
+            <TouchableOpacity
+              style={[styles.quickActionButton, { backgroundColor: '#FF4B4B' }]}
+              onPress={() => navigation.navigate('ExpenseLoggerScreen')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="remove-circle" size={28} color="#fff" />
+              <Text style={styles.quickActionText}>Add Expense</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.quickActionButton, { backgroundColor: '#58CC02' }]}
-            onPress={() => navigation.navigate('IncomeTrackerScreen')}
-          >
-            <Ionicons name="cash" size={24} color="#fff" />
-            <Text style={styles.quickActionText}>Log Income</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.quickActionButton, { backgroundColor: '#58CC02' }]}
+              onPress={() => navigation.navigate('IncomeTrackerScreen')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add-circle" size={28} color="#fff" />
+              <Text style={styles.quickActionText}>Log Income</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Motivation Card */}
+        <View style={styles.motivationSection}>
+          <View style={styles.motivationCard}>
+            <Text style={styles.motivationEmoji}>🎯</Text>
+            <Text style={styles.motivationTitle}>Build your financial future!</Text>
+            <Text style={styles.motivationText}>
+              Track your finances, reach your goals, and achieve financial freedom.{'\n'}
+              Every dollar counts!
+            </Text>
+          </View>
         </View>
 
         <View style={{ height: 40 }} />
@@ -204,150 +232,208 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F8FA',
   },
+  // Header - Duolingo Style
   header: {
     backgroundColor: '#4A90E2',
     paddingTop: 50,
-    paddingBottom: 20,
+    paddingBottom: 30,
     paddingHorizontal: 20,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
   backButton: {
     padding: 8,
+    marginTop: 8,
+  },
+  headerContent: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  headerEmoji: {
+    fontSize: 48,
+    marginBottom: 8,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 28,
     fontWeight: 'bold',
     color: 'white',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.9)',
   },
   placeholder: {
     width: 40,
   },
-  netWorthCard: {
-    backgroundColor: '#4A90E2',
+  // Stats Bar - overlapping header
+  statsBar: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
     marginHorizontal: 20,
-    marginTop: -1,
-    padding: 24,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    marginTop: -20,
+    borderRadius: 16,
+    padding: 12,
+    justifyContent: 'space-around',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginTop: 4,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: '#666',
+    textAlign: 'center',
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#E5E5E5',
+  },
+  // Net Worth Card
+  netWorthSection: {
+    padding: 20,
+  },
+  netWorthCard: {
+    borderRadius: 20,
+    backgroundColor: '#4A90E2',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  netWorthCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+  },
+  netWorthIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  netWorthInfo: {
+    flex: 1,
   },
   netWorthLabel: {
     fontSize: 16,
     color: 'rgba(255,255,255,0.9)',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   netWorthAmount: {
-    fontSize: 42,
+    fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 16,
+    color: 'white',
+    marginBottom: 12,
   },
   netWorthDetails: {
     flexDirection: 'row',
-    gap: 24,
-  },
-  netWorthItem: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12,
+    padding: 12,
   },
-  netWorthItemText: {
-    fontSize: 14,
+  netWorthDetailItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  netWorthDetailLabel: {
+    fontSize: 12,
     color: 'rgba(255,255,255,0.8)',
-  },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    padding: 20,
-    gap: 12,
-  },
-  statCard: {
-    width: '47%',
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  statIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  statLabel: {
-    fontSize: 13,
-    color: '#666',
     marginBottom: 4,
   },
-  statValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginBottom: 2,
+  netWorthDetailValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'white',
   },
-  statPeriod: {
-    fontSize: 12,
-    color: '#999',
+  netWorthDetailDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    marginHorizontal: 12,
   },
+  // Sections
   section: {
-    padding: 20,
+    paddingHorizontal: 20,
+    marginTop: 8,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#1A1A1A',
+    marginBottom: 4,
   },
   sectionSubtitle: {
     fontSize: 14,
     color: '#666',
-    marginTop: 4,
     marginBottom: 16,
   },
+  // Financial Tools - Colorful Cards
   toolsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 12,
   },
   toolCard: {
-    width: '47%',
-    backgroundColor: 'white',
-    padding: 16,
-    borderRadius: 16,
+    borderRadius: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+    marginBottom: 12,
+  },
+  toolCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
   },
   toolIconContainer: {
     width: 56,
     height: 56,
     borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.3)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginRight: 16,
+  },
+  toolInfo: {
+    flex: 1,
   },
   toolTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#1A1A1A',
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
     marginBottom: 4,
   },
   toolDescription: {
-    fontSize: 12,
-    color: '#666',
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+  },
+  // Quick Actions
+  quickActionsSection: {
+    paddingHorizontal: 20,
+    marginTop: 20,
   },
   quickActions: {
     flexDirection: 'row',
-    paddingHorizontal: 20,
     gap: 12,
   },
   quickActionButton: {
@@ -355,13 +441,51 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingVertical: 16,
+    borderRadius: 16,
     gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
   },
   quickActionText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: '#fff',
+  },
+  // Motivation Card
+  motivationSection: {
+    padding: 20,
+    paddingTop: 20,
+  },
+  motivationCard: {
+    padding: 24,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  motivationEmoji: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  motivationTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  motivationText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
