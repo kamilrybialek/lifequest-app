@@ -155,7 +155,8 @@ export const getTasks = async (
   }
 ): Promise<Task[]> => {
   let tasks = await getAllTasks();
-  tasks = tasks.filter(t => t.user_id === userId);
+  // Use string comparison for Firebase string IDs
+  tasks = tasks.filter(t => String(t.user_id) === String(userId));
 
   if (filters) {
     if (filters.listId !== undefined) {
@@ -180,21 +181,21 @@ export const getTasksForToday = async (userId: string | number): Promise<Task[]>
   const today = new Date().toISOString().split('T')[0];
 
   return tasks.filter(
-    t => t.user_id === userId && t.due_date === today && t.completed === 0
+    t => String(t.user_id) === String(userId) && t.due_date === today && t.completed === 0
   );
 };
 
 export const getScheduledTasks = async (userId: string | number): Promise<Task[]> => {
   const tasks = await getAllTasks();
   return tasks.filter(
-    t => t.user_id === userId && t.due_date && t.completed === 0
+    t => String(t.user_id) === String(userId) && t.due_date && t.completed === 0
   );
 };
 
 export const getImportantTasks = async (userId: string | number): Promise<Task[]> => {
   const tasks = await getAllTasks();
   return tasks.filter(
-    t => t.user_id === userId && t.priority >= 2 && t.completed === 0
+    t => String(t.user_id) === String(userId) && t.priority >= 2 && t.completed === 0
   );
 };
 
@@ -204,7 +205,7 @@ export const getCompletedTasks = async (
 ): Promise<Task[]> => {
   const tasks = await getAllTasks();
   return tasks
-    .filter(t => t.user_id === userId && t.completed === 1)
+    .filter(t => String(t.user_id) === String(userId) && t.completed === 1)
     .sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''))
     .slice(0, limit);
 };
@@ -236,7 +237,7 @@ export const createTag = async (
 
 export const getTags = async (userId: string | number): Promise<Tag[]> => {
   const tags = await getAllTags();
-  return tags.filter(t => t.user_id === userId);
+  return tags.filter(t => String(t.user_id) === String(userId));
 };
 
 export const deleteTag = async (tagId: number): Promise<void> => {
@@ -299,7 +300,7 @@ const saveAllTaskLists = async (lists: TaskList[]): Promise<void> => {
 
 export const getTaskLists = async (userId: string | number): Promise<(TaskList & { task_count?: number })[]> => {
   const lists = await getAllTaskLists();
-  const userLists = lists.filter(l => l.user_id === userId);
+  const userLists = lists.filter(l => String(l.user_id) === String(userId));
 
   // Get task count for each list
   const tasks = await getAllTasks();
@@ -320,7 +321,7 @@ export const getTaskLists = async (userId: string | number): Promise<(TaskList &
 export const initializeDefaultLists = async (userId: string | number): Promise<void> => {
   // Use getAllTaskLists to avoid infinite recursion
   const allLists = await getAllTaskLists();
-  const existingLists = allLists.filter(l => l.user_id === userId);
+  const existingLists = allLists.filter(l => String(l.user_id) === String(userId));
 
   if (existingLists.length > 0) {
     return; // Already initialized
@@ -452,7 +453,7 @@ export const getTaskStats = async (userId: string | number): Promise<{
   overdue: number;
 }> => {
   const tasks = await getAllTasks();
-  const userTasks = tasks.filter(t => t.user_id === userId);
+  const userTasks = tasks.filter(t => String(t.user_id) === String(userId));
   const today = new Date().toISOString().split('T')[0];
 
   return {

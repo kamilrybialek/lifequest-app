@@ -15,6 +15,8 @@ import {
   RefreshControl,
   Modal,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
@@ -344,7 +346,7 @@ export const TasksScreen = ({ navigation }: any) => {
 
       {/* Add Task Modal */}
       <Modal visible={showAddTaskModal} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>New Task</Text>
@@ -427,7 +429,7 @@ export const TasksScreen = ({ navigation }: any) => {
               <Text style={styles.modalButtonText}>Create Task</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Add List Modal */}
