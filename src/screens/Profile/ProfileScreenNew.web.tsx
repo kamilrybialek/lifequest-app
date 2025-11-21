@@ -190,7 +190,7 @@ export const ProfileScreenNew = () => {
           {progress.streaks.map((streak) => {
             const pillarColors: Record<string, string> = {
               finance: '#4A90E2',
-              mental: '#9C27B0',
+              mental: '#4A90E2',
               physical: '#FF6B6B',
               nutrition: '#4CAF50',
             };
