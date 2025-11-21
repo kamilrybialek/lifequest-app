@@ -48,6 +48,7 @@ export const TasksScreen = ({ navigation }: any) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<string>('all');
+  const [selectedTagId, setSelectedTagId] = useState<number | null>(null);
 
   // Modals
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
@@ -120,6 +121,7 @@ export const TasksScreen = ({ navigation }: any) => {
         title: newTaskTitle.trim(),
         list_id: newTaskListId || undefined,
         priority: newTaskPriority,
+        tag_ids: selectedTagIds.length > 0 ? selectedTagIds : undefined,
       });
 
       setNewTaskTitle('');
@@ -163,7 +165,19 @@ export const TasksScreen = ({ navigation }: any) => {
     let tasks = selectedFilter === 'completed' ? completedTasks : activeTasks;
 
     if (searchQuery) {
-      tasks = tasks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()));
+      const query = searchQuery.toLowerCase();
+      // Search in task title and tag names
+      tasks = tasks.filter(t => {
+        if (t.title.toLowerCase().includes(query)) return true;
+        // Check if any tag matches
+        const taskTags = tags.filter(tag => t.tag_ids?.includes(tag.id));
+        return taskTags.some(tag => tag.name.toLowerCase().includes(query));
+      });
+    }
+
+    // Filter by selected tag
+    if (selectedTagId !== null) {
+      tasks = tasks.filter(t => t.tag_ids?.includes(selectedTagId));
     }
 
     if (selectedFilter !== 'all' && selectedFilter !== 'completed') {
@@ -174,6 +188,12 @@ export const TasksScreen = ({ navigation }: any) => {
     }
 
     return tasks.sort((a, b) => b.priority - a.priority);
+  };
+
+  // Get tags for a task
+  const getTaskTags = (task: Task) => {
+    if (!task.tag_ids || task.tag_ids.length === 0) return [];
+    return tags.filter(tag => task.tag_ids?.includes(tag.id));
   };
 
   const filteredTasks = getFilteredTasks();
@@ -233,7 +253,7 @@ export const TasksScreen = ({ navigation }: any) => {
           <Ionicons name="search" size={20} color="#999" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search quests..."
+            placeholder="Search quests or tags..."
             placeholderTextColor="#999"
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -244,6 +264,38 @@ export const TasksScreen = ({ navigation }: any) => {
             </TouchableOpacity>
           )}
         </View>
+
+        {/* Tags Filter */}
+        {tags.length > 0 && (
+          <View style={styles.tagsFilterSection}>
+            <Text style={styles.tagsFilterLabel}>Filter by tag:</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tagsFilterRow}>
+              <TouchableOpacity
+                style={[styles.tagFilterChip, selectedTagId === null && styles.tagFilterChipActive]}
+                onPress={() => setSelectedTagId(null)}
+              >
+                <Text style={[styles.tagFilterText, selectedTagId === null && styles.tagFilterTextActive]}>All</Text>
+              </TouchableOpacity>
+              {tags.map(tag => (
+                <TouchableOpacity
+                  key={tag.id}
+                  style={[
+                    styles.tagFilterChip,
+                    { borderColor: tag.color || '#58CC02' },
+                    selectedTagId === tag.id && { backgroundColor: tag.color || '#58CC02' }
+                  ]}
+                  onPress={() => setSelectedTagId(selectedTagId === tag.id ? null : tag.id)}
+                >
+                  <View style={[styles.tagDot, { backgroundColor: tag.color || '#58CC02' }]} />
+                  <Text style={[
+                    styles.tagFilterText,
+                    selectedTagId === tag.id && styles.tagFilterTextActive
+                  ]}>{tag.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
         {/* Filter Chips */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow}>
@@ -332,6 +384,17 @@ export const TasksScreen = ({ navigation }: any) => {
                         </View>
                         <Text style={styles.xpReward}>+{xp} XP</Text>
                       </View>
+                      {/* Task Tags */}
+                      {getTaskTags(task).length > 0 && (
+                        <View style={styles.questTags}>
+                          {getTaskTags(task).map(tag => (
+                            <View key={tag.id} style={[styles.questTag, { backgroundColor: (tag.color || '#58CC02') + '20' }]}>
+                              <View style={[styles.questTagDot, { backgroundColor: tag.color || '#58CC02' }]} />
+                              <Text style={[styles.questTagText, { color: tag.color || '#58CC02' }]}>{tag.name}</Text>
+                            </View>
+                          ))}
+                        </View>
+                      )}
                     </View>
                   </View>
                   <Ionicons name="chevron-forward" size={20} color="#CCC" />
@@ -441,6 +504,38 @@ export const TasksScreen = ({ navigation }: any) => {
                 </TouchableOpacity>
               ))}
             </View>
+
+            {/* Tags Selection */}
+            {tags.length > 0 && (
+              <>
+                <Text style={styles.modalLabel}>Tags</Text>
+                <View style={styles.modalTagsSelector}>
+                  {tags.map(tag => (
+                    <TouchableOpacity
+                      key={tag.id}
+                      style={[
+                        styles.modalTagOption,
+                        { borderColor: tag.color || '#58CC02' },
+                        selectedTagIds.includes(tag.id) && { backgroundColor: (tag.color || '#58CC02') + '30' }
+                      ]}
+                      onPress={() => {
+                        setSelectedTagIds(prev =>
+                          prev.includes(tag.id)
+                            ? prev.filter(id => id !== tag.id)
+                            : [...prev, tag.id]
+                        );
+                      }}
+                    >
+                      <View style={[styles.modalTagDot, { backgroundColor: tag.color || '#58CC02' }]} />
+                      <Text style={styles.modalTagText}>{tag.name}</Text>
+                      {selectedTagIds.includes(tag.id) && (
+                        <Ionicons name="checkmark" size={14} color={tag.color || '#58CC02'} />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
 
             <TouchableOpacity style={styles.modalButton} onPress={handleAddTask}>
               <Ionicons name="add-circle" size={20} color="white" />
@@ -730,6 +825,71 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFB800',
   },
+  questTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
+  },
+  questTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    gap: 4,
+  },
+  questTagDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  questTagText: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  tagsFilterSection: {
+    paddingHorizontal: 16,
+    marginTop: 12,
+  },
+  tagsFilterLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 8,
+  },
+  tagsFilterRow: {
+    flexDirection: 'row',
+  },
+  tagFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#DDD',
+    backgroundColor: 'white',
+    marginRight: 8,
+    gap: 6,
+  },
+  tagFilterChipActive: {
+    backgroundColor: '#58CC02',
+    borderColor: '#58CC02',
+  },
+  tagDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  tagFilterText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#666',
+  },
+  tagFilterTextActive: {
+    color: 'white',
+  },
   categoriesSection: {
     padding: 16,
   },
@@ -893,5 +1053,30 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 17,
     fontWeight: '600',
+  },
+  modalTagsSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 20,
+  },
+  modalTagOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 6,
+  },
+  modalTagDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  modalTagText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#1A1A1A',
   },
 });

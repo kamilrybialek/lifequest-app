@@ -21,6 +21,7 @@ export interface Task {
   created_at: string;
   updated_at: string;
   tags?: Tag[];
+  tag_ids?: number[];
 }
 
 export interface TaskList {
@@ -85,6 +86,7 @@ export const createTask = async (
     due_date: taskData.due_date,
     due_time: taskData.due_time,
     reminder_date: taskData.reminder_date,
+    tag_ids: taskData.tag_ids,
     created_at: now,
     updated_at: now,
   };
