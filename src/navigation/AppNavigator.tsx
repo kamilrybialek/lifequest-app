@@ -40,6 +40,7 @@ import { WaterTrackerScreen } from '../screens/nutrition/tools/WaterTrackerScree
 import { CalorieCalculatorScreen } from '../screens/nutrition/tools/CalorieCalculatorScreen';
 
 // Finance tool screens - ENHANCED VERSIONS
+import { FinanceDashboard } from '../screens/finance/FinanceDashboard';
 import { EmergencyFundScreen } from '../screens/finance/EmergencyFundScreen';
 import { DebtTrackerScreenEnhanced } from '../screens/finance/DebtTrackerScreenEnhanced';
 import { ExpenseLoggerScreen } from '../screens/finance/ExpenseLoggerScreen';
@@ -126,6 +127,7 @@ export const AppNavigator = () => {
             <Stack.Screen name="CalorieCalculatorScreen" component={CalorieCalculatorScreen} />
 
             {/* Finance tool screens - ENHANCED */}
+            <Stack.Screen name="FinanceDashboard" component={FinanceDashboard} />
             <Stack.Screen name="EmergencyFundScreen" component={EmergencyFundScreen} />
             <Stack.Screen name="DebtTrackerScreen" component={DebtTrackerScreenEnhanced} />
             <Stack.Screen name="ExpenseLoggerScreen" component={ExpenseLoggerScreen} />
