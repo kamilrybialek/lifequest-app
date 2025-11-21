@@ -367,7 +367,7 @@ const styles = StyleSheet.create({
   },
   // Header - Duolingo Style
   header: {
-    backgroundColor: '#8B5CF6',
+    backgroundColor: '#4A90E2',
     paddingTop: 50,
     paddingBottom: 30,
     paddingHorizontal: 20,
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
   },
   levelCard: {
     borderRadius: 20,
-    backgroundColor: '#8B5CF6',
+    backgroundColor: '#4A90E2',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
