@@ -558,28 +558,44 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
           </View>
         )}
 
-        {/* Quick Actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.quickActions}>
-            <TouchableOpacity style={styles.quickActionButton} onPress={() => setActiveTab('expenses')}>
-              <Ionicons name="add-circle" size={24} color={colors.finance} />
-              <Text style={styles.quickActionText}>Add Expense</Text>
+        {/* Quick Actions - Duolingo Style */}
+        <View style={styles.quickActionsSection}>
+          <Text style={styles.sectionTitleQuick}>⚡ Quick Actions</Text>
+          <View style={styles.quickActionsGrid}>
+            <TouchableOpacity
+              style={[styles.quickActionButtonNew, { backgroundColor: '#FF4B4B' }]}
+              onPress={() => setActiveTab('expenses')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="remove-circle" size={28} color="white" />
+              <Text style={styles.quickActionTextNew}>Add Expense</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.quickActionButton} onPress={() => setActiveTab('income')}>
-              <Ionicons name="cash" size={24} color={colors.success} />
-              <Text style={styles.quickActionText}>Add Income</Text>
+            <TouchableOpacity
+              style={[styles.quickActionButtonNew, { backgroundColor: '#58CC02' }]}
+              onPress={() => setActiveTab('income')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="add-circle" size={28} color="white" />
+              <Text style={styles.quickActionTextNew}>Add Income</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.quickActionButton} onPress={() => setActiveTab('budget')}>
-              <Ionicons name="pie-chart" size={24} color={colors.primary} />
-              <Text style={styles.quickActionText}>View Budget</Text>
+            <TouchableOpacity
+              style={[styles.quickActionButtonNew, { backgroundColor: '#FFB800' }]}
+              onPress={() => setActiveTab('budget')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="pie-chart" size={28} color="white" />
+              <Text style={styles.quickActionTextNew}>View Budget</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.quickActionButton} onPress={() => setActiveTab('savings')}>
-              <Ionicons name="flag" size={24} color={colors.success} />
-              <Text style={styles.quickActionText}>Savings Goals</Text>
+            <TouchableOpacity
+              style={[styles.quickActionButtonNew, { backgroundColor: '#00CD9C' }]}
+              onPress={() => setActiveTab('savings')}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="flag" size={28} color="white" />
+              <Text style={styles.quickActionTextNew}>Savings Goals</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -813,8 +829,8 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
             placeholderTextColor={colors.textSecondary}
           />
 
-          <TouchableOpacity style={styles.addButton} onPress={handleAddExpense}>
-            <Ionicons name="add-circle" size={24} color="#FFFFFF" />
+          <TouchableOpacity style={[styles.addButton, { backgroundColor: '#FF4B4B' }]} onPress={handleAddExpense}>
+            <Ionicons name="remove-circle" size={24} color="#FFFFFF" />
             <Text style={styles.addButtonText}>Add Expense</Text>
           </TouchableOpacity>
         </View>
@@ -916,7 +932,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
             <Text style={styles.recurringText}>Recurring Monthly Income</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.addButton} onPress={handleAddIncome}>
+          <TouchableOpacity style={[styles.addButton, { backgroundColor: '#58CC02' }]} onPress={handleAddIncome}>
             <Ionicons name="add-circle" size={24} color="#FFFFFF" />
             <Text style={styles.addButtonText}>Add Income</Text>
           </TouchableOpacity>
@@ -1780,7 +1796,44 @@ const styles = StyleSheet.create({
     color: colors.error,
   },
 
-  // Quick Actions
+  // Quick Actions - Duolingo Style
+  quickActionsSection: {
+    paddingHorizontal: 20,
+    marginTop: 20,
+  },
+  sectionTitleQuick: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 12,
+  },
+  quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  quickActionButtonNew: {
+    flex: 1,
+    minWidth: '47%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 16,
+    borderRadius: 16,
+    gap: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  quickActionTextNew: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
+  },
+
+  // Quick Actions (Old - keeping for compatibility)
   quickActions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -2033,10 +2086,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.finance,
+    backgroundColor: '#4A90E2',
     padding: spacing.md,
-    borderRadius: 12,
+    borderRadius: 16,
     gap: spacing.xs,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    elevation: 4,
   },
   addButtonText: {
     fontSize: 16,
