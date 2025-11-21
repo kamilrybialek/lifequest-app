@@ -97,49 +97,62 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
       try {
         // Try to login first
+        console.log('Attempting to login with existing demo account...');
         await get().login(demoEmail, demoPassword);
         console.log('✅ Demo user logged in successfully');
       } catch (error: any) {
+        console.log('Demo login failed, error code:', error.code, 'message:', error.message);
+
         // If user doesn't exist, create it
         if (error.code === 'auth/user-not-found' || error.message?.includes('No account found')) {
-          console.log('📝 Demo user not found, creating...');
+          console.log('📝 Demo user not found, creating new demo account...');
 
-          // Register demo user
-          const userCredential = await createUserWithEmailAndPassword(auth, demoEmail, demoPassword);
-          const firebaseUser = userCredential.user;
+          try {
+            // Register demo user
+            const userCredential = await createUserWithEmailAndPassword(auth, demoEmail, demoPassword);
+            const firebaseUser = userCredential.user;
+            console.log('✅ Demo Firebase user created:', firebaseUser.uid);
 
-          // Create profile with demo data (already onboarded)
-          await createUserProfile(firebaseUser.uid, {
-            email: firebaseUser.email!,
-            onboarded: true,
-            age: 25,
-            weight: 70,
-            height: 175,
-            gender: 'male',
-          });
+            // Create profile with demo data (already onboarded)
+            console.log('Creating demo user profile in Firestore...');
+            await createUserProfile(firebaseUser.uid, {
+              email: firebaseUser.email!,
+              onboarded: true,
+              age: 25,
+              weight: 70,
+              height: 175,
+              gender: 'male',
+            });
+            console.log('✅ Demo user profile created');
 
-          const newUser: User = {
-            id: firebaseUser.uid,
-            email: firebaseUser.email!,
-            firstName: undefined,
-            onboarded: true,
-            age: 25,
-            weight: 70,
-            height: 175,
-            gender: 'male',
-            createdAt: new Date().toISOString(),
-          };
+            const newUser: User = {
+              id: firebaseUser.uid,
+              email: firebaseUser.email!,
+              firstName: undefined,
+              onboarded: true,
+              age: 25,
+              weight: 70,
+              height: 175,
+              gender: 'male',
+              createdAt: new Date().toISOString(),
+            };
 
-          set({ user: newUser, isAuthenticated: true });
-          console.log('✅ Demo user created and logged in successfully');
+            set({ user: newUser, isAuthenticated: true });
+            console.log('✅ Demo user created and logged in successfully');
+          } catch (createError: any) {
+            console.error('❌ Error creating demo user:', createError);
+            throw new Error(`Failed to create demo user: ${createError.message}`);
+          }
         } else {
+          // Re-throw other errors
+          console.error('❌ Login failed with error:', error);
           throw error;
         }
       }
     } catch (error: any) {
-      console.error('❌ Demo login error:', error);
-      // Show the actual error message for better debugging
-      throw new Error(error.message || 'Failed to login as demo user. Please try again.');
+      console.error('❌ Demo login error (outer catch):', error);
+      // Re-throw the error as-is to preserve the original message
+      throw error;
     }
   },
 
