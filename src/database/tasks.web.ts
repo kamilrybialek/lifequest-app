@@ -6,7 +6,7 @@ const TASK_TAGS_KEY = 'lifequest.db:task_tags';
 
 export interface Task {
   id: number;
-  user_id: number;
+  user_id: string | number;
   title: string;
   notes?: string;
   list_id?: number;
@@ -25,7 +25,7 @@ export interface Task {
 
 export interface TaskList {
   id: number;
-  user_id: number;
+  user_id: string | number;
   name: string;
   icon?: string;
   color?: string;
@@ -38,7 +38,7 @@ export interface TaskList {
 
 export interface Tag {
   id: number;
-  user_id: number;
+  user_id: string | number;
   name: string;
   color?: string;
   icon?: string;
@@ -65,7 +65,7 @@ const saveAllTags = async (tags: Tag[]): Promise<void> => {
 };
 
 export const createTask = async (
-  userId: number,
+  userId: string | number,
   taskData: Partial<Task>
 ): Promise<number> => {
   const tasks = await getAllTasks();
@@ -146,7 +146,7 @@ export const getTaskById = async (taskId: number): Promise<Task | null> => {
 };
 
 export const getTasks = async (
-  userId: number,
+  userId: string | number,
   filters?: {
     listId?: number;
     completed?: boolean;
@@ -175,7 +175,7 @@ export const getTasks = async (
   return tasks;
 };
 
-export const getTasksForToday = async (userId: number): Promise<Task[]> => {
+export const getTasksForToday = async (userId: string | number): Promise<Task[]> => {
   const tasks = await getAllTasks();
   const today = new Date().toISOString().split('T')[0];
 
@@ -184,14 +184,14 @@ export const getTasksForToday = async (userId: number): Promise<Task[]> => {
   );
 };
 
-export const getScheduledTasks = async (userId: number): Promise<Task[]> => {
+export const getScheduledTasks = async (userId: string | number): Promise<Task[]> => {
   const tasks = await getAllTasks();
   return tasks.filter(
     t => t.user_id === userId && t.due_date && t.completed === 0
   );
 };
 
-export const getImportantTasks = async (userId: number): Promise<Task[]> => {
+export const getImportantTasks = async (userId: string | number): Promise<Task[]> => {
   const tasks = await getAllTasks();
   return tasks.filter(
     t => t.user_id === userId && t.priority >= 2 && t.completed === 0
@@ -199,7 +199,7 @@ export const getImportantTasks = async (userId: number): Promise<Task[]> => {
 };
 
 export const getCompletedTasks = async (
-  userId: number,
+  userId: string | number,
   limit: number = 50
 ): Promise<Task[]> => {
   const tasks = await getAllTasks();
@@ -211,7 +211,7 @@ export const getCompletedTasks = async (
 
 // Tag functions
 export const createTag = async (
-  userId: number,
+  userId: string | number,
   name: string,
   color?: string,
   icon?: string
@@ -234,7 +234,7 @@ export const createTag = async (
   return newId;
 };
 
-export const getTags = async (userId: number): Promise<Tag[]> => {
+export const getTags = async (userId: string | number): Promise<Tag[]> => {
   const tags = await getAllTags();
   return tags.filter(t => t.user_id === userId);
 };
@@ -297,7 +297,7 @@ const saveAllTaskLists = async (lists: TaskList[]): Promise<void> => {
   await AsyncStorage.setItem(TASK_LISTS_KEY, JSON.stringify(lists));
 };
 
-export const getTaskLists = async (userId: number): Promise<(TaskList & { task_count?: number })[]> => {
+export const getTaskLists = async (userId: string | number): Promise<(TaskList & { task_count?: number })[]> => {
   const lists = await getAllTaskLists();
   const userLists = lists.filter(l => l.user_id === userId);
 
@@ -317,7 +317,7 @@ export const getTaskLists = async (userId: number): Promise<(TaskList & { task_c
   });
 };
 
-export const initializeDefaultLists = async (userId: number): Promise<void> => {
+export const initializeDefaultLists = async (userId: string | number): Promise<void> => {
   // Use getAllTaskLists to avoid infinite recursion
   const allLists = await getAllTaskLists();
   const existingLists = allLists.filter(l => l.user_id === userId);
@@ -382,7 +382,7 @@ export const initializeDefaultLists = async (userId: number): Promise<void> => {
 };
 
 export const createList = async (
-  userId: number,
+  userId: string | number,
   name: string,
   icon?: string,
   color?: string
@@ -444,7 +444,7 @@ export const deleteList = async (listId: number): Promise<void> => {
   await saveAllTasks(filteredTasks);
 };
 
-export const getTaskStats = async (userId: number): Promise<{
+export const getTaskStats = async (userId: string | number): Promise<{
   total: number;
   active: number;
   completed: number;
@@ -465,4 +465,12 @@ export const getTaskStats = async (userId: number): Promise<{
       return t.due_date < today;
     }).length,
   };
+};
+
+// Alias for createList
+export const createTaskList = async (
+  userId: string | number,
+  data: { name: string; icon?: string; color?: string }
+): Promise<number> => {
+  return createList(userId, data.name, data.icon, data.color);
 };

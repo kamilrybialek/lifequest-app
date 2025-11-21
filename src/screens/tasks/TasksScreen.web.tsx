@@ -52,7 +52,8 @@ export const TasksScreen = ({ navigation }: any) => {
   // New task form
   const [newTaskTitle, setNewTaskTitle] = useState('');
   const [newTaskListId, setNewTaskListId] = useState<number | null>(null);
-  const [newTaskPriority, setNewTaskPriority] = useState<'low' | 'medium' | 'high'>('medium');
+  const [newTaskPriority, setNewTaskPriority] = useState<number>(1); // 0=low, 1=medium, 2=high
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
 
   // New list form
   const [newListName, setNewListName] = useState('');
@@ -129,9 +130,10 @@ export const TasksScreen = ({ navigation }: any) => {
       });
 
       setNewTaskTitle('');
+      setNewTaskPriority(1);
+      setSelectedTagIds([]);
       setShowAddTaskModal(false);
       await loadData();
-      Alert.alert('Success', 'Task created!');
     } catch (error) {
       console.error('Error creating task:', error);
       Alert.alert('Error', 'Failed to create task');
@@ -167,10 +169,7 @@ export const TasksScreen = ({ navigation }: any) => {
     }
 
     try {
-      await createTag(user.id, {
-        name: newTagName.trim(),
-        color: newTagColor,
-      });
+      await createTag(user.id, newTagName.trim(), newTagColor);
 
       setNewTagName('');
       setShowAddTagModal(false);
@@ -382,18 +381,47 @@ export const TasksScreen = ({ navigation }: any) => {
 
             <Text style={styles.modalLabel}>Priority</Text>
             <View style={styles.prioritySelector}>
-              {(['low', 'medium', 'high'] as const).map(p => (
+              {[{ value: 0, label: 'Low' }, { value: 1, label: 'Medium' }, { value: 2, label: 'High' }].map(p => (
                 <TouchableOpacity
-                  key={p}
-                  style={[styles.priorityOption, newTaskPriority === p && styles.priorityOptionActive]}
-                  onPress={() => setNewTaskPriority(p)}
+                  key={p.value}
+                  style={[styles.priorityOption, newTaskPriority === p.value && styles.priorityOptionActive]}
+                  onPress={() => setNewTaskPriority(p.value)}
                 >
-                  <Text style={[styles.priorityText, newTaskPriority === p && styles.priorityTextActive]}>
-                    {p.charAt(0).toUpperCase() + p.slice(1)}
+                  <Text style={[styles.priorityText, newTaskPriority === p.value && styles.priorityTextActive]}>
+                    {p.label}
                   </Text>
                 </TouchableOpacity>
               ))}
             </View>
+
+            {/* Tags selection */}
+            {tags.length > 0 && (
+              <>
+                <Text style={styles.modalLabel}>Tags</Text>
+                <View style={styles.tagsSelector}>
+                  {tags.map(tag => (
+                    <TouchableOpacity
+                      key={tag.id}
+                      style={[
+                        styles.tagOption,
+                        { borderColor: tag.color || '#4A90E2' },
+                        selectedTagIds.includes(tag.id) && { backgroundColor: (tag.color || '#4A90E2') + '30' }
+                      ]}
+                      onPress={() => {
+                        setSelectedTagIds(prev =>
+                          prev.includes(tag.id)
+                            ? prev.filter(id => id !== tag.id)
+                            : [...prev, tag.id]
+                        );
+                      }}
+                    >
+                      <View style={[styles.tagDot, { backgroundColor: tag.color || '#4A90E2' }]} />
+                      <Text style={styles.tagOptionText}>{tag.name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            )}
 
             <TouchableOpacity style={styles.modalButton} onPress={handleAddTask}>
               <Text style={styles.modalButtonText}>Create Task</Text>
@@ -750,5 +778,23 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 17,
     fontWeight: '600',
+  },
+  tagsSelector: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 20,
+  },
+  tagOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  tagOptionText: {
+    fontSize: 14,
+    color: '#1A1A1A',
   },
 });
