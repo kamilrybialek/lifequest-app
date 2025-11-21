@@ -486,59 +486,58 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
         style={styles.tabContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* Net Worth Card */}
-        <LinearGradient
-          colors={netWorth >= 0 ? ['#58CC02', '#46A302'] : ['#FF4B4B', '#CC0000']}
-          style={styles.netWorthCard}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        >
-          <View style={styles.netWorthHeader}>
-            <Ionicons name="wallet" size={32} color="#FFFFFF" />
-            <Text style={styles.netWorthLabel}>Net Worth</Text>
+        {/* Stats Bar - overlapping style */}
+        <View style={styles.statsBarOverview}>
+          <View style={styles.statItem}>
+            <Ionicons name="arrow-down" size={20} color="#58CC02" />
+            <Text style={styles.statValueSmall}>${monthlyIncome.toFixed(0)}</Text>
+            <Text style={styles.statLabelSmall}>Income</Text>
           </View>
-          <Text style={styles.netWorthAmount}>${netWorth.toFixed(2)}</Text>
-          <View style={styles.netWorthBreakdown}>
-            <View style={styles.netWorthItem}>
-              <Text style={styles.netWorthItemLabel}>Assets</Text>
-              <Text style={styles.netWorthItemValue}>${(netWorth + totalDebt).toFixed(0)}</Text>
-            </View>
-            <View style={styles.netWorthDivider} />
-            <View style={styles.netWorthItem}>
-              <Text style={styles.netWorthItemLabel}>Liabilities</Text>
-              <Text style={styles.netWorthItemValue}>${totalDebt.toFixed(0)}</Text>
-            </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="arrow-up" size={20} color="#FF4B4B" />
+            <Text style={styles.statValueSmall}>${monthlyExpenses.toFixed(0)}</Text>
+            <Text style={styles.statLabelSmall}>Expenses</Text>
           </View>
-        </LinearGradient>
-
-        {/* Quick Stats */}
-        <View style={styles.quickStats}>
-          <View style={styles.statCard}>
-            <Ionicons name="trending-up" size={24} color={colors.success} />
-            <Text style={styles.statLabel}>Income</Text>
-            <Text style={styles.statValue}>${monthlyIncome.toFixed(0)}</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <Ionicons name="trending-down" size={24} color={colors.error} />
-            <Text style={styles.statLabel}>Expenses</Text>
-            <Text style={styles.statValue}>${monthlyExpenses.toFixed(0)}</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <Ionicons name="cash" size={24} color={colors.finance} />
-            <Text style={styles.statLabel}>Cash Flow</Text>
-            <Text style={[styles.statValue, { color: cashFlow >= 0 ? colors.success : colors.error }]}>
-              ${Math.abs(cashFlow).toFixed(0)}
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name={cashFlow >= 0 ? 'checkmark-circle' : 'close-circle'} size={20} color={cashFlow >= 0 ? '#58CC02' : '#FF4B4B'} />
+            <Text style={[styles.statValueSmall, { color: cashFlow >= 0 ? '#58CC02' : '#FF4B4B' }]}>
+              {cashFlow >= 0 ? '+' : ''}${Math.abs(cashFlow).toFixed(0)}
             </Text>
+            <Text style={styles.statLabelSmall}>Cash Flow</Text>
           </View>
-
-          <View style={styles.statCard}>
-            <Ionicons name="stats-chart" size={24} color={colors.primary} />
-            <Text style={styles.statLabel}>Savings Rate</Text>
-            <Text style={styles.statValue}>{savingsRate.toFixed(0)}%</Text>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="wallet" size={20} color="#00CD9C" />
+            <Text style={styles.statValueSmall}>{savingsRate.toFixed(0)}%</Text>
+            <Text style={styles.statLabelSmall}>Savings</Text>
           </View>
         </View>
+
+        {/* Net Worth Card - Duolingo Style */}
+        <TouchableOpacity style={styles.netWorthCardNew} activeOpacity={0.8}>
+          <View style={styles.netWorthCardContent}>
+            <View style={styles.netWorthIconContainer}>
+              <Ionicons name="trending-up" size={32} color="white" />
+            </View>
+            <View style={styles.netWorthInfo}>
+              <Text style={styles.netWorthLabelNew}>Net Worth</Text>
+              <Text style={styles.netWorthAmountNew}>${netWorth.toFixed(2)}</Text>
+              <View style={styles.netWorthDetailsNew}>
+                <View style={styles.netWorthDetailItemNew}>
+                  <Text style={styles.netWorthDetailLabel}>Assets</Text>
+                  <Text style={styles.netWorthDetailValue}>${(netWorth + totalDebt).toFixed(0)}</Text>
+                </View>
+                <View style={styles.netWorthDetailDivider} />
+                <View style={styles.netWorthDetailItemNew}>
+                  <Text style={styles.netWorthDetailLabel}>Debt</Text>
+                  <Text style={styles.netWorthDetailValue}>${totalDebt.toFixed(0)}</Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </TouchableOpacity>
 
         {/* Recent Transactions */}
         {recentExpenses.length > 0 && (
@@ -1304,18 +1303,24 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
   // MAIN RENDER
   // ============================================
 
+  const firstName = user?.firstName || user?.email?.split('@')[0] || 'Champion';
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="light-content" />
 
-      {/* Header */}
+      {/* Header - Duolingo Style */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+          <Ionicons name="arrow-back" size={24} color="rgba(255,255,255,0.9)" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Finance Dashboard</Text>
+        <View style={styles.headerContent}>
+          <Text style={styles.headerEmoji}>💰</Text>
+          <Text style={styles.headerTitle}>Financial Hub</Text>
+          <Text style={styles.headerSubtitle}>Grow your wealth, {firstName}!</Text>
+        </View>
         <TouchableOpacity onPress={onRefresh} style={styles.refreshButton}>
-          <Ionicons name="refresh" size={24} color={colors.primary} />
+          <Ionicons name="refresh" size={24} color="rgba(255,255,255,0.9)" />
         </TouchableOpacity>
       </View>
 
@@ -1459,30 +1464,43 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: colors.backgroundGray,
+    backgroundColor: '#F5F8FA',
   },
+  // Header - Duolingo Style
   header: {
+    backgroundColor: '#4A90E2',
+    paddingTop: 50,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
   backButton: {
-    padding: spacing.xs,
+    padding: 8,
+    marginTop: 8,
+  },
+  headerContent: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  headerEmoji: {
+    fontSize: 48,
+    marginBottom: 8,
   },
   headerTitle: {
-    flex: 1,
-    fontSize: 20,
+    fontSize: 28,
     fontWeight: 'bold',
-    color: colors.text,
-    marginLeft: spacing.md,
+    color: 'white',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.9)',
   },
   refreshButton: {
-    padding: spacing.xs,
+    padding: 8,
+    marginTop: 8,
   },
   tabBar: {
     backgroundColor: colors.background,
@@ -1514,7 +1532,112 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Net Worth Card
+  // Stats Bar Overview - Duolingo Style
+  statsBarOverview: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    marginHorizontal: 20,
+    marginTop: 20,
+    borderRadius: 16,
+    padding: 12,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statValueSmall: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginTop: 4,
+  },
+  statLabelSmall: {
+    fontSize: 11,
+    color: '#666',
+    textAlign: 'center',
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#E5E5E5',
+  },
+
+  // Net Worth Card - Duolingo Style
+  netWorthCardNew: {
+    borderRadius: 20,
+    backgroundColor: '#4A90E2',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+    marginHorizontal: 20,
+    marginTop: 20,
+  },
+  netWorthCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+  },
+  netWorthIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  netWorthInfo: {
+    flex: 1,
+  },
+  netWorthLabelNew: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.9)',
+    marginBottom: 4,
+  },
+  netWorthAmountNew: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 12,
+  },
+  netWorthDetailsNew: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 12,
+    padding: 12,
+  },
+  netWorthDetailItemNew: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  netWorthDetailLabel: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.8)',
+    marginBottom: 4,
+  },
+  netWorthDetailValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'white',
+  },
+  netWorthDetailDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    marginHorizontal: 12,
+  },
+
+  // Net Worth Card (Old - keeping for other tabs)
   netWorthCard: {
     margin: spacing.lg,
     padding: spacing.xl,
