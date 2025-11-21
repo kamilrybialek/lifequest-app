@@ -138,7 +138,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       }
     } catch (error: any) {
       console.error('❌ Demo login error:', error);
-      throw new Error('Failed to login as demo user. Please try again.');
+      // Show the actual error message for better debugging
+      throw new Error(error.message || 'Failed to login as demo user. Please try again.');
     }
   },
 
