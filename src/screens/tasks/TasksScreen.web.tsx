@@ -1,6 +1,6 @@
 /**
- * Tasks Screen - RPG Quest Style (Web Version)
- * Gamified task management with Duolingo-style design
+ * Tasks Screen - Duolingo Style (Web Version)
+ * Matching Journey screen design language
  */
 
 import React, { useState, useEffect } from 'react';
@@ -63,6 +63,8 @@ export const TasksScreen = ({ navigation }: any) => {
   // New list form
   const [newListName, setNewListName] = useState('');
   const [newListColor, setNewListColor] = useState('#58CC02');
+
+  const firstName = user?.firstName || user?.email?.split('@')[0] || 'Champion';
 
   useEffect(() => {
     loadData();
@@ -214,61 +216,57 @@ export const TasksScreen = ({ navigation }: any) => {
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* Header */}
+        {/* Header - Duolingo Style */}
         <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <Text style={styles.headerEmoji}>⚔️</Text>
-            <Text style={styles.headerTitle}>Quest Log</Text>
-            <Text style={styles.headerSubtitle}>{activeTasks.length} active quests</Text>
-          </View>
-
-          {/* XP Badge */}
-          <View style={styles.xpBadge}>
-            <Ionicons name="star" size={16} color="#FFD700" />
-            <Text style={styles.xpText}>{totalXP} XP earned</Text>
-          </View>
+          <Text style={styles.headerEmoji}>📋</Text>
+          <Text style={styles.headerTitle}>My Quests</Text>
+          <Text style={styles.headerSubtitle}>Stay organized, {firstName}!</Text>
         </View>
 
-        {/* Stats Cards */}
-        <View style={styles.statsRow}>
-          <View style={[styles.statCard, { backgroundColor: '#58CC0220' }]}>
-            <Ionicons name="checkmark-circle" size={24} color="#58CC02" />
-            <Text style={styles.statNumber}>{stats.completed || 0}</Text>
+        {/* Stats Bar - overlapping header */}
+        <View style={styles.statsBar}>
+          <View style={styles.statItem}>
+            <Ionicons name="checkmark-circle" size={20} color="#58CC02" />
+            <Text style={styles.statValue}>{stats.completed || 0}</Text>
             <Text style={styles.statLabel}>Completed</Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: '#1CB0F620' }]}>
-            <Ionicons name="time" size={24} color="#1CB0F6" />
-            <Text style={styles.statNumber}>{stats.active || 0}</Text>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="time" size={20} color="#1CB0F6" />
+            <Text style={styles.statValue}>{stats.active || 0}</Text>
             <Text style={styles.statLabel}>Active</Text>
           </View>
-          <View style={[styles.statCard, { backgroundColor: '#FF4B4B20' }]}>
-            <Ionicons name="alert-circle" size={24} color="#FF4B4B" />
-            <Text style={styles.statNumber}>{stats.overdue || 0}</Text>
-            <Text style={styles.statLabel}>Overdue</Text>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="star" size={20} color="#FFD700" />
+            <Text style={styles.statValue}>{totalXP}</Text>
+            <Text style={styles.statLabel}>XP Earned</Text>
           </View>
         </View>
 
         {/* Search */}
-        <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#999" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search quests or tags..."
-            placeholderTextColor="#999"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-          />
-          {searchQuery !== '' && (
-            <TouchableOpacity onPress={() => setSearchQuery('')}>
-              <Ionicons name="close-circle" size={20} color="#999" />
-            </TouchableOpacity>
-          )}
+        <View style={styles.searchSection}>
+          <View style={styles.searchContainer}>
+            <Ionicons name="search" size={20} color="#999" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search quests or tags..."
+              placeholderTextColor="#999"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+            {searchQuery !== '' && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <Ionicons name="close-circle" size={20} color="#999" />
+              </TouchableOpacity>
+            )}
+          </View>
         </View>
 
         {/* Tags Filter */}
         {tags.length > 0 && (
           <View style={styles.tagsFilterSection}>
-            <Text style={styles.tagsFilterLabel}>Filter by tag:</Text>
+            <Text style={styles.filterSectionLabel}>🏷️ Filter by tag:</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.tagsFilterRow}>
               <TouchableOpacity
                 style={[styles.tagFilterChip, selectedTagId === null && styles.tagFilterChipActive]}
@@ -297,138 +295,154 @@ export const TasksScreen = ({ navigation }: any) => {
           </View>
         )}
 
-        {/* Filter Chips */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow}>
-          <TouchableOpacity
-            style={[styles.filterChip, selectedFilter === 'all' && styles.filterChipActive]}
-            onPress={() => setSelectedFilter('all')}
-          >
-            <Text style={[styles.filterText, selectedFilter === 'all' && styles.filterTextActive]}>
-              All Active
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.filterChip, selectedFilter === 'completed' && styles.filterChipActive]}
-            onPress={() => setSelectedFilter('completed')}
-          >
-            <Text style={[styles.filterText, selectedFilter === 'completed' && styles.filterTextActive]}>
-              Completed
-            </Text>
-          </TouchableOpacity>
-          {regularLists.map(list => (
+        {/* Category Filter Chips */}
+        <View style={styles.categoryFilterSection}>
+          <Text style={styles.filterSectionLabel}>📁 Categories:</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterRow}>
             <TouchableOpacity
-              key={list.id}
-              style={[
-                styles.filterChip,
-                selectedFilter === String(list.id) && { backgroundColor: list.color || '#58CC02' }
-              ]}
-              onPress={() => setSelectedFilter(String(list.id))}
+              style={[styles.filterChip, selectedFilter === 'all' && styles.filterChipActive]}
+              onPress={() => setSelectedFilter('all')}
             >
-              <View style={[styles.filterDot, { backgroundColor: list.color || '#58CC02' }]} />
-              <Text style={[
-                styles.filterText,
-                selectedFilter === String(list.id) && styles.filterTextActive
-              ]}>
-                {list.name}
+              <Text style={[styles.filterText, selectedFilter === 'all' && styles.filterTextActive]}>
+                All Active
               </Text>
             </TouchableOpacity>
-          ))}
-        </ScrollView>
+            <TouchableOpacity
+              style={[styles.filterChip, selectedFilter === 'completed' && styles.filterChipActive]}
+              onPress={() => setSelectedFilter('completed')}
+            >
+              <Text style={[styles.filterText, selectedFilter === 'completed' && styles.filterTextActive]}>
+                Completed
+              </Text>
+            </TouchableOpacity>
+            {regularLists.map(list => (
+              <TouchableOpacity
+                key={list.id}
+                style={[
+                  styles.filterChip,
+                  selectedFilter === String(list.id) && { backgroundColor: list.color || '#58CC02', borderColor: list.color || '#58CC02' }
+                ]}
+                onPress={() => setSelectedFilter(String(list.id))}
+              >
+                <View style={[styles.filterDot, { backgroundColor: list.color || '#58CC02' }]} />
+                <Text style={[
+                  styles.filterText,
+                  selectedFilter === String(list.id) && styles.filterTextActive
+                ]}>
+                  {list.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
 
-        {/* Quest List */}
+        {/* Quest Cards - Duolingo Style */}
         <View style={styles.questSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>
-              {selectedFilter === 'completed' ? 'Completed Quests' : 'Active Quests'}
+              {selectedFilter === 'completed' ? '✅ Completed Quests' : '⚔️ Active Quests'}
             </Text>
-            <TouchableOpacity onPress={() => setShowAddListModal(true)}>
-              <Ionicons name="folder-open" size={24} color="#666" />
+            <TouchableOpacity style={styles.addButton} onPress={() => setShowAddListModal(true)}>
+              <Ionicons name="folder-open" size={20} color="#4A90E2" />
             </TouchableOpacity>
           </View>
 
           {filteredTasks.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyEmoji}>🎯</Text>
-              <Text style={styles.emptyText}>No quests here!</Text>
-              <Text style={styles.emptySubtext}>
+            <View style={styles.motivationCard}>
+              <Text style={styles.motivationEmoji}>🎯</Text>
+              <Text style={styles.motivationTitle}>
+                {selectedFilter === 'completed' ? 'No completed quests yet!' : 'Ready to start?'}
+              </Text>
+              <Text style={styles.motivationText}>
                 {selectedFilter === 'completed'
-                  ? 'Complete some quests to see them here'
-                  : 'Tap + to add your first quest'}
+                  ? 'Complete some quests to see them here.\nEvery quest brings you XP and progress!'
+                  : 'Tap the + button to add your first quest.\nSmall steps lead to big wins!'}
               </Text>
             </View>
           ) : (
             filteredTasks.map(task => {
               const priority = getPriorityLabel(task.priority);
               const xp = PRIORITY_XP[task.priority as keyof typeof PRIORITY_XP] || 10;
+              const taskTags = getTaskTags(task);
 
               return (
                 <TouchableOpacity
                   key={task.id}
-                  style={[styles.questCard, task.completed === 1 && styles.questCardCompleted]}
+                  style={[styles.questCard, { backgroundColor: priority.color }]}
                   onPress={() => handleToggleTask(task.id)}
+                  activeOpacity={0.8}
                 >
-                  <View style={styles.questLeft}>
-                    <View style={[styles.questCheckbox, task.completed === 1 && styles.questCheckboxDone]}>
-                      {task.completed === 1 && (
-                        <Ionicons name="checkmark" size={16} color="white" />
+                  <View style={styles.questCardContent}>
+                    <View style={styles.questIconContainer}>
+                      {task.completed === 1 ? (
+                        <Ionicons name="checkmark-circle" size={32} color="white" />
+                      ) : (
+                        <Ionicons name="ellipse-outline" size={32} color="rgba(255,255,255,0.6)" />
                       )}
                     </View>
+
                     <View style={styles.questInfo}>
                       <Text style={[styles.questTitle, task.completed === 1 && styles.questTitleDone]}>
                         {task.title}
                       </Text>
+
                       <View style={styles.questMeta}>
-                        <View style={[styles.priorityBadge, { backgroundColor: priority.color + '20' }]}>
-                          <Ionicons name={priority.icon as any} size={12} color={priority.color} />
-                          <Text style={[styles.priorityText, { color: priority.color }]}>{priority.label}</Text>
+                        <View style={styles.priorityBadge}>
+                          <Ionicons name={priority.icon as any} size={12} color="white" />
+                          <Text style={styles.priorityText}>{priority.label}</Text>
                         </View>
                         <Text style={styles.xpReward}>+{xp} XP</Text>
                       </View>
+
                       {/* Task Tags */}
-                      {getTaskTags(task).length > 0 && (
+                      {taskTags.length > 0 && (
                         <View style={styles.questTags}>
-                          {getTaskTags(task).map(tag => (
-                            <View key={tag.id} style={[styles.questTag, { backgroundColor: (tag.color || '#58CC02') + '20' }]}>
+                          {taskTags.map(tag => (
+                            <View key={tag.id} style={styles.questTag}>
                               <View style={[styles.questTagDot, { backgroundColor: tag.color || '#58CC02' }]} />
-                              <Text style={[styles.questTagText, { color: tag.color || '#58CC02' }]}>{tag.name}</Text>
+                              <Text style={styles.questTagText}>{tag.name}</Text>
                             </View>
                           ))}
                         </View>
                       )}
                     </View>
+
+                    <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.8)" />
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color="#CCC" />
                 </TouchableOpacity>
               );
             })
           )}
         </View>
 
-        {/* Categories */}
-        <View style={styles.categoriesSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Quest Categories</Text>
-            <TouchableOpacity onPress={() => setShowAddListModal(true)}>
-              <Ionicons name="add-circle" size={24} color="#58CC02" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.categoriesGrid}>
-            {regularLists.map(list => (
-              <TouchableOpacity
-                key={list.id}
-                style={styles.categoryCard}
-                onPress={() => setSelectedFilter(String(list.id))}
-              >
-                <View style={[styles.categoryIcon, { backgroundColor: (list.color || '#58CC02') + '20' }]}>
-                  <Text style={styles.categoryEmoji}>{list.icon || '📁'}</Text>
-                </View>
-                <Text style={styles.categoryName}>{list.name}</Text>
-                <Text style={styles.categoryCount}>{list.task_count || 0} quests</Text>
+        {/* Categories Section */}
+        {regularLists.length > 0 && (
+          <View style={styles.categoriesSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>📚 Quest Categories</Text>
+              <TouchableOpacity style={styles.addButton} onPress={() => setShowAddListModal(true)}>
+                <Ionicons name="add-circle" size={20} color="#4A90E2" />
               </TouchableOpacity>
-            ))}
+            </View>
+
+            <View style={styles.categoriesGrid}>
+              {regularLists.map(list => (
+                <TouchableOpacity
+                  key={list.id}
+                  style={[styles.categoryCard, { backgroundColor: list.color || '#58CC02' }]}
+                  onPress={() => setSelectedFilter(String(list.id))}
+                  activeOpacity={0.8}
+                >
+                  <View style={styles.categoryIconContainer}>
+                    <Text style={styles.categoryEmoji}>{list.icon || '📁'}</Text>
+                  </View>
+                  <Text style={styles.categoryName}>{list.name}</Text>
+                  <Text style={styles.categoryCount}>{list.task_count || 0} quests</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
-        </View>
+        )}
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -596,83 +610,73 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F8FA',
   },
+  // Header - Duolingo Style
   header: {
-    backgroundColor: '#58CC02',
+    backgroundColor: '#4A90E2',
     paddingTop: 50,
-    paddingBottom: 24,
+    paddingBottom: 30,
     paddingHorizontal: 20,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-  },
-  headerContent: {
     alignItems: 'center',
   },
   headerEmoji: {
-    fontSize: 40,
+    fontSize: 48,
     marginBottom: 8,
   },
   headerTitle: {
     fontSize: 28,
     fontWeight: 'bold',
     color: 'white',
+    marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 16,
     color: 'rgba(255,255,255,0.9)',
-    marginTop: 4,
   },
-  xpBadge: {
+  // Stats Bar - overlapping header
+  statsBar: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.15)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    alignSelf: 'center',
-    marginTop: 12,
-    gap: 6,
-  },
-  xpText: {
-    color: 'white',
-    fontWeight: '600',
-    fontSize: 14,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginTop: -12,
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
     backgroundColor: 'white',
+    marginHorizontal: 20,
+    marginTop: -20,
     borderRadius: 16,
     padding: 16,
+    justifyContent: 'space-around',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 12,
+    elevation: 5,
   },
-  statNumber: {
-    fontSize: 24,
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statValue: {
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#1A1A1A',
-    marginTop: 8,
+    marginTop: 4,
   },
   statLabel: {
     fontSize: 12,
     color: '#666',
-    marginTop: 4,
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#E5E5E5',
+  },
+  // Search
+  searchSection: {
+    padding: 20,
+    paddingBottom: 12,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'white',
     borderRadius: 12,
-    marginHorizontal: 16,
-    marginTop: 20,
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 12,
@@ -687,175 +691,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#1A1A1A',
   },
-  filterRow: {
-    paddingHorizontal: 16,
-    marginTop: 16,
+  // Tags Filter
+  tagsFilterSection: {
+    paddingHorizontal: 20,
     marginBottom: 8,
   },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginRight: 8,
-    gap: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  filterChipActive: {
-    backgroundColor: '#58CC02',
-  },
-  filterDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  filterText: {
-    fontSize: 14,
-    color: '#666',
-    fontWeight: '500',
-  },
-  filterTextActive: {
-    color: 'white',
-  },
-  questSection: {
-    padding: 16,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyEmoji: {
-    fontSize: 48,
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#666',
-    marginTop: 12,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: '#999',
-    marginTop: 4,
-  },
-  questCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 16,
+  categoryFilterSection: {
+    paddingHorizontal: 20,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  questCardCompleted: {
-    opacity: 0.7,
-  },
-  questLeft: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  questCheckbox: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 2,
-    borderColor: '#DDD',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  questCheckboxDone: {
-    backgroundColor: '#58CC02',
-    borderColor: '#58CC02',
-  },
-  questInfo: {
-    flex: 1,
-  },
-  questTitle: {
-    fontSize: 16,
+  filterSectionLabel: {
+    fontSize: 14,
     fontWeight: '600',
     color: '#1A1A1A',
-    marginBottom: 6,
-  },
-  questTitleDone: {
-    textDecorationLine: 'line-through',
-    color: '#999',
-  },
-  questMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  priorityBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    gap: 4,
-  },
-  priorityText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  xpReward: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#FFB800',
-  },
-  questTags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 8,
-  },
-  questTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-    gap: 4,
-  },
-  questTagDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-  },
-  questTagText: {
-    fontSize: 11,
-    fontWeight: '500',
-  },
-  tagsFilterSection: {
-    paddingHorizontal: 16,
-    marginTop: 12,
-  },
-  tagsFilterLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#666',
     marginBottom: 8,
   },
   tagsFilterRow: {
@@ -874,8 +722,8 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   tagFilterChipActive: {
-    backgroundColor: '#58CC02',
-    borderColor: '#58CC02',
+    backgroundColor: '#4A90E2',
+    borderColor: '#4A90E2',
   },
   tagDot: {
     width: 8,
@@ -890,8 +738,179 @@ const styles = StyleSheet.create({
   tagFilterTextActive: {
     color: 'white',
   },
+  // Category Filter
+  filterRow: {
+    flexDirection: 'row',
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginRight: 8,
+    gap: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  filterChipActive: {
+    backgroundColor: '#4A90E2',
+    borderColor: '#4A90E2',
+  },
+  filterDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  filterText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
+  filterTextActive: {
+    color: 'white',
+  },
+  // Quest Section
+  questSection: {
+    padding: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+  },
+  addButton: {
+    padding: 4,
+  },
+  // Quest Cards - Duolingo Style
+  questCard: {
+    borderRadius: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  questCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+  },
+  questIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  questInfo: {
+    flex: 1,
+  },
+  questTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 6,
+  },
+  questTitleDone: {
+    textDecorationLine: 'line-through',
+    opacity: 0.7,
+  },
+  questMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 6,
+  },
+  priorityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    gap: 4,
+  },
+  priorityText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'white',
+  },
+  xpReward: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.9)',
+  },
+  questTags: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  questTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    gap: 4,
+  },
+  questTagDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  questTagText: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: 'white',
+  },
+  // Motivation Card
+  motivationCard: {
+    padding: 24,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  motivationEmoji: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  motivationTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  motivationText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  // Categories Section
   categoriesSection: {
-    padding: 16,
+    padding: 20,
+    paddingTop: 0,
   },
   categoriesGrid: {
     flexDirection: 'row',
@@ -900,37 +919,39 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     width: '47%',
-    backgroundColor: 'white',
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20,
+    padding: 20,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  categoryIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
+  categoryIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.3)',
     justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 8,
   },
   categoryEmoji: {
     fontSize: 24,
   },
   categoryName: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#1A1A1A',
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 4,
+    textAlign: 'center',
   },
   categoryCount: {
     fontSize: 12,
-    color: '#666',
-    marginTop: 2,
+    color: 'rgba(255,255,255,0.9)',
   },
+  // FAB
   fab: {
     position: 'absolute',
     right: 20,
@@ -938,7 +959,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#58CC02',
+    backgroundColor: '#4A90E2',
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: '#000',
@@ -1042,7 +1063,7 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     flexDirection: 'row',
-    backgroundColor: '#58CC02',
+    backgroundColor: '#4A90E2',
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
