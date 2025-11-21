@@ -1,6 +1,6 @@
 /**
  * Tasks Screen - Apple Reminders Style (Web Version)
- * Clean, minimal task management with smart lists
+ * Full functionality: Add tasks, lists, tags, search
  */
 
 import React, { useState, useEffect } from 'react';
@@ -13,6 +13,8 @@ import {
   SafeAreaView,
   TextInput,
   RefreshControl,
+  Modal,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
@@ -22,17 +24,43 @@ import {
   getTags,
   getTaskStats,
   initializeDefaultLists,
+  createTaskList,
+  createTask,
+  createTag,
+  getTasks,
   TaskList,
   Tag,
+  Task,
 } from '../../database/tasks';
+
+const LIST_COLORS = ['#4A90E2', '#FF6B6B', '#58CC02', '#FF9500', '#9C27B0', '#00BCD4', '#FF6B9D', '#FFB800'];
 
 export const TasksScreen = ({ navigation }: any) => {
   const { user } = useAuthStore();
   const [lists, setLists] = useState<TaskList[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [stats, setStats] = useState<any>({});
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+
+  // Modals
+  const [showAddTaskModal, setShowAddTaskModal] = useState(false);
+  const [showAddListModal, setShowAddListModal] = useState(false);
+  const [showAddTagModal, setShowAddTagModal] = useState(false);
+
+  // New task form
+  const [newTaskTitle, setNewTaskTitle] = useState('');
+  const [newTaskListId, setNewTaskListId] = useState<number | null>(null);
+  const [newTaskPriority, setNewTaskPriority] = useState<'low' | 'medium' | 'high'>('medium');
+
+  // New list form
+  const [newListName, setNewListName] = useState('');
+  const [newListColor, setNewListColor] = useState('#4A90E2');
+
+  // New tag form
+  const [newTagName, setNewTagName] = useState('');
+  const [newTagColor, setNewTagColor] = useState('#4A90E2');
 
   useEffect(() => {
     loadData();
@@ -44,15 +72,23 @@ export const TasksScreen = ({ navigation }: any) => {
     try {
       await initializeDefaultLists(user.id);
 
-      const [listsData, tagsData, statsData] = await Promise.all([
+      const [listsData, tagsData, statsData, tasksData] = await Promise.all([
         getTaskLists(user.id),
         getTags(user.id),
         getTaskStats(user.id),
+        getTasks(user.id, {}),
       ]);
 
       setLists(listsData);
       setTags(tagsData);
       setStats(statsData);
+      setAllTasks(tasksData);
+
+      // Set default list for new tasks
+      const regularLists = listsData.filter(l => !l.is_smart_list);
+      if (regularLists.length > 0 && !newTaskListId) {
+        setNewTaskListId(regularLists[0].id);
+      }
     } catch (error) {
       console.error('Error loading tasks data:', error);
     }
@@ -79,8 +115,80 @@ export const TasksScreen = ({ navigation }: any) => {
     }
   };
 
+  const handleAddTask = async () => {
+    if (!user?.id || !newTaskTitle.trim()) {
+      Alert.alert('Error', 'Please enter a task title');
+      return;
+    }
+
+    try {
+      await createTask(user.id, {
+        title: newTaskTitle.trim(),
+        list_id: newTaskListId || undefined,
+        priority: newTaskPriority,
+      });
+
+      setNewTaskTitle('');
+      setShowAddTaskModal(false);
+      await loadData();
+      Alert.alert('Success', 'Task created!');
+    } catch (error) {
+      console.error('Error creating task:', error);
+      Alert.alert('Error', 'Failed to create task');
+    }
+  };
+
+  const handleAddList = async () => {
+    if (!user?.id || !newListName.trim()) {
+      Alert.alert('Error', 'Please enter a list name');
+      return;
+    }
+
+    try {
+      await createTaskList(user.id, {
+        name: newListName.trim(),
+        color: newListColor,
+      });
+
+      setNewListName('');
+      setShowAddListModal(false);
+      await loadData();
+      Alert.alert('Success', 'List created!');
+    } catch (error) {
+      console.error('Error creating list:', error);
+      Alert.alert('Error', 'Failed to create list');
+    }
+  };
+
+  const handleAddTag = async () => {
+    if (!user?.id || !newTagName.trim()) {
+      Alert.alert('Error', 'Please enter a tag name');
+      return;
+    }
+
+    try {
+      await createTag(user.id, {
+        name: newTagName.trim(),
+        color: newTagColor,
+      });
+
+      setNewTagName('');
+      setShowAddTagModal(false);
+      await loadData();
+      Alert.alert('Success', 'Tag created!');
+    } catch (error) {
+      console.error('Error creating tag:', error);
+      Alert.alert('Error', 'Failed to create tag');
+    }
+  };
+
   const smartLists = lists.filter(l => l.is_smart_list);
   const regularLists = lists.filter(l => !l.is_smart_list);
+
+  // Filter tasks by search query
+  const filteredTasks = searchQuery
+    ? allTasks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()))
+    : [];
 
   const getSmartListIcon = (filter?: string) => {
     switch (filter) {
@@ -106,14 +214,12 @@ export const TasksScreen = ({ navigation }: any) => {
     <SafeAreaView style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Reminders</Text>
-          <TouchableOpacity style={styles.addButton}>
+          <TouchableOpacity style={styles.addButton} onPress={() => setShowAddTaskModal(true)}>
             <Ionicons name="add-circle" size={28} color="#4A90E2" />
           </TouchableOpacity>
         </View>
@@ -123,81 +229,254 @@ export const TasksScreen = ({ navigation }: any) => {
           <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search"
+            placeholder="Search tasks..."
             placeholderTextColor="#999"
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
-        </View>
-
-        {/* Smart Lists Grid */}
-        <View style={styles.smartListsGrid}>
-          {smartLists.map((list) => (
-            <TouchableOpacity
-              key={list.id}
-              style={styles.smartListCard}
-              onPress={() => handleListPress(list)}
-            >
-              <View style={[styles.smartListIcon, { backgroundColor: getSmartListColor(list.smart_filter) }]}>
-                <Ionicons name={getSmartListIcon(list.smart_filter) as any} size={24} color="white" />
-              </View>
-              <Text style={styles.smartListName}>{list.name}</Text>
-              <Text style={styles.smartListCount}>{stats[list.smart_filter || ''] || 0}</Text>
+          {searchQuery !== '' && (
+            <TouchableOpacity onPress={() => setSearchQuery('')}>
+              <Ionicons name="close-circle" size={20} color="#999" />
             </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* My Lists Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>My Lists</Text>
-
-          {regularLists.map((list) => (
-            <TouchableOpacity
-              key={list.id}
-              style={styles.listItem}
-              onPress={() => handleListPress(list)}
-            >
-              <View style={[styles.listDot, { backgroundColor: list.color || '#4A90E2' }]} />
-              <Text style={styles.listName}>{list.name}</Text>
-              <Text style={styles.listCount}>{list.task_count || 0}</Text>
-              <Ionicons name="chevron-forward" size={20} color="#CCC" />
-            </TouchableOpacity>
-          ))}
-
-          {regularLists.length === 0 && (
-            <View style={styles.emptyState}>
-              <Ionicons name="list" size={48} color="#DDD" />
-              <Text style={styles.emptyText}>No lists yet</Text>
-              <Text style={styles.emptySubtext}>Create your first list to get started</Text>
-            </View>
           )}
         </View>
 
-        {/* Tags Section */}
-        {tags.length > 0 && (
+        {/* Search Results */}
+        {searchQuery !== '' && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Tags</Text>
-            <View style={styles.tagsContainer}>
-              {tags.map((tag) => (
-                <TouchableOpacity
-                  key={tag.id}
-                  style={[styles.tagChip, { backgroundColor: tag.color || '#E5E5E5' }]}
-                >
-                  <Text style={styles.tagText}>#{tag.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
+            <Text style={styles.sectionTitle}>Search Results ({filteredTasks.length})</Text>
+            {filteredTasks.length === 0 ? (
+              <Text style={styles.emptySubtext}>No tasks found</Text>
+            ) : (
+              filteredTasks.slice(0, 10).map(task => (
+                <View key={task.id} style={styles.searchResultItem}>
+                  <Ionicons
+                    name={task.is_completed ? 'checkmark-circle' : 'ellipse-outline'}
+                    size={24}
+                    color={task.is_completed ? '#58CC02' : '#CCC'}
+                  />
+                  <Text style={[styles.searchResultText, task.is_completed && styles.completedText]}>
+                    {task.title}
+                  </Text>
+                </View>
+              ))
+            )}
           </View>
         )}
 
-        {/* Add List Button */}
-        <TouchableOpacity style={styles.addListButton}>
-          <Ionicons name="add" size={24} color="#4A90E2" />
-          <Text style={styles.addListText}>Add List</Text>
-        </TouchableOpacity>
+        {/* Smart Lists Grid */}
+        {searchQuery === '' && (
+          <>
+            <View style={styles.smartListsGrid}>
+              {smartLists.map((list) => (
+                <TouchableOpacity
+                  key={list.id}
+                  style={styles.smartListCard}
+                  onPress={() => handleListPress(list)}
+                >
+                  <View style={[styles.smartListIcon, { backgroundColor: getSmartListColor(list.smart_filter) }]}>
+                    <Ionicons name={getSmartListIcon(list.smart_filter) as any} size={24} color="white" />
+                  </View>
+                  <Text style={styles.smartListName}>{list.name}</Text>
+                  <Text style={styles.smartListCount}>{stats[list.smart_filter || ''] || 0}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* My Lists Section */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>My Lists</Text>
+                <TouchableOpacity onPress={() => setShowAddListModal(true)}>
+                  <Ionicons name="add" size={24} color="#4A90E2" />
+                </TouchableOpacity>
+              </View>
+
+              {regularLists.map((list) => (
+                <TouchableOpacity
+                  key={list.id}
+                  style={styles.listItem}
+                  onPress={() => handleListPress(list)}
+                >
+                  <View style={[styles.listDot, { backgroundColor: list.color || '#4A90E2' }]} />
+                  <Text style={styles.listName}>{list.name}</Text>
+                  <Text style={styles.listCount}>{list.task_count || 0}</Text>
+                  <Ionicons name="chevron-forward" size={20} color="#CCC" />
+                </TouchableOpacity>
+              ))}
+
+              {regularLists.length === 0 && (
+                <View style={styles.emptyState}>
+                  <Ionicons name="list" size={48} color="#DDD" />
+                  <Text style={styles.emptyText}>No lists yet</Text>
+                  <Text style={styles.emptySubtext}>Tap + to create your first list</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Tags Section */}
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Tags</Text>
+                <TouchableOpacity onPress={() => setShowAddTagModal(true)}>
+                  <Ionicons name="add" size={24} color="#4A90E2" />
+                </TouchableOpacity>
+              </View>
+              <View style={styles.tagsContainer}>
+                {tags.map((tag) => (
+                  <TouchableOpacity
+                    key={tag.id}
+                    style={[styles.tagChip, { backgroundColor: (tag.color || '#E5E5E5') + '30' }]}
+                  >
+                    <View style={[styles.tagDot, { backgroundColor: tag.color || '#4A90E2' }]} />
+                    <Text style={styles.tagText}>{tag.name}</Text>
+                  </TouchableOpacity>
+                ))}
+                {tags.length === 0 && (
+                  <Text style={styles.emptySubtext}>No tags yet. Tap + to add one.</Text>
+                )}
+              </View>
+            </View>
+          </>
+        )}
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Add Task Modal */}
+      <Modal visible={showAddTaskModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>New Task</Text>
+              <TouchableOpacity onPress={() => setShowAddTaskModal(false)}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Task title"
+              placeholderTextColor="#999"
+              value={newTaskTitle}
+              onChangeText={setNewTaskTitle}
+              autoFocus
+            />
+
+            <Text style={styles.modalLabel}>List</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.listSelector}>
+              {regularLists.map(list => (
+                <TouchableOpacity
+                  key={list.id}
+                  style={[
+                    styles.listOption,
+                    newTaskListId === list.id && { backgroundColor: (list.color || '#4A90E2') + '20', borderColor: list.color || '#4A90E2' }
+                  ]}
+                  onPress={() => setNewTaskListId(list.id)}
+                >
+                  <View style={[styles.listDot, { backgroundColor: list.color || '#4A90E2' }]} />
+                  <Text style={styles.listOptionText}>{list.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <Text style={styles.modalLabel}>Priority</Text>
+            <View style={styles.prioritySelector}>
+              {(['low', 'medium', 'high'] as const).map(p => (
+                <TouchableOpacity
+                  key={p}
+                  style={[styles.priorityOption, newTaskPriority === p && styles.priorityOptionActive]}
+                  onPress={() => setNewTaskPriority(p)}
+                >
+                  <Text style={[styles.priorityText, newTaskPriority === p && styles.priorityTextActive]}>
+                    {p.charAt(0).toUpperCase() + p.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity style={styles.modalButton} onPress={handleAddTask}>
+              <Text style={styles.modalButtonText}>Create Task</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Add List Modal */}
+      <Modal visible={showAddListModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>New List</Text>
+              <TouchableOpacity onPress={() => setShowAddListModal(false)}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={styles.modalInput}
+              placeholder="List name"
+              placeholderTextColor="#999"
+              value={newListName}
+              onChangeText={setNewListName}
+              autoFocus
+            />
+
+            <Text style={styles.modalLabel}>Color</Text>
+            <View style={styles.colorSelector}>
+              {LIST_COLORS.map(color => (
+                <TouchableOpacity
+                  key={color}
+                  style={[styles.colorOption, { backgroundColor: color }, newListColor === color && styles.colorOptionActive]}
+                  onPress={() => setNewListColor(color)}
+                />
+              ))}
+            </View>
+
+            <TouchableOpacity style={styles.modalButton} onPress={handleAddList}>
+              <Text style={styles.modalButtonText}>Create List</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Add Tag Modal */}
+      <Modal visible={showAddTagModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>New Tag</Text>
+              <TouchableOpacity onPress={() => setShowAddTagModal(false)}>
+                <Ionicons name="close" size={24} color="#666" />
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Tag name"
+              placeholderTextColor="#999"
+              value={newTagName}
+              onChangeText={setNewTagName}
+              autoFocus
+            />
+
+            <Text style={styles.modalLabel}>Color</Text>
+            <View style={styles.colorSelector}>
+              {LIST_COLORS.map(color => (
+                <TouchableOpacity
+                  key={color}
+                  style={[styles.colorOption, { backgroundColor: color }, newTagColor === color && styles.colorOptionActive]}
+                  onPress={() => setNewTagColor(color)}
+                />
+              ))}
+            </View>
+
+            <TouchableOpacity style={styles.modalButton} onPress={handleAddTag}>
+              <Text style={styles.modalButtonText}>Create Tag</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -281,11 +560,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     marginBottom: 20,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
     color: '#1A1A1A',
-    marginBottom: 12,
   },
   listItem: {
     flexDirection: 'row',
@@ -332,23 +616,139 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tagChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: 16,
+  },
+  tagDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
   },
   tagText: {
     fontSize: 14,
     color: '#1A1A1A',
   },
-  addListButton: {
+  searchResultItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    backgroundColor: 'white',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    gap: 12,
   },
-  addListText: {
+  searchResultText: {
+    fontSize: 16,
+    color: '#1A1A1A',
+  },
+  completedText: {
+    textDecorationLine: 'line-through',
+    color: '#999',
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 40,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+  },
+  modalInput: {
+    backgroundColor: '#F2F2F7',
+    borderRadius: 10,
+    padding: 16,
     fontSize: 17,
-    color: '#4A90E2',
-    marginLeft: 8,
+    marginBottom: 16,
+  },
+  modalLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+    marginBottom: 8,
+  },
+  listSelector: {
+    marginBottom: 16,
+  },
+  listOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    marginRight: 8,
+  },
+  listOptionText: {
+    fontSize: 14,
+    color: '#1A1A1A',
+  },
+  prioritySelector: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 20,
+  },
+  priorityOption: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: '#F2F2F7',
+    alignItems: 'center',
+  },
+  priorityOptionActive: {
+    backgroundColor: '#4A90E2',
+  },
+  priorityText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  priorityTextActive: {
+    color: 'white',
+  },
+  colorSelector: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 20,
+  },
+  colorOption: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  colorOptionActive: {
+    borderWidth: 3,
+    borderColor: '#1A1A1A',
+  },
+  modalButton: {
+    backgroundColor: '#4A90E2',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+  },
+  modalButtonText: {
+    color: 'white',
+    fontSize: 17,
+    fontWeight: '600',
   },
 });
