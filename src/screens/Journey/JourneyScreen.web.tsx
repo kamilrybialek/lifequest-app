@@ -1,190 +1,183 @@
+/**
+ * Journey Screen - Duolingo Style (Web Version)
+ * Uses solid colors instead of LinearGradient for web compatibility
+ */
+
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, RefreshControl } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  SafeAreaView,
+  TouchableOpacity,
+  ScrollView,
+  Dimensions,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { useAppStore } from '../../store/appStore';
+import { useAuthStore } from '../../store/authStore';
 import { Pillar } from '../../types';
 
-interface PillarPath {
+const { width } = Dimensions.get('window');
+
+interface PathCard {
   pillar: Pillar;
-  icon: string;
   title: string;
-  description: string;
+  subtitle: string;
+  icon: string;
+  emoji: string;
   color: string;
-  totalLessons: number;
+  lessons: number;
+  completed: number;
 }
 
-const pillarPaths: PillarPath[] = [
+const PATHS: PathCard[] = [
   {
     pillar: 'finance',
-    icon: '💰',
-    title: 'Finance Mastery',
-    description: 'Build wealth through budgeting, investing, and smart money habits',
-    color: '#10B981',
-    totalLessons: 30,
+    title: 'Financial Freedom',
+    subtitle: '10 Steps to Wealth',
+    icon: 'cash',
+    emoji: '💰',
+    color: '#4A90E2',
+    lessons: 47,
+    completed: 0,
   },
   {
     pillar: 'mental',
-    icon: '🧠',
-    title: 'Mental Health',
-    description: 'Develop resilience, mindfulness, and emotional intelligence',
-    color: '#8B5CF6',
-    totalLessons: 25,
+    title: 'Mental Mastery',
+    subtitle: 'Build Unbreakable Focus',
+    icon: 'brain',
+    emoji: '🧠',
+    color: '#9C27B0',
+    lessons: 35,
+    completed: 0,
   },
   {
     pillar: 'physical',
-    icon: '💪',
-    title: 'Physical Health',
-    description: 'Optimize fitness, strength, and overall physical well-being',
-    color: '#F59E0B',
-    totalLessons: 28,
+    title: 'Physical Excellence',
+    subtitle: 'Transform Your Body',
+    icon: 'fitness',
+    emoji: '💪',
+    color: '#FF6B6B',
+    lessons: 40,
+    completed: 0,
   },
   {
     pillar: 'nutrition',
-    icon: '🥗',
-    title: 'Nutrition',
-    description: 'Master meal planning, healthy eating, and nutritional science',
-    color: '#EC4899',
-    totalLessons: 22,
+    title: 'Nutrition Mastery',
+    subtitle: 'Fuel Like a Champion',
+    icon: 'restaurant',
+    emoji: '🥗',
+    color: '#4CAF50',
+    lessons: 30,
+    completed: 0,
   },
 ];
 
 export const JourneyScreen = ({ navigation }: any) => {
-  const { progress, loadAppData } = useAppStore();
-  const [refreshing, setRefreshing] = useState(false);
+  const { progress } = useAppStore();
+  const { user } = useAuthStore();
+  const firstName = user?.firstName || user?.email?.split('@')[0] || 'Champion';
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await loadAppData();
-    } catch (error) {
-      console.error('Error refreshing:', error);
-    }
-    setRefreshing(false);
-  };
-
-  const getStreakForPillar = (pillar: Pillar) => {
-    const streak = progress.streaks.find(s => s.pillar === pillar);
-    return streak?.current || 0;
-  };
-
-  const handlePillarPress = (pillar: Pillar) => {
+  const handlePathPress = (pillar: Pillar) => {
     const screenMap = {
       finance: 'FinancePathNew',
       mental: 'MentalHealthPath',
       physical: 'PhysicalHealthPath',
       nutrition: 'NutritionPath',
     };
-
-    const screenName = screenMap[pillar];
-    if (screenName) {
-      console.log('Navigating to', screenName);
-      navigation.navigate(screenName);
-    } else {
-      console.warn('No path screen for pillar:', pillar);
-    }
+    navigation.navigate(screenMap[pillar]);
   };
 
-  const totalStreak = progress.streaks.reduce((sum, s) => sum + s.current, 0);
-  const bestStreak = Math.max(...progress.streaks.map(s => s.longest), 0);
+  const totalXP = progress?.xp || 0;
+  const level = progress?.level || 1;
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>🧭 Journey</Text>
-          <Text style={styles.subtitle}>Master the 4 pillars of life</Text>
+          <Text style={styles.headerEmoji}>🧭</Text>
+          <Text style={styles.headerTitle}>Your Journey</Text>
+          <Text style={styles.headerSubtitle}>Choose your path, {firstName}!</Text>
         </View>
 
-        {/* Overall Progress */}
-        <View style={styles.overviewCard}>
-          <Text style={styles.overviewTitle}>Your Progress</Text>
-          <View style={styles.overviewStats}>
-            <View style={styles.overviewStat}>
-              <Text style={styles.overviewStatValue}>{progress.level}</Text>
-              <Text style={styles.overviewStatLabel}>Level</Text>
-            </View>
-            <View style={styles.overviewStat}>
-              <Text style={styles.overviewStatValue}>{totalStreak}</Text>
-              <Text style={styles.overviewStatLabel}>Total Streak</Text>
-            </View>
-            <View style={styles.overviewStat}>
-              <Text style={styles.overviewStatValue}>{bestStreak}</Text>
-              <Text style={styles.overviewStatLabel}>Best Streak</Text>
-            </View>
-            <View style={styles.overviewStat}>
-              <Text style={styles.overviewStatValue}>{progress.xp}</Text>
-              <Text style={styles.overviewStatLabel}>Total XP</Text>
-            </View>
+        {/* Stats Bar */}
+        <View style={styles.statsBar}>
+          <View style={styles.statItem}>
+            <Ionicons name="trophy" size={20} color="#FFD700" />
+            <Text style={styles.statValue}>{totalXP}</Text>
+            <Text style={styles.statLabel}>XP</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="star" size={20} color="#4A90E2" />
+            <Text style={styles.statValue}>{level}</Text>
+            <Text style={styles.statLabel}>Level</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="flame" size={20} color="#FF6B6B" />
+            <Text style={styles.statValue}>{progress?.streaks?.[0]?.current || 0}</Text>
+            <Text style={styles.statLabel}>Streak</Text>
           </View>
         </View>
 
-        {/* Learning Paths */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Learning Paths</Text>
-          {pillarPaths.map((path) => {
-            const currentStreak = getStreakForPillar(path.pillar);
-            const progressPercent = Math.min((currentStreak / 30) * 100, 100);
+        {/* Path Cards */}
+        <View style={styles.pathsContainer}>
+          <Text style={styles.sectionTitle}>🎯 Learning Paths</Text>
+
+          {PATHS.map((path, index) => {
+            const progressPercent = (path.completed / path.lessons) * 100;
 
             return (
               <TouchableOpacity
                 key={path.pillar}
-                style={styles.pathCard}
-                onPress={() => handlePillarPress(path.pillar)}
+                style={[styles.pathCard, { backgroundColor: path.color }]}
+                onPress={() => handlePathPress(path.pillar)}
+                activeOpacity={0.8}
               >
-                <View style={styles.pathHeader}>
-                  <View style={[styles.pathIconContainer, { backgroundColor: path.color }]}>
-                    <Text style={styles.pathIcon}>{path.icon}</Text>
+                <View style={styles.pathCardContent}>
+                  <View style={styles.pathIconContainer}>
+                    <Text style={styles.pathEmoji}>{path.emoji}</Text>
                   </View>
+
                   <View style={styles.pathInfo}>
                     <Text style={styles.pathTitle}>{path.title}</Text>
-                    <Text style={styles.pathDescription}>{path.description}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={24} color={colors.textLight} />
-                </View>
+                    <Text style={styles.pathSubtitle}>{path.subtitle}</Text>
 
-                <View style={styles.pathProgress}>
-                  <View style={styles.pathProgressHeader}>
-                    <View style={styles.streakBadge}>
-                      <Ionicons name="flame" size={16} color="#F59E0B" />
-                      <Text style={styles.streakText}>{currentStreak} day streak</Text>
+                    {/* Progress Bar */}
+                    <View style={styles.progressContainer}>
+                      <View style={styles.progressBar}>
+                        <View
+                          style={[
+                            styles.progressFill,
+                            { width: `${progressPercent}%` }
+                          ]}
+                        />
+                      </View>
+                      <Text style={styles.progressText}>
+                        {path.completed}/{path.lessons}
+                      </Text>
                     </View>
-                    <Text style={styles.lessonsText}>0/{path.totalLessons} lessons</Text>
                   </View>
-                  <View style={styles.progressBarContainer}>
-                    <View
-                      style={[
-                        styles.progressBarFill,
-                        { width: `${progressPercent}%`, backgroundColor: path.color }
-                      ]}
-                    />
-                  </View>
+
+                  <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.8)" />
                 </View>
               </TouchableOpacity>
             );
           })}
         </View>
 
-        {/* Motivational Quote */}
-        <View style={styles.quoteCard}>
-          <Text style={styles.quoteIcon}>💡</Text>
-          <Text style={styles.quoteText}>
-            "The journey of a thousand miles begins with a single step"
+        {/* Motivation Card */}
+        <View style={styles.motivationCard}>
+          <Text style={styles.motivationEmoji}>🚀</Text>
+          <Text style={styles.motivationTitle}>Keep Going!</Text>
+          <Text style={styles.motivationText}>
+            Every lesson brings you closer to mastery.{'\n'}
+            Small steps lead to big transformations!
           </Text>
-          <Text style={styles.quoteAuthor}>— Lao Tzu</Text>
-        </View>
-
-        {/* Next Steps */}
-        <View style={styles.tipsCard}>
-          <Text style={styles.tipsTitle}>🎯 Next Steps</Text>
-          <Text style={styles.tipsText}>• Complete daily tasks to maintain your streaks</Text>
-          <Text style={styles.tipsText}>• Focus on one pillar at a time for best results</Text>
-          <Text style={styles.tipsText}>• Track your progress and celebrate small wins</Text>
-          <Text style={styles.tipsText}>• Learning paths coming soon with structured lessons</Text>
         </View>
 
         <View style={{ height: 40 }} />
@@ -196,188 +189,160 @@ export const JourneyScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#F5F8FA',
   },
   header: {
-    padding: 20,
-    paddingTop: 40,
+    backgroundColor: '#4A90E2',
+    paddingTop: 50,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+    alignItems: 'center',
   },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: colors.text,
+  headerEmoji: {
+    fontSize: 48,
     marginBottom: 8,
   },
-  subtitle: {
-    fontSize: 16,
-    color: colors.textLight,
-  },
-  overviewCard: {
-    margin: 20,
-    marginTop: 0,
-    padding: 20,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  overviewTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 16,
-  },
-  overviewStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  overviewStat: {
-    alignItems: 'center',
-  },
-  overviewStatValue: {
-    fontSize: 24,
+  headerTitle: {
+    fontSize: 28,
     fontWeight: 'bold',
-    color: colors.primary,
+    color: 'white',
     marginBottom: 4,
   },
-  overviewStatLabel: {
-    fontSize: 12,
-    color: colors.textLight,
+  headerSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.9)',
   },
-  section: {
-    paddingHorizontal: 20,
+  statsBar: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    marginHorizontal: 20,
+    marginTop: -20,
+    borderRadius: 16,
+    padding: 16,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginTop: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#E5E5E5',
+  },
+  pathsContainer: {
+    padding: 20,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 12,
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 16,
   },
   pathCard: {
+    borderRadius: 20,
     marginBottom: 16,
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  pathHeader: {
+  pathCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    padding: 20,
   },
   pathIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 16,
   },
-  pathIcon: {
-    fontSize: 28,
+  pathEmoji: {
+    fontSize: 32,
   },
   pathInfo: {
     flex: 1,
   },
   pathTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 2,
   },
-  pathDescription: {
+  pathSubtitle: {
     fontSize: 14,
-    color: colors.textLight,
-    lineHeight: 20,
+    color: 'rgba(255,255,255,0.9)',
+    marginBottom: 8,
   },
-  pathProgress: {
-    gap: 8,
-  },
-  pathProgressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  streakBadge: {
+  progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
   },
-  streakText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  lessonsText: {
-    fontSize: 12,
-    color: colors.textLight,
-  },
-  progressBarContainer: {
+  progressBar: {
+    flex: 1,
     height: 6,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'rgba(255,255,255,0.3)',
     borderRadius: 3,
-    overflow: 'hidden',
+    marginRight: 8,
   },
-  progressBarFill: {
+  progressFill: {
     height: '100%',
+    backgroundColor: 'white',
     borderRadius: 3,
   },
-  quoteCard: {
+  progressText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: '600',
+  },
+  motivationCard: {
     margin: 20,
+    marginTop: 0,
     padding: 24,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: 'white',
+    borderRadius: 20,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 8,
     elevation: 3,
   },
-  quoteIcon: {
-    fontSize: 32,
+  motivationEmoji: {
+    fontSize: 48,
     marginBottom: 12,
   },
-  quoteText: {
-    fontSize: 16,
-    fontStyle: 'italic',
-    color: colors.text,
-    textAlign: 'center',
+  motivationTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
     marginBottom: 8,
-    lineHeight: 24,
   },
-  quoteAuthor: {
+  motivationText: {
     fontSize: 14,
-    color: colors.textLight,
-  },
-  tipsCard: {
-    margin: 20,
-    marginTop: 0,
-    padding: 20,
-    backgroundColor: '#DBEAFE',
-    borderRadius: 12,
-  },
-  tipsTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 12,
-  },
-  tipsText: {
-    fontSize: 14,
-    color: colors.text,
-    marginBottom: 4,
-    lineHeight: 20,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });

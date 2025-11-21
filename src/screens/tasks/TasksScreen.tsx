@@ -23,16 +23,7 @@ import {
   Tag,
 } from '../../database/tasks';
 
-let tasksScreenRenderCount = 0;
-
 export const TasksScreen = ({ navigation }: any) => {
-  tasksScreenRenderCount++;
-  console.log(`✅ TasksScreen render #${tasksScreenRenderCount}`);
-  if (tasksScreenRenderCount > 100) {
-    console.error('🔴 INFINITE RENDER in TasksScreen!');
-    throw new Error('Infinite render loop detected in TasksScreen');
-  }
-
   const { user } = useAuthStore();
   const [lists, setLists] = useState<TaskList[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
