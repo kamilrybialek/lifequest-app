@@ -86,14 +86,14 @@ export const ToolsScreen = ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Blue Header - Duolingo Style */}
-      <View style={styles.header}>
-        <Text style={styles.headerEmoji}>🛠️</Text>
-        <Text style={styles.headerTitle}>Your Tools</Text>
-        <Text style={styles.headerSubtitle}>Everything you need to level up!</Text>
-      </View>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Blue Header - Duolingo Style */}
+        <View style={styles.header}>
+          <Text style={styles.headerEmoji}>🛠️</Text>
+          <Text style={styles.headerTitle}>Your Tools</Text>
+          <Text style={styles.headerSubtitle}>Everything you need to level up!</Text>
+        </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Stats Bar - Overlapping Header */}
         <View style={styles.statsBar}>
           <View style={styles.statItem}>
@@ -123,7 +123,7 @@ export const ToolsScreen = ({ navigation }: any) => {
           {renderToolSection('🥗 Nutrition', NUTRITION_TOOLS, '#4CAF50')}
         </View>
 
-        <View style={styles.bottomSpacer} />
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -154,9 +154,6 @@ const styles = StyleSheet.create({
   headerSubtitle: {
     fontSize: 16,
     color: 'rgba(255,255,255,0.9)',
-  },
-  content: {
-    flex: 1,
   },
   statsBar: {
     flexDirection: 'row',
@@ -268,8 +265,5 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 16,
     right: 16,
-  },
-  bottomSpacer: {
-    height: 40,
   },
 });
