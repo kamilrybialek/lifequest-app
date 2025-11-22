@@ -139,12 +139,6 @@ export const NutritionPath = ({ navigation }: any) => {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={styles.backButton}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
           <Text style={styles.headerTitle}>🥗 Nutrition Mastery Path</Text>
           <Text style={styles.headerSubtitle}>8 Foundations of Optimal Nutrition</Text>
         </View>
@@ -272,17 +266,9 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    paddingTop: 20,
+    paddingTop: 60,
     backgroundColor: colors.background,
     alignItems: 'center',
-    position: 'relative',
-  },
-  backButton: {
-    position: 'absolute',
-    top: 60,
-    left: 20,
-    zIndex: 10,
-    padding: 8,
   },
   headerTitle: {
     ...typography.heading,

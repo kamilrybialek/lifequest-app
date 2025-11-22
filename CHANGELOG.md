@@ -5,6 +5,35 @@ All notable changes to LifeQuest will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3-alpha] - 2025-11-22
+
+### Added
+- **Duolingo Bubble Design for All Path Screens**:
+  - FinancePathNew.web.tsx: Full bubble path with LinearGradient, animations, 10-step method
+  - MentalHealthPath.web.tsx: Full functionality with LessonBubble, StepHeader, ContinueJourneyCard
+  - PhysicalHealthPath.web.tsx: Complete path with all foundations and lessons
+  - NutritionPath.web.tsx: Full nutrition path with lesson bubbles
+
+### Changed
+- Restored advanced Duolingo path versions from commit 06cf197 and 671ddc8
+- All 4 journey paths now have rich content with:
+  - LessonBubble components (colored states: locked, current, completed)
+  - StepHeader/Foundation headers with expand/collapse
+  - ContinueJourneyCard for quick access to next lesson
+  - Progress tracking with Firebase/AsyncStorage
+  - Animated bubble interactions
+  - LinearGradient styling (works on web via CSS gradients)
+
+### Technical Details
+- Finance: Uses FinanceStep, FinanceLesson types from types/financeNew
+- Mental: Uses MentalFoundation, MENTAL_FOUNDATIONS from types/mental
+- Physical: Full foundation system with lesson progress
+- Nutrition: Complete nutrition path structure
+- Components: LessonBubble, StepHeader, ContinueJourneyCard in src/components/paths/
+- Database: Supports both .web.ts (AsyncStorage) and regular (SQLite) versions
+
+---
+
 ## [0.2.2-alpha] - 2025-11-22
 
 ### Changed
