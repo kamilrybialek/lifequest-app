@@ -3,7 +3,6 @@ import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, Ref
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { useAppStore } from '../../store/appStore';
-import { useAuthStore } from '../../store/authStore';
 import { Pillar } from '../../types';
 
 const pillarColors: Record<Pillar, string> = {
@@ -20,47 +19,18 @@ const pillarIcons: Record<Pillar, any> = {
   nutrition: '🥗',
 };
 
-const actionTypeIcons = {
-  lesson: '📚',
-  tool: '🛠️',
-  habit: '💪',
-  challenge: '🎯',
-};
-
-const difficultyColors = {
-  easy: '#10B981',
-  medium: '#F59E0B',
-  hard: '#EF4444',
-};
-
-export const TasksScreen = ({ navigation }: any) => {
-  const { dailyTasks, completeTask, progress, generateSmartTasks } = useAppStore();
-  const { user } = useAuthStore();
+export const TasksScreen = () => {
+  const { dailyTasks, completeTask, progress, loadAppData } = useAppStore();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      if (user?.id) {
-        await generateSmartTasks(user.id);
-      }
+      await loadAppData();
     } catch (error) {
       console.error('Error refreshing:', error);
     }
     setRefreshing(false);
-  };
-
-  const handleTaskAction = (task: any) => {
-    if (task.completed) return;
-
-    // If task has action_screen, navigate there
-    if (task.action_screen) {
-      console.log('Navigating to:', task.action_screen, task.action_params);
-      navigation.navigate(task.action_screen, task.action_params || {});
-    } else {
-      // Otherwise just complete it
-      handleCompleteTask(task.id);
-    }
   };
 
   const handleCompleteTask = async (taskId: string) => {
@@ -83,8 +53,8 @@ export const TasksScreen = ({ navigation }: any) => {
         }
       >
         <View style={styles.header}>
-          <Text style={styles.title}>✅ Smart Tasks</Text>
-          <Text style={styles.subtitle}>Your personalized daily goals</Text>
+          <Text style={styles.title}>✅ Tasks</Text>
+          <Text style={styles.subtitle}>Complete your daily goals</Text>
         </View>
 
         {/* Progress Summary */}
@@ -124,41 +94,28 @@ export const TasksScreen = ({ navigation }: any) => {
             <View style={styles.emptyState}>
               <Text style={styles.emptyStateIcon}>📝</Text>
               <Text style={styles.emptyStateText}>No tasks for today</Text>
-              <Text style={styles.emptyStateSubtext}>Pull down to refresh and generate smart tasks</Text>
+              <Text style={styles.emptyStateSubtext}>Pull down to refresh and generate new tasks</Text>
             </View>
           ) : (
             dailyTasks.map((task) => (
-              <View
+              <TouchableOpacity
                 key={task.id}
                 style={[
                   styles.taskCard,
                   task.completed && styles.taskCardCompleted,
                 ]}
+                onPress={() => !task.completed && handleCompleteTask(task.id)}
+                disabled={task.completed}
               >
-                {/* Task Content */}
-                <View style={styles.taskContent}>
-                  {/* Left: Pillar Badge */}
+                <View style={styles.taskLeft}>
                   <View style={[styles.pillarBadge, { backgroundColor: pillarColors[task.pillar] }]}>
                     <Text style={styles.pillarIcon}>{pillarIcons[task.pillar]}</Text>
                   </View>
-
-                  {/* Middle: Task Info */}
                   <View style={styles.taskInfo}>
-                    {/* Title with action type badge */}
-                    <View style={styles.titleRow}>
-                      {task.action_type && (
-                        <Text style={styles.actionTypeBadge}>
-                          {actionTypeIcons[task.action_type as keyof typeof actionTypeIcons]}
-                        </Text>
-                      )}
-                      <Text style={[styles.taskTitle, task.completed && styles.taskTitleCompleted]}>
-                        {task.title}
-                      </Text>
-                    </View>
-
+                    <Text style={[styles.taskTitle, task.completed && styles.taskTitleCompleted]}>
+                      {task.title}
+                    </Text>
                     <Text style={styles.taskDescription}>{task.description}</Text>
-
-                    {/* Meta info */}
                     <View style={styles.taskMeta}>
                       <View style={styles.taskMetaItem}>
                         <Ionicons name="time-outline" size={14} color={colors.textLight} />
@@ -168,63 +125,19 @@ export const TasksScreen = ({ navigation }: any) => {
                         <Ionicons name="star" size={14} color="#F59E0B" />
                         <Text style={styles.taskMetaText}>{task.points} XP</Text>
                       </View>
-                      {task.difficulty && (
-                        <View style={[
-                          styles.difficultyBadge,
-                          { backgroundColor: difficultyColors[task.difficulty as keyof typeof difficultyColors] + '20' }
-                        ]}>
-                          <Text style={[
-                            styles.difficultyText,
-                            { color: difficultyColors[task.difficulty as keyof typeof difficultyColors] }
-                          ]}>
-                            {task.difficulty.toUpperCase()}
-                          </Text>
-                        </View>
-                      )}
-                      {task.streak_eligible && !task.completed && (
-                        <View style={styles.streakBadge}>
-                          <Text style={styles.streakText}>🔥 Streak</Text>
-                        </View>
-                      )}
                     </View>
                   </View>
                 </View>
-
-                {/* Right: Action Button */}
-                <View style={styles.taskActions}>
+                <View style={styles.taskRight}>
                   {task.completed ? (
-                    <View style={styles.completedBadge}>
-                      <Ionicons name="checkmark-circle" size={32} color="#10B981" />
-                      <Text style={styles.completedText}>Done!</Text>
+                    <View style={styles.checkmarkCompleted}>
+                      <Ionicons name="checkmark" size={24} color="#FFFFFF" />
                     </View>
                   ) : (
-                    <>
-                      {task.action_screen ? (
-                        <TouchableOpacity
-                          style={[styles.actionButton, { backgroundColor: pillarColors[task.pillar] }]}
-                          onPress={() => handleTaskAction(task)}
-                          activeOpacity={0.8}
-                        >
-                          <Text style={styles.actionButtonText}>
-                            {task.action_type === 'lesson' ? 'Start Lesson' :
-                             task.action_type === 'tool' ? 'Open Tool' :
-                             task.action_type === 'challenge' ? 'Take Challenge' : 'Do It'}
-                          </Text>
-                          <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
-                        </TouchableOpacity>
-                      ) : (
-                        <TouchableOpacity
-                          style={styles.checkButton}
-                          onPress={() => handleCompleteTask(task.id)}
-                          activeOpacity={0.8}
-                        >
-                          <Ionicons name="checkmark-circle-outline" size={32} color={colors.textLight} />
-                        </TouchableOpacity>
-                      )}
-                    </>
+                    <View style={styles.checkmarkEmpty} />
                   )}
                 </View>
-              </View>
+              </TouchableOpacity>
             ))
           )}
         </View>
@@ -232,25 +145,20 @@ export const TasksScreen = ({ navigation }: any) => {
         {/* Tips Section */}
         {dailyTasks.length > 0 && completedCount < totalCount && (
           <View style={styles.tipsCard}>
-            <Text style={styles.tipsTitle}>💡 How Smart Tasks Work</Text>
-            <Text style={styles.tipsText}>• Tasks adapt to your current progress in each pillar</Text>
-            <Text style={styles.tipsText}>• Click "Start Lesson" or "Open Tool" to begin</Text>
-            <Text style={styles.tipsText}>• Complete tasks to earn XP and maintain streaks</Text>
-            <Text style={styles.tipsText}>• Tasks with 🔥 count towards your pillar streak</Text>
-            <Text style={styles.tipsText}>• Pull down to refresh and get new personalized tasks</Text>
+            <Text style={styles.tipsTitle}>💡 Quick Tips</Text>
+            <Text style={styles.tipsText}>• Complete tasks to earn XP and level up</Text>
+            <Text style={styles.tipsText}>• Maintain streaks for bonus rewards</Text>
+            <Text style={styles.tipsText}>• Balance all 4 pillars for optimal growth</Text>
           </View>
         )}
 
-        {/* Celebration when all done */}
+        {/* Celebration */}
         {completedCount === totalCount && totalCount > 0 && (
           <View style={styles.celebrationCard}>
             <Text style={styles.celebrationIcon}>🎉</Text>
             <Text style={styles.celebrationTitle}>All Tasks Complete!</Text>
             <Text style={styles.celebrationText}>
-              Great work! You've completed all {totalCount} tasks for today.
-            </Text>
-            <Text style={styles.celebrationText}>
-              Come back tomorrow for new personalized challenges!
+              Amazing work! You've earned {dailyTasks.reduce((sum, t) => sum + t.points, 0)} XP today
             </Text>
           </View>
         )}
@@ -268,7 +176,7 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
-    paddingTop: 20,
+    paddingTop: 40,
   },
   title: {
     fontSize: 32,
@@ -285,7 +193,7 @@ const styles = StyleSheet.create({
     marginTop: 0,
     padding: 20,
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -310,7 +218,7 @@ const styles = StyleSheet.create({
   },
   progressBarContainer: {
     height: 8,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: '#F3F4F6',
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 16,
@@ -341,18 +249,104 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '600',
     color: colors.text,
-    marginBottom: 16,
+    marginBottom: 12,
+  },
+  taskCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    marginBottom: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  taskCardCompleted: {
+    opacity: 0.6,
+    backgroundColor: '#F9FAFB',
+  },
+  taskLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  pillarBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  pillarIcon: {
+    fontSize: 20,
+  },
+  taskInfo: {
+    flex: 1,
+  },
+  taskTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  taskTitleCompleted: {
+    textDecorationLine: 'line-through',
+    color: colors.textLight,
+  },
+  taskDescription: {
+    fontSize: 14,
+    color: colors.textLight,
+    marginBottom: 8,
+  },
+  taskMeta: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  taskMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  taskMetaText: {
+    fontSize: 12,
+    color: colors.textLight,
+  },
+  taskRight: {
+    marginLeft: 12,
+  },
+  checkmarkEmpty: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: colors.textLight,
+  },
+  checkmarkCompleted: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: 60,
+    padding: 40,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    marginBottom: 20,
   },
   emptyStateIcon: {
-    fontSize: 64,
-    marginBottom: 16,
+    fontSize: 48,
+    marginBottom: 12,
   },
   emptyStateText: {
     fontSize: 18,
@@ -365,131 +359,10 @@ const styles = StyleSheet.create({
     color: colors.textLight,
     textAlign: 'center',
   },
-  taskCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  taskCardCompleted: {
-    opacity: 0.7,
-  },
-  taskContent: {
-    flexDirection: 'row',
-    marginBottom: 12,
-  },
-  pillarBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  pillarIcon: {
-    fontSize: 24,
-  },
-  taskInfo: {
-    flex: 1,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-    gap: 8,
-  },
-  actionTypeBadge: {
-    fontSize: 18,
-  },
-  taskTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    flex: 1,
-  },
-  taskTitleCompleted: {
-    textDecorationLine: 'line-through',
-    color: colors.textLight,
-  },
-  taskDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 8,
-    lineHeight: 20,
-  },
-  taskMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  taskMetaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  taskMetaText: {
-    fontSize: 12,
-    color: colors.textLight,
-  },
-  difficultyBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  difficultyText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-  },
-  streakBadge: {
-    backgroundColor: '#FEF3C7',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  streakText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.text,
-  },
-  taskActions: {
-    alignItems: 'flex-end',
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 8,
-  },
-  actionButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  checkButton: {
-    padding: 8,
-  },
-  completedBadge: {
-    alignItems: 'center',
-  },
-  completedText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#10B981',
-    marginTop: 4,
-  },
   tipsCard: {
     margin: 20,
-    marginTop: 0,
     padding: 20,
-    backgroundColor: '#DBEAFE',
+    backgroundColor: '#FEF3C7',
     borderRadius: 12,
   },
   tipsTitle: {
@@ -506,14 +379,18 @@ const styles = StyleSheet.create({
   },
   celebrationCard: {
     margin: 20,
-    marginTop: 0,
     padding: 24,
-    backgroundColor: '#D1FAE5',
-    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
   celebrationIcon: {
-    fontSize: 48,
+    fontSize: 64,
     marginBottom: 12,
   },
   celebrationTitle: {
@@ -523,9 +400,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   celebrationText: {
-    fontSize: 14,
-    color: colors.textSecondary,
+    fontSize: 16,
+    color: colors.textLight,
     textAlign: 'center',
-    marginTop: 4,
   },
 });
