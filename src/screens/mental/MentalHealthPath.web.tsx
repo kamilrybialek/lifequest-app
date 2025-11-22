@@ -1,19 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+/**
+ * Mental Health Path - Duolingo Style
+ * 5 Foundations with fun bubble design
+ */
+
+import React, { useState } from 'react';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Dimensions,
+  Animated
+} from 'react-native';
 import { Text } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../theme/colors';
-import { typography, shadows } from '../../theme/theme';
 import { MentalFoundation, MentalLesson, MENTAL_FOUNDATIONS } from '../../types/mental';
 import { useAuthStore } from '../../store/authStore';
 import { getCompletedLessons } from '../../database/lessons.web';
 import { getMentalProgress } from '../../database/mental.web';
 import { useFocusEffect } from '@react-navigation/native';
-import { ContinueJourneyCard } from '../../components/paths/ContinueJourneyCard';
-import { StepHeader } from '../../components/paths/StepHeader';
-import { LessonBubble } from '../../components/paths/LessonBubble';
 
 const { width } = Dimensions.get('window');
+const BUBBLE_SIZE = 70;
+const BUBBLE_SPACING = 40;
 
 const MENTAL_TOOLS = [
   {
@@ -52,29 +63,22 @@ const MENTAL_TOOLS = [
 
 export const MentalHealthPath = ({ navigation }: any) => {
   const [foundations, setFoundations] = useState<MentalFoundation[]>(MENTAL_FOUNDATIONS);
-  const [expandedFoundations, setExpandedFoundations] = useState<{ [key: string]: boolean }>({});
   const [nextLesson, setNextLesson] = useState<any>(null);
+  const [scaleAnims] = useState<{ [key: string]: Animated.Value }>({});
   const { user } = useAuthStore();
 
-  const loadLessonProgress = async () => {
+  const loadProgress = async () => {
     if (!user?.id) return;
 
     try {
-      // Get completed lessons from database
       const completedLessonIds = await getCompletedLessons(user.id);
-
-      // Get mental progress
       const mentalProgress = await getMentalProgress(user.id);
-
-      // Determine which foundation should be current
-      const currentFoundation = mentalProgress?.current_foundation || 1;
-
+      let currentFoundation = mentalProgress?.current_foundation || 1;
       let foundNextLesson: any = null;
 
-      // Update foundations with progress data
       const updatedFoundations = MENTAL_FOUNDATIONS.map((foundation) => {
-        // Determine foundation status
         let foundationStatus: 'completed' | 'current' | 'locked';
+
         if (foundation.number < currentFoundation) {
           foundationStatus = 'completed';
         } else if (foundation.number === currentFoundation) {
@@ -84,30 +88,21 @@ export const MentalHealthPath = ({ navigation }: any) => {
         }
 
         const updatedLessons = foundation.lessons.map((lesson, lessonIndex) => {
-          // Only show lessons if foundation is current or completed
           if (foundationStatus === 'locked') {
             return { ...lesson, status: 'locked' as const };
           }
 
-          // Check if lesson is completed
           if (completedLessonIds.includes(lesson.id)) {
             return { ...lesson, status: 'completed' as const };
           }
 
-          // Find first uncompleted lesson in this foundation
           const allPreviousCompleted = foundation.lessons
             .slice(0, lessonIndex)
             .every((prevLesson) => completedLessonIds.includes(prevLesson.id));
 
           if (allPreviousCompleted && foundationStatus === 'current') {
-            // This is the next lesson to complete
             if (!foundNextLesson) {
-              foundNextLesson = {
-                lesson,
-                foundation,
-                foundationIndex: foundation.number,
-                lessonIndex,
-              };
+              foundNextLesson = { lesson, foundation, foundationIndex: foundation.number, lessonIndex };
             }
             return { ...lesson, status: 'current' as const };
           }
@@ -115,53 +110,46 @@ export const MentalHealthPath = ({ navigation }: any) => {
           return { ...lesson, status: 'locked' as const };
         });
 
-        return {
-          ...foundation,
-          status: foundationStatus,
-          lessons: updatedLessons,
-        };
+        return { ...foundation, lessons: updatedLessons, status: foundationStatus };
       });
 
       setFoundations(updatedFoundations);
       setNextLesson(foundNextLesson);
-
-      // Auto-expand current foundation, collapse completed foundations
-      const newExpandedState: { [key: string]: boolean } = {};
-      updatedFoundations.forEach((foundation) => {
-        if (foundation.status === 'current') {
-          newExpandedState[foundation.id] = true;
-        } else {
-          newExpandedState[foundation.id] = false;
-        }
-      });
-      setExpandedFoundations(newExpandedState);
     } catch (error) {
-      console.error('Error loading mental lesson progress:', error);
+      console.error('Error loading progress:', error);
     }
   };
 
-  const toggleFoundationExpanded = (foundationId: string) => {
-    setExpandedFoundations((prev) => ({
-      ...prev,
-      [foundationId]: !prev[foundationId],
-    }));
-  };
-
-  // Load progress when screen is focused
   useFocusEffect(
     React.useCallback(() => {
-      loadLessonProgress();
+      loadProgress();
     }, [user?.id])
   );
 
-  const handleLessonPress = (foundation: MentalFoundation, lesson: MentalLesson) => {
+  const handleLessonPress = (foundation: MentalFoundation, lesson: MentalLesson, lessonIndex: number) => {
     if (lesson.status === 'locked') return;
 
-    // Navigate to lesson introduction screen
+    // Animate bubble
+    const animKey = `${foundation.id}-${lessonIndex}`;
+    if (scaleAnims[animKey]) {
+      Animated.sequence([
+        Animated.timing(scaleAnims[animKey], {
+          toValue: 1.2,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnims[animKey], {
+          toValue: 1,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+
     navigation.navigate('MentalLessonIntro', {
       lessonId: lesson.id,
-      lessonTitle: lesson.title,
       foundationId: foundation.id,
+      lessonTitle: lesson.title,
     });
   };
 
@@ -169,13 +157,165 @@ export const MentalHealthPath = ({ navigation }: any) => {
     navigation.navigate(toolScreen);
   };
 
+  const renderLessonBubble = (
+    foundation: MentalFoundation,
+    lesson: MentalLesson,
+    lessonIndex: number,
+    isLeft: boolean
+  ) => {
+    const animKey = `${foundation.id}-${lessonIndex}`;
+    if (!scaleAnims[animKey]) {
+      scaleAnims[animKey] = new Animated.Value(1);
+    }
+
+    const getBubbleColor = () => {
+      switch (lesson.status) {
+        case 'completed':
+          return ['#4CAF50', '#66BB6A'];
+        case 'current':
+          return ['#CE82FF', '#B366FF'];
+        case 'locked':
+          return ['#CCCCCC', '#999999'];
+        default:
+          return [colors.mental, '#B366FF'];
+      }
+    };
+
+    const getIconName = () => {
+      if (lesson.status === 'completed') return 'checkmark-circle';
+      if (lesson.status === 'locked') return 'lock-closed';
+      return 'bulb';
+    };
+
+    return (
+      <View style={[styles.bubbleRow, isLeft ? styles.bubbleLeft : styles.bubbleRight]}>
+        <TouchableOpacity
+          activeOpacity={lesson.status === 'locked' ? 1 : 0.8}
+          onPress={() => handleLessonPress(foundation, lesson, lessonIndex)}
+          disabled={lesson.status === 'locked'}
+        >
+          <Animated.View style={{ transform: [{ scale: scaleAnims[animKey] }] }}>
+            <LinearGradient
+              colors={getBubbleColor() as any}
+              style={styles.bubble}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Ionicons
+                name={getIconName()}
+                size={32}
+                color="#FFF"
+              />
+
+              {lesson.status === 'current' && (
+                <View style={styles.pulseRing}>
+                  <View style={styles.pulseRingInner} />
+                </View>
+              )}
+            </LinearGradient>
+
+            {/* Lesson Info Card */}
+            <View style={[styles.lessonInfoCard, isLeft ? { alignItems: 'flex-start' } : { alignItems: 'flex-end' }]}>
+              <Text style={styles.lessonTitle} numberOfLines={2}>
+                {lesson.title}
+              </Text>
+              <View style={styles.lessonMeta}>
+                <Ionicons name="star" size={12} color="#FFD700" />
+                <Text style={styles.lessonXP}>{lesson.xp} XP</Text>
+                <Text style={styles.lessonTime}>• {lesson.estimatedTime}m</Text>
+              </View>
+            </View>
+          </Animated.View>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
+  const renderFoundation = (foundation: MentalFoundation, foundationIndex: number) => {
+    const completedCount = foundation.lessons.filter((l) => l.status === 'completed').length;
+    const totalCount = foundation.lessons.length;
+    const progress = (completedCount / totalCount) * 100;
+
+    return (
+      <View key={foundation.id} style={styles.foundationContainer}>
+        {/* Foundation Header */}
+        <LinearGradient
+          colors={
+            foundation.status === 'locked'
+              ? (['#999999', '#CCCCCC'] as const)
+              : ([colors.mental, '#B366FF'] as const)
+          }
+          style={styles.foundationHeader}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+        >
+          <View style={styles.foundationIconContainer}>
+            <Text style={styles.foundationIcon}>{foundation.icon}</Text>
+          </View>
+          <View style={styles.foundationInfo}>
+            <Text style={styles.foundationNumber}>Foundation {foundation.number}</Text>
+            <Text style={styles.foundationTitle}>{foundation.title}</Text>
+            <Text style={styles.foundationSubtitle}>{foundation.description}</Text>
+          </View>
+          {foundation.status === 'locked' && (
+            <Ionicons name="lock-closed" size={20} color="#FFF" />
+          )}
+        </LinearGradient>
+
+        {/* Progress Bar */}
+        <View style={styles.foundationProgress}>
+          <View style={styles.progressBarContainer}>
+            <View style={[styles.progressBarFill, { width: `${progress}%` }]} />
+          </View>
+          <Text style={styles.progressText}>
+            {completedCount}/{totalCount} completed
+          </Text>
+        </View>
+
+        {/* Lessons Path */}
+        <View style={styles.lessonsPath}>
+          {foundation.lessons.map((lesson, lessonIndex) => {
+            const isLeft = lessonIndex % 2 === 0;
+            return (
+              <View key={lesson.id}>
+                {renderLessonBubble(foundation, lesson, lessonIndex, isLeft)}
+                {/* Connection Line */}
+                {lessonIndex < foundation.lessons.length - 1 && (
+                  <View style={styles.connectionLine} />
+                )}
+              </View>
+            );
+          })}
+        </View>
+
+        {/* Foundation Completion Badge */}
+        {foundation.status === 'completed' && (
+          <View style={styles.completionBadge}>
+            <Ionicons name="trophy" size={24} color="#FFD700" />
+            <Text style={styles.completionText}>Foundation Mastered! 🎉</Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>🧠 Mental Wellness Path</Text>
-          <Text style={styles.headerSubtitle}>5 Foundations of Mental Health</Text>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={28} color={colors.text} />
+          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>🧠 Mental Wellness Path</Text>
+            <Text style={styles.headerSubtitle}>5 Foundations of Mental Health</Text>
+          </View>
+          <View style={{ width: 28 }} />
         </View>
 
         {/* Mental Tools Section */}
@@ -208,110 +348,86 @@ export const MentalHealthPath = ({ navigation }: any) => {
 
         {/* Next Lesson Card */}
         {nextLesson && (
-          <ContinueJourneyCard
-            lesson={{
-              title: nextLesson.lesson.title,
-              stepTitle: nextLesson.foundation.title,
-              stepNumber: nextLesson.foundationIndex,
-              icon: nextLesson.foundation.icon,
-              xp: nextLesson.lesson.xp,
-              duration: nextLesson.lesson.estimatedTime,
-            }}
-            color={colors.mental}
-            onPress={() => handleLessonPress(nextLesson.foundation, nextLesson.lesson)}
-          />
+          <TouchableOpacity
+            style={styles.nextLessonCard}
+            onPress={() =>
+              handleLessonPress(nextLesson.foundation, nextLesson.lesson, nextLesson.lessonIndex)
+            }
+            activeOpacity={0.9}
+          >
+            <LinearGradient
+              colors={['#CE82FF', '#B366FF'] as const}
+              style={styles.nextLessonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <View style={styles.nextLessonContent}>
+                <View style={styles.nextLessonBadge}>
+                  <Text style={styles.nextLessonBadgeText}>NEXT</Text>
+                </View>
+                <View style={styles.nextLessonInfo}>
+                  <Text style={styles.nextLessonTitle}>{nextLesson.lesson.title}</Text>
+                  <Text style={styles.nextLessonStep}>
+                    Foundation {nextLesson.foundationIndex} • {nextLesson.lesson.xp} XP • {nextLesson.lesson.estimatedTime}m
+                  </Text>
+                </View>
+                <Ionicons name="play-circle" size={48} color="#FFF" />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
         )}
 
-        {/* Path Divider */}
-        <View style={styles.pathDivider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>ALL FOUNDATIONS</Text>
-          <View style={styles.dividerLine} />
+        {/* Foundations */}
+        {foundations.map((foundation, index) => renderFoundation(foundation, index))}
+
+        {/* Bottom Motivational Card */}
+        <View style={styles.motivationCard}>
+          <Text style={styles.motivationEmoji}>🚀</Text>
+          <Text style={styles.motivationText}>
+            Every lesson brings you closer to mental wellness!
+          </Text>
         </View>
-
-        {/* Foundations Path */}
-        <View style={styles.path}>
-          {foundations.map((foundation, foundationIndex) => {
-            const completedCount = foundation.lessons.filter(l => l.status === 'completed').length;
-            const totalCount = foundation.lessons.length;
-            const progress = (completedCount / totalCount) * 100;
-
-            return (
-              <View key={foundation.id}>
-                {/* Foundation Header */}
-                <StepHeader
-                  stepNumber={foundation.number}
-                  title={foundation.title}
-                  description={foundation.description}
-                  icon={foundation.icon}
-                  color={foundation.color || colors.mental}
-                  progress={progress}
-                  totalLessons={totalCount}
-                  completedLessons={completedCount}
-                  status={foundation.status}
-                  isExpanded={expandedFoundations[foundation.id]}
-                  onToggle={() => foundation.status !== 'locked' && toggleFoundationExpanded(foundation.id)}
-                />
-
-                {/* Lessons - Only show if expanded */}
-                {foundation.status !== 'locked' && expandedFoundations[foundation.id] && (
-                  <View style={styles.lessonsContainer}>
-                    {foundation.lessons.map((lesson, lessonIndex) => {
-                      const position = lessonIndex % 3 === 0 ? 'left' : lessonIndex % 3 === 1 ? 'center' : 'right';
-                      return (
-                        <LessonBubble
-                          key={lesson.id}
-                          lesson={{
-                            id: lesson.id,
-                            title: lesson.title,
-                            icon: lesson.icon,
-                            xp: lesson.xp,
-                            duration: lesson.estimatedTime,
-                            status: lesson.status,
-                          }}
-                          color={foundation.color || colors.mental}
-                          onPress={() => handleLessonPress(foundation, lesson)}
-                          position={position}
-                        />
-                      );
-                    })}
-                  </View>
-                )}
-              </View>
-            );
-          })}
-        </View>
-
-        <View style={styles.bottomSpacer} />
       </ScrollView>
     </View>
   );
 };
 
+// ============================================
+// STYLES
+// ============================================
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundGray,
+    backgroundColor: '#F5F8FA',
   },
   scrollView: {
     flex: 1,
   },
-  content: {
+  scrollContent: {
     paddingBottom: 40,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 20,
     paddingTop: 60,
-    backgroundColor: colors.background,
+    backgroundColor: '#FFFFFF',
+  },
+  headerContent: {
+    flex: 1,
     alignItems: 'center',
   },
   headerTitle: {
-    ...typography.heading,
-    fontSize: 28,
-    marginBottom: 8,
+    fontSize: 22,
+    fontWeight: '800',
+    color: colors.text,
   },
   headerSubtitle: {
-    ...typography.caption,
+    fontSize: 13,
+    color: colors.textLight,
+    fontWeight: '600',
   },
   // Tools Section
   toolsSection: {
@@ -369,33 +485,221 @@ const styles = StyleSheet.create({
     top: 12,
     right: 12,
   },
-  // Divider
-  pathDivider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginVertical: 20,
+  nextLessonCard: {
+    margin: 20,
+    borderRadius: 20,
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
   },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.border,
-  },
-  dividerText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: colors.textSecondary,
-    marginHorizontal: 12,
-  },
-  path: {
+  nextLessonGradient: {
+    borderRadius: 20,
     padding: 20,
   },
-  // Lessons
-  lessonsContainer: {
-    marginLeft: 28,
-    marginBottom: 16,
+  nextLessonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
   },
-  bottomSpacer: {
-    height: 40,
+  nextLessonBadge: {
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  nextLessonBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFF',
+  },
+  nextLessonInfo: {
+    flex: 1,
+  },
+  nextLessonTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFF',
+    marginBottom: 4,
+  },
+  nextLessonStep: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: '600',
+  },
+  foundationContainer: {
+    marginHorizontal: 20,
+    marginBottom: 32,
+  },
+  foundationHeader: {
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  foundationIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  foundationIcon: {
+    fontSize: 24,
+  },
+  foundationInfo: {
+    flex: 1,
+  },
+  foundationNumber: {
+    fontSize: 11,
+    color: '#FFF',
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  foundationTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FFF',
+    marginBottom: 2,
+  },
+  foundationSubtitle: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: '600',
+  },
+  foundationProgress: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFF',
+    borderBottomLeftRadius: 16,
+    borderBottomRightRadius: 16,
+    gap: 6,
+  },
+  progressBarContainer: {
+    height: 6,
+    backgroundColor: '#E0E0E0',
+    borderRadius: 3,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: '#4CAF50',
+    borderRadius: 3,
+  },
+  progressText: {
+    fontSize: 11,
+    color: colors.textLight,
+    fontWeight: '600',
+  },
+  lessonsPath: {
+    paddingVertical: 20,
+  },
+  bubbleRow: {
+    alignItems: 'center',
+    marginVertical: 8,
+  },
+  bubbleLeft: {
+    marginRight: width * 0.3,
+  },
+  bubbleRight: {
+    marginLeft: width * 0.3,
+  },
+  bubble: {
+    width: BUBBLE_SIZE,
+    height: BUBBLE_SIZE,
+    borderRadius: BUBBLE_SIZE / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  pulseRing: {
+    position: 'absolute',
+    width: BUBBLE_SIZE + 16,
+    height: BUBBLE_SIZE + 16,
+    borderRadius: (BUBBLE_SIZE + 16) / 2,
+    borderWidth: 3,
+    borderColor: '#CE82FF',
+    top: -8,
+    left: -8,
+  },
+  pulseRingInner: {
+    flex: 1,
+    borderRadius: (BUBBLE_SIZE + 16) / 2,
+    backgroundColor: 'transparent',
+  },
+  lessonInfoCard: {
+    marginTop: 8,
+    maxWidth: width * 0.35,
+  },
+  lessonTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  lessonMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  lessonXP: {
+    fontSize: 11,
+    color: colors.textLight,
+    fontWeight: '600',
+  },
+  lessonTime: {
+    fontSize: 11,
+    color: colors.textLight,
+  },
+  connectionLine: {
+    width: 4,
+    height: BUBBLE_SPACING,
+    backgroundColor: '#E0E0E0',
+    alignSelf: 'center',
+    borderRadius: 2,
+  },
+  completionBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#FFF9E6',
+    padding: 12,
+    borderRadius: 12,
+    marginTop: 12,
+  },
+  completionText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  motivationCard: {
+    marginHorizontal: 20,
+    backgroundColor: '#F3E5F5',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+    gap: 8,
+  },
+  motivationEmoji: {
+    fontSize: 32,
+  },
+  motivationText: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 });

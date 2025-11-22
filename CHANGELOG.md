@@ -5,6 +5,39 @@ All notable changes to LifeQuest will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4-alpha] - 2025-11-22
+
+### Added
+- **Complete Duolingo Bubble Design for All Journey Paths**:
+  - MentalHealthPath.web.tsx: Full bubble path with LinearGradient, Animated bubbles, purple theme
+  - PhysicalHealthPath.web.tsx: Complete path with red theme, 10 foundations
+  - NutritionPath.web.tsx: Full nutrition path with green theme, 8 foundations
+  - All paths now match the advanced Finance path design
+
+### Changed
+- Rewrote Mental, Physical, and Nutrition path screens with rich Duolingo-style bubble design
+- All 4 journey paths now have consistent visual design:
+  - Animated lesson bubbles with scale effects on tap
+  - LinearGradient styling (purple for Mental, red for Physical, green for Nutrition)
+  - Pulse rings for current lessons
+  - Alternating left/right bubble layout
+  - Connection lines between bubbles
+  - Lesson info cards with XP and duration
+  - "Next Lesson" card with gradient background
+  - Foundation headers with progress bars
+  - Completion badges for mastered foundations
+  - Motivational cards at the bottom
+
+### Technical Details
+- Mental: 5 foundations, purple gradient (#CE82FF → #B366FF)
+- Physical: 10 foundations, red gradient (#FF6B6B → #FF5252)
+- Nutrition: 8 foundations, green gradient (#58CC02 → #7FD633)
+- All use Animated.Value for bubble scale animations
+- All use LinearGradient for rich visual effects
+- Consistent BUBBLE_SIZE = 70, BUBBLE_SPACING = 40
+
+---
+
 ## [0.2.3-alpha] - 2025-11-22
 
 ### Added
