@@ -166,9 +166,9 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
   };
 
   const handleComplete = () => {
-    console.log('Lesson completed, navigating back');
+    console.log('Lesson completed, navigating back to Finance Path');
     // Navigate back to main finance path
-    navigation.goBack();
+    navigation.navigate('FinancePathNew');
   };
 
   // Calculate total XP available

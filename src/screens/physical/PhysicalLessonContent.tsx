@@ -82,7 +82,7 @@ export const PhysicalLessonContent = ({ route, navigation }: any) => {
 
   const handleContinue = () => {
     setShowSuccessModal(false);
-    navigation.goBack();
+    navigation.navigate('PhysicalHealthPath');
   };
 
   const renderSection = (section: PhysicalLessonSection, index: number) => {

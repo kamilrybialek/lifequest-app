@@ -144,7 +144,7 @@ export const NutritionLessonContent = ({ route, navigation }: any) => {
   };
 
   const handleComplete = () => {
-    navigation.goBack();
+    navigation.navigate('NutritionPath');
   };
 
   // ============================================

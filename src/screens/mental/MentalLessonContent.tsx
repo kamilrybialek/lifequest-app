@@ -96,7 +96,7 @@ export const MentalLessonContent = ({ route, navigation }: any) => {
 
   const handleContinue = () => {
     setShowSuccessModal(false);
-    navigation.goBack();
+    navigation.navigate('MentalHealthPath');
   };
 
   const renderSection = (section: MentalLessonSection, index: number) => {
