@@ -8,7 +8,7 @@
  * - Nutrition Tools
  */
 
-import React, { useRef } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -20,9 +20,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 
-// Debug: track renders
-let toolsScreenRenderCount = 0;
-
 interface Tool {
   name: string;
   icon: string;
@@ -32,13 +29,7 @@ interface Tool {
 }
 
 const FINANCE_TOOLS: Tool[] = [
-  { name: 'Budget Manager', icon: '💰', screen: 'BudgetManagerScreen', description: 'AI insights & templates', enhanced: true },
-  { name: 'Debt Tracker', icon: '🎯', screen: 'DebtTrackerScreen', description: '3 payoff strategies', enhanced: true },
-  { name: 'Expense Logger', icon: '📝', screen: 'ExpenseLoggerScreen', description: 'Track spending' },
-  { name: 'Emergency Fund', icon: '🚨', screen: 'EmergencyFundScreen', description: 'Build your safety net' },
-  { name: 'Net Worth', icon: '💎', screen: 'NetWorthCalculatorScreen', description: 'Track assets & liabilities' },
-  { name: 'Savings Goals', icon: '🎯', screen: 'SavingsGoalsScreen', description: 'Set & track goals' },
-  { name: 'Subscriptions', icon: '📱', screen: 'SubscriptionsScreen', description: 'Manage recurring bills' },
+  { name: 'Finance Dashboard', icon: '💰', screen: 'FinanceDashboard', description: 'Complete financial control center', enhanced: true },
 ];
 
 const MENTAL_TOOLS: Tool[] = [
@@ -62,15 +53,6 @@ const NUTRITION_TOOLS: Tool[] = [
 ];
 
 export const ToolsScreen = ({ navigation }: any) => {
-  // Debug: track renders
-  toolsScreenRenderCount++;
-  console.log(`🛠️ ToolsScreen render #${toolsScreenRenderCount}`);
-
-  if (toolsScreenRenderCount > 100) {
-    console.error('🔴 INFINITE RENDER in ToolsScreen!');
-    throw new Error('Infinite render loop detected in ToolsScreen');
-  }
-
   const renderToolSection = (title: string, tools: Tool[], color: string) => {
     return (
       <View style={styles.section}>
