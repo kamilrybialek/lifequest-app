@@ -2,15 +2,34 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper function to check if user is authenticated
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+
+    // Check if user is authenticated
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Helper function to check if user owns the document
+    // Check if user owns the document
     function isOwner(userId) {
       return request.auth.uid == userId;
     }
+
+    // Check if user owns the document via user_id field
+    // FIXED: Handle case when resource is null (document doesn't exist yet)
+    function isDocumentOwner() {
+      return resource == null || request.auth.uid == resource.data.user_id;
+    }
+
+    // Check if creating user owns the new document
+    function isNewDocumentOwner() {
+      return request.auth.uid == request.resource.data.user_id;
+    }
+
+    // ============================================
+    // USER & PROFILE COLLECTIONS
+    // ============================================
 
     // Users collection - users can only read/write their own data
     match /users/{userId} {
@@ -22,17 +41,39 @@ service cloud.firestore {
       allow read, write: if isAuthenticated() && isOwner(userId);
     }
 
+    // ============================================
+    // TASKS & ACHIEVEMENTS COLLECTIONS
+    // ============================================
+
     // Daily tasks - users can only access their own tasks
     match /daily_tasks/{taskId} {
-      allow read: if isAuthenticated() &&
-                     (resource == null || resource.data.user_id == request.auth.uid);
-      allow create: if isAuthenticated() &&
-                       request.resource.data.user_id == request.auth.uid;
-      allow update, delete: if isAuthenticated() &&
-                               resource.data.user_id == request.auth.uid;
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
     }
 
-    // Achievements - read-only for all authenticated users
+    // User tasks (Apple Reminders style) - users can only access their own
+    match /user_tasks/{taskId} {
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
+    }
+
+    // Task tags - users can only access their own
+    match /task_tags/{tagId} {
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
+    }
+
+    // Task lists - users can only access their own
+    match /task_lists/{listId} {
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
+    }
+
+    // Achievements - read-only for all authenticated users (global achievements)
     match /achievements/{achievementId} {
       allow read: if isAuthenticated();
       allow write: if false; // Only admins can modify achievements
@@ -40,12 +81,147 @@ service cloud.firestore {
 
     // User achievements - users can only access their own
     match /user_achievements/{achievementId} {
-      allow read: if isAuthenticated() &&
-                     (resource == null || resource.data.user_id == request.auth.uid);
-      allow create: if isAuthenticated() &&
-                       request.resource.data.user_id == request.auth.uid;
-      allow update, delete: if isAuthenticated() &&
-                               resource.data.user_id == request.auth.uid;
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
+    }
+
+    // ============================================
+    // FINANCIAL COLLECTIONS
+    // ============================================
+
+    // Financial profiles - users can only access their own
+    match /financial_profiles/{userId} {
+      allow read, write: if isAuthenticated() && isOwner(userId);
+    }
+
+    // Expenses - users can only access their own
+    match /expenses/{expenseId} {
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
+    }
+
+    // Income - users can only access their own
+    match /income/{incomeId} {
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
+    }
+
+    // Debts - users can only access their own
+    match /debts/{debtId} {
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
+    }
+
+    // Budgets - users can only access their own
+    match /budgets/{budgetId} {
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
+    }
+
+    // Savings goals - users can only access their own
+    match /savings_goals/{goalId} {
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
+    }
+
+    // Subscriptions - users can only access their own
+    match /subscriptions/{subscriptionId} {
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
+    }
+
+    // Net worth history - users can only access their own
+    match /net_worth_history/{snapshotId} {
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow delete: if isAuthenticated() && isDocumentOwner();
+    }
+
+    // ============================================
+    // FINANCE JOURNEY COLLECTIONS (Future Integration)
+    // ============================================
+
+    // Finance journey progress - users can only access their own
+    match /finance_journey_progress/{userId} {
+      allow read, write: if isAuthenticated() && isOwner(userId);
+    }
+
+    // Finance lessons completed - users can only access their own
+    match /finance_lessons_completed/{lessonId} {
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
+    }
+
+    // Finance quiz results - users can only access their own
+    match /finance_quiz_results/{resultId} {
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
+    }
+
+    // Finance action items - users can only access their own
+    match /finance_action_items/{actionId} {
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
+    }
+
+    // Finance step completions - users can only access their own
+    match /finance_step_completions/{completionId} {
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
+    }
+
+    // ============================================
+    // HEALTH & WELLNESS COLLECTIONS (Future)
+    // ============================================
+
+    // Mental health data - users can only access their own
+    match /mental_health_data/{entryId} {
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
+    }
+
+    // Physical health data - users can only access their own
+    match /physical_health_data/{entryId} {
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
+    }
+
+    // Nutrition data - users can only access their own
+    match /nutrition_data/{entryId} {
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
+    }
+
+    // ============================================
+    // LEARNING PATH PROGRESS (All Pillars)
+    // ============================================
+
+    // General lesson progress - users can only access their own
+    match /lesson_progress/{progressId} {
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
+    }
+
+    // Path completions - users can only access their own
+    match /path_completions/{completionId} {
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
     }
   }
 }
