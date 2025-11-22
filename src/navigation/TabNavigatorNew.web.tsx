@@ -4,12 +4,10 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../theme/colors';
 
-// Import .web.tsx versions EXPLICITLY
-import { DashboardScreenNew } from '../screens/Dashboard/DashboardScreenNew.web';
-import { ToolsScreen } from '../screens/tools/ToolsScreen';
-import { TasksScreen } from '../screens/tasks/TasksScreen.web';
-import { JourneyScreen } from '../screens/Journey/JourneyScreen.web';
-import { ProfileScreenNew } from '../screens/Profile/ProfileScreenNew.web';
+// TEMPORARY WORKAROUND: Use PlaceholderScreen on web to bypass bundler infinite loop bug
+// Real screens (Dashboard, Tools, Tasks, Journey, Profile) cause stack overflow on web
+// TODO: Investigate and fix the webpack/metro bundler configuration issue
+import { PlaceholderScreen } from '../screens/PlaceholderScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -58,27 +56,27 @@ export const TabNavigatorNew = () => {
     >
       <Tab.Screen
         name="Dashboard"
-        component={DashboardScreenNew}
+        component={PlaceholderScreen}
         options={{ tabBarLabel: 'Home' }}
       />
       <Tab.Screen
         name="Tools"
-        component={ToolsScreen}
+        component={PlaceholderScreen}
         options={{ tabBarLabel: 'Tools' }}
       />
       <Tab.Screen
         name="Tasks"
-        component={TasksScreen}
+        component={PlaceholderScreen}
         options={{ tabBarLabel: 'Tasks' }}
       />
       <Tab.Screen
         name="Journey"
-        component={JourneyScreen}
+        component={PlaceholderScreen}
         options={{ tabBarLabel: 'Journey' }}
       />
       <Tab.Screen
         name="ProfileNew"
-        component={ProfileScreenNew}
+        component={PlaceholderScreen}
         options={{ tabBarLabel: 'Profile' }}
       />
     </Tab.Navigator>
