@@ -1,14 +1,9 @@
 /**
- * TOOLS SCREEN - All LifeQuest Tools in One Place
- *
- * Organized by 4 Pillars:
- * - Finance Tools
- * - Mental Tools
- * - Physical Tools
- * - Nutrition Tools
+ * TOOLS SCREEN - Duolingo Style
+ * All LifeQuest Tools organized by 4 Pillars with blue theme
  */
 
-import React, { useRef } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -20,9 +15,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 
-// Debug: track renders
-let toolsScreenRenderCount = 0;
-
 interface Tool {
   name: string;
   icon: string;
@@ -32,13 +24,7 @@ interface Tool {
 }
 
 const FINANCE_TOOLS: Tool[] = [
-  { name: 'Budget Manager', icon: '💰', screen: 'BudgetManagerScreen', description: 'AI insights & templates', enhanced: true },
-  { name: 'Debt Tracker', icon: '🎯', screen: 'DebtTrackerScreen', description: '3 payoff strategies', enhanced: true },
-  { name: 'Expense Logger', icon: '📝', screen: 'ExpenseLoggerScreen', description: 'Track spending' },
-  { name: 'Emergency Fund', icon: '🚨', screen: 'EmergencyFundScreen', description: 'Build your safety net' },
-  { name: 'Net Worth', icon: '💎', screen: 'NetWorthCalculatorScreen', description: 'Track assets & liabilities' },
-  { name: 'Savings Goals', icon: '🎯', screen: 'SavingsGoalsScreen', description: 'Set & track goals' },
-  { name: 'Subscriptions', icon: '📱', screen: 'SubscriptionsScreen', description: 'Manage recurring bills' },
+  { name: 'Finance Dashboard', icon: '💰', screen: 'FinanceDashboard', description: 'Complete financial control center', enhanced: true },
 ];
 
 const MENTAL_TOOLS: Tool[] = [
@@ -62,42 +48,35 @@ const NUTRITION_TOOLS: Tool[] = [
 ];
 
 export const ToolsScreen = ({ navigation }: any) => {
-  // Debug: track renders
-  toolsScreenRenderCount++;
-  console.log(`🛠️ ToolsScreen render #${toolsScreenRenderCount}`);
-
-  if (toolsScreenRenderCount > 100) {
-    console.error('🔴 INFINITE RENDER in ToolsScreen!');
-    throw new Error('Infinite render loop detected in ToolsScreen');
-  }
-
   const renderToolSection = (title: string, tools: Tool[], color: string) => {
     return (
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <View style={[styles.sectionDot, { backgroundColor: color }]} />
           <Text style={styles.sectionTitle}>{title}</Text>
-          <Text style={styles.sectionCount}>{tools.length}</Text>
+          <View style={[styles.pillarBadge, { backgroundColor: color }]}>
+            <Text style={styles.pillarBadgeText}>{tools.length}</Text>
+          </View>
         </View>
 
         <View style={styles.toolsGrid}>
           {tools.map((tool) => (
             <TouchableOpacity
               key={tool.screen}
-              style={styles.toolCard}
+              style={[styles.toolCard, { borderLeftColor: color, borderLeftWidth: 4 }]}
               onPress={() => navigation.navigate(tool.screen)}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
               <View style={styles.toolHeader}>
                 <Text style={styles.toolIcon}>{tool.icon}</Text>
                 {tool.enhanced && (
-                  <View style={styles.enhancedBadge}>
-                    <Text style={styles.enhancedText}>v2.0</Text>
+                  <View style={[styles.enhancedBadge, { backgroundColor: color }]}>
+                    <Ionicons name="star" size={10} color="#FFF" />
                   </View>
                 )}
               </View>
               <Text style={styles.toolName}>{tool.name}</Text>
               <Text style={styles.toolDescription}>{tool.description}</Text>
+              <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} style={styles.chevron} />
             </TouchableOpacity>
           ))}
         </View>
@@ -107,20 +86,44 @@ export const ToolsScreen = ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>🛠️ Tools</Text>
-          <Text style={styles.headerSubtitle}>All your life management tools</Text>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Blue Header - Duolingo Style */}
+        <View style={styles.header}>
+          <Text style={styles.headerEmoji}>🛠️</Text>
+          <Text style={styles.headerTitle}>Your Tools</Text>
+          <Text style={styles.headerSubtitle}>Everything you need to level up!</Text>
         </View>
-      </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {renderToolSection('Finance', FINANCE_TOOLS, colors.finance)}
-        {renderToolSection('Mental Health', MENTAL_TOOLS, colors.mental)}
-        {renderToolSection('Physical', PHYSICAL_TOOLS, colors.physical)}
-        {renderToolSection('Nutrition', NUTRITION_TOOLS, colors.nutrition)}
+        {/* Stats Bar - Overlapping Header */}
+        <View style={styles.statsBar}>
+          <View style={styles.statItem}>
+            <Ionicons name="construct" size={20} color="#4A90E2" />
+            <Text style={styles.statValue}>12</Text>
+            <Text style={styles.statLabel}>Tools</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="star" size={20} color="#FFD700" />
+            <Text style={styles.statValue}>2</Text>
+            <Text style={styles.statLabel}>Enhanced</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="layers" size={20} color="#9C27B0" />
+            <Text style={styles.statValue}>4</Text>
+            <Text style={styles.statLabel}>Pillars</Text>
+          </View>
+        </View>
 
-        <View style={styles.bottomSpacer} />
+        {/* Tool Sections */}
+        <View style={styles.sectionsContainer}>
+          {renderToolSection('💰 Finance', FINANCE_TOOLS, '#4A90E2')}
+          {renderToolSection('🧠 Mental Health', MENTAL_TOOLS, '#9C27B0')}
+          {renderToolSection('💪 Physical', PHYSICAL_TOOLS, '#FF6B6B')}
+          {renderToolSection('🥗 Nutrition', NUTRITION_TOOLS, '#4CAF50')}
+        </View>
+
+        <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -129,110 +132,138 @@ export const ToolsScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundGray,
+    backgroundColor: '#F5F8FA',
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    backgroundColor: '#4A90E2',
+    paddingTop: 50,
+    paddingBottom: 30,
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 12,
-    backgroundColor: colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    alignItems: 'center',
+  },
+  headerEmoji: {
+    fontSize: 48,
+    marginBottom: 8,
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 2,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 4,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.9)',
   },
-  content: {
+  statsBar: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    marginHorizontal: 20,
+    marginTop: -20,
+    borderRadius: 16,
+    padding: 16,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+    zIndex: 10,
+  },
+  statItem: {
+    alignItems: 'center',
     flex: 1,
   },
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginTop: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#E5E5E5',
+  },
+  sectionsContainer: {
+    padding: 20,
+  },
   section: {
-    marginTop: 20,
-    paddingHorizontal: 16,
+    marginBottom: 24,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-  },
-  sectionDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 8,
+    justifyContent: 'space-between',
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
-    flex: 1,
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
   },
-  sectionCount: {
+  pillarBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pillarBadgeText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    backgroundColor: colors.backgroundGray,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
+    fontWeight: 'bold',
+    color: 'white',
   },
   toolsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 12,
   },
   toolCard: {
-    width: '48%',
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    padding: 14,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+    position: 'relative',
   },
   toolHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   toolIcon: {
-    fontSize: 32,
+    fontSize: 40,
   },
   enhancedBadge: {
-    backgroundColor: colors.primary,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
-  },
-  enhancedText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   toolName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 4,
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 6,
   },
   toolDescription: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    lineHeight: 16,
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+    marginBottom: 8,
   },
-  bottomSpacer: {
-    height: 32,
+  chevron: {
+    position: 'absolute',
+    bottom: 16,
+    right: 16,
   },
 });
