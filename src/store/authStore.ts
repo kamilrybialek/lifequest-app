@@ -101,7 +101,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         console.log('✅ Demo user logged in successfully');
       } catch (error: any) {
         // If user doesn't exist, create it
-        if (error.code === 'auth/user-not-found' || error.message?.includes('No account found')) {
+        // Firebase now uses 'auth/invalid-credential' instead of 'auth/user-not-found' for security reasons
+        if (
+          error.code === 'auth/user-not-found' ||
+          error.code === 'auth/invalid-credential' ||
+          error.code === 'auth/wrong-password' ||
+          error.message?.includes('No account found')
+        ) {
           console.log('📝 Demo user not found, creating...');
 
           // Register demo user
