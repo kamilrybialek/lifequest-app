@@ -6,8 +6,8 @@ import { colors } from '../../theme/colors';
 import { typography, shadows } from '../../theme/theme';
 import { MentalFoundation, MentalLesson, MENTAL_FOUNDATIONS } from '../../types/mental';
 import { useAuthStore } from '../../store/authStore';
-import { getCompletedLessons } from '../../database/lessons';
-import { getMentalProgress } from '../../database/mental';
+import { getCompletedLessons } from '../../database/lessons.web';
+import { getMentalProgress } from '../../database/mental.web';
 import { useFocusEffect } from '@react-navigation/native';
 import { ContinueJourneyCard } from '../../components/paths/ContinueJourneyCard';
 import { StepHeader } from '../../components/paths/StepHeader';
@@ -174,6 +174,12 @@ export const MentalHealthPath = ({ navigation }: any) => {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>🧠 Mental Wellness Path</Text>
           <Text style={styles.headerSubtitle}>5 Foundations of Mental Health</Text>
         </View>
@@ -301,8 +307,17 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
+    paddingTop: 20,
     backgroundColor: colors.background,
     alignItems: 'center',
+    position: 'relative',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    zIndex: 10,
+    padding: 8,
   },
   headerTitle: {
     ...typography.heading,

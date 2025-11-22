@@ -6,8 +6,8 @@ import { colors } from '../../theme/colors';
 import { typography, shadows } from '../../theme/theme';
 import { NutritionFoundation, NutritionLesson, NUTRITION_FOUNDATIONS, NUTRITION_TOOLS } from '../../types/nutrition';
 import { useAuthStore } from '../../store/authStore';
-import { getCompletedLessons } from '../../database/lessons';
-import { getNutritionProgress } from '../../database/nutrition';
+import { getCompletedLessons } from '../../database/lessons.web';
+import { getNutritionProgress } from '../../database/nutrition.web';
 import { useFocusEffect } from '@react-navigation/native';
 import { ContinueJourneyCard } from '../../components/paths/ContinueJourneyCard';
 import { StepHeader } from '../../components/paths/StepHeader';
@@ -139,6 +139,12 @@ export const NutritionPath = ({ navigation }: any) => {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>🥗 Nutrition Mastery Path</Text>
           <Text style={styles.headerSubtitle}>8 Foundations of Optimal Nutrition</Text>
         </View>
@@ -266,8 +272,17 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
+    paddingTop: 20,
     backgroundColor: colors.background,
     alignItems: 'center',
+    position: 'relative',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    zIndex: 10,
+    padding: 8,
   },
   headerTitle: {
     ...typography.heading,

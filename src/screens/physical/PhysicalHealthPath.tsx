@@ -6,8 +6,8 @@ import { colors } from '../../theme/colors';
 import { typography, shadows } from '../../theme/theme';
 import { PhysicalFoundation, PhysicalLesson, PHYSICAL_FOUNDATIONS } from '../../types/physical';
 import { useAuthStore } from '../../store/authStore';
-import { getCompletedLessons } from '../../database/lessons';
-import { getPhysicalProgress } from '../../database/physical';
+import { getCompletedLessons } from '../../database/lessons.web';
+import { getPhysicalProgress } from '../../database/physical.web';
 import { useFocusEffect } from '@react-navigation/native';
 import { calculateBMI, getBMICategory, getBMIColor, calculateBMR, calculateTDEE } from '../../utils/healthCalculations';
 import { useAppStore } from '../../store/appStore';
@@ -23,7 +23,7 @@ const PHYSICAL_TOOLS = [
     title: 'Workout Tracker',
     icon: '💪',
     description: 'Track detailed workouts',
-    screen: 'WorkoutTrackerScreen',
+    screen: 'WorkoutTracker',
     color: colors.physical,
   },
   {
@@ -31,7 +31,7 @@ const PHYSICAL_TOOLS = [
     title: 'Exercise Logger',
     icon: '🏃',
     description: 'Quick exercise logging',
-    screen: 'ExerciseLoggerScreen',
+    screen: 'ExerciseLogger',
     color: '#FF6B6B',
   },
   {
@@ -39,7 +39,7 @@ const PHYSICAL_TOOLS = [
     title: 'Sleep Tracker',
     icon: '😴',
     description: 'Monitor sleep quality',
-    screen: 'SleepTrackerScreen',
+    screen: 'SleepTracker',
     color: '#CE82FF',
   },
   {
@@ -47,7 +47,7 @@ const PHYSICAL_TOOLS = [
     title: 'Body Measurements',
     icon: '⚖️',
     description: 'Track weight & BMI',
-    screen: 'BodyMeasurementsScreen',
+    screen: 'BodyMeasurements',
     color: '#4ECDC4',
   },
 ];
@@ -177,6 +177,12 @@ export const PhysicalHealthPath = ({ navigation }: any) => {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backButton}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
           <Text style={styles.headerTitle}>💪 Physical Wellness Path</Text>
           <Text style={styles.headerSubtitle}>5 Foundations of Physical Health</Text>
         </View>
@@ -202,8 +208,6 @@ export const PhysicalHealthPath = ({ navigation }: any) => {
                   user.gender as 'male' | 'female'
                 );
                 const tdee = calculateTDEE(bmr, 'moderate');
-                const calorieDeficit = Math.round(tdee - 500); // For weight loss
-                const calorieSurplus = Math.round(tdee + 300); // For muscle gain
 
                 return (
                   <>
@@ -430,8 +434,17 @@ const styles = StyleSheet.create({
   },
   header: {
     padding: 20,
+    paddingTop: 20,
     backgroundColor: colors.background,
     alignItems: 'center',
+    position: 'relative',
+  },
+  backButton: {
+    position: 'absolute',
+    top: 60,
+    left: 20,
+    zIndex: 10,
+    padding: 8,
   },
   headerTitle: {
     ...typography.heading,
