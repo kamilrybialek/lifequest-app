@@ -172,6 +172,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 5,
+    zIndex: 10,
   },
   statItem: {
     alignItems: 'center',
