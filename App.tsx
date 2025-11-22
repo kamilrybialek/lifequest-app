@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { View, Text, ActivityIndicator, StyleSheet, Platform } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { useAuthStore } from './src/store/authStore';
 import { useAppStore } from './src/store/appStore';
@@ -88,10 +89,12 @@ export default function App() {
   }
 
   return (
-    <PaperProvider theme={theme}>
-      <AppNavigator />
-      <Toast />
-    </PaperProvider>
+    <SafeAreaProvider>
+      <PaperProvider theme={theme}>
+        <AppNavigator />
+        <Toast />
+      </PaperProvider>
+    </SafeAreaProvider>
   );
 }
 
