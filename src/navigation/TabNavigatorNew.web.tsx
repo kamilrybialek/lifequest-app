@@ -6,7 +6,7 @@ import { colors } from '../theme/colors';
 
 // Import .web.tsx versions EXPLICITLY
 import { DashboardScreenNew } from '../screens/Dashboard/DashboardScreenNew.web';
-import { ToolsScreen } from '../screens/tools/ToolsScreen';
+import { ToolsScreen } from '../screens/tools/ToolsScreen.web';
 import { TasksScreen } from '../screens/tasks/TasksScreen.web';
 import { JourneyScreen } from '../screens/Journey/JourneyScreen.web';
 import { ProfileScreenNew } from '../screens/Profile/ProfileScreenNew.web';

@@ -21,6 +21,8 @@ import {
 } from '../utils/notifications';
 import { getSmartTasksForToday, loadTasks, saveTasks } from '../utils/intelligentTaskGenerator.web';
 import { SmartTask } from '../utils/intelligentTaskGenerator';
+// Import authStore at top level to avoid circular dependency from dynamic require()
+import { useAuthStore } from './authStore';
 
 interface AppState {
   // Progress
@@ -118,7 +120,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       console.log('✅ loadAppData: AsyncStorage data loaded');
 
       // Load progress from Firebase (if user is logged in)
-      const { useAuthStore } = require('./authStore');
       const authStore = useAuthStore.getState();
       const userId = authStore.user?.id;
 
@@ -398,7 +399,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     AsyncStorage.setItem('progress', JSON.stringify(updatedProgress));
 
     // Update in Supabase if user is logged in
-    const { useAuthStore } = require('./authStore');
     const authStore = useAuthStore.getState();
     const userId = authStore.user?.id;
 
@@ -432,7 +432,6 @@ export const useAppStore = create<AppState>((set, get) => ({
     await AsyncStorage.setItem('progress', JSON.stringify(updatedProgress));
 
     // Update in Firebase if user is logged in
-    const { useAuthStore } = require('./authStore');
     const authStore = useAuthStore.getState();
     const userId = authStore.user?.id;
 
