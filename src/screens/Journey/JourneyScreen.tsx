@@ -1,134 +1,188 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, SafeAreaView, TouchableOpacity } from 'react-native';
-import { Text } from 'react-native-paper';
+/**
+ * Journey Screen - Duolingo Style (Native Version)
+ * Uses solid colors for consistency across platforms
+ */
+
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  
+  TouchableOpacity,
+  ScrollView,
+  Dimensions,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
-import { typography } from '../../theme/theme';
-import { spacing } from '../../theme/spacing';
 import { useAppStore } from '../../store/appStore';
+import { useAuthStore } from '../../store/authStore';
 import { Pillar } from '../../types';
 
-// Import existing path screens
-import { FinancePathNew } from '../finance/FinancePathNew';
-import { MentalHealthPath } from '../mental/MentalHealthPath';
-import { PhysicalHealthPath } from '../physical/PhysicalHealthPath';
-import { NutritionPath } from '../nutrition/NutritionPath';
+const { width } = Dimensions.get('window');
 
-let journeyScreenRenderCount = 0;
-
-interface JourneyScreenProps {
-  navigation: any;
-  route?: any;
+interface PathCard {
+  pillar: Pillar;
+  title: string;
+  subtitle: string;
+  icon: string;
+  emoji: string;
+  color: string;
+  lessons: number;
+  completed: number;
 }
 
-export const JourneyScreen: React.FC<JourneyScreenProps> = ({ navigation, route }) => {
-  journeyScreenRenderCount++;
-  console.log(`🗺️ JourneyScreen render #${journeyScreenRenderCount}`);
-  if (journeyScreenRenderCount > 100) {
-    console.error('🔴 INFINITE RENDER in JourneyScreen!');
-    throw new Error('Infinite render loop detected in JourneyScreen');
-  }
+const PATHS: PathCard[] = [
+  {
+    pillar: 'finance',
+    title: 'Financial Freedom',
+    subtitle: '10 Steps to Wealth',
+    icon: 'cash',
+    emoji: '💰',
+    color: '#4A90E2',
+    lessons: 47,
+    completed: 0,
+  },
+  {
+    pillar: 'mental',
+    title: 'Mental Mastery',
+    subtitle: 'Build Unbreakable Focus',
+    icon: 'bulb',
+    emoji: '🧠',
+    color: '#9C27B0',
+    lessons: 35,
+    completed: 0,
+  },
+  {
+    pillar: 'physical',
+    title: 'Physical Excellence',
+    subtitle: 'Transform Your Body',
+    icon: 'fitness',
+    emoji: '💪',
+    color: '#FF6B6B',
+    lessons: 40,
+    completed: 0,
+  },
+  {
+    pillar: 'nutrition',
+    title: 'Nutrition Mastery',
+    subtitle: 'Fuel Like a Champion',
+    icon: 'restaurant',
+    emoji: '🥗',
+    color: '#4CAF50',
+    lessons: 30,
+    completed: 0,
+  },
+];
 
+export const JourneyScreen = ({ navigation }: any) => {
   const { progress } = useAppStore();
-  const [selectedPath, setSelectedPath] = useState<Pillar>(
-    route?.params?.selectedPillar || 'finance'
-  );
+  const { user } = useAuthStore();
+  const firstName = user?.firstName || user?.email?.split('@')[0] || 'Champion';
 
-  useEffect(() => {
-    if (route?.params?.selectedPillar) {
-      setSelectedPath(route.params.selectedPillar);
-    }
-  }, [route?.params?.selectedPillar]);
-
-  const tabs = [
-    { pillar: 'finance' as Pillar, icon: 'cash', label: 'Finance' },
-    { pillar: 'mental' as Pillar, icon: 'brain', label: 'Mental' },
-    { pillar: 'physical' as Pillar, icon: 'fitness', label: 'Physical' },
-    { pillar: 'nutrition' as Pillar, icon: 'restaurant', label: 'Nutrition' },
-  ];
-
-  const getPillarColor = (pillar: Pillar) => {
-    switch (pillar) {
-      case 'finance': return colors.finance;
-      case 'mental': return colors.mental;
-      case 'physical': return colors.physical;
-      case 'nutrition': return colors.nutrition;
-      default: return colors.primary;
-    }
+  const handlePathPress = (pillar: Pillar) => {
+    const screenMap = {
+      finance: 'FinancePathNew',
+      mental: 'MentalHealthPath',
+      physical: 'PhysicalHealthPath',
+      nutrition: 'NutritionPath',
+    };
+    navigation.navigate(screenMap[pillar]);
   };
 
-  // Render selected path content
-  const renderPathContent = () => {
-    if (!selectedPath) return null;
-
-    const pathProps = { navigation };
-
-    switch (selectedPath) {
-      case 'finance':
-        return <FinancePathNew {...pathProps} />;
-      case 'mental':
-        return <MentalHealthPath {...pathProps} />;
-      case 'physical':
-        return <PhysicalHealthPath {...pathProps} />;
-      case 'nutrition':
-        return <NutritionPath {...pathProps} />;
-      default:
-        return null;
-    }
-  };
+  const totalXP = progress?.xp || 0;
+  const level = progress?.level || 1;
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header with Back Button and Tabs */}
-      <View style={styles.header}>
-        {/* Back Button */}
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-
-        {/* Tab Bar */}
-        <View style={styles.tabBar}>
-          {tabs.map((tab) => (
-            <TouchableOpacity
-              key={tab.pillar}
-              style={[
-                styles.tab,
-                selectedPath === tab.pillar && [
-                  styles.tabActive,
-                  { borderBottomColor: getPillarColor(tab.pillar) }
-                ]
-              ]}
-              onPress={() => setSelectedPath(tab.pillar)}
-            >
-              <Ionicons
-                name={tab.icon as any}
-                size={20}
-                color={selectedPath === tab.pillar ? getPillarColor(tab.pillar) : colors.textLight}
-              />
-              <Text
-                style={[
-                  styles.tabLabel,
-                  selectedPath === tab.pillar && [
-                    styles.tabLabelActive,
-                    { color: getPillarColor(tab.pillar) }
-                  ]
-                ]}
-              >
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerEmoji}>🧭</Text>
+          <Text style={styles.headerTitle}>Your Journey</Text>
+          <Text style={styles.headerSubtitle}>Choose your path, {firstName}!</Text>
         </View>
-      </View>
 
-      {/* Path Content */}
-      <View style={styles.pathContentContainer}>
-        {renderPathContent()}
-      </View>
+        {/* Stats Bar */}
+        <View style={styles.statsBar}>
+          <View style={styles.statItem}>
+            <Ionicons name="trophy" size={20} color="#FFD700" />
+            <Text style={styles.statValue}>{totalXP}</Text>
+            <Text style={styles.statLabel}>XP</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="star" size={20} color="#4A90E2" />
+            <Text style={styles.statValue}>{level}</Text>
+            <Text style={styles.statLabel}>Level</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="flame" size={20} color="#FF6B6B" />
+            <Text style={styles.statValue}>{progress?.streaks?.[0]?.current || 0}</Text>
+            <Text style={styles.statLabel}>Streak</Text>
+          </View>
+        </View>
+
+        {/* Path Cards */}
+        <View style={styles.pathsContainer}>
+          <Text style={styles.sectionTitle}>🎯 Learning Paths</Text>
+
+          {PATHS.map((path, index) => {
+            const progressPercent = (path.completed / path.lessons) * 100;
+
+            return (
+              <TouchableOpacity
+                key={path.pillar}
+                style={[styles.pathCard, { backgroundColor: path.color }]}
+                onPress={() => handlePathPress(path.pillar)}
+                activeOpacity={0.8}
+              >
+                <View style={styles.pathCardContent}>
+                  <View style={styles.pathIconContainer}>
+                    <Text style={styles.pathEmoji}>{path.emoji}</Text>
+                  </View>
+
+                  <View style={styles.pathInfo}>
+                    <Text style={styles.pathTitle}>{path.title}</Text>
+                    <Text style={styles.pathSubtitle}>{path.subtitle}</Text>
+
+                    {/* Progress Bar */}
+                    <View style={styles.progressContainer}>
+                      <View style={styles.progressBar}>
+                        <View
+                          style={[
+                            styles.progressFill,
+                            { width: `${progressPercent}%` }
+                          ]}
+                        />
+                      </View>
+                      <Text style={styles.progressText}>
+                        {path.completed}/{path.lessons}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.8)" />
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Motivation Card */}
+        <View style={styles.motivationCard}>
+          <Text style={styles.motivationEmoji}>🚀</Text>
+          <Text style={styles.motivationTitle}>Keep Going!</Text>
+          <Text style={styles.motivationText}>
+            Every lesson brings you closer to mastery.{'\n'}
+            Small steps lead to big transformations!
+          </Text>
+        </View>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -136,42 +190,160 @@ export const JourneyScreen: React.FC<JourneyScreenProps> = ({ navigation, route 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundGray,
+    backgroundColor: '#F5F8FA',
   },
   header: {
-    backgroundColor: colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    backgroundColor: '#4A90E2',
+    paddingTop: 50,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
+    alignItems: 'center',
   },
-  backButton: {
-    padding: spacing.md,
-    paddingLeft: spacing.lg,
+  headerEmoji: {
+    fontSize: 48,
+    marginBottom: 8,
   },
-  tabBar: {
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.9)',
+  },
+  statsBar: {
     flexDirection: 'row',
+    backgroundColor: 'white',
+    marginHorizontal: 20,
+    marginTop: -20,
+    borderRadius: 16,
+    padding: 16,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
   },
-  tab: {
+  statItem: {
+    alignItems: 'center',
     flex: 1,
+  },
+  statValue: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginTop: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#E5E5E5',
+  },
+  pathsContainer: {
+    padding: 20,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 16,
+  },
+  pathCard: {
+    borderRadius: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  pathCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    padding: 20,
+  },
+  pathIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.3)',
     justifyContent: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.md,
-    borderBottomWidth: 3,
-    borderBottomColor: 'transparent',
+    alignItems: 'center',
+    marginRight: 16,
   },
-  tabActive: {
-    borderBottomWidth: 3,
+  pathEmoji: {
+    fontSize: 32,
   },
-  tabLabel: {
-    ...typography.bodyBold,
-    fontSize: 13,
-    color: colors.textLight,
-  },
-  tabLabelActive: {
-    fontWeight: '700',
-  },
-  pathContentContainer: {
+  pathInfo: {
     flex: 1,
+  },
+  pathTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 2,
+  },
+  pathSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+    marginBottom: 8,
+  },
+  progressContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  progressBar: {
+    flex: 1,
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 3,
+    marginRight: 8,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: 'white',
+    borderRadius: 3,
+  },
+  progressText: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: '600',
+  },
+  motivationCard: {
+    margin: 20,
+    marginTop: 0,
+    padding: 24,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  motivationEmoji: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  motivationTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 8,
+  },
+  motivationText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
   },
 });

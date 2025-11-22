@@ -52,8 +52,16 @@
     },
     "plugins": [
       [
-        "expo-notifications"
+        "expo-notifications",
+        {
+          "projectId": "lifequest-app-331d9"
+        }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "lifequest-app-331d9"
+      }
+    }
   }
 }
