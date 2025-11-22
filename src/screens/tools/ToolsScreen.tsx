@@ -94,12 +94,24 @@ export const ToolsScreen = ({ navigation }: any) => {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Stats Card - Overlapping Header */}
-        <View style={styles.statsCard}>
+        {/* Stats Bar - Overlapping Header */}
+        <View style={styles.statsBar}>
           <View style={styles.statItem}>
-            <Ionicons name="construct" size={24} color="#4A90E2" />
-            <Text style={styles.statValue}>15</Text>
-            <Text style={styles.statLabel}>Total Tools</Text>
+            <Ionicons name="construct" size={20} color="#4A90E2" />
+            <Text style={styles.statValue}>12</Text>
+            <Text style={styles.statLabel}>Tools</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="star" size={20} color="#FFD700" />
+            <Text style={styles.statValue}>2</Text>
+            <Text style={styles.statLabel}>Enhanced</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="layers" size={20} color="#9C27B0" />
+            <Text style={styles.statValue}>4</Text>
+            <Text style={styles.statLabel}>Pillars</Text>
           </View>
         </View>
 
@@ -146,32 +158,39 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  statsCard: {
+  statsBar: {
+    flexDirection: 'row',
     backgroundColor: 'white',
     marginHorizontal: 20,
     marginTop: -20,
     borderRadius: 16,
-    padding: 20,
+    padding: 16,
+    justifyContent: 'space-around',
+    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
     elevation: 5,
-    alignItems: 'center',
   },
   statItem: {
     alignItems: 'center',
+    flex: 1,
   },
   statValue: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#1A1A1A',
-    marginTop: 8,
+    marginTop: 4,
   },
   statLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#666',
-    marginTop: 4,
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#E5E5E5',
   },
   sectionsContainer: {
     padding: 20,
