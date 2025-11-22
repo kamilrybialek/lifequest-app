@@ -1,8 +1,12 @@
+/**
+ * Profile Screen - Duolingo Style (Web Version)
+ * Matching Journey and Tasks screen design language
+ */
+
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, RefreshControl } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../theme/colors';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
 
@@ -10,6 +14,8 @@ export const ProfileScreenNew = () => {
   const { user, logout } = useAuthStore();
   const { progress, loadAppData } = useAppStore();
   const [refreshing, setRefreshing] = useState(false);
+
+  const firstName = user?.firstName || user?.email?.split('@')[0] || 'Champion';
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -69,128 +75,124 @@ export const ProfileScreenNew = () => {
   const totalAchievements = progress.achievements.length;
   const bestStreak = Math.max(...progress.streaks.map(s => s.longest), 0);
   const currentStreakSum = progress.streaks.reduce((sum, s) => sum + s.current, 0);
-  const xpToNextLevel = (progress.level * 100) - progress.xp;
+  const xpToNextLevel = (progress.level * 100) - (progress.xp % 100);
+  const xpProgress = (progress.xp % 100);
 
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
+        showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Header */}
+        {/* Header - Duolingo Style */}
         <View style={styles.header}>
-          <View>
-            <Text style={styles.title}>👤 Profile</Text>
-            {user?.email && (
-              <Text style={styles.email}>{user.email}</Text>
-            )}
+          <View style={styles.headerContent}>
+            <Text style={styles.headerEmoji}>👤</Text>
+            <Text style={styles.headerTitle}>Profile</Text>
+            <Text style={styles.headerSubtitle}>Keep growing, {firstName}!</Text>
           </View>
-          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-            <Ionicons name="log-out-outline" size={24} color="#EF4444" />
+          <TouchableOpacity onPress={handleLogout} style={styles.headerLogout}>
+            <Ionicons name="log-out-outline" size={20} color="rgba(255,255,255,0.9)" />
           </TouchableOpacity>
         </View>
 
-        {/* Level Card */}
-        <View style={styles.levelCard}>
-          <View style={styles.levelHeader}>
-            <View style={styles.levelBadge}>
-              <Text style={styles.levelNumber}>{progress.level}</Text>
-            </View>
-            <View style={styles.levelInfo}>
-              <Text style={styles.levelTitle}>Level {progress.level}</Text>
-              <Text style={styles.levelSubtitle}>{xpToNextLevel} XP to next level</Text>
-            </View>
-          </View>
-          <View style={styles.xpProgressContainer}>
-            <View style={styles.xpProgressBar}>
-              <View
-                style={[
-                  styles.xpProgressFill,
-                  { width: `${(progress.xp % 100)}%` }
-                ]}
-              />
-            </View>
-            <Text style={styles.xpText}>{progress.xp} XP</Text>
-          </View>
-        </View>
-
-        {/* Stats Grid */}
-        <View style={styles.statsGrid}>
-          <View style={styles.statCard}>
-            <Ionicons name="star" size={32} color="#F59E0B" />
-            <Text style={styles.statValue}>{progress.totalPoints}</Text>
+        {/* Stats Bar - overlapping header */}
+        <View style={styles.statsBar}>
+          <View style={styles.statItem}>
+            <Ionicons name="star" size={20} color="#FFD700" />
+            <Text style={styles.statValue}>{progress.totalPoints || progress.xp}</Text>
             <Text style={styles.statLabel}>Total XP</Text>
           </View>
-          <View style={styles.statCard}>
-            <Ionicons name="flame" size={32} color="#EF4444" />
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="flame" size={20} color="#FF6B6B" />
             <Text style={styles.statValue}>{bestStreak}</Text>
             <Text style={styles.statLabel}>Best Streak</Text>
           </View>
-          <View style={styles.statCard}>
-            <Ionicons name="trophy" size={32} color="#10B981" />
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="trophy" size={20} color="#4CAF50" />
             <Text style={styles.statValue}>{unlockedAchievements.length}/{totalAchievements}</Text>
             <Text style={styles.statLabel}>Achievements</Text>
           </View>
-          <View style={styles.statCard}>
-            <Ionicons name="calendar" size={32} color="#8B5CF6" />
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="calendar" size={20} color="#1CB0F6" />
             <Text style={styles.statValue}>{currentStreakSum}</Text>
             <Text style={styles.statLabel}>Current Streak</Text>
           </View>
+        </View>
+
+        {/* Level Card - Colorful Duolingo Style */}
+        <View style={styles.levelSection}>
+          <TouchableOpacity style={styles.levelCard} activeOpacity={0.8}>
+            <View style={styles.levelCardContent}>
+              <View style={styles.levelIconContainer}>
+                <Text style={styles.levelNumber}>{progress.level}</Text>
+              </View>
+              <View style={styles.levelInfo}>
+                <Text style={styles.levelTitle}>Level {progress.level}</Text>
+                <Text style={styles.levelSubtitle}>{xpToNextLevel} XP to next level</Text>
+                {/* Progress Bar */}
+                <View style={styles.levelProgressContainer}>
+                  <View style={styles.levelProgressBar}>
+                    <View
+                      style={[
+                        styles.levelProgressFill,
+                        { width: `${xpProgress}%` }
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.levelProgressText}>{xpProgress}%</Text>
+                </View>
+              </View>
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* Achievements Section */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>🏆 Achievements</Text>
-            <Text style={styles.sectionSubtitle}>{unlockedAchievements.length}/{totalAchievements}</Text>
+            <Text style={styles.sectionSubtitle}>{unlockedAchievements.length} of {totalAchievements}</Text>
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.achievementsScroll}>
-            {progress.achievements.map((achievement) => (
-              <View
+            {progress.achievements.slice(0, 5).map((achievement) => (
+              <TouchableOpacity
                 key={achievement.id}
                 style={[
                   styles.achievementCard,
-                  !achievement.unlocked && styles.achievementCardLocked,
+                  { backgroundColor: achievement.unlocked ? '#4CAF50' : '#E5E5E5' }
                 ]}
+                activeOpacity={0.8}
               >
-                <Text style={[
-                  styles.achievementIcon,
-                  !achievement.unlocked && styles.achievementIconLocked,
-                ]}>
-                  {achievement.icon}
-                </Text>
-                <Text style={[
-                  styles.achievementName,
-                  !achievement.unlocked && styles.achievementTextLocked,
-                ]}>
+                <View style={styles.achievementIconContainer}>
+                  <Text style={styles.achievementIcon}>{achievement.icon}</Text>
+                </View>
+                <Text style={[styles.achievementName, !achievement.unlocked && styles.achievementNameLocked]}>
                   {achievement.name}
-                </Text>
-                <Text style={[
-                  styles.achievementDescription,
-                  !achievement.unlocked && styles.achievementTextLocked,
-                ]}>
-                  {achievement.description}
                 </Text>
                 {achievement.unlocked && (
                   <View style={styles.achievementUnlocked}>
-                    <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+                    <Ionicons name="checkmark-circle" size={20} color="white" />
                   </View>
                 )}
-              </View>
+              </TouchableOpacity>
             ))}
           </ScrollView>
         </View>
 
-        {/* Pillar Streaks */}
+        {/* Pillar Streaks - Colorful Cards */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔥 Current Streaks</Text>
+          <Text style={styles.sectionTitle}>🔥 Pillar Streaks</Text>
           {progress.streaks.map((streak) => {
             const pillarColors: Record<string, string> = {
-              finance: '#10B981',
-              mental: '#8B5CF6',
-              physical: '#F59E0B',
-              nutrition: '#EC4899',
+              finance: '#4A90E2',
+              mental: '#4A90E2',
+              physical: '#FF6B6B',
+              nutrition: '#4CAF50',
             };
             const pillarIcons: Record<string, string> = {
               finance: '💰',
@@ -199,21 +201,30 @@ export const ProfileScreenNew = () => {
               nutrition: '🥗',
             };
             return (
-              <View key={streak.pillar} style={styles.streakCard}>
-                <View style={styles.streakLeft}>
-                  <View style={[styles.streakIcon, { backgroundColor: pillarColors[streak.pillar] }]}>
+              <TouchableOpacity
+                key={streak.pillar}
+                style={[styles.streakCard, { backgroundColor: pillarColors[streak.pillar] }]}
+                activeOpacity={0.8}
+              >
+                <View style={styles.streakCardContent}>
+                  <View style={styles.streakIconContainer}>
                     <Text style={styles.streakEmoji}>{pillarIcons[streak.pillar]}</Text>
                   </View>
-                  <View>
-                    <Text style={styles.streakPillar}>{streak.pillar.charAt(0).toUpperCase() + streak.pillar.slice(1)}</Text>
-                    <Text style={styles.streakLongest}>Longest: {streak.longest} days</Text>
+                  <View style={styles.streakInfo}>
+                    <Text style={styles.streakPillar}>
+                      {streak.pillar.charAt(0).toUpperCase() + streak.pillar.slice(1)}
+                    </Text>
+                    <View style={styles.streakMeta}>
+                      <View style={styles.streakBadge}>
+                        <Ionicons name="flame" size={12} color="white" />
+                        <Text style={styles.streakBadgeText}>{streak.current} days</Text>
+                      </View>
+                      <Text style={styles.streakLongest}>Best: {streak.longest}</Text>
+                    </View>
                   </View>
+                  <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.8)" />
                 </View>
-                <View style={styles.streakRight}>
-                  <Text style={styles.streakCurrent}>{streak.current}</Text>
-                  <Text style={styles.streakLabel}>days</Text>
-                </View>
-              </View>
+              </TouchableOpacity>
             );
           })}
         </View>
@@ -227,10 +238,12 @@ export const ProfileScreenNew = () => {
               onPress={() => handleSettingPress('notifications')}
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="notifications-outline" size={24} color={colors.text} />
+                <View style={[styles.settingIconContainer, { backgroundColor: '#FF9500' + '20' }]}>
+                  <Ionicons name="notifications-outline" size={20} color="#FF9500" />
+                </View>
                 <Text style={styles.settingText}>Notifications</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+              <Ionicons name="chevron-forward" size={20} color="#CCC" />
             </TouchableOpacity>
 
             <View style={styles.settingDivider} />
@@ -240,10 +253,12 @@ export const ProfileScreenNew = () => {
               onPress={() => handleSettingPress('account')}
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="person-outline" size={24} color={colors.text} />
+                <View style={[styles.settingIconContainer, { backgroundColor: '#1CB0F6' + '20' }]}>
+                  <Ionicons name="person-outline" size={20} color="#1CB0F6" />
+                </View>
                 <Text style={styles.settingText}>Account Settings</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+              <Ionicons name="chevron-forward" size={20} color="#CCC" />
             </TouchableOpacity>
 
             <View style={styles.settingDivider} />
@@ -253,10 +268,12 @@ export const ProfileScreenNew = () => {
               onPress={() => handleSettingPress('data')}
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="download-outline" size={24} color={colors.text} />
+                <View style={[styles.settingIconContainer, { backgroundColor: '#9C27B0' + '20' }]}>
+                  <Ionicons name="download-outline" size={20} color="#9C27B0" />
+                </View>
                 <Text style={styles.settingText}>Export Data</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+              <Ionicons name="chevron-forward" size={20} color="#CCC" />
             </TouchableOpacity>
 
             <View style={styles.settingDivider} />
@@ -266,10 +283,12 @@ export const ProfileScreenNew = () => {
               onPress={() => handleSettingPress('privacy')}
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="shield-outline" size={24} color={colors.text} />
+                <View style={[styles.settingIconContainer, { backgroundColor: '#4CAF50' + '20' }]}>
+                  <Ionicons name="shield-outline" size={20} color="#4CAF50" />
+                </View>
                 <Text style={styles.settingText}>Privacy & Security</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+              <Ionicons name="chevron-forward" size={20} color="#CCC" />
             </TouchableOpacity>
 
             <View style={styles.settingDivider} />
@@ -279,24 +298,59 @@ export const ProfileScreenNew = () => {
               onPress={() => handleSettingPress('about')}
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="information-circle-outline" size={24} color={colors.text} />
+                <View style={[styles.settingIconContainer, { backgroundColor: '#FFB800' + '20' }]}>
+                  <Ionicons name="information-circle-outline" size={20} color="#FFB800" />
+                </View>
                 <Text style={styles.settingText}>About LifeQuest</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={colors.textLight} />
+              <Ionicons name="chevron-forward" size={20} color="#CCC" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Danger Zone */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>⚠️ Danger Zone</Text>
+          <View style={styles.settingsCard}>
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={handleResetDatabase}
+            >
+              <View style={styles.settingLeft}>
+                <View style={[styles.settingIconContainer, { backgroundColor: '#FF4B4B' + '20' }]}>
+                  <Ionicons name="trash-outline" size={20} color="#FF4B4B" />
+                </View>
+                <Text style={[styles.settingText, { color: '#FF4B4B' }]}>Reset Database</Text>
+              </View>
+              <Ionicons name="warning-outline" size={20} color="#FF4B4B" />
             </TouchableOpacity>
 
             <View style={styles.settingDivider} />
 
             <TouchableOpacity
               style={styles.settingItem}
-              onPress={handleResetDatabase}
+              onPress={handleLogout}
             >
               <View style={styles.settingLeft}>
-                <Ionicons name="trash-outline" size={24} color="#EF4444" />
-                <Text style={[styles.settingText, { color: '#EF4444' }]}>Reset Database (Dev)</Text>
+                <View style={[styles.settingIconContainer, { backgroundColor: '#FF4B4B' + '20' }]}>
+                  <Ionicons name="log-out-outline" size={20} color="#FF4B4B" />
+                </View>
+                <Text style={[styles.settingText, { color: '#FF4B4B' }]}>Logout</Text>
               </View>
-              <Ionicons name="warning-outline" size={20} color="#EF4444" />
+              <Ionicons name="chevron-forward" size={20} color="#FF4B4B" />
             </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Motivation Card */}
+        <View style={styles.motivationSection}>
+          <View style={styles.motivationCard}>
+            <Text style={styles.motivationEmoji}>🚀</Text>
+            <Text style={styles.motivationTitle}>You're doing great!</Text>
+            <Text style={styles.motivationText}>
+              Keep leveling up and unlocking achievements.{'\n'}
+              Every day is a step closer to your goals!
+            </Text>
           </View>
         </View>
 
@@ -309,50 +363,99 @@ export const ProfileScreenNew = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#F5F8FA',
   },
+  // Header - Duolingo Style
   header: {
-    padding: 20,
-    paddingTop: 40,
+    backgroundColor: '#4A90E2',
+    paddingTop: 50,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  headerContent: {
     alignItems: 'center',
+    flex: 1,
   },
-  title: {
-    fontSize: 32,
+  headerEmoji: {
+    fontSize: 48,
+    marginBottom: 8,
+  },
+  headerTitle: {
+    fontSize: 28,
     fontWeight: 'bold',
-    color: colors.text,
+    color: 'white',
+    marginBottom: 4,
   },
-  email: {
-    fontSize: 14,
-    color: colors.textLight,
+  headerSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.9)',
+  },
+  headerLogout: {
+    padding: 8,
+    marginTop: 8,
+  },
+  // Stats Bar - overlapping header
+  statsBar: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    marginHorizontal: 20,
+    marginTop: -20,
+    borderRadius: 16,
+    padding: 12,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
     marginTop: 4,
   },
-  logoutButton: {
-    padding: 8,
+  statLabel: {
+    fontSize: 11,
+    color: '#666',
+    textAlign: 'center',
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#E5E5E5',
+  },
+  // Level Card
+  levelSection: {
+    padding: 20,
   },
   levelCard: {
-    margin: 20,
-    marginTop: 0,
-    padding: 20,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    borderRadius: 20,
+    backgroundColor: '#4A90E2',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  levelHeader: {
+  levelCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    padding: 20,
   },
-  levelBadge: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: colors.primary,
+  levelIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(255,255,255,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 16,
@@ -360,75 +463,47 @@ const styles = StyleSheet.create({
   levelNumber: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: 'white',
   },
   levelInfo: {
     flex: 1,
   },
   levelTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 4,
+    color: 'white',
+    marginBottom: 2,
   },
   levelSubtitle: {
     fontSize: 14,
-    color: colors.textLight,
+    color: 'rgba(255,255,255,0.9)',
+    marginBottom: 8,
   },
-  xpProgressContainer: {
-    gap: 8,
-  },
-  xpProgressBar: {
-    height: 8,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 4,
-    overflow: 'hidden',
-  },
-  xpProgressFill: {
-    height: '100%',
-    backgroundColor: colors.primary,
-    borderRadius: 4,
-  },
-  xpText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.text,
-    textAlign: 'right',
-  },
-  statsGrid: {
+  levelProgressContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    paddingHorizontal: 20,
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    minWidth: '45%',
-    padding: 16,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
   },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginTop: 8,
-    marginBottom: 4,
+  levelProgressBar: {
+    flex: 1,
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 3,
+    marginRight: 8,
   },
-  statLabel: {
+  levelProgressFill: {
+    height: '100%',
+    backgroundColor: 'white',
+    borderRadius: 3,
+  },
+  levelProgressText: {
     fontSize: 12,
-    color: colors.textLight,
-    textAlign: 'center',
+    color: 'rgba(255,255,255,0.9)',
+    fontWeight: '600',
   },
+  // Sections
   section: {
     paddingHorizontal: 20,
-    marginTop: 24,
+    marginTop: 20,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -438,121 +513,124 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: colors.text,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: colors.textLight,
+    color: '#666',
   },
+  // Achievements
   achievementsScroll: {
     marginHorizontal: -20,
     paddingHorizontal: 20,
   },
   achievementCard: {
-    width: 140,
+    width: 120,
+    borderRadius: 16,
     padding: 16,
     marginRight: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  achievementCardLocked: {
-    opacity: 0.5,
-    backgroundColor: '#F9FAFB',
-  },
-  achievementIcon: {
-    fontSize: 40,
+  achievementIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 8,
   },
-  achievementIconLocked: {
-    opacity: 0.3,
+  achievementIcon: {
+    fontSize: 28,
   },
   achievementName: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: colors.text,
+    color: 'white',
     textAlign: 'center',
-    marginBottom: 4,
   },
-  achievementDescription: {
-    fontSize: 11,
-    color: colors.textLight,
-    textAlign: 'center',
-    lineHeight: 16,
-  },
-  achievementTextLocked: {
-    color: colors.textLight,
+  achievementNameLocked: {
+    color: '#999',
   },
   achievementUnlocked: {
     position: 'absolute',
     top: 8,
     right: 8,
   },
+  // Streaks
   streakCard: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 16,
+    borderRadius: 20,
     marginBottom: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
   },
-  streakLeft: {
+  streakCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    padding: 20,
   },
-  streakIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  streakIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 12,
+    marginRight: 16,
   },
   streakEmoji: {
     fontSize: 24,
   },
+  streakInfo: {
+    flex: 1,
+  },
   streakPillar: {
-    fontSize: 16,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 6,
+  },
+  streakMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  streakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    gap: 4,
+  },
+  streakBadgeText: {
+    fontSize: 12,
     fontWeight: '600',
-    color: colors.text,
-    marginBottom: 2,
+    color: 'white',
   },
   streakLongest: {
     fontSize: 12,
-    color: colors.textLight,
+    color: 'rgba(255,255,255,0.9)',
   },
-  streakRight: {
-    alignItems: 'center',
-  },
-  streakCurrent: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: colors.primary,
-  },
-  streakLabel: {
-    fontSize: 12,
-    color: colors.textLight,
-  },
+  // Settings
   settingsCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: 'white',
+    borderRadius: 16,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowRadius: 8,
+    elevation: 3,
   },
   settingItem: {
     flexDirection: 'row',
@@ -565,13 +643,54 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
+  settingIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   settingText: {
     fontSize: 16,
-    color: colors.text,
+    fontWeight: '500',
+    color: '#1A1A1A',
   },
   settingDivider: {
     height: 1,
     backgroundColor: '#F3F4F6',
-    marginLeft: 52,
+    marginLeft: 68,
+  },
+  // Motivation Card
+  motivationSection: {
+    padding: 20,
+    paddingTop: 20,
+  },
+  motivationCard: {
+    padding: 24,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  motivationEmoji: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  motivationTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  motivationText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
