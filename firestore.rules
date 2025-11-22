@@ -24,10 +24,12 @@ service cloud.firestore {
 
     // Daily tasks - users can only access their own tasks
     match /daily_tasks/{taskId} {
-      allow read, write: if isAuthenticated() &&
-                            resource.data.user_id == request.auth.uid;
+      allow read: if isAuthenticated() &&
+                     (resource == null || resource.data.user_id == request.auth.uid);
       allow create: if isAuthenticated() &&
                        request.resource.data.user_id == request.auth.uid;
+      allow update, delete: if isAuthenticated() &&
+                               resource.data.user_id == request.auth.uid;
     }
 
     // Achievements - read-only for all authenticated users
@@ -38,10 +40,12 @@ service cloud.firestore {
 
     // User achievements - users can only access their own
     match /user_achievements/{achievementId} {
-      allow read, write: if isAuthenticated() &&
-                            resource.data.user_id == request.auth.uid;
+      allow read: if isAuthenticated() &&
+                     (resource == null || resource.data.user_id == request.auth.uid);
       allow create: if isAuthenticated() &&
                        request.resource.data.user_id == request.auth.uid;
+      allow update, delete: if isAuthenticated() &&
+                               resource.data.user_id == request.auth.uid;
     }
   }
 }
