@@ -96,7 +96,7 @@ export const MentalLessonContent = ({ route, navigation }: any) => {
 
   const handleContinue = () => {
     setShowSuccessModal(false);
-    navigation.navigate('MainTabs', { screen: 'Mental' });
+    navigation.goBack();
   };
 
   const renderSection = (section: MentalLessonSection, index: number) => {

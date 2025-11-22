@@ -82,7 +82,7 @@ export const PhysicalLessonContent = ({ route, navigation }: any) => {
 
   const handleContinue = () => {
     setShowSuccessModal(false);
-    navigation.navigate('MainTabs', { screen: 'Physical' });
+    navigation.goBack();
   };
 
   const renderSection = (section: PhysicalLessonSection, index: number) => {
