@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
+import { deleteAllUserData } from '../../services/firebaseUserService';
 
 export const ProfileScreenNew = () => {
   const { user, logout } = useAuthStore();
@@ -40,33 +41,53 @@ export const ProfileScreenNew = () => {
     // TODO: Implement settings navigation
   };
 
-  const handleResetDatabase = async () => {
+  const handleRemoveUserAccount = async () => {
     const confirmed = window.confirm(
-      '⚠️ RESET DATABASE\n\n' +
-      'This will delete ALL your data including:\n' +
-      '- Onboarding data\n' +
-      '- Tasks and progress\n' +
-      '- Achievements and streaks\n' +
-      '- User authentication\n\n' +
-      'This action CANNOT be undone!\n\n' +
+      '🗑️ REMOVE USER ACCOUNT\n\n' +
+      'This will completely remove your account and ALL data:\n\n' +
+      '• All progress and XP\n' +
+      '• Tasks and achievements\n' +
+      '• Streaks and statistics\n' +
+      '• Finance, Mental, Physical, Nutrition data\n' +
+      '• Onboarding information\n\n' +
+      'You will need to complete onboarding again.\n\n' +
+      '⚠️ This action CANNOT be undone!\n\n' +
       'Are you absolutely sure?'
     );
 
     if (confirmed) {
       try {
-        console.log('Resetting database...');
+        if (!user?.id) {
+          window.alert('Error: User not found');
+          return;
+        }
+
+        console.log('Removing user account...');
+
+        // 1. Delete all Firestore data
+        await deleteAllUserData(user.id);
+
+        // 2. Clear AsyncStorage (local data)
         await AsyncStorage.clear();
-        console.log('Database cleared, reloading...');
+
+        console.log('Account data removed successfully');
 
         // Show success message
-        window.alert('✅ Database has been reset successfully!\n\nThe app will now reload.');
+        window.alert(
+          '✅ Account Removed\n\n' +
+          'Your account and all data have been removed.\n\n' +
+          'You can now create a new account or login again.'
+        );
 
-        // Logout and reload
+        // 3. Logout and reload (will redirect to login/onboarding)
         await logout();
         window.location.reload();
       } catch (error) {
-        console.error('Error resetting database:', error);
-        window.alert('❌ Error: Failed to reset database. Please try again.');
+        console.error('Error removing account:', error);
+        window.alert(
+          '❌ Error\n\n' +
+          'Failed to remove account. Please try again or contact support.'
+        );
       }
     }
   };
@@ -314,13 +335,13 @@ export const ProfileScreenNew = () => {
           <View style={styles.settingsCard}>
             <TouchableOpacity
               style={styles.settingItem}
-              onPress={handleResetDatabase}
+              onPress={handleRemoveUserAccount}
             >
               <View style={styles.settingLeft}>
                 <View style={[styles.settingIconContainer, { backgroundColor: '#FF4B4B' + '20' }]}>
-                  <Ionicons name="trash-outline" size={20} color="#FF4B4B" />
+                  <Ionicons name="trash-bin-outline" size={20} color="#FF4B4B" />
                 </View>
-                <Text style={[styles.settingText, { color: '#FF4B4B' }]}>Reset Database</Text>
+                <Text style={[styles.settingText, { color: '#FF4B4B', fontWeight: '600' }]}>Remove User Account</Text>
               </View>
               <Ionicons name="warning-outline" size={20} color="#FF4B4B" />
             </TouchableOpacity>

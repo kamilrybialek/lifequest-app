@@ -390,3 +390,71 @@ export const updateUserProfile = async (userId: string, updates: {
     throw error;
   }
 };
+
+/**
+ * Delete all user data from Firestore
+ * This will remove:
+ * - User profile
+ * - User stats (XP, level, streaks)
+ * - All daily tasks
+ * - All progress data
+ *
+ * Note: This does NOT delete the Firebase Auth account - just the Firestore data
+ * After calling this, the user will need to complete onboarding again
+ */
+export const deleteAllUserData = async (userId: string): Promise<void> => {
+  try {
+    console.log(`Deleting all data for user: ${userId}`);
+
+    // Delete user profile
+    const userRef = doc(db, 'users', userId);
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists()) {
+      // Instead of deleting, set onboarded to false to force onboarding
+      await updateDoc(userRef, {
+        onboarded: false,
+        updated_at: serverTimestamp(),
+      });
+      console.log('User profile marked as not onboarded');
+    }
+
+    // Delete user stats
+    const userStatsRef = doc(db, 'user_stats', userId);
+    const statsSnap = await getDoc(userStatsRef);
+    if (statsSnap.exists()) {
+      // Reset stats to initial values
+      await setDoc(userStatsRef, {
+        user_id: userId,
+        total_xp: 0,
+        level: 1,
+        finance_streak: 0,
+        mental_streak: 0,
+        physical_streak: 0,
+        nutrition_streak: 0,
+        last_active_date: null,
+        created_at: serverTimestamp(),
+        updated_at: serverTimestamp(),
+      });
+      console.log('User stats reset');
+    }
+
+    // Delete all daily tasks
+    const tasksRef = collection(db, 'daily_tasks');
+    const tasksQuery = query(tasksRef, where('user_id', '==', userId));
+    const tasksSnapshot = await getDocs(tasksQuery);
+
+    const deletePromises = tasksSnapshot.docs.map(taskDoc => {
+      return updateDoc(doc(db, 'daily_tasks', taskDoc.id), {
+        completed: false,
+        completed_at: null,
+      });
+    });
+    await Promise.all(deletePromises);
+    console.log(`Reset ${tasksSnapshot.size} tasks`);
+
+    console.log('All user data deleted successfully');
+  } catch (error) {
+    console.error('Error deleting user data:', error);
+    throw error;
+  }
+};

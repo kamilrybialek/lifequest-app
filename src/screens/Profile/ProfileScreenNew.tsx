@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
+import { deleteAllUserData } from '../../services/firebaseUserService';
 
 export const ProfileScreenNew = () => {
   const { user, logout } = useAuthStore();
@@ -51,35 +52,60 @@ export const ProfileScreenNew = () => {
     // TODO: Implement settings navigation
   };
 
-  const handleResetDatabase = async () => {
+  const handleRemoveUserAccount = async () => {
     Alert.alert(
-      '⚠️ RESET DATABASE',
-      'This will delete ALL your data including:\n' +
-      '- Onboarding data\n' +
-      '- Tasks and progress\n' +
-      '- Achievements and streaks\n' +
-      '- User authentication\n\n' +
-      'This action CANNOT be undone!\n\n' +
+      '🗑️ REMOVE USER ACCOUNT',
+      'This will completely remove your account and ALL data:\n\n' +
+      '• All progress and XP\n' +
+      '• Tasks and achievements\n' +
+      '• Streaks and statistics\n' +
+      '• Finance, Mental, Physical, Nutrition data\n' +
+      '• Onboarding information\n\n' +
+      'You will need to complete onboarding again.\n\n' +
+      '⚠️ This action CANNOT be undone!\n\n' +
       'Are you absolutely sure?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Reset',
+          text: 'Remove Account',
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('Resetting database...');
+              if (!user?.id) {
+                Alert.alert('Error', 'User not found');
+                return;
+              }
+
+              console.log('Removing user account...');
+
+              // 1. Delete all Firestore data
+              await deleteAllUserData(user.id);
+
+              // 2. Clear AsyncStorage (local data)
               await AsyncStorage.clear();
-              console.log('Database cleared');
+
+              console.log('Account data removed successfully');
 
               Alert.alert(
-                '✅ Success',
-                'Database has been reset successfully!\n\nPlease restart the app.',
-                [{ text: 'OK', onPress: () => logout() }]
+                '✅ Account Removed',
+                'Your account and all data have been removed.\n\nYou can now create a new account or login again.',
+                [
+                  {
+                    text: 'OK',
+                    onPress: () => {
+                      // 3. Logout (will redirect to login/onboarding)
+                      logout();
+                    }
+                  }
+                ]
               );
             } catch (error) {
-              console.error('Error resetting database:', error);
-              Alert.alert('❌ Error', 'Failed to reset database. Please try again.');
+              console.error('Error removing account:', error);
+              Alert.alert(
+                '❌ Error',
+                'Failed to remove account. Please try again or contact support.',
+                [{ text: 'OK' }]
+              );
             }
           }
         }
@@ -330,13 +356,13 @@ export const ProfileScreenNew = () => {
           <View style={styles.settingsCard}>
             <TouchableOpacity
               style={styles.settingItem}
-              onPress={handleResetDatabase}
+              onPress={handleRemoveUserAccount}
             >
               <View style={styles.settingLeft}>
                 <View style={[styles.settingIconContainer, { backgroundColor: '#FF4B4B' + '20' }]}>
-                  <Ionicons name="trash-outline" size={20} color="#FF4B4B" />
+                  <Ionicons name="trash-bin-outline" size={20} color="#FF4B4B" />
                 </View>
-                <Text style={[styles.settingText, { color: '#FF4B4B' }]}>Reset Database</Text>
+                <Text style={[styles.settingText, { color: '#FF4B4B', fontWeight: '600' }]}>Remove User Account</Text>
               </View>
               <Ionicons name="warning-outline" size={20} color="#FF4B4B" />
             </TouchableOpacity>
