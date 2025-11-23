@@ -16,6 +16,7 @@ const FINANCIAL_GOALS_KEY = 'lifequest.db:financial_goals';
 const PARTNER_INFO_KEY = 'lifequest.db:partner_info';
 const HOUSING_INFO_KEY = 'lifequest.db:housing_info';
 const INVESTMENTS_KEY = 'lifequest.db:investments';
+const BUDGET_CATEGORIES_KEY = 'lifequest.db:budget_categories';
 const LESSON_DATA_KEY = 'lifequest.db:lesson_data'; // Data entered during lessons
 
 // Next ID keys
@@ -23,6 +24,7 @@ const NET_WORTH_NEXT_ID = 'lifequest.db:net_worth:next_id';
 const INCOME_NEXT_ID = 'lifequest.db:income_sources:next_id';
 const GOALS_NEXT_ID = 'lifequest.db:financial_goals:next_id';
 const INVESTMENTS_NEXT_ID = 'lifequest.db:investments:next_id';
+const BUDGET_NEXT_ID = 'lifequest.db:budget_categories:next_id';
 
 // =====================
 // TYPES
@@ -132,6 +134,19 @@ export interface Investment {
   monthlyContribution: number;
   startDate: string;
   notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface BudgetCategory {
+  id: number;
+  userId: string;
+  categoryName: string;
+  categoryType: 'housing' | 'transportation' | 'food' | 'debt' | 'savings' | 'insurance' | 'personal' | 'other';
+  plannedAmount: number;
+  spentAmount: number;
+  icon: string;
+  monthYear: string; // Format: 'YYYY-MM'
   createdAt: string;
   updatedAt: string;
 }
@@ -527,6 +542,86 @@ export const updateInvestment = async (id: number, updates: Partial<Investment>)
     };
     await AsyncStorage.setItem(INVESTMENTS_KEY, JSON.stringify(investments));
   }
+};
+
+// =====================
+// BUDGET CATEGORIES
+// =====================
+
+export const addBudgetCategory = async (
+  userId: string,
+  data: {
+    categoryName: string;
+    categoryType: 'housing' | 'transportation' | 'food' | 'debt' | 'savings' | 'insurance' | 'personal' | 'other';
+    plannedAmount: number;
+    icon: string;
+  }
+): Promise<void> => {
+  const categoriesData = await AsyncStorage.getItem(BUDGET_CATEGORIES_KEY);
+  const categories = categoriesData ? JSON.parse(categoriesData) : [];
+  const nextIdData = await AsyncStorage.getItem(BUDGET_NEXT_ID);
+  const nextId = nextIdData ? parseInt(nextIdData) : 1;
+
+  const now = new Date();
+  const monthYear = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  const newCategory: BudgetCategory = {
+    id: nextId,
+    userId,
+    ...data,
+    spentAmount: 0,
+    monthYear,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  categories.push(newCategory);
+  await AsyncStorage.setItem(BUDGET_CATEGORIES_KEY, JSON.stringify(categories));
+  await AsyncStorage.setItem(BUDGET_NEXT_ID, String(nextId + 1));
+
+  // Update total expenses
+  await updateTotalExpenses(userId);
+};
+
+export const getBudgetCategories = async (userId: string, monthYear?: string): Promise<BudgetCategory[]> => {
+  const data = await AsyncStorage.getItem(BUDGET_CATEGORIES_KEY);
+  const categories = data ? JSON.parse(data) : [];
+
+  const now = new Date();
+  const currentMonthYear = monthYear || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  return categories.filter((c: BudgetCategory) => c.userId === userId && c.monthYear === currentMonthYear);
+};
+
+export const updateBudgetCategory = async (id: number, updates: Partial<BudgetCategory>): Promise<void> => {
+  const data = await AsyncStorage.getItem(BUDGET_CATEGORIES_KEY);
+  const categories = data ? JSON.parse(data) : [];
+  const index = categories.findIndex((c: BudgetCategory) => c.id === id);
+
+  if (index !== -1) {
+    categories[index] = {
+      ...categories[index],
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    await AsyncStorage.setItem(BUDGET_CATEGORIES_KEY, JSON.stringify(categories));
+
+    // Update total expenses
+    await updateTotalExpenses(categories[index].userId);
+  }
+};
+
+export const deleteBudgetCategory = async (id: number): Promise<void> => {
+  const data = await AsyncStorage.getItem(BUDGET_CATEGORIES_KEY);
+  const categories = data ? JSON.parse(data) : [];
+  const filtered = categories.filter((c: BudgetCategory) => c.id !== id);
+  await AsyncStorage.setItem(BUDGET_CATEGORIES_KEY, JSON.stringify(filtered));
+};
+
+const updateTotalExpenses = async (userId: string): Promise<void> => {
+  const categories = await getBudgetCategories(userId);
+  const totalExpenses = categories.reduce((sum, c) => sum + c.plannedAmount, 0);
+  await updateFinanceProfile(userId, { monthlyExpenses: totalExpenses });
 };
 
 // =====================

@@ -16,9 +16,19 @@ import { addXP } from '../../database/user.web';
 import { NetWorthForm } from '../../components/finance/NetWorthForm';
 import { IncomeSourceForm } from '../../components/finance/IncomeSourceForm';
 import { FinancialGoalsForm } from '../../components/finance/FinancialGoalsForm';
+import { EmergencyFundForm } from '../../components/finance/EmergencyFundForm';
+import { DebtSnowballForm } from '../../components/finance/DebtSnowballForm';
+import { BudgetManagerForm } from '../../components/finance/BudgetManagerForm';
+import { IncomeBoostForm } from '../../components/finance/IncomeBoostForm';
+import { PartnerAlignmentForm } from '../../components/finance/PartnerAlignmentForm';
+import { HousingCalculatorForm } from '../../components/finance/HousingCalculatorForm';
+import { InsuranceChecklistForm } from '../../components/finance/InsuranceChecklistForm';
+import { InvestmentTrackerForm } from '../../components/finance/InvestmentTrackerForm';
+import { EducationalContent } from '../../components/finance/EducationalContent';
+import { FINANCE_EDUCATION } from '../../data/financeEducation';
 import { saveLessonData, initializeFinanceData } from '../../database/financeIntegrated.web';
 
-type LessonPhase = 'intro' | 'form' | 'complete';
+type LessonPhase = 'intro' | 'education' | 'form' | 'complete';
 
 export const FinanceLessonIntegratedScreen = ({ route, navigation }: any) => {
   const { lessonId, stepId, lessonTitle } = route.params;
@@ -52,6 +62,12 @@ export const FinanceLessonIntegratedScreen = ({ route, navigation }: any) => {
   }
 
   const handleStartLesson = () => {
+    // Check if this lesson has educational content
+    const hasEducation = lessonId in FINANCE_EDUCATION;
+    setPhase(hasEducation ? 'education' : 'form');
+  };
+
+  const handleEducationComplete = () => {
     setPhase('form');
   };
 
@@ -96,28 +112,38 @@ export const FinanceLessonIntegratedScreen = ({ route, navigation }: any) => {
         return <FinancialGoalsForm onComplete={() => handleFormComplete()} />;
 
       case 'EmergencyFund':
-        return (
-          <View style={styles.comingSoonContainer}>
-            <Ionicons name="construct" size={64} color="#4A90E2" />
-            <Text style={styles.comingSoonText}>Emergency Fund Tracker</Text>
-            <Text style={styles.comingSoonSubtext}>Coming soon! For now, complete the lesson.</Text>
-            <TouchableOpacity style={styles.continueButton} onPress={() => handleFormComplete()}>
-              <Text style={styles.continueButtonText}>Continue</Text>
-            </TouchableOpacity>
-          </View>
-        );
+        return <EmergencyFundForm onComplete={(amount) => handleFormComplete({ emergencyFundAmount: amount })} />;
 
       case 'DebtTracker':
-        return (
-          <View style={styles.comingSoonContainer}>
-            <Ionicons name="construct" size={64} color="#FF4B4B" />
-            <Text style={styles.comingSoonText}>Debt Snowball Tracker</Text>
-            <Text style={styles.comingSoonSubtext}>Coming soon! Use the Debt Tracker from Finance Tools.</Text>
-            <TouchableOpacity style={styles.continueButton} onPress={() => handleFormComplete()}>
-              <Text style={styles.continueButtonText}>Continue</Text>
-            </TouchableOpacity>
-          </View>
-        );
+        return <DebtSnowballForm onComplete={() => handleFormComplete()} />;
+
+      case 'BudgetPlanner':
+        return <BudgetManagerForm onComplete={() => handleFormComplete()} />;
+
+      case 'NegotiationGuide':
+      case 'SideHustleMatcher':
+      case 'RaiseCalculator':
+        return <IncomeBoostForm onComplete={() => handleFormComplete()} />;
+
+      case 'JointGoalPlanner':
+      case 'SharedBudget':
+      case 'RedFolder':
+        return <PartnerAlignmentForm onComplete={() => handleFormComplete()} />;
+
+      case 'MortgageCalculator':
+      case 'AffordabilityCalculator':
+      case 'RentVsBuyCalculator':
+      case 'PayoffAccelerator':
+        return <HousingCalculatorForm onComplete={() => handleFormComplete()} />;
+
+      case 'InsuranceReview':
+      case 'CoverageCalculator':
+        return <InsuranceChecklistForm onComplete={() => handleFormComplete()} />;
+
+      case 'InvestmentTracker':
+      case 'RetirementCalculator':
+      case 'AssetAllocation':
+        return <InvestmentTrackerForm onComplete={() => handleFormComplete()} />;
 
       default:
         // No integrated tool - show generic completion
@@ -219,6 +245,38 @@ export const FinanceLessonIntegratedScreen = ({ route, navigation }: any) => {
             </LinearGradient>
           </TouchableOpacity>
         </LinearGradient>
+      </View>
+    );
+  }
+
+  // Education Phase
+  if (phase === 'education') {
+    const educationData = FINANCE_EDUCATION[lessonId as keyof typeof FINANCE_EDUCATION];
+
+    if (!educationData) {
+      // No education content, skip to form
+      setTimeout(() => setPhase('form'), 0);
+      return null;
+    }
+
+    return (
+      <View style={styles.container}>
+        <View style={styles.formHeader}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={28} color={colors.text} />
+          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>{lesson.title}</Text>
+            <Text style={styles.headerSubtitle}>Step {step?.number} - Learn First</Text>
+          </View>
+          <View style={{ width: 28 }} />
+        </View>
+
+        <EducationalContent
+          title={educationData.title}
+          sections={educationData.sections}
+          onContinue={handleEducationComplete}
+        />
       </View>
     );
   }
