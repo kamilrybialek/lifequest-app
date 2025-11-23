@@ -1,659 +1,635 @@
 /**
  * NEW Finance Path Screen - 10 Steps Method (Marcin Iwuć)
- * Duolingo-style learning path with integrated tools
+ * Web-compatible version with simplified UI
  */
 
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
-import { Text } from 'react-native-paper';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
 import { colors } from '../../theme/colors';
-import { typography, shadows } from '../../theme/theme';
-import { spacing } from '../../theme/spacing';
-import { FinanceStep, FinanceLesson, FINANCE_STEPS, INTEGRATED_TOOLS } from '../../types/financeNew';
 import { useAuthStore } from '../../store/authStore';
-import { getCompletedLessons } from '../../database/lessons';
-import { getFinanceProgress } from '../../database/finance';
-import { useFocusEffect } from '@react-navigation/native';
-import { LessonBubble } from '../../components/paths/LessonBubble';
-import { StepHeader } from '../../components/paths/StepHeader';
-import { ContinueJourneyCard } from '../../components/paths/ContinueJourneyCard';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const { width } = Dimensions.get('window');
+interface Step {
+  id: number;
+  title: string;
+  subtitle: string;
+  icon: string;
+  lessons: {
+    id: string;
+    title: string;
+    xp: number;
+  }[];
+}
 
-export const FinancePathNew = ({ navigation, route }: any) => {
-  const [steps, setSteps] = useState<FinanceStep[]>(FINANCE_STEPS);
-  const [expandedSteps, setExpandedSteps] = useState<{ [key: string]: boolean }>({});
-  const [nextLesson, setNextLesson] = useState<any>(null);
+const FINANCE_STEPS: Step[] = [
+  {
+    id: 1,
+    title: 'Financial Awareness',
+    subtitle: 'Know where you stand',
+    icon: '📊',
+    lessons: [
+      { id: 'step1-lesson1', title: 'Assess Your Situation', xp: 50 },
+      { id: 'step1-lesson2', title: 'Track Your Spending', xp: 50 },
+      { id: 'step1-lesson3', title: 'Financial Goals', xp: 50 },
+    ],
+  },
+  {
+    id: 2,
+    title: 'Emergency Fund',
+    subtitle: 'Build your safety net',
+    icon: '🛡️',
+    lessons: [
+      { id: 'step2-lesson1', title: 'Why Emergency Fund?', xp: 50 },
+      { id: 'step2-lesson2', title: 'How Much to Save', xp: 50 },
+      { id: 'step2-lesson3', title: 'Where to Keep It', xp: 50 },
+    ],
+  },
+  {
+    id: 3,
+    title: 'Debt Management',
+    subtitle: 'Take control of debt',
+    icon: '💳',
+    lessons: [
+      { id: 'step3-lesson1', title: 'Types of Debt', xp: 50 },
+      { id: 'step3-lesson2', title: 'Debt Snowball Method', xp: 50 },
+      { id: 'step3-lesson3', title: 'Debt Avalanche Method', xp: 50 },
+    ],
+  },
+  {
+    id: 4,
+    title: 'Budgeting Mastery',
+    subtitle: 'Control your money',
+    icon: '📝',
+    lessons: [
+      { id: 'step4-lesson1', title: '50/30/20 Rule', xp: 50 },
+      { id: 'step4-lesson2', title: 'Zero-Based Budget', xp: 50 },
+      { id: 'step4-lesson3', title: 'Budget Tracking', xp: 50 },
+    ],
+  },
+  {
+    id: 5,
+    title: 'Saving Strategies',
+    subtitle: 'Build wealth systematically',
+    icon: '💰',
+    lessons: [
+      { id: 'step5-lesson1', title: 'Pay Yourself First', xp: 50 },
+      { id: 'step5-lesson2', title: 'Automate Savings', xp: 50 },
+      { id: 'step5-lesson3', title: 'High-Yield Accounts', xp: 50 },
+    ],
+  },
+  {
+    id: 6,
+    title: 'Investment Basics',
+    subtitle: 'Grow your money',
+    icon: '📈',
+    lessons: [
+      { id: 'step6-lesson1', title: 'Why Invest?', xp: 50 },
+      { id: 'step6-lesson2', title: 'Types of Investments', xp: 50 },
+      { id: 'step6-lesson3', title: 'Risk vs Return', xp: 50 },
+    ],
+  },
+  {
+    id: 7,
+    title: 'Retirement Planning',
+    subtitle: 'Secure your future',
+    icon: '🏖️',
+    lessons: [
+      { id: 'step7-lesson1', title: 'Retirement Accounts', xp: 50 },
+      { id: 'step7-lesson2', title: 'How Much to Save', xp: 50 },
+      { id: 'step7-lesson3', title: 'Compound Interest', xp: 50 },
+    ],
+  },
+  {
+    id: 8,
+    title: 'Tax Optimization',
+    subtitle: 'Keep more of your money',
+    icon: '🧾',
+    lessons: [
+      { id: 'step8-lesson1', title: 'Tax Basics', xp: 50 },
+      { id: 'step8-lesson2', title: 'Deductions & Credits', xp: 50 },
+      { id: 'step8-lesson3', title: 'Tax-Advantaged Accounts', xp: 50 },
+    ],
+  },
+  {
+    id: 9,
+    title: 'Wealth Protection',
+    subtitle: 'Safeguard your assets',
+    icon: '🔒',
+    lessons: [
+      { id: 'step9-lesson1', title: 'Insurance Basics', xp: 50 },
+      { id: 'step9-lesson2', title: 'Estate Planning', xp: 50 },
+      { id: 'step9-lesson3', title: 'Asset Protection', xp: 50 },
+    ],
+  },
+  {
+    id: 10,
+    title: 'Financial Freedom',
+    subtitle: 'Live on your terms',
+    icon: '🎯',
+    lessons: [
+      { id: 'step10-lesson1', title: 'Passive Income', xp: 50 },
+      { id: 'step10-lesson2', title: 'Financial Independence', xp: 50 },
+      { id: 'step10-lesson3', title: 'Your Action Plan', xp: 50 },
+    ],
+  },
+];
+
+export const FinancePathNew = ({ navigation }: any) => {
   const { user } = useAuthStore();
+  const [completedLessons, setCompletedLessons] = useState<string[]>([]);
+  const [currentLesson, setCurrentLesson] = useState<string>('step1-lesson1');
+  const [expandedSteps, setExpandedSteps] = useState<number[]>([1]);
 
   const loadProgress = async () => {
     if (!user?.id) return;
 
     try {
-      console.log('Loading finance path progress...');
-      const completedLessonIds = await getCompletedLessons(user.id);
-      console.log('Completed lessons:', completedLessonIds);
-      const financeProgress = await getFinanceProgress(user.id);
+      const progressKey = `finance_progress_${user.id}`;
+      const progressData = await AsyncStorage.getItem(progressKey);
 
-      let currentStep = (financeProgress as any)?.current_step || 1;
-      let foundNextLesson: any = null;
-
-      // Update steps with progress
-      const updatedSteps = FINANCE_STEPS.map((step) => {
-        let stepStatus: 'completed' | 'current' | 'locked';
-
-        if (step.number < currentStep) {
-          stepStatus = 'completed';
-        } else if (step.number === currentStep) {
-          stepStatus = 'current';
-        } else {
-          stepStatus = 'locked';
-        }
-
-        const updatedLessons = step.lessons.map((lesson, lessonIndex) => {
-          if (stepStatus === 'locked') {
-            return { ...lesson, status: 'locked' as const };
-          }
-
-          if (completedLessonIds.includes(lesson.id)) {
-            return { ...lesson, status: 'completed' as const };
-          }
-
-          const allPreviousCompleted = step.lessons
-            .slice(0, lessonIndex)
-            .every((prevLesson) => completedLessonIds.includes(prevLesson.id));
-
-          if (allPreviousCompleted && stepStatus === 'current') {
-            if (!foundNextLesson) {
-              foundNextLesson = {
-                lesson,
-                step,
-                stepIndex: step.number,
-                lessonIndex,
-              };
-            }
-            return { ...lesson, status: 'current' as const };
-          }
-
-          return { ...lesson, status: 'locked' as const };
-        });
-
-        return { ...step, lessons: updatedLessons, status: stepStatus };
-      });
-
-      setSteps(updatedSteps);
-      setNextLesson(foundNextLesson);
-
-      // Auto-expand current step
-      const newExpandedState: { [key: string]: boolean } = {};
-      updatedSteps.forEach((step) => {
-        newExpandedState[step.id] = step.status === 'current';
-      });
-      setExpandedSteps(newExpandedState);
-
-      console.log('✅ Finance progress loaded');
+      if (progressData) {
+        const progress = JSON.parse(progressData);
+        setCompletedLessons(progress.completedLessons || []);
+        setCurrentLesson(progress.currentLesson || 'step1-lesson1');
+      }
     } catch (error) {
-      console.error('Error loading progress:', error);
+      console.error('Error loading finance progress:', error);
     }
   };
 
-  useFocusEffect(
-    React.useCallback(() => {
-      loadProgress();
-    }, [user?.id])
-  );
+  useEffect(() => {
+    loadProgress();
+  }, [user?.id]);
 
-  const toggleStepExpanded = (stepId: string) => {
-    setExpandedSteps((prev) => ({
-      ...prev,
-      [stepId]: !prev[stepId],
-    }));
+  useEffect(() => {
+    // Auto-expand the current step
+    if (currentLesson) {
+      const stepId = parseInt(currentLesson.split('-')[0].replace('step', ''));
+      if (!expandedSteps.includes(stepId)) {
+        setExpandedSteps([...expandedSteps, stepId]);
+      }
+    }
+  }, [currentLesson]);
+
+  const getLessonStatus = (lessonId: string): 'locked' | 'available' | 'current' | 'completed' => {
+    if (completedLessons.includes(lessonId)) return 'completed';
+    if (currentLesson === lessonId) return 'current';
+
+    // Check if this is the next available lesson
+    const allLessons = FINANCE_STEPS.flatMap(step => step.lessons);
+    const lessonIndex = allLessons.findIndex(l => l.id === lessonId);
+    const completedCount = completedLessons.length;
+
+    if (lessonIndex <= completedCount) return 'available';
+    return 'locked';
   };
 
-  const handleLessonPress = (step: FinanceStep, lesson: FinanceLesson) => {
-    if (lesson.status === 'locked') return;
-
-    navigation.navigate('FinanceLessonContent', {
-      lessonId: lesson.id,
-      stepId: step.id,
-      lessonTitle: lesson.title,
-    });
+  const toggleStep = (stepId: number) => {
+    if (expandedSteps.includes(stepId)) {
+      setExpandedSteps(expandedSteps.filter(id => id !== stepId));
+    } else {
+      setExpandedSteps([...expandedSteps, stepId]);
+    }
   };
 
-  const handleToolPress = (toolScreen: string) => {
-    navigation.navigate(toolScreen);
+  const handleLessonPress = (lessonId: string) => {
+    const status = getLessonStatus(lessonId);
+    if (status === 'locked') return;
+
+    navigation.navigate('FinanceLessonContent', { lessonId });
+  };
+
+  const getStepProgress = (step: Step) => {
+    const total = step.lessons.length;
+    const completed = step.lessons.filter(l => completedLessons.includes(l.id)).length;
+    return { completed, total, percentage: (completed / total) * 100 };
   };
 
   return (
-    <View style={styles.container}>
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>💰 Your Financial Freedom Journey</Text>
-          <Text style={styles.headerSubtitle}>10 Steps Method - International Edition</Text>
-          <Text style={styles.headerDescription}>
-            Based on proven principles from Marcin Iwuć and Dave Ramsey
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <Text style={styles.backIcon}>←</Text>
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Finance Path</Text>
+        <View style={{ width: 40 }} />
+      </View>
+
+      <ScrollView style={styles.content}>
+        <View style={styles.introCard}>
+          <Text style={styles.introIcon}>💰</Text>
+          <Text style={styles.introTitle}>Your Financial Journey</Text>
+          <Text style={styles.introText}>
+            Master the 10-step method to financial freedom. Based on proven principles from Dave Ramsey and Marcin Iwuć.
           </Text>
         </View>
 
-        {/* Next Lesson Card - Duolingo Style */}
-        {nextLesson && (
-          <ContinueJourneyCard
-            lesson={{
-              title: nextLesson.lesson.title,
-              stepTitle: nextLesson.step.title,
-              stepNumber: nextLesson.stepIndex,
-              icon: nextLesson.step.icon,
-              xp: nextLesson.lesson.xp,
-              duration: nextLesson.lesson.estimatedTime,
-            }}
-            color={colors.finance}
-            onPress={() => handleLessonPress(nextLesson.step, nextLesson.lesson)}
-          />
-        )}
-
-        {/* Integrated Tools Section */}
-        <View style={styles.toolsSection}>
-          <Text style={styles.sectionTitle}>🔧 My Finance Tools</Text>
-          <Text style={styles.sectionSubtitle}>
-            Integrated tools that save your data and track progress
-          </Text>
-
-          <View style={styles.toolsGrid}>
-            {INTEGRATED_TOOLS.slice(0, 6).map((tool) => (
-              <TouchableOpacity
-                key={tool.id}
-                style={styles.toolCard}
-                onPress={() => handleToolPress(tool.screen)}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.toolIconContainer, { backgroundColor: tool.color + '20' }]}>
-                  <Text style={styles.toolIcon}>{tool.icon}</Text>
-                </View>
-                <Text style={styles.toolTitle}>{tool.title}</Text>
-                <Text style={styles.toolDescription}>{tool.description}</Text>
-                <View style={styles.toolArrow}>
-                  <Ionicons name="chevron-forward" size={20} color={tool.color} />
-                </View>
-              </TouchableOpacity>
-            ))}
+        {/* Progress Overview */}
+        <View style={styles.progressCard}>
+          <Text style={styles.progressLabel}>Overall Progress</Text>
+          <View style={styles.progressBar}>
+            <View
+              style={[
+                styles.progressFill,
+                { width: `${(completedLessons.length / 30) * 100}%` }
+              ]}
+            />
           </View>
+          <Text style={styles.progressText}>
+            {completedLessons.length} / 30 lessons completed
+          </Text>
         </View>
 
-        {/* All Steps Path */}
-        <View style={styles.pathDivider}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>ALL 10 STEPS</Text>
-          <View style={styles.dividerLine} />
-        </View>
+        {/* Steps with Lessons */}
+        {FINANCE_STEPS.map((step) => {
+          const progress = getStepProgress(step);
+          const isExpanded = expandedSteps.includes(step.id);
+          const isCompleted = progress.completed === progress.total;
 
-        {/* Steps List */}
-        <View style={styles.stepsPath}>
-          {steps.map((step, stepIndex) => {
-            const completedCount = step.lessons.filter(l => l.status === 'completed').length;
-            const totalCount = step.lessons.length;
-            const progress = (completedCount / totalCount) * 100;
-
-            return (
-              <View key={step.id}>
-                {/* Step Header - Collapsible */}
-                <StepHeader
-                  stepNumber={step.number}
-                  title={step.title}
-                  description={step.description}
-                  icon={step.icon}
-                  color={step.color || colors.finance}
-                  progress={progress}
-                  totalLessons={totalCount}
-                  completedLessons={completedCount}
-                  status={step.status}
-                  isExpanded={expandedSteps[step.id]}
-                  onToggle={() => step.status !== 'locked' && toggleStepExpanded(step.id)}
-                />
-
-                {/* Lessons - Only if expanded */}
-                {step.status !== 'locked' && expandedSteps[step.id] && (
-                  <View style={styles.lessonsContainer}>
-                    {step.lessons.map((lesson, lessonIndex) => {
-                      const position = lessonIndex % 3 === 0 ? 'left' : lessonIndex % 3 === 1 ? 'center' : 'right';
-                      return (
-                        <LessonBubble
-                          key={lesson.id}
-                          lesson={{
-                            id: lesson.id,
-                            title: lesson.title,
-                            icon: lesson.icon,
-                            xp: lesson.xp,
-                            duration: lesson.estimatedTime,
-                            status: lesson.status,
-                          }}
-                          color={step.color || colors.finance}
-                          onPress={() => handleLessonPress(step, lesson)}
-                          position={position}
-                        />
-                      );
-                    })}
+          return (
+            <View key={step.id} style={styles.stepContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.stepHeader,
+                  isCompleted && styles.stepHeaderCompleted
+                ]}
+                onPress={() => toggleStep(step.id)}
+              >
+                <View style={styles.stepHeaderLeft}>
+                  <View style={[
+                    styles.stepIconContainer,
+                    isCompleted && styles.stepIconCompleted
+                  ]}>
+                    <Text style={styles.stepIcon}>{step.icon}</Text>
                   </View>
-                )}
+                  <View style={styles.stepInfo}>
+                    <Text style={styles.stepTitle}>{step.title}</Text>
+                    <Text style={styles.stepSubtitle}>{step.subtitle}</Text>
+                    <Text style={styles.stepProgress}>
+                      {progress.completed}/{progress.total} lessons
+                    </Text>
+                  </View>
+                </View>
+                <Text style={styles.expandIcon}>{isExpanded ? '▼' : '▶'}</Text>
+              </TouchableOpacity>
 
-                {/* Step Connector */}
-                {stepIndex < steps.length - 1 && (
-                  <View style={styles.stepConnector} />
-                )}
-              </View>
-            );
-          })}
+              {isExpanded && (
+                <View style={styles.lessonsContainer}>
+                  {step.lessons.map((lesson, index) => {
+                    const status = getLessonStatus(lesson.id);
+
+                    return (
+                      <TouchableOpacity
+                        key={lesson.id}
+                        style={[
+                          styles.lessonCard,
+                          status === 'locked' && styles.lessonLocked,
+                          status === 'current' && styles.lessonCurrent,
+                          status === 'completed' && styles.lessonCompleted,
+                        ]}
+                        onPress={() => handleLessonPress(lesson.id)}
+                        disabled={status === 'locked'}
+                      >
+                        <View style={styles.lessonLeft}>
+                          <View style={[
+                            styles.lessonNumber,
+                            status === 'completed' && styles.lessonNumberCompleted,
+                            status === 'current' && styles.lessonNumberCurrent,
+                          ]}>
+                            {status === 'completed' ? (
+                              <Text style={styles.lessonCheckmark}>✓</Text>
+                            ) : (
+                              <Text style={styles.lessonNumberText}>{index + 1}</Text>
+                            )}
+                          </View>
+                          <View style={styles.lessonInfo}>
+                            <Text style={[
+                              styles.lessonTitle,
+                              status === 'locked' && styles.lessonTitleLocked
+                            ]}>
+                              {lesson.title}
+                            </Text>
+                            <Text style={styles.lessonXP}>+{lesson.xp} XP</Text>
+                          </View>
+                        </View>
+                        {status === 'locked' && (
+                          <Text style={styles.lockIcon}>🔒</Text>
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+            </View>
+          );
+        })}
+
+        {/* Tools Section */}
+        <View style={styles.toolsSection}>
+          <Text style={styles.toolsTitle}>📱 Financial Tools</Text>
+          <TouchableOpacity
+            style={styles.toolCard}
+            onPress={() => navigation.navigate('FinanceTools')}
+          >
+            <Text style={styles.toolIcon}>🧮</Text>
+            <View style={styles.toolInfo}>
+              <Text style={styles.toolName}>Budget Calculator</Text>
+              <Text style={styles.toolDescription}>Plan your monthly budget</Text>
+            </View>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.toolCard}
+            onPress={() => navigation.navigate('FinanceTools')}
+          >
+            <Text style={styles.toolIcon}>💳</Text>
+            <View style={styles.toolInfo}>
+              <Text style={styles.toolName}>Debt Payoff Calculator</Text>
+              <Text style={styles.toolDescription}>Plan your debt elimination</Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
-        <View style={styles.bottomSpacer} />
+        <View style={{ height: 40 }} />
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
-
-// ============================================
-// STYLES
-// ============================================
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.backgroundGray,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    paddingBottom: 40,
-  },
-
-  // Header
-  header: {
-    padding: 20,
     backgroundColor: colors.background,
+  },
+  header: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  backIcon: {
+    fontSize: 24,
+    color: colors.text,
   },
   headerTitle: {
-    ...typography.heading,
-    fontSize: 26,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  headerSubtitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
-    color: colors.finance,
-    marginBottom: 4,
+    color: colors.text,
   },
-  headerDescription: {
-    ...typography.caption,
-    textAlign: 'center',
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
   },
-
-  // Sections
-  sectionTitle: {
-    fontSize: 20,
+  introCard: {
+    backgroundColor: '#FFFFFF',
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginTop: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  introIcon: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  introTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: 8,
   },
-  sectionSubtitle: {
+  introText: {
     fontSize: 14,
-    color: colors.textSecondary,
+    color: colors.textLight,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  progressCard: {
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  progressLabel: {
+    fontSize: 14,
+    color: colors.textLight,
+    marginBottom: 8,
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#10B981',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 12,
+    color: colors.textLight,
+  },
+  stepContainer: {
     marginBottom: 16,
   },
-
-  // Next Lesson Card
-  nextLessonSection: {
-    padding: 20,
-    backgroundColor: colors.background,
-    marginTop: 8,
-  },
-  nextLessonCard: {
-    backgroundColor: colors.finance + '10',
-    borderRadius: 16,
-    padding: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: colors.finance,
-    ...shadows.medium,
-  },
-  nextLessonContent: {
-    flex: 1,
-  },
-  nextLessonBadge: {
-    backgroundColor: colors.finance,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    alignSelf: 'flex-start',
-    marginBottom: 12,
-  },
-  nextLessonBadgeText: {
-    color: '#FFFFFF',
-    fontSize: 11,
-    fontWeight: '800',
-    letterSpacing: 1,
-  },
-  nextLessonStepTitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 4,
-    fontWeight: '600',
-  },
-  nextLessonName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  nextLessonMeta: {
-    flexDirection: 'row',
-  },
-  nextLessonMetaText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  nextLessonButton: {
-    marginLeft: 16,
-  },
-
-  // Tools Section
-  toolsSection: {
-    padding: 20,
-    backgroundColor: colors.background,
-    marginTop: 8,
-  },
-  toolsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  toolCard: {
-    backgroundColor: colors.backgroundGray,
-    width: (width - 52) / 2,
-    padding: 16,
-    borderRadius: 12,
-    position: 'relative',
-  },
-  toolIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  toolIcon: {
-    fontSize: 24,
-  },
-  toolTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  toolDescription: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginBottom: 8,
-  },
-  toolArrow: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
-  },
-
-  // Path Divider
-  pathDivider: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginVertical: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: colors.border,
-  },
-  dividerText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: colors.textSecondary,
-    marginHorizontal: 12,
-  },
-
-  // Steps Path
-  stepsPath: {
-    padding: 20,
-  },
-
-  // Step Header
   stepHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 18,
-    borderRadius: 16,
-    marginBottom: 16,
-    ...shadows.small,
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  stepNumberCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+  stepHeaderCompleted: {
+    backgroundColor: '#F0FDF4',
+    borderWidth: 1,
+    borderColor: '#10B981',
+  },
+  stepHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  stepIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 12,
   },
-  stepNumber: {
+  stepIconCompleted: {
+    backgroundColor: '#10B981',
+  },
+  stepIcon: {
     fontSize: 24,
-    fontWeight: '800',
-    color: '#FFFFFF',
   },
   stepInfo: {
     flex: 1,
   },
   stepTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
     color: colors.text,
-    marginBottom: 4,
-  },
-  stepTitleLocked: {
-    color: colors.textLight,
+    marginBottom: 2,
   },
   stepSubtitle: {
     fontSize: 13,
-    fontStyle: 'italic',
-    color: colors.textSecondary,
+    color: colors.textLight,
     marginBottom: 4,
   },
-  stepDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 8,
-  },
   stepProgress: {
-    fontSize: 12,
+    fontSize: 11,
+    color: '#10B981',
     fontWeight: '600',
-    color: colors.finance,
   },
-
-  // Lessons
+  expandIcon: {
+    fontSize: 16,
+    color: colors.textLight,
+    marginLeft: 8,
+  },
   lessonsContainer: {
-    marginLeft: 28,
-    marginBottom: 16,
+    marginTop: 8,
+    paddingLeft: 12,
   },
   lessonCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background,
-    padding: 16,
-    borderRadius: 16,
-    ...shadows.small,
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  lessonCardCompleted: {
-    opacity: 0.7,
-  },
-  lessonCardLocked: {
+  lessonLocked: {
     opacity: 0.5,
   },
-  lessonIconCircle: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    borderWidth: 3,
+  lessonCurrent: {
+    borderColor: '#10B981',
+    borderWidth: 2,
+    backgroundColor: '#F0FDF4',
+  },
+  lessonCompleted: {
+    backgroundColor: '#F9FAFB',
+  },
+  lessonLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  lessonNumber: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
-    backgroundColor: colors.background,
+    marginRight: 12,
   },
-  lessonTypeIcon: {
-    fontSize: 26,
+  lessonNumberCompleted: {
+    backgroundColor: '#10B981',
   },
-  lessonContent: {
+  lessonNumberCurrent: {
+    backgroundColor: '#10B981',
+  },
+  lessonNumberText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  lessonCheckmark: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+  },
+  lessonInfo: {
     flex: 1,
   },
   lessonTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 14,
+    fontWeight: '600',
     color: colors.text,
-    marginBottom: 4,
+    marginBottom: 2,
   },
   lessonTitleLocked: {
     color: colors.textLight,
   },
-  lessonDescription: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginBottom: 8,
+  lessonXP: {
+    fontSize: 11,
+    color: '#10B981',
+    fontWeight: '600',
   },
-  lessonMeta: {
+  lockIcon: {
+    fontSize: 16,
+    marginLeft: 8,
+  },
+  toolsSection: {
+    marginTop: 24,
+    marginBottom: 24,
+  },
+  toolsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 12,
+  },
+  toolCard: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  lessonMetaText: {
+  toolIcon: {
+    fontSize: 32,
+    marginRight: 12,
+  },
+  toolInfo: {
+    flex: 1,
+  },
+  toolName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 2,
+  },
+  toolDescription: {
     fontSize: 12,
     color: colors.textLight,
-    marginRight: 8,
-  },
-  startButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 12,
-    marginLeft: 12,
-  },
-  startButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '800',
-  },
-
-  // Connectors
-  lessonConnector: {
-    width: 3,
-    height: 20,
-    backgroundColor: colors.border,
-    marginLeft: 26,
-    marginVertical: 4,
-  },
-  stepConnector: {
-    width: 3,
-    height: 32,
-    backgroundColor: colors.border,
-    marginLeft: 28,
-    marginVertical: 8,
-  },
-
-  bottomSpacer: {
-    height: 40,
-  },
-
-  // Loading
-  centerContent: {
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: colors.textSecondary,
-  },
-
-  // Locked Overlay
-  lockedOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    zIndex: 999,
-  },
-  lockedGradient: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 32,
-  },
-  lockedContent: {
-    alignItems: 'center',
-    maxWidth: 400,
-  },
-  lockIconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 32,
-  },
-  lockedTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  lockedDescription: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 24,
-    opacity: 0.9,
-  },
-  lockedBullets: {
-    fontSize: 15,
-    color: '#FFFFFF',
-    textAlign: 'left',
-    lineHeight: 28,
-    marginBottom: 40,
-    opacity: 0.95,
-  },
-  unlockButton: {
-    borderRadius: 16,
-    overflow: 'hidden',
-    ...shadows.medium,
-  },
-  unlockButtonGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-    paddingVertical: 18,
-    gap: 12,
-  },
-  unlockButtonIcon: {
-    marginRight: 4,
-  },
-  unlockButtonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    letterSpacing: 0.5,
   },
 });
