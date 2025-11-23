@@ -3,10 +3,12 @@ export type Pillar = 'finance' | 'mental' | 'physical' | 'nutrition';
 export interface User {
   id: string; // Changed from number to string for Firebase UID compatibility
   email: string;
+  firstName?: string;
   age?: number;
   weight?: number;
   height?: number;
   gender?: 'male' | 'female' | 'other';
+  currency?: 'USD' | 'EUR' | 'PLN' | 'GBP' | 'JPY' | 'CNY'; // User's preferred currency
   financialStatus?: 'debt' | 'paycheck' | 'stable' | 'saving' | 'investing';
   activityLevel?: 'sedentary' | 'light' | 'moderate' | 'active';
   sleepQuality?: number; // 1-5
