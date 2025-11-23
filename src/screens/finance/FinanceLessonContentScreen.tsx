@@ -163,7 +163,26 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
       }
     }
 
-    setPhase('complete');
+    // Check if user selected "do it now" option
+    const shouldNavigateToTool = typeof answer === 'string' &&
+      (answer.toLowerCase().includes('today') ||
+       answer.toLowerCase().includes('teraz') ||
+       answer.toLowerCase().includes('dzisiaj'));
+
+    if (shouldNavigateToTool && lessonContent.navigateToTool) {
+      // Navigate directly to the tool
+      console.log('User chose to do it now, navigating to tool:', lessonContent.navigateToTool);
+      navigation.navigate('FinanceLessonIntegrated', {
+        lessonId: lessonId,
+        stepId: stepId,
+        lessonTitle: lessonTitle,
+        toolOverride: lessonContent.navigateToTool,
+      });
+    } else {
+      // User chose other option - go back to journey
+      console.log('User chose other option, returning to journey');
+      navigation.navigate('FinancePathNew');
+    }
   };
 
   const handleComplete = () => {
