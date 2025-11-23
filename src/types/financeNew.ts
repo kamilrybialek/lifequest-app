@@ -170,7 +170,7 @@ export const FINANCE_STEPS: FinanceStep[] = [
         description: 'Learn what net worth is and why it matters',
         type: 'education',
         status: 'current',
-        xp: 15,
+        xp: 50,
         estimatedTime: 8,
       },
       {
