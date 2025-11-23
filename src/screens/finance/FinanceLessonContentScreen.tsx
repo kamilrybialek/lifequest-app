@@ -166,9 +166,21 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
   };
 
   const handleComplete = () => {
-    console.log('Lesson completed, navigating back');
-    // Navigate back to main finance path
-    navigation.goBack();
+    console.log('Lesson completed');
+
+    // Check if this lesson should navigate to an integrated tool
+    if (lessonContent.navigateToTool) {
+      console.log('Navigating to integrated tool:', lessonContent.navigateToTool);
+      navigation.navigate('FinanceLessonIntegrated', {
+        lessonId: lessonId,
+        stepId: stepId,
+        lessonTitle: lessonTitle,
+        toolOverride: lessonContent.navigateToTool, // Pass the tool to use
+      });
+    } else {
+      // Navigate back to main finance path
+      navigation.goBack();
+    }
   };
 
   // Calculate total XP available

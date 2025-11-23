@@ -328,6 +328,7 @@ export const LESSON_CONTENTS: { [key: string]: LessonContent | OldLessonContent 
         'I\'ll do it this week',
       ],
     },
+    navigateToTool: 'NetWorthCalculator',
   },
 
   // ============================================

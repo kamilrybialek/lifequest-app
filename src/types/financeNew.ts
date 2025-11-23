@@ -172,7 +172,6 @@ export const FINANCE_STEPS: FinanceStep[] = [
         status: 'current',
         xp: 15,
         estimatedTime: 8,
-        integratedTool: 'NetWorthCalculator',
       },
       {
         id: 'step1-lesson2',

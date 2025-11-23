@@ -21,7 +21,7 @@ import { saveLessonData, initializeFinanceData } from '../../database/financeInt
 type LessonPhase = 'intro' | 'form' | 'complete';
 
 export const FinanceLessonIntegratedScreen = ({ route, navigation }: any) => {
-  const { lessonId, stepId, lessonTitle } = route.params;
+  const { lessonId, stepId, lessonTitle, toolOverride } = route.params;
   const { user } = useAuthStore();
 
   const [phase, setPhase] = useState<LessonPhase>('intro');
@@ -30,6 +30,9 @@ export const FinanceLessonIntegratedScreen = ({ route, navigation }: any) => {
   // Find lesson details
   const step = FINANCE_STEPS.find(s => s.id === stepId);
   const lesson = step?.lessons.find(l => l.id === lessonId);
+
+  // Use toolOverride if provided (for lessons coming from FinanceLessonContent), otherwise use lesson.integratedTool
+  const toolToUse = toolOverride || lesson?.integratedTool;
 
   useEffect(() => {
     if (user?.id) {
@@ -61,7 +64,7 @@ export const FinanceLessonIntegratedScreen = ({ route, navigation }: any) => {
     try {
       // Save lesson data
       if (data) {
-        await saveLessonData(user.id, lessonId, lesson.integratedTool || 'generic', data);
+        await saveLessonData(user.id, lessonId, toolToUse || 'generic', data);
         setCompletedData(data);
       }
 
@@ -84,7 +87,7 @@ export const FinanceLessonIntegratedScreen = ({ route, navigation }: any) => {
 
   // Render appropriate form based on integratedTool
   const renderForm = () => {
-    switch (lesson.integratedTool) {
+    switch (toolToUse) {
       case 'NetWorthCalculator':
         return <NetWorthForm onComplete={(netWorth) => handleFormComplete({ netWorth })} />;
 
@@ -199,7 +202,7 @@ export const FinanceLessonIntegratedScreen = ({ route, navigation }: any) => {
               </View>
             </View>
 
-            {lesson.integratedTool && (
+            {toolToUse && (
               <View style={styles.toolBadge}>
                 <Ionicons name="construct" size={18} color="#4A90E2" />
                 <Text style={styles.toolBadgeText}>Interactive Tool Included</Text>
