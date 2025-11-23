@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../theme/colors';
 import { typography, shadows } from '../../theme/theme';
 import { getLessonContent, LessonSection, QuizQuestion, ContentBlock } from '../../data/lessonContent';
@@ -191,55 +192,10 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
     : 0; // Old lessons don't have quizzes
 
   // ============================================
-  // RENDER INTRO PHASE
-  // ============================================
+  // Skip intro phase - go straight to content
   if (phase === 'intro') {
-    return (
-      <View style={styles.container}>
-        <ScrollView contentContainerStyle={styles.introContainer}>
-          <View style={styles.introHeader}>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => navigation.goBack()}
-            >
-              <Ionicons name="close" size={28} color={colors.text} />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.introContent}>
-            <Text style={styles.introTitle}>{lessonTitle}</Text>
-
-            <View style={styles.lessonStats}>
-              <View style={styles.statItem}>
-                <Ionicons name="time-outline" size={24} color={colors.finance} />
-                <Text style={styles.statText}>
-                  {isNewStructure ? contentBlocks.length : lessonContent.sections.length} min
-                </Text>
-              </View>
-              <View style={styles.statItem}>
-                <Ionicons name="star-outline" size={24} color={colors.finance} />
-                <Text style={styles.statText}>
-                  +{totalXP} XP
-                </Text>
-              </View>
-            </View>
-
-            <Text style={styles.introDescription}>
-              Read through the lesson, answer quiz questions, and complete the action step.
-            </Text>
-
-            <TouchableOpacity
-              style={styles.startButton}
-              onPress={handleStartLesson}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.startButtonText}>START LESSON</Text>
-              <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </View>
-    );
+    handleStartLesson();
+    return null;
   }
 
   // ============================================
@@ -257,9 +213,14 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
 
       return (
         <View style={styles.container}>
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Ionicons name="close" size={28} color={colors.text} />
+          <LinearGradient
+            colors={['#4A90E2', '#5FA3E8']}
+            style={styles.headerGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
+              <Ionicons name="close" size={28} color="#FFFFFF" />
             </TouchableOpacity>
             <View style={styles.progressBarContainer}>
               <View
@@ -271,7 +232,10 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
                 ]}
               />
             </View>
-          </View>
+            <Text style={styles.progressText}>
+              {contentIndex + 1} / {totalBlocks}
+            </Text>
+          </LinearGradient>
 
           {isQuizBlock && quiz ? (
             // Render Quiz
@@ -639,20 +603,42 @@ const ActionQuestionRenderer: React.FC<{
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#F5F8FA',
   },
 
-  // Intro Phase
-  introContainer: {
-    flex: 1,
-    padding: 20,
-  },
-  introHeader: {
-    paddingTop: 50,
-    alignItems: 'flex-end',
+  // Header with Gradient
+  headerGradient: {
+    paddingTop: 60,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
   },
   closeButton: {
-    padding: 10,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  progressBarContainer: {
+    flex: 1,
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 4,
+  },
+  progressText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    minWidth: 50,
+    textAlign: 'right',
   },
   introContent: {
     flex: 1,
