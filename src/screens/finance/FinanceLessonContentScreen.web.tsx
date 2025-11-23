@@ -1,27 +1,33 @@
 /**
- * Finance Lesson Content Screen - Web Version
- * Displays lesson content with quizzes and action questions
+ * Finance Lesson Content Screen - Duolingo Style
+ * Displays lesson content, quiz, and action question
  */
 
 import React, { useState } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
-  TextInput,
+  Dimensions,
+  Alert,
 } from 'react-native';
+import { Text } from 'react-native-paper';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../theme/colors';
-import { getLessonContent, ContentBlock } from '../../data/lessonContent';
+import { typography, shadows } from '../../theme/theme';
+import { getLessonContent, LessonSection, QuizQuestion, ContentBlock } from '../../data/lessonContent';
 import { useAuthStore } from '../../store/authStore';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { saveLessonProgress } from '../../database/lessons';
+import { addXP } from '../../database/user';
+
+const { width } = Dimensions.get('window');
 
 type ScreenPhase = 'intro' | 'content' | 'action' | 'complete';
 
 export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
-  const { lessonId } = route.params;
+  const { lessonId, stepId, lessonTitle } = route.params;
   const { user } = useAuthStore();
 
   const lessonContent = getLessonContent(lessonId);
@@ -30,42 +36,60 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
   const [contentIndex, setContentIndex] = useState(0);
   const [quizAnswers, setQuizAnswers] = useState<{ [key: string]: any }>({});
   const [earnedXP, setEarnedXP] = useState(0);
-  const [actionAnswer, setActionAnswer] = useState<any>('');
+  const [actionAnswer, setActionAnswer] = useState<any>(null);
 
-  if (!lessonContent || !('content' in lessonContent)) {
+  // Check if this lesson uses the new interleaved structure
+  const isNewStructure = lessonContent && 'content' in lessonContent;
+  const contentBlocks = isNewStructure ? lessonContent.content : [];
+  const totalQuizzes = isNewStructure
+    ? contentBlocks.filter((block: ContentBlock) => block.blockType === 'quiz').length
+    : 0; // Old lessons don't have quizzes in this flow
+
+  if (!lessonContent) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.errorContainer}>
-          <Text style={styles.errorIcon}>⚠️</Text>
+          <Ionicons name="alert-circle" size={64} color={colors.error} />
           <Text style={styles.errorText}>Lesson content not found</Text>
           <TouchableOpacity
-            style={styles.button}
+            style={styles.backButton}
             onPress={() => navigation.goBack()}
           >
-            <Text style={styles.buttonText}>Go Back</Text>
+            <Text style={styles.backButtonText}>Go Back</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
-
-  const contentBlocks = lessonContent.content;
-  const totalXP = contentBlocks
-    .filter((block: ContentBlock) => block.blockType === 'quiz')
-    .reduce((sum: number, block: ContentBlock) => sum + (block.quiz?.xp || 0), 0);
 
   const handleStartLesson = () => {
     setPhase('content');
   };
 
   const handleNextContent = () => {
-    if (contentIndex < contentBlocks.length - 1) {
-      setContentIndex(contentIndex + 1);
-    } else {
-      if (lessonContent.actionQuestion) {
-        setPhase('action');
+    if (isNewStructure) {
+      // New structure: iterate through ContentBlock[]
+      if (contentIndex < contentBlocks.length - 1) {
+        setContentIndex(contentIndex + 1);
       } else {
-        completeLesson();
+        // All content done, move to action question
+        if (lessonContent.actionQuestion) {
+          setPhase('action');
+        } else {
+          completeLesson();
+        }
+      }
+    } else {
+      // Old structure: backward compatibility
+      if (contentIndex < lessonContent.sections.length - 1) {
+        setContentIndex(contentIndex + 1);
+      } else {
+        // Move to action phase (old lessons don't have quizzes in this flow)
+        if (lessonContent.actionQuestion) {
+          setPhase('action');
+        } else {
+          completeLesson();
+        }
       }
     }
   };
@@ -76,10 +100,10 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
     }
   };
 
-  const handleQuizAnswer = (questionId: string, answerId: string, isCorrect: boolean, xpReward: number) => {
+  const handleQuizAnswer = (questionId: string, answer: any, isCorrect: boolean, xpReward: number) => {
     setQuizAnswers({
       ...quizAnswers,
-      [questionId]: { answer: answerId, isCorrect },
+      [questionId]: { answer, isCorrect },
     });
 
     if (isCorrect) {
@@ -90,43 +114,21 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
   const completeLesson = async () => {
     if (user?.id) {
       try {
-        // Save to AsyncStorage
-        const progressKey = `finance_progress_${user.id}`;
-        const progressData = await AsyncStorage.getItem(progressKey);
-        const progress = progressData ? JSON.parse(progressData) : { completedLessons: [], currentLesson: 'step1-lesson1' };
+        console.log('Saving lesson progress:', lessonId);
+        await saveLessonProgress(user.id, {
+          lessonId: lessonId,
+          stepId: stepId,
+          completed: true,
+          quizScore: Object.values(quizAnswers).filter((a: any) => a.isCorrect).length,
+          quizTotal: totalQuizzes,
+          xpEarned: earnedXP,
+          completedAt: new Date().toISOString(),
+        });
 
-        if (!progress.completedLessons.includes(lessonId)) {
-          progress.completedLessons.push(lessonId);
-        }
-
-        // Update current lesson to next one
-        const allLessons = [
-          'step1-lesson1', 'step1-lesson2', 'step1-lesson3',
-          'step2-lesson1', 'step2-lesson2', 'step2-lesson3',
-          'step3-lesson1', 'step3-lesson2', 'step3-lesson3',
-          'step4-lesson1', 'step4-lesson2', 'step4-lesson3',
-          'step5-lesson1', 'step5-lesson2', 'step5-lesson3',
-          'step6-lesson1', 'step6-lesson2', 'step6-lesson3',
-          'step7-lesson1', 'step7-lesson2', 'step7-lesson3',
-          'step8-lesson1', 'step8-lesson2', 'step8-lesson3',
-          'step9-lesson1', 'step9-lesson2', 'step9-lesson3',
-          'step10-lesson1', 'step10-lesson2', 'step10-lesson3',
-        ];
-        const currentIndex = allLessons.indexOf(lessonId);
-        if (currentIndex >= 0 && currentIndex < allLessons.length - 1) {
-          progress.currentLesson = allLessons[currentIndex + 1];
-        }
-
-        await AsyncStorage.setItem(progressKey, JSON.stringify(progress));
-
-        // Update user XP
-        const userKey = `user_${user.id}`;
-        const userData = await AsyncStorage.getItem(userKey);
-        if (userData) {
-          const userInfo = JSON.parse(userData);
-          userInfo.xp = (userInfo.xp || 0) + earnedXP;
-          await AsyncStorage.setItem(userKey, JSON.stringify(userInfo));
-        }
+        // Award XP to user
+        console.log('Awarding XP:', earnedXP);
+        await addXP(user.id, earnedXP);
+        console.log('Lesson progress saved successfully');
       } catch (error) {
         console.error('Error saving lesson progress:', error);
       }
@@ -134,309 +136,267 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
     setPhase('complete');
   };
 
-  const handleActionSubmit = async () => {
-    if (!actionAnswer || actionAnswer.trim() === '') {
-      window.alert('Please provide an answer before continuing');
-      return;
+  const handleActionSubmit = async (answer: any) => {
+    setActionAnswer(answer);
+
+    // Save lesson progress to database
+    if (user?.id) {
+      try {
+        console.log('Saving lesson progress with action:', lessonId, answer);
+        await saveLessonProgress(user.id, {
+          lessonId: lessonId,
+          stepId: stepId,
+          completed: true,
+          quizScore: Object.values(quizAnswers).filter((a: any) => a.isCorrect).length,
+          quizTotal: totalQuizzes,
+          actionAnswer: answer?.toString(),
+          xpEarned: earnedXP,
+          completedAt: new Date().toISOString(),
+        });
+
+        // Award XP to user
+        console.log('Awarding XP:', earnedXP);
+        await addXP(user.id, earnedXP);
+        console.log('Lesson progress saved successfully');
+      } catch (error) {
+        console.error('Error saving lesson progress:', error);
+      }
     }
 
-    await completeLesson();
+    setPhase('complete');
   };
 
+  const handleComplete = () => {
+    console.log('Lesson completed');
+
+    // Check if this lesson should navigate to an integrated tool
+    if (lessonContent.navigateToTool) {
+      console.log('Navigating to integrated tool:', lessonContent.navigateToTool);
+      navigation.navigate('FinanceLessonIntegrated', {
+        lessonId: lessonId,
+        stepId: stepId,
+        lessonTitle: lessonTitle,
+        toolOverride: lessonContent.navigateToTool, // Pass the tool to use
+      });
+    } else {
+      // Navigate back to main finance path
+      navigation.navigate('FinancePathNew');
+    }
+  };
+
+  // Calculate total XP available
+  const totalXP = isNewStructure
+    ? contentBlocks
+        .filter((block: ContentBlock) => block.blockType === 'quiz')
+        .reduce((sum: number, block: ContentBlock) => sum + (block.quiz?.xp || 0), 0)
+    : 0; // Old lessons don't have quizzes
+
   // ============================================
-  // RENDER INTRO PHASE
-  // ============================================
+  // Skip intro phase - go straight to content
   if (phase === 'intro') {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backIcon}>×</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Lesson</Text>
-          <View style={{ width: 40 }} />
-        </View>
-
-        <ScrollView style={styles.content}>
-          <View style={styles.introContainer}>
-            <Text style={styles.introIcon}>📖</Text>
-            <Text style={styles.introTitle}>{lessonId}</Text>
-
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Text style={styles.statIcon}>⏱</Text>
-                <Text style={styles.statText}>{contentBlocks.length} min</Text>
-              </View>
-              <View style={styles.statItem}>
-                <Text style={styles.statIcon}>⭐</Text>
-                <Text style={styles.statText}>+{totalXP} XP</Text>
-              </View>
-            </View>
-
-            <Text style={styles.introDescription}>
-              Read through the lesson, answer quiz questions, and complete the action step.
-            </Text>
-
-            <TouchableOpacity
-              style={styles.startButton}
-              onPress={handleStartLesson}
-            >
-              <Text style={styles.startButtonText}>START LESSON →</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    );
+    handleStartLesson();
+    return null;
   }
 
   // ============================================
   // RENDER CONTENT PHASE
   // ============================================
   if (phase === 'content') {
-    const currentBlock = contentBlocks[contentIndex];
-    const isQuizBlock = currentBlock?.blockType === 'quiz';
-    const quiz = isQuizBlock ? currentBlock.quiz : null;
-    const section = !isQuizBlock ? currentBlock.section : null;
-    const hasAnswered = quiz ? quiz.id in quizAnswers : false;
-    const totalBlocks = contentBlocks.length;
+    if (isNewStructure) {
+      // New structure: render current ContentBlock (section or quiz)
+      const currentBlock = contentBlocks[contentIndex];
+      const isQuizBlock = currentBlock?.blockType === 'quiz';
+      const quiz = isQuizBlock ? currentBlock.quiz : null;
+      const section = !isQuizBlock ? currentBlock.section : null;
+      const hasAnswered = quiz ? quiz.id in quizAnswers : false;
+      const totalBlocks = contentBlocks.length;
 
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backIcon}>×</Text>
-          </TouchableOpacity>
-          <View style={styles.progressBarContainer}>
-            <View
-              style={[
-                styles.progressBar,
-                { width: `${((contentIndex + 1) / totalBlocks) * 100}%` },
-              ]}
-            />
-          </View>
-          <View style={{ width: 40 }} />
-        </View>
+      return (
+        <View style={styles.container}>
+          <LinearGradient
+            colors={['#4A90E2', '#5FA3E8']}
+            style={styles.headerGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
+              <Ionicons name="close" size={28} color="#FFFFFF" />
+            </TouchableOpacity>
+            <View style={styles.progressBarContainer}>
+              <View
+                style={[
+                  styles.progressBar,
+                  {
+                    width: `${((contentIndex + 1) / totalBlocks) * 100}%`,
+                  },
+                ]}
+              />
+            </View>
+            <Text style={styles.progressText}>
+              {contentIndex + 1} / {totalBlocks}
+            </Text>
+          </LinearGradient>
 
-        <ScrollView style={styles.content}>
           {isQuizBlock && quiz ? (
             // Render Quiz
-            <View style={styles.quizContainer}>
-              <Text style={styles.quizLabel}>QUIZ</Text>
-              <Text style={styles.quizQuestion}>{quiz.question}</Text>
+            <View style={styles.quizScroll}>
+              <View style={styles.quizContainer}>
+                <Text style={styles.quizQuestion}>{quiz.question}</Text>
 
-              <View style={styles.choicesContainer}>
-                {quiz.choices.map((choice) => {
-                  const isSelected = quizAnswers[quiz.id]?.answer === choice.id;
-                  const showResult = hasAnswered && isSelected;
+                <QuizQuestionRenderer
+                  question={quiz}
+                  onAnswer={(qId, answer, isCorrect) => handleQuizAnswer(qId, answer, isCorrect, quiz.xp)}
+                  hasAnswered={hasAnswered}
+                  userAnswer={quizAnswers[quiz.id]}
+                />
 
-                  return (
-                    <TouchableOpacity
-                      key={choice.id}
+                {hasAnswered && (
+                  <>
+                    <View
                       style={[
-                        styles.choiceButton,
-                        isSelected && styles.choiceSelected,
-                        showResult && (choice.isCorrect ? styles.choiceCorrect : styles.choiceIncorrect),
+                        styles.feedbackContainer,
+                        quizAnswers[quiz.id].isCorrect
+                          ? styles.feedbackCorrect
+                          : styles.feedbackIncorrect,
                       ]}
-                      onPress={() => !hasAnswered && handleQuizAnswer(quiz.id, choice.id, choice.isCorrect, quiz.xp)}
-                      disabled={hasAnswered}
                     >
-                      <Text style={[
-                        styles.choiceText,
-                        isSelected && styles.choiceTextSelected,
-                      ]}>
-                        {choice.text}
+                      <Ionicons
+                        name={quizAnswers[quiz.id].isCorrect ? 'checkmark-circle' : 'close-circle'}
+                        size={32}
+                        color={quizAnswers[quiz.id].isCorrect ? colors.success : colors.error}
+                      />
+                      <Text style={styles.feedbackText}>
+                        {quizAnswers[quiz.id].isCorrect ? 'Correct!' : 'Not quite!'}
                       </Text>
-                      {showResult && (
-                        <Text style={styles.choiceIcon}>
-                          {choice.isCorrect ? '✓' : '✗'}
+                      {/* Show the selected choice's explanation */}
+                      {quiz.choices && (
+                        <Text style={styles.explanationText}>
+                          {quiz.choices.find(c => c.id === quizAnswers[quiz.id].answer)?.explanation || quiz.explanation}
                         </Text>
                       )}
+                    </View>
+
+                    <TouchableOpacity
+                      style={styles.continueButton}
+                      onPress={handleNextContent}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.continueButtonText}>Continue</Text>
+                      <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
                     </TouchableOpacity>
-                  );
-                })}
+                  </>
+                )}
+              </View>
+            </View>
+          ) : (
+            // Render Section
+            <>
+              <View style={styles.contentScroll}>
+                <View style={styles.contentContainer}>
+                  <SectionRenderer section={section!} />
+                </View>
               </View>
 
-              {hasAnswered && (
-                <View
-                  style={[
-                    styles.feedbackContainer,
-                    quizAnswers[quiz.id].isCorrect ? styles.feedbackCorrect : styles.feedbackIncorrect,
-                  ]}
+              <View style={styles.navigation}>
+                {contentIndex > 0 && (
+                  <TouchableOpacity
+                    style={styles.navButton}
+                    onPress={handlePreviousContent}
+                  >
+                    <Ionicons name="arrow-back" size={24} color={colors.finance} />
+                    <Text style={styles.navButtonText}>Previous</Text>
+                  </TouchableOpacity>
+                )}
+                <View style={{ flex: 1 }} />
+                <TouchableOpacity
+                  style={[styles.navButton, styles.navButtonPrimary]}
+                  onPress={handleNextContent}
                 >
-                  <Text style={styles.feedbackIcon}>
-                    {quizAnswers[quiz.id].isCorrect ? '✓' : '✗'}
+                  <Text style={styles.navButtonTextPrimary}>
+                    {contentIndex === totalBlocks - 1 ? 'Finish' : 'Next'}
                   </Text>
-                  <Text style={styles.feedbackTitle}>
-                    {quizAnswers[quiz.id].isCorrect ? 'Correct!' : 'Not quite!'}
-                  </Text>
-                  <Text style={styles.feedbackText}>
-                    {quiz.choices.find(c => c.id === quizAnswers[quiz.id].answer)?.explanation || quiz.explanation}
-                  </Text>
-                  {quizAnswers[quiz.id].isCorrect && (
-                    <Text style={styles.xpEarned}>+{quiz.xp} XP</Text>
-                  )}
-                </View>
-              )}
-            </View>
-          ) : section ? (
-            // Render Section
-            <View style={styles.sectionContainer}>
-              {section.type === 'text' && (
-                <View style={styles.textSection}>
-                  {section.title && <Text style={styles.sectionTitle}>{section.title}</Text>}
-                  <Text style={styles.sectionContent}>{section.content}</Text>
-                </View>
-              )}
-
-              {section.type === 'list' && (
-                <View style={styles.listSection}>
-                  {section.title && <Text style={styles.sectionTitle}>{section.title}</Text>}
-                  {section.content && <Text style={styles.sectionContent}>{section.content}</Text>}
-                  {section.items && section.items.map((item, idx) => (
-                    <View key={idx} style={styles.listItem}>
-                      <Text style={styles.bullet}>•</Text>
-                      <Text style={styles.listItemText}>{item}</Text>
-                    </View>
-                  ))}
-                </View>
-              )}
-
-              {section.type === 'tip' && (
-                <View style={[styles.specialSection, styles.tipSection]}>
-                  <Text style={styles.specialIcon}>💡</Text>
-                  {section.title && <Text style={styles.specialTitle}>{section.title}</Text>}
-                  <Text style={styles.specialContent}>{section.content}</Text>
-                </View>
-              )}
-
-              {section.type === 'warning' && (
-                <View style={[styles.specialSection, styles.warningSection]}>
-                  <Text style={styles.specialIcon}>⚠️</Text>
-                  {section.title && <Text style={styles.specialTitle}>{section.title}</Text>}
-                  <Text style={styles.specialContent}>{section.content}</Text>
-                </View>
-              )}
-
-              {section.type === 'example' && (
-                <View style={[styles.specialSection, styles.exampleSection]}>
-                  <Text style={styles.specialIcon}>📝</Text>
-                  {section.title && <Text style={styles.specialTitle}>{section.title}</Text>}
-                  <Text style={[styles.specialContent, styles.exampleContent]}>{section.content}</Text>
-                </View>
-              )}
-            </View>
-          ) : null}
-        </ScrollView>
-
-        <View style={styles.footer}>
-          <TouchableOpacity
-            style={[styles.navButton, contentIndex === 0 && styles.navButtonDisabled]}
-            onPress={handlePreviousContent}
-            disabled={contentIndex === 0}
-          >
-            <Text style={[styles.navButtonText, contentIndex === 0 && styles.navButtonTextDisabled]}>
-              ← Back
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.navButton,
-              styles.navButtonPrimary,
-              isQuizBlock && !hasAnswered && styles.navButtonDisabled,
-            ]}
-            onPress={handleNextContent}
-            disabled={isQuizBlock && !hasAnswered}
-          >
-            <Text style={styles.navButtonTextPrimary}>
-              {contentIndex === contentBlocks.length - 1 ? 'Continue →' : 'Next →'}
-            </Text>
-          </TouchableOpacity>
+                  <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
         </View>
-      </SafeAreaView>
-    );
+      );
+    } else {
+      // Old structure: backward compatibility (just render sections)
+      const section = lessonContent.sections[contentIndex];
+
+      return (
+        <View style={styles.container}>
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Ionicons name="close" size={28} color={colors.text} />
+            </TouchableOpacity>
+            <View style={styles.progressBarContainer}>
+              <View
+                style={[
+                  styles.progressBar,
+                  {
+                    width: `${((contentIndex + 1) / lessonContent.sections.length) * 100}%`,
+                  },
+                ]}
+              />
+            </View>
+          </View>
+
+          <View style={styles.contentScroll}>
+            <View style={styles.contentContainer}>
+              <SectionRenderer section={section} />
+            </View>
+          </View>
+
+          <View style={styles.navigation}>
+            {contentIndex > 0 && (
+              <TouchableOpacity
+                style={styles.navButton}
+                onPress={handlePreviousContent}
+              >
+                <Ionicons name="arrow-back" size={24} color={colors.finance} />
+                <Text style={styles.navButtonText}>Previous</Text>
+              </TouchableOpacity>
+            )}
+            <View style={{ flex: 1 }} />
+            <TouchableOpacity
+              style={[styles.navButton, styles.navButtonPrimary]}
+              onPress={handleNextContent}
+            >
+              <Text style={styles.navButtonTextPrimary}>
+                {contentIndex === lessonContent.sections.length - 1 ? 'Complete' : 'Next'}
+              </Text>
+              <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      );
+    }
   }
+
+  // Note: Quiz phase is now integrated into content phase for new lesson structure
 
   // ============================================
   // RENDER ACTION PHASE
   // ============================================
   if (phase === 'action' && lessonContent.actionQuestion) {
-    const { question, type, placeholder, choices, unit } = lessonContent.actionQuestion;
-
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Text style={styles.backIcon}>×</Text>
-          </TouchableOpacity>
           <Text style={styles.headerTitle}>Action Step</Text>
-          <View style={{ width: 40 }} />
         </View>
 
-        <ScrollView style={styles.content}>
-          <View style={styles.actionContainer}>
-            <Text style={styles.actionIcon}>🎯</Text>
-            <Text style={styles.actionTitle}>Your Action Step</Text>
-            <Text style={styles.actionQuestion}>{question}</Text>
+        <ScrollView style={styles.actionScroll} contentContainerStyle={styles.actionContainer}>
+          <Text style={styles.actionQuestion}>{lessonContent.actionQuestion.question}</Text>
 
-            {type === 'number' && (
-              <TextInput
-                style={styles.input}
-                placeholder={placeholder || 'Enter amount'}
-                keyboardType="numeric"
-                value={actionAnswer}
-                onChangeText={setActionAnswer}
-              />
-            )}
-
-            {type === 'text' && (
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder={placeholder || 'Your answer'}
-                multiline
-                numberOfLines={4}
-                value={actionAnswer}
-                onChangeText={setActionAnswer}
-              />
-            )}
-
-            {type === 'choice' && choices && (
-              <View style={styles.choicesContainer}>
-                {choices.map((choice, idx) => (
-                  <TouchableOpacity
-                    key={idx}
-                    style={[
-                      styles.choiceButton,
-                      actionAnswer === choice && styles.choiceSelected,
-                    ]}
-                    onPress={() => setActionAnswer(choice)}
-                  >
-                    <Text style={[
-                      styles.choiceText,
-                      actionAnswer === choice && styles.choiceTextSelected,
-                    ]}>
-                      {choice}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            )}
-
-            {unit && actionAnswer && (
-              <Text style={styles.unitText}>{unit}: {actionAnswer}</Text>
-            )}
-          </View>
+          <ActionQuestionRenderer
+            actionQuestion={lessonContent.actionQuestion}
+            onSubmit={handleActionSubmit}
+          />
         </ScrollView>
-
-        <View style={styles.footer}>
-          <TouchableOpacity
-            style={[styles.button, styles.buttonPrimary]}
-            onPress={handleActionSubmit}
-          >
-            <Text style={styles.buttonTextPrimary}>Complete Lesson</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -444,124 +404,257 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
   // RENDER COMPLETE PHASE
   // ============================================
   if (phase === 'complete') {
-    const totalQuizzes = contentBlocks.filter(b => b.blockType === 'quiz').length;
-    const correctAnswers = Object.values(quizAnswers).filter((a: any) => a.isCorrect).length;
-
     return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.completeContainer}>
-          <Text style={styles.completeIcon}>🎉</Text>
-          <Text style={styles.completeTitle}>Lesson Complete!</Text>
-          <Text style={styles.completeSubtitle}>Great work!</Text>
+      <View style={styles.container}>
+        <ScrollView contentContainerStyle={styles.completeContainer}>
+          <View style={styles.completeContent}>
+            <Ionicons name="checkmark-circle" size={100} color={colors.success} />
+            <Text style={styles.completeTitle}>Lesson Complete! 🎉</Text>
+            <Text style={styles.completeSubtitle}>
+              You earned {earnedXP} XP
+            </Text>
 
-          <View style={styles.resultsCard}>
-            <View style={styles.resultRow}>
-              <Text style={styles.resultLabel}>XP Earned:</Text>
-              <Text style={styles.resultValue}>+{earnedXP}</Text>
-            </View>
-            <View style={styles.resultRow}>
-              <Text style={styles.resultLabel}>Quiz Score:</Text>
-              <Text style={styles.resultValue}>
-                {correctAnswers}/{totalQuizzes}
+            <View style={styles.statsCard}>
+              <Text style={styles.statsTitle}>Your Progress:</Text>
+              <Text style={styles.statsText}>
+                • Answered {totalQuizzes} questions
               </Text>
+              <Text style={styles.statsText}>
+                • Got {Object.values(quizAnswers).filter((a: any) => a.isCorrect).length} correct
+              </Text>
+              <Text style={styles.statsText}>• Completed action step</Text>
             </View>
-          </View>
 
-          <TouchableOpacity
-            style={[styles.button, styles.buttonPrimary]}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.buttonTextPrimary}>Continue</Text>
-          </TouchableOpacity>
-        </View>
-      </SafeAreaView>
+            <TouchableOpacity
+              style={styles.continueButton}
+              onPress={handleComplete}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.continueButtonText}>Complete Lesson</Text>
+              <Ionicons name="checkmark" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </View>
     );
   }
 
   return null;
 };
 
+// ============================================
+// SUB-COMPONENTS
+// ============================================
+
+const SectionRenderer: React.FC<{ section: LessonSection }> = ({ section }) => {
+  const getIcon = () => {
+    if (section.type === 'tip') return 'bulb';
+    if (section.type === 'warning') return 'warning';
+    if (section.type === 'example') return 'newspaper';
+    return 'document-text';
+  };
+
+  const getColor = () => {
+    if (section.type === 'tip') return colors.success;
+    if (section.type === 'warning') return colors.error;
+    if (section.type === 'example') return colors.physical;
+    return colors.text;
+  };
+
+  return (
+    <View style={styles.section}>
+      {section.title && (
+        <View style={styles.sectionHeader}>
+          <Ionicons name={getIcon()} size={24} color={getColor()} />
+          <Text style={[styles.sectionTitle, { color: getColor() }]}>
+            {section.title}
+          </Text>
+        </View>
+      )}
+
+      <Text style={styles.sectionContent}>{section.content}</Text>
+
+      {section.items && section.items.length > 0 && (
+        <View style={styles.listContainer}>
+          {section.items.map((item, index) => (
+            <View key={index} style={styles.listItem}>
+              <Text style={styles.listBullet}>•</Text>
+              <Text style={styles.listItemText}>{item}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+};
+
+const QuizQuestionRenderer: React.FC<{
+  question: QuizQuestion;
+  onAnswer: (questionId: string, answer: any, isCorrect: boolean) => void;
+  hasAnswered: boolean;
+  userAnswer?: any;
+}> = ({ question, onAnswer, hasAnswered, userAnswer }) => {
+  if (question.type === 'multiple-choice' || question.type === 'true-false') {
+    return (
+      <View style={styles.choicesContainer}>
+        {question.choices?.map((choice) => {
+          const isSelected = userAnswer?.answer === choice.id;
+          const showResult = hasAnswered && isSelected;
+
+          return (
+            <TouchableOpacity
+              key={choice.id}
+              style={[
+                styles.choiceButton,
+                showResult && choice.isCorrect && styles.choiceButtonCorrect,
+                showResult && !choice.isCorrect && styles.choiceButtonIncorrect,
+              ]}
+              onPress={() => !hasAnswered && onAnswer(question.id, choice.id, choice.isCorrect)}
+              disabled={hasAnswered}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.choiceText}>{choice.text}</Text>
+              {showResult && (
+                <Ionicons
+                  name={choice.isCorrect ? 'checkmark-circle' : 'close-circle'}
+                  size={24}
+                  color={choice.isCorrect ? colors.success : colors.error}
+                />
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    );
+  }
+
+  // Placeholder for other question types (not used in new structure)
+  return (
+    <View style={styles.placeholderContainer}>
+      <Text style={styles.placeholderText}>
+        Question type "{question.type}" coming soon!
+      </Text>
+      <TouchableOpacity
+        style={styles.skipButton}
+        onPress={() => onAnswer(question.id, 'skipped', true)}
+      >
+        <Text style={styles.skipButtonText}>Continue</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+const ActionQuestionRenderer: React.FC<{
+  actionQuestion: any;
+  onSubmit: (answer: any) => void;
+}> = ({ actionQuestion, onSubmit }) => {
+  const [answer, setAnswer] = useState<any>(null);
+
+  if (actionQuestion.type === 'choice') {
+    return (
+      <View style={styles.actionChoices}>
+        {actionQuestion.choices.map((choice: string, index: number) => (
+          <TouchableOpacity
+            key={index}
+            style={[
+              styles.actionChoiceButton,
+              answer === choice && styles.actionChoiceButtonSelected,
+            ]}
+            onPress={() => setAnswer(choice)}
+          >
+            <Text
+              style={[
+                styles.actionChoiceText,
+                answer === choice && styles.actionChoiceTextSelected,
+              ]}
+            >
+              {choice}
+            </Text>
+          </TouchableOpacity>
+        ))}
+
+        {answer && (
+          <TouchableOpacity
+            style={styles.submitButton}
+            onPress={() => onSubmit(answer)}
+          >
+            <Text style={styles.submitButtonText}>Submit</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  }
+
+  // Placeholder for other action types
+  return (
+    <TouchableOpacity
+      style={styles.submitButton}
+      onPress={() => onSubmit('completed')}
+    >
+      <Text style={styles.submitButtonText}>Complete</Text>
+    </TouchableOpacity>
+  );
+};
+
+// ============================================
+// STYLES
+// ============================================
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#F5F8FA',
   },
-  header: {
+
+  // Header with Gradient
+  headerGradient: {
+    paddingTop: 60,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
+    gap: 16,
   },
-  backButton: {
+  closeButton: {
     width: 40,
     height: 40,
-    justifyContent: 'center',
     alignItems: 'center',
-  },
-  backIcon: {
-    fontSize: 32,
-    color: colors.text,
-    lineHeight: 32,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
+    justifyContent: 'center',
   },
   progressBarContainer: {
     flex: 1,
-    height: 4,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 2,
-    marginHorizontal: 16,
+    height: 8,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 4,
     overflow: 'hidden',
   },
   progressBar: {
     height: '100%',
-    backgroundColor: '#10B981',
-    borderRadius: 2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 4,
   },
-  content: {
-    flex: 1,
-    paddingHorizontal: 20,
+  progressText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    minWidth: 50,
+    textAlign: 'right',
   },
-  errorContainer: {
+  introContent: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
-  },
-  errorIcon: {
-    fontSize: 64,
-    marginBottom: 16,
-  },
-  errorText: {
-    fontSize: 16,
-    color: colors.text,
-    marginBottom: 24,
-  },
-  introContainer: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  introIcon: {
-    fontSize: 64,
-    marginBottom: 24,
   },
   introTitle: {
-    fontSize: 24,
+    fontSize: 32,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 24,
     textAlign: 'center',
+    marginBottom: 24,
   },
-  statsRow: {
+  lessonStats: {
     flexDirection: 'row',
-    gap: 24,
+    gap: 32,
     marginBottom: 24,
   },
   statItem: {
@@ -569,124 +662,188 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  statIcon: {
-    fontSize: 20,
-  },
   statText: {
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
   },
   introDescription: {
-    fontSize: 14,
-    color: colors.textLight,
+    fontSize: 16,
+    color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 20,
     marginBottom: 32,
+    paddingHorizontal: 20,
   },
   startButton: {
-    backgroundColor: '#10B981',
+    backgroundColor: colors.finance,
+    paddingHorizontal: 40,
     paddingVertical: 16,
-    paddingHorizontal: 32,
     borderRadius: 12,
-    minWidth: 200,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
+    ...shadows.medium,
   },
   startButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
     color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
   },
-  sectionContainer: {
-    paddingVertical: 20,
+
+  // Header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+    paddingTop: 60,
+    backgroundColor: colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  textSection: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
+  headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 12,
+    flex: 1,
+    textAlign: 'center',
+  },
+  progressBarContainer: {
+    flex: 1,
+    height: 6,
+    backgroundColor: colors.border,
+    borderRadius: 3,
+    marginLeft: 16,
+    overflow: 'hidden',
+  },
+  progressBar: {
+    height: '100%',
+    backgroundColor: colors.finance,
+  },
+
+  // Content Phase
+  contentScroll: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  contentContainer: {
+    padding: 20,
+    maxWidth: 600,
+    width: '100%',
+  },
+  section: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  sectionHeader: {
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 2,
+    borderBottomColor: '#4A90E2',
+  },
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#4A90E2',
+    marginBottom: 4,
   },
   sectionContent: {
-    fontSize: 16,
+    fontSize: 18,
+    lineHeight: 28,
     color: colors.text,
-    lineHeight: 24,
+    marginBottom: 12,
+    textAlign: 'center',
   },
-  listSection: {
-    marginBottom: 24,
+  listContainer: {
+    marginTop: 12,
   },
   listItem: {
     flexDirection: 'row',
     marginBottom: 8,
   },
-  bullet: {
-    fontSize: 16,
-    color: colors.text,
-    marginRight: 8,
+  listBullet: {
+    fontSize: 18,
+    color: colors.finance,
+    marginRight: 12,
+    marginTop: 2,
   },
   listItemText: {
     flex: 1,
     fontSize: 16,
-    color: colors.text,
     lineHeight: 24,
-  },
-  specialSection: {
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 24,
-  },
-  tipSection: {
-    backgroundColor: '#EFF6FF',
-    borderLeftWidth: 4,
-    borderLeftColor: '#3B82F6',
-  },
-  warningSection: {
-    backgroundColor: '#FEF3C7',
-    borderLeftWidth: 4,
-    borderLeftColor: '#F59E0B',
-  },
-  exampleSection: {
-    backgroundColor: '#F3F4F6',
-    borderLeftWidth: 4,
-    borderLeftColor: '#6B7280',
-  },
-  specialIcon: {
-    fontSize: 24,
-    marginBottom: 8,
-  },
-  specialTitle: {
-    fontSize: 16,
-    fontWeight: '600',
     color: colors.text,
-    marginBottom: 8,
   },
-  specialContent: {
+  quoteAuthor: {
     fontSize: 14,
-    color: colors.text,
-    lineHeight: 20,
+    fontStyle: 'italic',
+    color: colors.textSecondary,
+    textAlign: 'right',
+    marginTop: 8,
   },
-  exampleContent: {
-    fontFamily: 'monospace',
-    fontSize: 13,
+
+  // Navigation
+  navigation: {
+    flexDirection: 'row',
+    padding: 20,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    backgroundColor: colors.background,
+  },
+  navButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: colors.finance,
+  },
+  navButtonPrimary: {
+    backgroundColor: '#4A90E2',
+    borderColor: '#4A90E2',
+    shadowColor: '#4A90E2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  navButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#4A90E2',
+  },
+  navButtonTextPrimary: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
+  // Quiz Phase
+  quizScroll: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   quizContainer: {
-    paddingVertical: 20,
-  },
-  quizLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#10B981',
-    letterSpacing: 1,
-    marginBottom: 16,
+    padding: 20,
+    maxWidth: 600,
+    width: '100%',
   },
   quizQuestion: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: colors.text,
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#4A90E2',
     marginBottom: 24,
-    lineHeight: 28,
+    lineHeight: 32,
+    textAlign: 'center',
   },
   choicesContainer: {
     gap: 12,
@@ -695,211 +852,235 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#E5E7EB',
-    backgroundColor: '#FFFFFF',
-  },
-  choiceSelected: {
-    borderColor: '#10B981',
-    backgroundColor: '#F0FDF4',
-  },
-  choiceCorrect: {
-    borderColor: '#10B981',
-    backgroundColor: '#D1FAE5',
-  },
-  choiceIncorrect: {
-    borderColor: '#EF4444',
-    backgroundColor: '#FEE2E2',
-  },
-  choiceText: {
-    flex: 1,
-    fontSize: 15,
-    color: colors.text,
-  },
-  choiceTextSelected: {
-    fontWeight: '600',
-    color: '#10B981',
-  },
-  choiceIcon: {
-    fontSize: 20,
-    marginLeft: 8,
-  },
-  feedbackContainer: {
-    padding: 16,
-    borderRadius: 12,
-    marginTop: 24,
-  },
-  feedbackCorrect: {
-    backgroundColor: '#D1FAE5',
-  },
-  feedbackIncorrect: {
-    backgroundColor: '#FEE2E2',
-  },
-  feedbackIcon: {
-    fontSize: 32,
-    marginBottom: 8,
-  },
-  feedbackTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 8,
-  },
-  feedbackText: {
-    fontSize: 14,
-    color: colors.text,
-    lineHeight: 20,
-    marginBottom: 8,
-  },
-  xpEarned: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#10B981',
-  },
-  footer: {
-    flexDirection: 'row',
-    gap: 12,
     padding: 20,
     backgroundColor: '#FFFFFF',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
+    borderRadius: 16,
+    borderWidth: 3,
+    borderColor: colors.border,
   },
-  navButton: {
+  choiceButtonCorrect: {
+    borderColor: colors.success,
+    backgroundColor: colors.success + '20',
+  },
+  choiceButtonIncorrect: {
+    borderColor: colors.error,
+    backgroundColor: colors.error + '20',
+  },
+  choiceText: {
+    fontSize: 18,
+    color: colors.text,
     flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#10B981',
+    lineHeight: 26,
+  },
+  feedbackContainer: {
+    marginTop: 24,
+    padding: 24,
+    borderRadius: 16,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  feedbackCorrect: {
+    backgroundColor: '#E8F5E9',
+    borderLeftWidth: 4,
+    borderLeftColor: colors.success,
+  },
+  feedbackIncorrect: {
+    backgroundColor: '#FFEBEE',
+    borderLeftWidth: 4,
+    borderLeftColor: colors.error,
+  },
+  feedbackText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+    textAlign: 'center',
+  },
+  explanationText: {
+    fontSize: 18,
+    color: colors.text,
+    lineHeight: 28,
+    textAlign: 'center',
+  },
+
+  // Reflection
+  reflectionContainer: {
     alignItems: 'center',
+    gap: 24,
   },
-  navButtonPrimary: {
-    backgroundColor: '#10B981',
-    borderColor: '#10B981',
+  reflectionPrompt: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
-  navButtonDisabled: {
-    borderColor: '#E5E7EB',
-    backgroundColor: '#F9FAFB',
+  reflectionButton: {
+    backgroundColor: colors.finance,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
   },
-  navButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#10B981',
-  },
-  navButtonTextPrimary: {
-    fontSize: 15,
-    fontWeight: '600',
+  reflectionButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
     color: '#FFFFFF',
   },
-  navButtonTextDisabled: {
-    color: '#9CA3AF',
+
+  // Placeholder
+  placeholderContainer: {
+    alignItems: 'center',
+    gap: 24,
+    padding: 40,
+  },
+  placeholderText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  skipButton: {
+    backgroundColor: colors.finance,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  skipButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+
+  // Action Phase
+  actionScroll: {
+    flex: 1,
   },
   actionContainer: {
-    paddingVertical: 40,
-    alignItems: 'center',
+    padding: 20,
   },
-  actionIcon: {
-    fontSize: 64,
-    marginBottom: 24,
-  },
-  actionTitle: {
+  actionQuestion: {
     fontSize: 24,
     fontWeight: 'bold',
     color: colors.text,
-    marginBottom: 16,
-  },
-  actionQuestion: {
-    fontSize: 16,
-    color: colors.text,
-    textAlign: 'center',
-    lineHeight: 24,
     marginBottom: 32,
+    lineHeight: 32,
   },
-  input: {
-    width: '100%',
-    maxWidth: 400,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 8,
-    padding: 12,
+  actionChoices: {
+    gap: 12,
+  },
+  actionChoiceButton: {
+    padding: 20,
+    backgroundColor: colors.backgroundGray,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.border,
+  },
+  actionChoiceButtonSelected: {
+    borderColor: colors.finance,
+    backgroundColor: colors.finance + '20',
+  },
+  actionChoiceText: {
     fontSize: 16,
-    backgroundColor: '#FFFFFF',
-  },
-  textArea: {
-    height: 120,
-    textAlignVertical: 'top',
-  },
-  unitText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: colors.textLight,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  buttonPrimary: {
-    backgroundColor: '#10B981',
-  },
-  buttonText: {
-    fontSize: 15,
-    fontWeight: '600',
     color: colors.text,
   },
-  buttonTextPrimary: {
-    fontSize: 15,
-    fontWeight: '600',
+  actionChoiceTextSelected: {
+    fontWeight: 'bold',
+    color: colors.finance,
+  },
+  submitButton: {
+    backgroundColor: colors.finance,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 24,
+  },
+  submitButtonText: {
+    fontSize: 18,
+    fontWeight: 'bold',
     color: '#FFFFFF',
   },
+
+  // Complete Phase
   completeContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 24,
+    padding: 20,
   },
-  completeIcon: {
-    fontSize: 80,
-    marginBottom: 24,
+  completeContent: {
+    alignItems: 'center',
+    width: '100%',
   },
   completeTitle: {
     fontSize: 32,
     fontWeight: 'bold',
     color: colors.text,
+    marginTop: 24,
     marginBottom: 8,
   },
   completeSubtitle: {
-    fontSize: 16,
-    color: colors.textLight,
+    fontSize: 18,
+    color: colors.textSecondary,
     marginBottom: 32,
   },
-  resultsCard: {
-    backgroundColor: '#FFFFFF',
+  statsCard: {
+    backgroundColor: colors.backgroundGray,
     padding: 24,
     borderRadius: 12,
     width: '100%',
-    maxWidth: 400,
     marginBottom: 32,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
-  resultRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  statsTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
     marginBottom: 12,
   },
-  resultLabel: {
+  statsText: {
     fontSize: 16,
-    color: colors.textLight,
+    color: colors.text,
+    marginBottom: 8,
   },
-  resultValue: {
+  continueButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: colors.finance,
+    paddingHorizontal: 48,
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginTop: 20,
+    ...shadows.medium,
+  },
+  continueButtonText: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#10B981',
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+  },
+
+  // Error
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    fontSize: 20,
+    color: colors.error,
+    marginTop: 24,
+    marginBottom: 32,
+  },
+  backButton: {
+    backgroundColor: colors.finance,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
 });
