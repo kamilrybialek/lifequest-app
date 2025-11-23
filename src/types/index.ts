@@ -10,6 +10,7 @@ export interface User {
   financialStatus?: 'debt' | 'paycheck' | 'stable' | 'saving' | 'investing';
   activityLevel?: 'sedentary' | 'light' | 'moderate' | 'active';
   sleepQuality?: number; // 1-5
+  currency?: string; // User's preferred currency (USD, EUR, PLN, etc.)
   onboarded: boolean;
   createdAt: string;
 }

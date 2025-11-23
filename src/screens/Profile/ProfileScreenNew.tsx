@@ -40,6 +40,38 @@ export const ProfileScreenNew = () => {
     // TODO: Implement settings navigation
   };
 
+  const handleCurrencyChange = () => {
+    const currencies = [
+      { code: 'USD', symbol: '$', name: 'US Dollar' },
+      { code: 'EUR', symbol: '€', name: 'Euro' },
+      { code: 'GBP', symbol: '£', name: 'British Pound' },
+      { code: 'PLN', symbol: 'zł', name: 'Polish Złoty' },
+      { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
+      { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
+      { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
+      { code: 'CHF', symbol: 'CHF', name: 'Swiss Franc' },
+    ];
+
+    const currentCurrency = user?.currency || 'USD';
+    const currentCurrencyName = currencies.find(c => c.code === currentCurrency)?.name || 'US Dollar';
+
+    const currencyOptions = currencies.map(c => `${c.code} (${c.symbol}) - ${c.name}`).join('\n');
+    const newCurrency = window.prompt(
+      `Current Currency: ${currentCurrency} - ${currentCurrencyName}\n\nSelect new currency (enter code):\n\n${currencyOptions}`,
+      currentCurrency
+    );
+
+    if (newCurrency && currencies.find(c => c.code === newCurrency.toUpperCase())) {
+      const currencyCode = newCurrency.toUpperCase();
+      const { updateProfile } = useAuthStore.getState();
+      updateProfile({ currency: currencyCode });
+      window.alert(`✅ Currency changed to ${currencyCode}`);
+      onRefresh();
+    } else if (newCurrency) {
+      window.alert('❌ Invalid currency code. Please try again.');
+    }
+  };
+
   const handleResetDatabase = async () => {
     const confirmed = window.confirm(
       '⚠️ RESET DATABASE\n\n' +
@@ -233,6 +265,24 @@ export const ProfileScreenNew = () => {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>⚙️ Settings</Text>
           <View style={styles.settingsCard}>
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={handleCurrencyChange}
+            >
+              <View style={styles.settingLeft}>
+                <View style={[styles.settingIconContainer, { backgroundColor: '#FFB800' + '20' }]}>
+                  <Ionicons name="cash-outline" size={20} color="#FFB800" />
+                </View>
+                <View>
+                  <Text style={styles.settingText}>Currency</Text>
+                  <Text style={styles.settingSubtext}>{user?.currency || 'USD'}</Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#CCC" />
+            </TouchableOpacity>
+
+            <View style={styles.settingDivider} />
+
             <TouchableOpacity
               style={styles.settingItem}
               onPress={() => handleSettingPress('notifications')}
@@ -654,6 +704,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
     color: '#1A1A1A',
+  },
+  settingSubtext: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#999',
+    marginTop: 2,
   },
   settingDivider: {
     height: 1,
