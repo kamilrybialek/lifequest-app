@@ -239,7 +239,11 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
 
           {isQuizBlock && quiz ? (
             // Render Quiz
-            <View style={styles.quizScroll}>
+            <ScrollView
+              style={styles.quizScroll}
+              contentContainerStyle={styles.quizScrollContent}
+              showsVerticalScrollIndicator={false}
+            >
               <View style={styles.quizContainer}>
                 <Text style={styles.quizQuestion}>{quiz.question}</Text>
 
@@ -287,7 +291,7 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
                   </>
                 )}
               </View>
-            </View>
+            </ScrollView>
           ) : (
             // Render Section
             <>
@@ -608,8 +612,8 @@ const styles = StyleSheet.create({
 
   // Header with Gradient
   headerGradient: {
-    paddingTop: 60,
-    paddingBottom: 16,
+    paddingTop: 40,
+    paddingBottom: 12,
     paddingHorizontal: 20,
     flexDirection: 'row',
     alignItems: 'center',
@@ -829,8 +833,12 @@ const styles = StyleSheet.create({
   // Quiz Phase
   quizScroll: {
     flex: 1,
+  },
+  quizScrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingBottom: 100, // Extra padding for Safari bottom UI
   },
   quizContainer: {
     padding: 20,
