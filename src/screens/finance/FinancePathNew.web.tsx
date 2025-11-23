@@ -207,12 +207,20 @@ export const FinancePathNew = ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Text style={styles.backIcon}>←</Text>
+      {/* Blue Duolingo-style Header */}
+      <View style={styles.duolingoHeader}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.duolingoBackButton}>
+          <Text style={styles.duolingoBackIcon}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Finance Path</Text>
-        <View style={{ width: 40 }} />
+        <View style={styles.duolingoHeaderContent}>
+          <View style={styles.duolingoIconCircle}>
+            <Text style={styles.duolingoHeaderIcon}>💰</Text>
+          </View>
+          <View style={styles.duolingoHeaderText}>
+            <Text style={styles.duolingoHeaderTitle}>Financial Freedom</Text>
+            <Text style={styles.duolingoHeaderSubtitle}>10 Steps to Wealth</Text>
+          </View>
+        </View>
       </View>
 
       <ScrollView style={styles.content}>
@@ -359,6 +367,65 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  duolingoHeader: {
+    backgroundColor: '#4A90E2', // Duolingo blue
+    paddingTop: 16,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  duolingoBackButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  duolingoBackIcon: {
+    fontSize: 28,
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  duolingoHeaderContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  duolingoIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  duolingoHeaderIcon: {
+    fontSize: 32,
+  },
+  duolingoHeaderText: {
+    flex: 1,
+  },
+  duolingoHeaderTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  duolingoHeaderSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
   },
   header: {
     flexDirection: 'row',
