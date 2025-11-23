@@ -1,10 +1,23 @@
+/**
+ * Nutrition Lesson Introduction - Duolingo Style
+ * Modern gradient design with engaging visuals
+ */
+
 import React from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Dimensions,
+} from 'react-native';
 import { Text } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../theme/colors';
-import { typography, shadows } from '../../theme/theme';
 import { NUTRITION_FOUNDATIONS } from '../../types/nutrition';
+
+const { width } = Dimensions.get('window');
 
 export const NutritionLessonIntro = ({ route, navigation }: any) => {
   const { lessonId, lessonTitle, foundationId } = route.params;
@@ -13,13 +26,13 @@ export const NutritionLessonIntro = ({ route, navigation }: any) => {
   const foundation = NUTRITION_FOUNDATIONS.find(f => f.id === foundationId);
   const lesson = foundation?.lessons.find(l => l.id === lessonId);
 
-  if (!foundation || !lesson) {
-    return (
-      <View style={styles.container}>
-        <Text>Lesson not found</Text>
-      </View>
-    );
+  if (!lesson) {
+    navigation.goBack();
+    return null;
   }
+
+  const timeEstimate = lesson.estimatedTime;
+  const xpReward = lesson.xp;
 
   const handleStartLesson = () => {
     navigation.navigate('NutritionLessonContent', {
@@ -29,90 +42,123 @@ export const NutritionLessonIntro = ({ route, navigation }: any) => {
     });
   };
 
-  const handleGoBack = () => {
-    navigation.goBack();
-  };
+  // Create preview text
+  const preview = lesson.description;
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
-            <Ionicons name="close" size={28} color={colors.text} />
+      {/* Header with Gradient */}
+      <LinearGradient
+        colors={['#58CC02', '#7FD633']}
+        style={styles.headerGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.headerContent}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
+            <Ionicons name="close" size={28} color="#FFFFFF" />
           </TouchableOpacity>
+
+          {/* Lesson Icon */}
+          <View style={styles.iconContainer}>
+            <View style={styles.iconCircle}>
+              <Ionicons name="restaurant" size={48} color="#58CC02" />
+            </View>
+          </View>
+
+          {/* Lesson Title */}
+          <Text style={styles.headerTitle}>{lessonTitle}</Text>
+
+          {/* Stats Row */}
+          <View style={styles.statsRow}>
+            <View style={styles.statBadge}>
+              <Ionicons name="time-outline" size={16} color="rgba(255,255,255,0.9)" />
+              <Text style={styles.statText}>{timeEstimate} min</Text>
+            </View>
+            <View style={styles.statBadge}>
+              <Ionicons name="star" size={16} color="#FFD700" />
+              <Text style={styles.statText}>+{xpReward} XP</Text>
+            </View>
+          </View>
+        </View>
+      </LinearGradient>
+
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* What You'll Learn Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardIconContainer, { backgroundColor: '#E8F5E9' }]}>
+              <Ionicons name="book" size={24} color={colors.nutrition} />
+            </View>
+            <Text style={styles.cardTitle}>What You'll Learn</Text>
+          </View>
+          <Text style={styles.cardText}>{preview}</Text>
         </View>
 
-        {/* Foundation Badge */}
-        <View style={styles.foundationBadge}>
-          <Text style={styles.foundationBadgeText}>
-            {foundation.icon} Foundation {foundation.number}: {foundation.title}
+        {/* Lesson Type Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardIconContainer, { backgroundColor: '#FFF3E0' }]}>
+              <Ionicons name="star" size={24} color="#FF9800" />
+            </View>
+            <Text style={styles.cardTitle}>Lesson Type</Text>
+          </View>
+          <View style={styles.typeRow}>
+            <View style={[styles.typeBadge, { backgroundColor: '#E8F5E9' }]}>
+              <Text style={styles.typeBadgeText}>{lesson.type.toUpperCase()}</Text>
+            </View>
+            <Text style={styles.typeDescription}>
+              {lesson.type === 'education' && 'Learn new nutrition concepts'}
+              {lesson.type === 'practice' && 'Apply what you learned'}
+              {lesson.type === 'assessment' && 'Test your knowledge'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Foundation Info Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardIconContainer, { backgroundColor: '#F3E5F5' }]}>
+              <Ionicons name="layers" size={24} color="#9C27B0" />
+            </View>
+            <Text style={styles.cardTitle}>Part of {foundation?.title}</Text>
+          </View>
+          <Text style={styles.cardText}>{foundation?.description}</Text>
+        </View>
+
+        {/* Motivational Quote */}
+        <View style={styles.quoteCard}>
+          <Ionicons name="sparkles" size={32} color="#58CC02" />
+          <Text style={styles.quoteText}>
+            "Every lesson brings you closer to nutrition mastery"
           </Text>
         </View>
 
-        {/* Lesson Title */}
-        <View style={styles.titleContainer}>
-          <Text style={styles.lessonTitle}>{lesson.title}</Text>
-          <Text style={styles.lessonDescription}>{lesson.description}</Text>
-        </View>
+        <View style={{ height: 120 }} />
+      </ScrollView>
 
-        {/* Lesson Meta */}
-        <View style={styles.metaContainer}>
-          <View style={styles.metaItem}>
-            <Ionicons name="time-outline" size={24} color={colors.nutrition} />
-            <Text style={styles.metaText}>{lesson.estimatedTime} min</Text>
-          </View>
-          <View style={styles.metaItem}>
-            <Ionicons name="flash" size={24} color={colors.nutrition} />
-            <Text style={styles.metaText}>+{lesson.xp} XP</Text>
-          </View>
-          <View style={styles.metaItem}>
-            <Text style={styles.metaIcon}>
-              {lesson.type === 'education' ? '📚' : lesson.type === 'practice' ? '⚡' : '🎯'}
-            </Text>
-            <Text style={styles.metaText}>
-              {lesson.type === 'education' ? 'Education' : lesson.type === 'practice' ? 'Practice' : 'Assessment'}
-            </Text>
-          </View>
-        </View>
-
-        {/* What You'll Learn */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📝 What You'll Learn</Text>
-          <View style={styles.learnList}>
-            <View style={styles.learnItem}>
-              <Text style={styles.bullet}>•</Text>
-              <Text style={styles.learnText}>
-                Understanding the core concepts of {lesson.title.toLowerCase()}
-              </Text>
-            </View>
-            <View style={styles.learnItem}>
-              <Text style={styles.bullet}>•</Text>
-              <Text style={styles.learnText}>
-                Practical tips you can apply immediately
-              </Text>
-            </View>
-            <View style={styles.learnItem}>
-              <Text style={styles.bullet}>•</Text>
-              <Text style={styles.learnText}>
-                Science-backed strategies for optimal nutrition
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Start Button */}
+      {/* Start Button - Fixed at Bottom */}
+      <View style={styles.bottomBar}>
         <TouchableOpacity
           style={styles.startButton}
           onPress={handleStartLesson}
           activeOpacity={0.9}
         >
-          <Text style={styles.startButtonText}>START LESSON</Text>
-          <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
+          <LinearGradient
+            colors={['#58CC02', '#7FD633']}
+            style={styles.startButtonGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Text style={styles.startButtonText}>START LESSON</Text>
+            <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
+          </LinearGradient>
         </TouchableOpacity>
-
-        <View style={styles.bottomSpacer} />
-      </ScrollView>
+      </View>
     </View>
   );
 };
@@ -120,126 +166,178 @@ export const NutritionLessonIntro = ({ route, navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#F5F8FA',
   },
-  content: {
-    paddingBottom: 40,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
+  headerGradient: {
     paddingTop: 60,
-    paddingBottom: 20,
+    paddingBottom: 40,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
-  backButton: {
-    padding: 8,
-  },
-  foundationBadge: {
-    marginHorizontal: 20,
-    backgroundColor: colors.nutrition + '20',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.nutrition,
-    marginBottom: 24,
-  },
-  foundationBadgeText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: colors.nutrition,
-    textAlign: 'center',
-  },
-  titleContainer: {
-    paddingHorizontal: 20,
-    marginBottom: 24,
-  },
-  lessonTitle: {
-    ...typography.heading,
-    fontSize: 32,
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  lessonDescription: {
-    fontSize: 16,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  metaContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    marginHorizontal: 20,
-    backgroundColor: colors.backgroundGray,
-    borderRadius: 16,
-    marginBottom: 32,
-  },
-  metaItem: {
+  headerContent: {
     alignItems: 'center',
-  },
-  metaIcon: {
-    fontSize: 24,
-  },
-  metaText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.text,
-    marginTop: 4,
-  },
-  section: {
     paddingHorizontal: 20,
-    marginBottom: 32,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text,
+  closeButton: {
+    position: 'absolute',
+    top: 0,
+    left: 20,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconContainer: {
+    marginBottom: 20,
+  },
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    textAlign: 'center',
     marginBottom: 16,
+    paddingHorizontal: 20,
   },
-  learnList: {
-    backgroundColor: colors.backgroundGray,
-    borderRadius: 16,
+  statsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  statBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  statText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
     padding: 20,
   },
-  learnItem: {
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  cardHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 12,
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  bullet: {
-    fontSize: 20,
-    color: colors.nutrition,
+  cardIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 12,
-    marginTop: -2,
   },
-  learnText: {
-    flex: 1,
-    fontSize: 16,
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
     color: colors.text,
-    lineHeight: 24,
+  },
+  cardText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: colors.textSecondary,
+  },
+  typeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  typeBadge: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  typeBadgeText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#58CC02',
+  },
+  typeDescription: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.textSecondary,
+  },
+  quoteCard: {
+    backgroundColor: '#E8F5E9',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  quoteText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+    marginTop: 12,
+    fontStyle: 'italic',
+  },
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    paddingBottom: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
   },
   startButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#58CC02',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  startButtonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.nutrition,
-    marginHorizontal: 20,
     paddingVertical: 18,
-    borderRadius: 16,
-    ...shadows.medium,
+    gap: 12,
   },
   startButtonText: {
     fontSize: 18,
     fontWeight: '800',
     color: '#FFFFFF',
-    marginRight: 12,
-    letterSpacing: 1,
-  },
-  bottomSpacer: {
-    height: 40,
+    letterSpacing: 0.5,
   },
 });
