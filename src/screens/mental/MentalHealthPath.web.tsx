@@ -301,22 +301,32 @@ export const MentalHealthPath = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
+      {/* Gradient Header */}
+      <LinearGradient
+        colors={['#CE82FF', '#B366FF']}
+        style={styles.headerGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={28} color="#FFFFFF" />
+          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <View style={styles.headerIconCircle}>
+              <Ionicons name="brain" size={32} color="#CE82FF" />
+            </View>
+            <Text style={styles.headerTitle}>Mental Wellness Path</Text>
+            <Text style={styles.headerSubtitle}>5 Foundations of Mental Health</Text>
+          </View>
+        </View>
+      </LinearGradient>
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={28} color={colors.text} />
-          </TouchableOpacity>
-          <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>🧠 Mental Wellness Path</Text>
-            <Text style={styles.headerSubtitle}>5 Foundations of Mental Health</Text>
-          </View>
-          <View style={{ width: 28 }} />
-        </View>
 
         {/* Mental Tools Section */}
         <View style={styles.toolsSection}>
@@ -407,26 +417,54 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingBottom: 40,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 20,
+  headerGradient: {
     paddingTop: 60,
+    paddingBottom: 30,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
+  },
+  header: {
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 20,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 0,
+    left: 20,
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 10,
+  },
+  headerIconCircle: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
   },
   headerContent: {
     flex: 1,
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: '800',
-    color: colors.text,
+    color: '#FFFFFF',
+    marginBottom: 6,
   },
   headerSubtitle: {
-    fontSize: 13,
-    color: colors.textLight,
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
     fontWeight: '600',
   },
   // Tools Section
