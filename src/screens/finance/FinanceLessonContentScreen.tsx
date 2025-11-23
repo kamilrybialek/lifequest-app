@@ -179,7 +179,7 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
       });
     } else {
       // Navigate back to main finance path
-      navigation.goBack();
+      navigation.navigate('FinancePathNew');
     }
   };
 
