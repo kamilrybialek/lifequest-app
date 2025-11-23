@@ -81,24 +81,60 @@ export const FinanceLessonIntro = ({ route, navigation }: any) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Simple Summary - 2-3 sentences */}
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryText}>{summary}</Text>
+        {/* What You'll Learn Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardIconContainer, { backgroundColor: '#E3F2FD' }]}>
+              <Ionicons name="book" size={24} color={colors.finance} />
+            </View>
+            <Text style={styles.cardTitle}>What You'll Learn</Text>
+          </View>
+          <Text style={styles.cardText}>{summary}</Text>
+        </View>
 
-          <View style={styles.statsRow}>
-            <View style={styles.statBadge}>
-              <Ionicons name="time-outline" size={16} color="#4A90E2" />
-              <Text style={styles.statText}>{timeEstimate} min</Text>
+        {/* Topics Covered Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardIconContainer, { backgroundColor: '#E8F5E9' }]}>
+              <Ionicons name="list" size={24} color="#4CAF50" />
             </View>
-            <View style={styles.statBadge}>
-              <Ionicons name="star" size={16} color="#FFD700" />
-              <Text style={styles.statText}>+{xpReward} XP</Text>
-            </View>
+            <Text style={styles.cardTitle}>Topics Covered</Text>
+          </View>
+          <View style={styles.topicsList}>
+            {sections.slice(0, 5).map((section: any, index: number) => (
+              <View key={index} style={styles.topicItem}>
+                <View style={styles.topicNumber}>
+                  <Text style={styles.topicNumberText}>{index + 1}</Text>
+                </View>
+                <Text style={styles.topicText}>
+                  {section.title || `Section ${index + 1}`}
+                </Text>
+                <Ionicons name="checkmark-circle" size={20} color="#E0E0E0" />
+              </View>
+            ))}
           </View>
         </View>
 
+        {/* Action Question Card */}
+        {lessonContent.actionQuestion && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <View style={[styles.cardIconContainer, { backgroundColor: '#FFF3E0' }]}>
+                <Ionicons name="create" size={24} color="#FF9800" />
+              </View>
+              <Text style={styles.cardTitle}>You'll Be Asked</Text>
+            </View>
+            <View style={styles.questionPreview}>
+              <Text style={styles.questionText}>{lessonContent.actionQuestion.question}</Text>
+              <Text style={styles.questionHint}>
+                You'll answer this at the end of the lesson
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* Bottom Spacing */}
-        <View style={{ height: 120 }} />
+        <View style={{ height: 100 }} />
       </ScrollView>
 
       {/* Fixed Start Button */}
@@ -172,40 +208,85 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 20,
+    paddingBottom: 40,
   },
-  summaryCard: {
+  card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 24,
+    padding: 20,
+    marginBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 3,
   },
-  summaryText: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: colors.text,
-    marginBottom: 20,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  statBadge: {
+  cardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F8FA',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    gap: 6,
+    marginBottom: 12,
   },
-  statText: {
+  cardIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  cardText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: colors.textSecondary,
+  },
+  topicsList: {
+    gap: 12,
+  },
+  topicItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  topicNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#E3F2FD',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topicNumberText: {
     fontSize: 14,
+    fontWeight: '700',
+    color: '#4A90E2',
+  },
+  topicText: {
+    flex: 1,
+    fontSize: 15,
+    color: colors.text,
+  },
+  questionPreview: {
+    backgroundColor: '#FFF9E6',
+    padding: 16,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF9800',
+  },
+  questionText: {
+    fontSize: 15,
     fontWeight: '600',
     color: colors.text,
+    marginBottom: 8,
+  },
+  questionHint: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
   },
   buttonContainer: {
     position: 'absolute',
