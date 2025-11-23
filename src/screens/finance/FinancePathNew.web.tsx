@@ -111,7 +111,10 @@ export const FinancePathNew = ({ navigation }: any) => {
       ]).start();
     }
 
-    navigation.navigate('FinanceLessonContent', {
+    // Use integrated screen for lessons with interactive tools, otherwise use standard content screen
+    const screenName = lesson.integratedTool ? 'FinanceLessonIntegrated' : 'FinanceLessonContent';
+
+    navigation.navigate(screenName, {
       lessonId: lesson.id,
       stepId: step.id,
       lessonTitle: lesson.title,

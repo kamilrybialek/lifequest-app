@@ -16,6 +16,7 @@ import { NutritionPath } from '../screens/nutrition/NutritionPath';
 
 // Lesson screens
 import { FinanceLessonContentScreen } from '../screens/finance/FinanceLessonContentScreen';
+import { FinanceLessonIntegratedScreen } from '../screens/finance/FinanceLessonIntegratedScreen';
 import { MentalLessonIntro } from '../screens/mental/MentalLessonIntro';
 import { MentalLessonContent } from '../screens/mental/MentalLessonContent';
 import { PhysicalLessonIntro } from '../screens/physical/PhysicalLessonIntro';
@@ -104,6 +105,7 @@ export const AppNavigator = () => {
 
             {/* Lesson screens */}
             <Stack.Screen name="FinanceLessonContent" component={FinanceLessonContentScreen} />
+            <Stack.Screen name="FinanceLessonIntegrated" component={FinanceLessonIntegratedScreen} />
             <Stack.Screen name="MentalLessonIntro" component={MentalLessonIntro} />
             <Stack.Screen name="MentalLessonContent" component={MentalLessonContent} />
             <Stack.Screen name="PhysicalLessonIntro" component={PhysicalLessonIntro} />
