@@ -3,8 +3,8 @@
  * Matching Journey and Tasks screen design language
  */
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView,  TouchableOpacity, RefreshControl, Alert, Modal, TextInput, FlatList } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, Modal, TextInput, FlatList, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,16 +13,26 @@ import { useAppStore } from '../../store/appStore';
 import { useCurrencyStore } from '../../store/currencyStore';
 import { CURRENCIES } from '../../constants/currencies';
 import { deleteAllUserData } from '../../services/firebaseUserService';
+import { pickImage, uploadProfilePhoto, deleteProfilePhoto } from '../../services/photoUploadService';
 
 export const ProfileScreenNew = () => {
-  const { user, logout } = useAuthStore();
+  const { user, logout, updateProfile } = useAuthStore();
   const { progress, loadAppData } = useAppStore();
   const { currency, setCurrency } = useCurrencyStore();
   const [refreshing, setRefreshing] = useState(false);
   const [showCurrencyModal, setShowCurrencyModal] = useState(false);
   const [currencySearch, setCurrencySearch] = useState('');
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const firstName = user?.firstName || user?.email?.split('@')[0] || 'Champion';
+
+  useEffect(() => {
+    // Load profile photo from user data
+    if (user?.photoURL) {
+      setProfilePhoto(user.photoURL);
+    }
+  }, [user?.photoURL]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -55,6 +65,82 @@ export const ProfileScreenNew = () => {
   const handleSettingPress = (setting: string) => {
     console.log('Setting pressed:', setting);
     // TODO: Implement settings navigation
+  };
+
+  const handleUploadPhoto = async () => {
+    if (!user?.id) {
+      Alert.alert('Error', 'User not logged in');
+      return;
+    }
+
+    try {
+      setUploadingPhoto(true);
+
+      // Pick image
+      const imageUri = await pickImage();
+      if (!imageUri) {
+        setUploadingPhoto(false);
+        return;
+      }
+
+      // Upload to Firebase
+      const downloadURL = await uploadProfilePhoto(user.id, imageUri);
+
+      // Update local state
+      setProfilePhoto(downloadURL);
+
+      // Update auth store (if you have photoURL in user object)
+      if (updateProfile) {
+        await updateProfile({ photoURL: downloadURL });
+      }
+
+      Alert.alert('✅ Success', 'Profile photo updated successfully!');
+    } catch (error: any) {
+      console.error('Error uploading photo:', error);
+      Alert.alert(
+        '❌ Upload Failed',
+        error.message || 'Failed to upload photo. Please try again.'
+      );
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleDeletePhoto = async () => {
+    if (!user?.id || !profilePhoto) {
+      return;
+    }
+
+    Alert.alert(
+      'Delete Photo?',
+      'Are you sure you want to remove your profile photo?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setUploadingPhoto(true);
+              await deleteProfilePhoto(user.id, profilePhoto);
+              setProfilePhoto(null);
+
+              // Update auth store
+              if (updateProfile) {
+                await updateProfile({ photoURL: null });
+              }
+
+              Alert.alert('✅ Deleted', 'Profile photo removed successfully');
+            } catch (error) {
+              console.error('Error deleting photo:', error);
+              Alert.alert('Error', 'Failed to delete photo. Please try again.');
+            } finally {
+              setUploadingPhoto(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleRemoveUserAccount = async () => {
@@ -143,6 +229,49 @@ export const ProfileScreenNew = () => {
           <TouchableOpacity onPress={handleLogout} style={styles.headerLogout}>
             <Ionicons name="log-out-outline" size={20} color="rgba(255,255,255,0.9)" />
           </TouchableOpacity>
+        </View>
+
+        {/* Profile Photo Section */}
+        <View style={styles.photoSection}>
+          <View style={styles.photoContainer}>
+            {uploadingPhoto ? (
+              <View style={styles.photoPlaceholder}>
+                <ActivityIndicator size="large" color="#4A90E2" />
+                <Text style={styles.uploadingText}>Uploading...</Text>
+              </View>
+            ) : profilePhoto ? (
+              <Image source={{ uri: profilePhoto }} style={styles.profilePhoto} />
+            ) : (
+              <View style={styles.photoPlaceholder}>
+                <Ionicons name="person" size={60} color="#CCC" />
+              </View>
+            )}
+
+            {/* Photo Actions */}
+            <View style={styles.photoActions}>
+              <TouchableOpacity
+                style={styles.photoButton}
+                onPress={handleUploadPhoto}
+                disabled={uploadingPhoto}
+              >
+                <Ionicons name="camera" size={20} color="white" />
+              </TouchableOpacity>
+
+              {profilePhoto && !uploadingPhoto && (
+                <TouchableOpacity
+                  style={[styles.photoButton, styles.deleteButton]}
+                  onPress={handleDeletePhoto}
+                >
+                  <Ionicons name="trash" size={20} color="white" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          <View style={styles.photoInfo}>
+            <Text style={styles.photoTitle}>{firstName}</Text>
+            <Text style={styles.photoSubtitle}>Level {progress.level} • {progress.totalPoints} XP</Text>
+          </View>
         </View>
 
         {/* Stats Bar - overlapping header */}
@@ -530,6 +659,86 @@ const styles = StyleSheet.create({
   headerLogout: {
     padding: 8,
     marginTop: 8,
+  },
+  // Profile Photo Section
+  photoSection: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    marginTop: -40,
+  },
+  photoContainer: {
+    position: 'relative',
+    marginBottom: 12,
+  },
+  profilePhoto: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 4,
+    borderColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  photoPlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#F5F8FA',
+    borderWidth: 4,
+    borderColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  uploadingText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 8,
+  },
+  photoActions: {
+    position: 'absolute',
+    bottom: 0,
+    right: -5,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  photoButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#4A90E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  deleteButton: {
+    backgroundColor: '#FF4B4B',
+  },
+  photoInfo: {
+    alignItems: 'center',
+  },
+  photoTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  photoSubtitle: {
+    fontSize: 14,
+    color: '#666',
   },
   // Stats Bar - overlapping header
   statsBar: {

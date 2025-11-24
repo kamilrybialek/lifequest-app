@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, setPersistence, browserLocalPersistence, indexedDBLocalPersistence, Auth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 import { Platform } from 'react-native';
 
 // 🔥 FIREBASE CONFIGURATION
@@ -74,11 +75,15 @@ if (Platform.OS === 'web') {
 // Initialize Firestore (online-only mode, no offline persistence)
 const db = getFirestore(app);
 
+// Initialize Firebase Storage
+const storage = getStorage(app);
+
 // DISABLED: Firestore offline persistence causes connection issues on Safari/iOS
 // Firestore will work in online-only mode, which is sufficient for this app
 // The critical persistence is Auth (localStorage), not Firestore cache
-console.log('📡 [3/3] Firestore initialized (online-only mode, no offline cache)');
-console.log('💡 Auth persistence: localStorage | Firestore: online-only')
+console.log('📡 [3/4] Firestore initialized (online-only mode, no offline cache)');
+console.log('📦 [4/4] Firebase Storage initialized');
+console.log('💡 Auth persistence: localStorage | Firestore: online-only | Storage: enabled')
 
-export { auth, db, authPersistenceReady };
+export { auth, db, storage, authPersistenceReady };
 export default app;
