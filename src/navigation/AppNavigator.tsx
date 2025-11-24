@@ -8,6 +8,9 @@ import { TabNavigatorNew } from './TabNavigatorNew';
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { OnboardingScreen } from '../screens/auth/OnboardingScreen';
 
+// Loading screen
+import { LoadingScreen } from '../screens/LoadingScreen';
+
 // Path screens - web versions
 import { FinancePathNew } from '../screens/finance/FinancePathNew';
 import { MentalHealthPath } from '../screens/mental/MentalHealthPath';
@@ -80,7 +83,7 @@ export const AppNavigator = () => {
   }
 
   if (isLoading) {
-    return null;
+    return <LoadingScreen />;
   }
 
   // TEMPORARY DEBUG: Log before returning JSX
