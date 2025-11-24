@@ -18,14 +18,26 @@ export const ProfileScreenNew = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoLoading, setPhotoLoading] = useState(false);
+  const [photoError, setPhotoError] = useState(false);
 
   const firstName = user?.firstName || user?.email?.split('@')[0] || 'Champion';
 
   useEffect(() => {
     const loadPhoto = async () => {
       if (user?.id) {
-        const photoURL = await getProfilePhotoURL(user.id);
-        setProfilePhoto(photoURL);
+        try {
+          setPhotoLoading(true);
+          setPhotoError(false);
+          const photoURL = await getProfilePhotoURL(user.id);
+          console.log('📸 Loaded photo URL:', photoURL);
+          setProfilePhoto(photoURL);
+        } catch (error) {
+          console.error('❌ Error loading photo:', error);
+          setPhotoError(true);
+        } finally {
+          setPhotoLoading(false);
+        }
       }
     };
     loadPhoto();
@@ -48,15 +60,20 @@ export const ProfileScreenNew = () => {
 
     try {
       setUploadingPhoto(true);
+      setPhotoError(false);
       const imageUri = await pickImage();
 
       if (imageUri) {
+        console.log('📸 Image picked, uploading...');
         const downloadURL = await uploadProfilePhoto(user.id, imageUri);
+        console.log('✅ Upload complete, URL:', downloadURL);
         setProfilePhoto(downloadURL);
+        setPhotoLoading(true); // Will be set to false when Image onLoad fires
         window.alert('✅ Photo uploaded successfully!');
       }
     } catch (error) {
-      console.error('Error uploading photo:', error);
+      console.error('❌ Error uploading photo:', error);
+      setPhotoError(true);
       window.alert('❌ Failed to upload photo. Please try again.');
     } finally {
       setUploadingPhoto(false);
@@ -165,31 +182,53 @@ export const ProfileScreenNew = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Header - Duolingo Style */}
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <Text style={styles.headerEmoji}>👤</Text>
-            <Text style={styles.headerTitle}>Profile</Text>
-            <Text style={styles.headerSubtitle}>Keep growing, {firstName}!</Text>
-          </View>
-          <TouchableOpacity onPress={handleLogout} style={styles.headerLogout}>
-            <Ionicons name="log-out-outline" size={20} color="rgba(255,255,255,0.9)" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Profile Photo Section */}
+        {/* Profile Photo Section with Header */}
         <View style={styles.photoSection}>
+          {/* Logout button in corner */}
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutButtonTop}>
+            <Ionicons name="log-out-outline" size={24} color="#666" />
+          </TouchableOpacity>
+
           <View style={styles.photoContainer}>
             {uploadingPhoto ? (
               <View style={styles.photoPlaceholder}>
                 <ActivityIndicator size="large" color="#4A90E2" />
                 <Text style={styles.uploadingText}>Uploading...</Text>
               </View>
-            ) : profilePhoto ? (
-              <Image source={{ uri: profilePhoto }} style={styles.profilePhoto} />
+            ) : profilePhoto && !photoError ? (
+              <>
+                <Image
+                  key={profilePhoto}
+                  source={{ uri: profilePhoto }}
+                  style={styles.profilePhoto}
+                  resizeMode="cover"
+                  onLoadStart={() => {
+                    console.log('🔄 Photo loading started...');
+                    setPhotoLoading(true);
+                  }}
+                  onLoad={() => {
+                    console.log('✅ Photo loaded successfully');
+                    setPhotoLoading(false);
+                    setPhotoError(false);
+                  }}
+                  onError={(error) => {
+                    console.error('❌ Image load error:', error);
+                    setPhotoError(true);
+                    setPhotoLoading(false);
+                  }}
+                />
+                {photoLoading && (
+                  <View style={[styles.photoPlaceholder, { position: 'absolute' }]}>
+                    <ActivityIndicator size="large" color="#4A90E2" />
+                  </View>
+                )}
+              </>
             ) : (
               <View style={styles.photoPlaceholder}>
                 <Ionicons name="person" size={60} color="#CCC" />
+                {photoError && (
+                  <Text style={styles.errorText}>Load failed</Text>
+                )}
               </View>
             )}
 
@@ -220,7 +259,7 @@ export const ProfileScreenNew = () => {
           </View>
         </View>
 
-        {/* Stats Bar - overlapping header */}
+        {/* Stats Bar */}
         <View style={styles.statsBar}>
           <View style={styles.statItem}>
             <Ionicons name="star" size={20} color="#FFD700" />
@@ -522,8 +561,16 @@ const styles = StyleSheet.create({
   // Profile Photo Section
   photoSection: {
     alignItems: 'center',
-    paddingVertical: 20,
-    marginTop: -40,
+    paddingVertical: 30,
+    paddingTop: 50,
+    position: 'relative',
+  },
+  logoutButtonTop: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    padding: 8,
+    zIndex: 10,
   },
   photoContainer: {
     position: 'relative',
@@ -559,6 +606,11 @@ const styles = StyleSheet.create({
   uploadingText: {
     fontSize: 12,
     color: '#666',
+    marginTop: 8,
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#FF4B4B',
     marginTop: 8,
   },
   photoActions: {
@@ -599,12 +651,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
   },
-  // Stats Bar - overlapping header
+  // Stats Bar
   statsBar: {
     flexDirection: 'row',
     backgroundColor: 'white',
     marginHorizontal: 20,
-    marginTop: -20,
+    marginTop: 10,
     borderRadius: 16,
     padding: 12,
     justifyContent: 'space-around',

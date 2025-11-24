@@ -26,7 +26,8 @@ const compressImage = async (
   if (Platform.OS === 'web') {
     return new Promise((resolve, reject) => {
       const img = new Image();
-      img.crossOrigin = 'anonymous';
+      // Don't set crossOrigin for data URLs from FileReader
+      // img.crossOrigin = 'anonymous';
 
       img.onload = () => {
         // Calculate new dimensions
