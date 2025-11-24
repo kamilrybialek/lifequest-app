@@ -687,121 +687,6 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
           </View>
         </TouchableOpacity>
 
-        {/* Net Worth Calculator - Collapsible */}
-        <View style={styles.calculatorSection}>
-          <TouchableOpacity
-            style={styles.calculatorHeader}
-            onPress={() => setShowNetWorthCalculator(!showNetWorthCalculator)}
-            activeOpacity={0.7}
-          >
-            <View style={styles.calculatorHeaderLeft}>
-              <Ionicons name="calculator" size={24} color={colors.finance} />
-              <Text style={styles.calculatorHeaderTitle}>Net Worth Calculator</Text>
-            </View>
-            <Ionicons
-              name={showNetWorthCalculator ? 'chevron-up' : 'chevron-down'}
-              size={24}
-              color={colors.textSecondary}
-            />
-          </TouchableOpacity>
-
-          {showNetWorthCalculator && (
-            <View style={styles.calculatorContent}>
-              {/* Assets Section */}
-              <View style={styles.calculatorSubsection}>
-                <View style={styles.calculatorSubsectionHeader}>
-                  <Ionicons name="trending-up" size={20} color={colors.success} />
-                  <Text style={styles.calculatorSubsectionTitle}>Assets (What You Own)</Text>
-                </View>
-
-                {renderCalculatorInput('Cash Savings', cashSavings, setCashSavings, 'cash', colors.success)}
-                {renderCalculatorInput('Checking Account', checkingBalance, setCheckingBalance, 'card', colors.success)}
-                {renderCalculatorInput('Investments', investments, setInvestments, 'stats-chart', colors.success)}
-                {renderCalculatorInput('Retirement Accounts', retirement, setRetirement, 'time', colors.success)}
-                {renderCalculatorInput('Home Value', homeValue, setHomeValue, 'home', colors.success)}
-                {renderCalculatorInput('Vehicle Value', vehicleValue, setVehicleValue, 'car', colors.success)}
-                {renderCalculatorInput('Other Assets', otherAssets, setOtherAssets, 'ellipsis-horizontal', colors.success)}
-
-                <View style={styles.calculatorTotalRow}>
-                  <Text style={styles.calculatorTotalLabel}>Total Assets:</Text>
-                  <Text style={[styles.calculatorTotalValue, { color: colors.success }]}>
-                    ${calculateNetWorthFromInputs().totalAssets.toLocaleString()}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Liabilities Section */}
-              <View style={styles.calculatorSubsection}>
-                <View style={styles.calculatorSubsectionHeader}>
-                  <Ionicons name="trending-down" size={20} color={colors.error} />
-                  <Text style={styles.calculatorSubsectionTitle}>Liabilities (What You Owe)</Text>
-                </View>
-
-                {renderCalculatorInput('Mortgage', mortgage, setMortgage, 'home-outline', colors.error)}
-                {renderCalculatorInput('Auto Loans', autoLoans, setAutoLoans, 'car-outline', colors.error)}
-                {renderCalculatorInput('Student Loans', studentLoans, setStudentLoans, 'school-outline', colors.error)}
-                {renderCalculatorInput('Credit Cards', creditCards, setCreditCards, 'card-outline', colors.error)}
-                {renderCalculatorInput('Personal Loans', personalLoans, setPersonalLoans, 'people-outline', colors.error)}
-                {renderCalculatorInput('Other Debts', otherDebts, setOtherDebts, 'ellipsis-horizontal-outline', colors.error)}
-
-                <View style={styles.calculatorTotalRow}>
-                  <Text style={styles.calculatorTotalLabel}>Total Liabilities:</Text>
-                  <Text style={[styles.calculatorTotalValue, { color: colors.error }]}>
-                    ${calculateNetWorthFromInputs().totalLiabilities.toLocaleString()}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Net Worth Summary */}
-              <LinearGradient
-                colors={
-                  calculateNetWorthFromInputs().calculatedNetWorth >= 0
-                    ? [colors.success, '#46A302']
-                    : [colors.error, '#CC0000']
-                }
-                style={styles.calculatorSummaryCard}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <Text style={styles.calculatorSummaryLabel}>Your Net Worth</Text>
-                <Text style={styles.calculatorSummaryValue}>
-                  ${calculateNetWorthFromInputs().calculatedNetWorth.toLocaleString()}
-                </Text>
-                <Text style={styles.calculatorSummarySubtext}>
-                  {calculateNetWorthFromInputs().calculatedNetWorth >= 0
-                    ? '✅ Positive Net Worth'
-                    : '⚠️ Negative - Your Starting Point'}
-                </Text>
-              </LinearGradient>
-
-              {/* Info Card */}
-              <View style={styles.calculatorInfoCard}>
-                <Ionicons name="information-circle" size={20} color={colors.finance} />
-                <Text style={styles.calculatorInfoText}>
-                  Net worth = Assets − Liabilities. Track it monthly to see your financial progress!
-                </Text>
-              </View>
-
-              {/* Save Button */}
-              <TouchableOpacity
-                style={styles.calculatorSaveButton}
-                onPress={handleSaveNetWorth}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={[colors.finance, '#E68A00']}
-                  style={styles.calculatorSaveButtonGradient}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                >
-                  <Text style={styles.calculatorSaveButtonText}>Calculate & Save Net Worth</Text>
-                  <Ionicons name="checkmark-circle" size={22} color="#FFF" />
-                </LinearGradient>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-
         {/* Recent Transactions */}
         {recentExpenses.length > 0 && (
           <View style={styles.section}>
@@ -1544,6 +1429,121 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
           <Text style={styles.netWorthNote}>
             💡 Pay down debts to increase your net worth over time
           </Text>
+        </View>
+
+        {/* Net Worth Calculator - Collapsible */}
+        <View style={styles.calculatorSection}>
+          <TouchableOpacity
+            style={styles.calculatorHeader}
+            onPress={() => setShowNetWorthCalculator(!showNetWorthCalculator)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.calculatorHeaderLeft}>
+              <Ionicons name="calculator" size={24} color={colors.finance} />
+              <Text style={styles.calculatorHeaderTitle}>Net Worth Calculator</Text>
+            </View>
+            <Ionicons
+              name={showNetWorthCalculator ? 'chevron-up' : 'chevron-down'}
+              size={24}
+              color={colors.textSecondary}
+            />
+          </TouchableOpacity>
+
+          {showNetWorthCalculator && (
+            <View style={styles.calculatorContent}>
+              {/* Assets Section */}
+              <View style={styles.calculatorSubsection}>
+                <View style={styles.calculatorSubsectionHeader}>
+                  <Ionicons name="trending-up" size={20} color={colors.success} />
+                  <Text style={styles.calculatorSubsectionTitle}>Assets (What You Own)</Text>
+                </View>
+
+                {renderCalculatorInput('Cash Savings', cashSavings, setCashSavings, 'cash', colors.success)}
+                {renderCalculatorInput('Checking Account', checkingBalance, setCheckingBalance, 'card', colors.success)}
+                {renderCalculatorInput('Investments', investments, setInvestments, 'stats-chart', colors.success)}
+                {renderCalculatorInput('Retirement Accounts', retirement, setRetirement, 'time', colors.success)}
+                {renderCalculatorInput('Home Value', homeValue, setHomeValue, 'home', colors.success)}
+                {renderCalculatorInput('Vehicle Value', vehicleValue, setVehicleValue, 'car', colors.success)}
+                {renderCalculatorInput('Other Assets', otherAssets, setOtherAssets, 'ellipsis-horizontal', colors.success)}
+
+                <View style={styles.calculatorTotalRow}>
+                  <Text style={styles.calculatorTotalLabel}>Total Assets:</Text>
+                  <Text style={[styles.calculatorTotalValue, { color: colors.success }]}>
+                    ${calculateNetWorthFromInputs().totalAssets.toLocaleString()}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Liabilities Section */}
+              <View style={styles.calculatorSubsection}>
+                <View style={styles.calculatorSubsectionHeader}>
+                  <Ionicons name="trending-down" size={20} color={colors.error} />
+                  <Text style={styles.calculatorSubsectionTitle}>Liabilities (What You Owe)</Text>
+                </View>
+
+                {renderCalculatorInput('Mortgage', mortgage, setMortgage, 'home-outline', colors.error)}
+                {renderCalculatorInput('Auto Loans', autoLoans, setAutoLoans, 'car-outline', colors.error)}
+                {renderCalculatorInput('Student Loans', studentLoans, setStudentLoans, 'school-outline', colors.error)}
+                {renderCalculatorInput('Credit Cards', creditCards, setCreditCards, 'card-outline', colors.error)}
+                {renderCalculatorInput('Personal Loans', personalLoans, setPersonalLoans, 'people-outline', colors.error)}
+                {renderCalculatorInput('Other Debts', otherDebts, setOtherDebts, 'ellipsis-horizontal-outline', colors.error)}
+
+                <View style={styles.calculatorTotalRow}>
+                  <Text style={styles.calculatorTotalLabel}>Total Liabilities:</Text>
+                  <Text style={[styles.calculatorTotalValue, { color: colors.error }]}>
+                    ${calculateNetWorthFromInputs().totalLiabilities.toLocaleString()}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Net Worth Summary */}
+              <LinearGradient
+                colors={
+                  calculateNetWorthFromInputs().calculatedNetWorth >= 0
+                    ? [colors.success, '#46A302']
+                    : [colors.error, '#CC0000']
+                }
+                style={styles.calculatorSummaryCard}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Text style={styles.calculatorSummaryLabel}>Your Net Worth</Text>
+                <Text style={styles.calculatorSummaryValue}>
+                  ${calculateNetWorthFromInputs().calculatedNetWorth.toLocaleString()}
+                </Text>
+                <Text style={styles.calculatorSummarySubtext}>
+                  {calculateNetWorthFromInputs().calculatedNetWorth >= 0
+                    ? '✅ Positive Net Worth'
+                    : '⚠️ Negative - Your Starting Point'}
+                </Text>
+              </LinearGradient>
+
+              {/* Info Card */}
+              <View style={styles.calculatorInfoCard}>
+                <Ionicons name="information-circle" size={20} color={colors.finance} />
+                <Text style={styles.calculatorInfoText}>
+                  Net worth = Assets − Liabilities. Track it monthly to see your financial progress!
+                </Text>
+              </View>
+
+              {/* Save Button */}
+              <TouchableOpacity
+                style={styles.calculatorSaveButton}
+                onPress={handleSaveNetWorth}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={[colors.finance, '#E68A00']}
+                  style={styles.calculatorSaveButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Text style={styles.calculatorSaveButtonText}>Calculate & Save Net Worth</Text>
+                  <Ionicons name="checkmark-circle" size={22} color="#FFF" />
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         <View style={styles.bottomSpacer} />
