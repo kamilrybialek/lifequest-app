@@ -33,7 +33,7 @@ interface QuickAction {
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
-  { id: '1', title: 'Finance', icon: '💰', color: ['#4A90E2', '#5FA3E8'], description: 'Track finances', screen: 'FinancePathNew' },
+  { id: '1', title: 'Finance', icon: '💰', color: ['#4A90E2', '#4A90E2'], description: 'Track finances', screen: 'FinancePathNew' },
   { id: '2', title: 'Mental', icon: '🧠', color: ['#9C27B0', '#BA68C8'], description: 'Mental wellness', screen: 'MentalHealthPath' },
   { id: '3', title: 'Physical', icon: '💪', color: ['#FF6B6B', '#FF8787'], description: 'Physical health', screen: 'PhysicalHealthPath' },
   { id: '4', title: 'Nutrition', icon: '🥗', color: ['#4CAF50', '#66BB6A'], description: 'Nutrition', screen: 'NutritionPath' },
@@ -92,7 +92,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <LinearGradient
-        colors={['#4A90E2', '#5FA3E8']}
+        colors={['#4A90E2', '#4A90E2']}
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}

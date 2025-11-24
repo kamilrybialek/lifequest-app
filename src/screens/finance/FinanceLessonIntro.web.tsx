@@ -59,7 +59,7 @@ export const FinanceLessonIntro = ({ route, navigation }: any) => {
   return (
     <View style={styles.container}>
       <LinearGradient
-        colors={['#4A90E2', '#5FA3E8']}
+        colors={['#4A90E2', '#4A90E2']}
         style={styles.introGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}

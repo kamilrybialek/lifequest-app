@@ -142,7 +142,7 @@ export const FinancePathNew = ({ navigation }: any) => {
         case 'locked':
           return ['#CCCCCC', '#999999'];
         default:
-          return ['#4A90E2', '#5FA3E8'];
+          return ['#4A90E2', '#4A90E2'];
       }
     };
 
@@ -208,7 +208,7 @@ export const FinancePathNew = ({ navigation }: any) => {
           colors={
             step.status === 'locked'
               ? (['#999999', '#CCCCCC'] as const)
-              : (['#4A90E2', '#5FA3E8'] as const)
+              : (['#4A90E2', '#4A90E2'] as const)
           }
           style={styles.stepHeader}
           start={{ x: 0, y: 0 }}
@@ -268,7 +268,7 @@ export const FinancePathNew = ({ navigation }: any) => {
     <View style={styles.container}>
       {/* Gradient Header */}
       <LinearGradient
-        colors={['#4A90E2', '#5FA3E8']}
+        colors={['#4A90E2', '#4A90E2']}
         style={styles.headerGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
