@@ -32,6 +32,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { useAuthStore } from '../../store/authStore';
+import { useCurrencyStore } from '../../store/currencyStore';
+import { getCurrency } from '../../constants/currencies';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   getFinancialOverview,
@@ -141,6 +143,8 @@ const INCOME_CATEGORIES = [
 export const FinanceDashboardUnified = ({ navigation }: any) => {
   const { user } = useAuthStore();
   const isDemoUser = user?.id === 'demo-user-local';
+  const { currency, formatAmount } = useCurrencyStore();
+  const currencyData = getCurrency(currency);
 
   // Tab state
   const [activeTab, setActiveTab] = useState<Tab>('overview');
@@ -676,7 +680,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
 
       Alert.alert(
         'Net Worth Calculated! 📊',
-        `Your net worth is $${calculatedNetWorth.toLocaleString()}.\n\n${
+        `Your net worth is ${formatAmount(calculatedNetWorth)}.\n\n${
           calculatedNetWorth >= 0
             ? "Great job! You're in positive territory."
             : "Don't worry - this is your starting point. You'll improve from here!"
@@ -734,20 +738,20 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
         <View style={styles.statsBarOverview}>
           <View style={styles.statItem}>
             <Ionicons name="arrow-down" size={20} color="#58CC02" />
-            <Text style={styles.statValueSmall}>${monthlyIncome.toFixed(0)}</Text>
+            <Text style={styles.statValueSmall}>{formatAmount(monthlyIncome)}</Text>
             <Text style={styles.statLabelSmall}>Income</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Ionicons name="arrow-up" size={20} color="#FF4B4B" />
-            <Text style={styles.statValueSmall}>${monthlyExpenses.toFixed(0)}</Text>
+            <Text style={styles.statValueSmall}>{formatAmount(monthlyExpenses)}</Text>
             <Text style={styles.statLabelSmall}>Expenses</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Ionicons name={cashFlow >= 0 ? 'checkmark-circle' : 'close-circle'} size={20} color={cashFlow >= 0 ? '#58CC02' : '#FF4B4B'} />
             <Text style={[styles.statValueSmall, { color: cashFlow >= 0 ? '#58CC02' : '#FF4B4B' }]}>
-              {cashFlow >= 0 ? '+' : ''}${Math.abs(cashFlow).toFixed(0)}
+              {cashFlow >= 0 ? '+' : ''}{formatAmount(Math.abs(cashFlow))}
             </Text>
             <Text style={styles.statLabelSmall}>Cash Flow</Text>
           </View>
@@ -767,16 +771,16 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
             </View>
             <View style={styles.netWorthInfo}>
               <Text style={styles.netWorthLabelNew}>Net Worth</Text>
-              <Text style={styles.netWorthAmountNew}>${netWorth.toFixed(2)}</Text>
+              <Text style={styles.netWorthAmountNew}>{formatAmount(netWorth)}</Text>
               <View style={styles.netWorthDetailsNew}>
                 <View style={styles.netWorthDetailItemNew}>
                   <Text style={styles.netWorthDetailLabel}>Assets</Text>
-                  <Text style={styles.netWorthDetailValue}>${(netWorth + totalDebt).toFixed(0)}</Text>
+                  <Text style={styles.netWorthDetailValue}>{formatAmount(netWorth + totalDebt)}</Text>
                 </View>
                 <View style={styles.netWorthDetailDivider} />
                 <View style={styles.netWorthDetailItemNew}>
                   <Text style={styles.netWorthDetailLabel}>Debt</Text>
-                  <Text style={styles.netWorthDetailValue}>${totalDebt.toFixed(0)}</Text>
+                  <Text style={styles.netWorthDetailValue}>{formatAmount(totalDebt)}</Text>
                 </View>
               </View>
             </View>
@@ -796,7 +800,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
                   <Text style={styles.transactionCategory}>{expense.category}</Text>
                   <Text style={styles.transactionDate}>{expense.date}</Text>
                 </View>
-                <Text style={styles.transactionAmount}>-${expense.amount.toFixed(2)}</Text>
+                <Text style={styles.transactionAmount}>-{formatAmount(expense.amount)}</Text>
               </View>
             ))}
           </View>
@@ -898,13 +902,13 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
                     <View style={styles.categoryTextContainer}>
                       <Text style={styles.categoryName}>{category.name}</Text>
                       <Text style={styles.categorySpent}>
-                        ${category.spent.toFixed(0)} of ${category.allocatedAmount.toFixed(0)}
+                        {formatAmount(category.spent)} of {formatAmount(category.allocatedAmount)}
                       </Text>
                     </View>
                   </View>
 
                   <View style={styles.categoryInputContainer}>
-                    <Text style={styles.dollarSign}>$</Text>
+                    <Text style={styles.dollarSign}>{currencyData?.symbol || '$'}</Text>
                     <TextInput
                       style={styles.categoryInput}
                       value={category.allocatedAmount > 0 ? category.allocatedAmount.toString() : ''}
@@ -945,11 +949,11 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Total Income:</Text>
-            <Text style={styles.summaryValue}>${(parseFloat(budgetIncome) || 0).toFixed(2)}</Text>
+            <Text style={styles.summaryValue}>{formatAmount(parseFloat(budgetIncome) || 0)}</Text>
           </View>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Total Allocated:</Text>
-            <Text style={styles.summaryValue}>${totalAllocated.toFixed(2)}</Text>
+            <Text style={styles.summaryValue}>{formatAmount(totalAllocated)}</Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.summaryRow}>
@@ -961,7 +965,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
                 remaining === 0 && styles.balancedValue,
               ]}
             >
-              ${Math.abs(remaining).toFixed(2)}
+              {formatAmount(Math.abs(remaining))}
               {remaining < 0 && ' over'}
             </Text>
           </View>
@@ -1030,7 +1034,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
           <Text style={styles.sectionTitle}>Add Expense</Text>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.dollarSign}>$</Text>
+            <Text style={styles.dollarSign}>{currencyData?.symbol || '$'}</Text>
             <TextInput
               style={styles.input}
               value={expenseAmount}
@@ -1098,7 +1102,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
                   <Text style={styles.expenseDescription}>{expense.description || 'No description'}</Text>
                   <Text style={styles.expenseDate}>{expense.date}</Text>
                 </View>
-                <Text style={styles.expenseAmount}>${expense.amount.toFixed(2)}</Text>
+                <Text style={styles.expenseAmount}>{formatAmount(expense.amount)}</Text>
               </View>
             ))
           )}
@@ -1121,7 +1125,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
           <Text style={styles.sectionTitle}>Add Income</Text>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.dollarSign}>$</Text>
+            <Text style={styles.dollarSign}>{currencyData?.symbol || '$'}</Text>
             <TextInput
               style={styles.input}
               value={incomeAmount}
@@ -1201,7 +1205,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
                   <Text style={styles.incomeCategory}>{income.category}</Text>
                   <Text style={styles.incomeDate}>{income.date}</Text>
                 </View>
-                <Text style={styles.incomeAmount}>+${income.amount.toFixed(2)}</Text>
+                <Text style={styles.incomeAmount}>+{formatAmount(income.amount)}</Text>
               </View>
             ))
           )}
@@ -1230,13 +1234,13 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
             <View style={styles.debtSummaryCard}>
               <Ionicons name="alert-circle" size={24} color={colors.error} />
               <Text style={styles.debtSummaryLabel}>Total Debt</Text>
-              <Text style={styles.debtSummaryValue}>${totalDebtAmount.toFixed(0)}</Text>
+              <Text style={styles.debtSummaryValue}>{formatAmount(totalDebtAmount)}</Text>
             </View>
 
             <View style={styles.debtSummaryCard}>
               <Ionicons name="calendar" size={24} color={colors.primary} />
               <Text style={styles.debtSummaryLabel}>Monthly Min</Text>
-              <Text style={styles.debtSummaryValue}>${totalMinimumPayment.toFixed(0)}</Text>
+              <Text style={styles.debtSummaryValue}>{formatAmount(totalMinimumPayment)}</Text>
             </View>
           </View>
 
@@ -1287,7 +1291,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
                       <Text style={styles.debtType}>{debt.type}</Text>
                     </View>
                     <View>
-                      <Text style={styles.debtAmount}>${debt.remaining_amount.toFixed(0)}</Text>
+                      <Text style={styles.debtAmount}>{formatAmount(debt.remaining_amount)}</Text>
                       <Text style={styles.debtInterest}>{debt.interest_rate}% APR</Text>
                     </View>
                   </View>
@@ -1305,7 +1309,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
                   </View>
 
                   <Text style={styles.debtMinimum}>
-                    Min payment: ${debt.minimum_payment.toFixed(0)}/mo
+                    Min payment: {formatAmount(debt.minimum_payment)}/mo
                   </Text>
                 </View>
               );

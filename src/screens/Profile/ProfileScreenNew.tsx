@@ -4,18 +4,23 @@
  */
 
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView,  TouchableOpacity, RefreshControl, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView,  TouchableOpacity, RefreshControl, Alert, Modal, TextInput, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
+import { useCurrencyStore } from '../../store/currencyStore';
+import { CURRENCIES } from '../../constants/currencies';
 import { deleteAllUserData } from '../../services/firebaseUserService';
 
 export const ProfileScreenNew = () => {
   const { user, logout } = useAuthStore();
   const { progress, loadAppData } = useAppStore();
+  const { currency, setCurrency } = useCurrencyStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [currencySearch, setCurrencySearch] = useState('');
 
   const firstName = user?.firstName || user?.email?.split('@')[0] || 'Champion';
 
@@ -292,6 +297,26 @@ export const ProfileScreenNew = () => {
 
             <TouchableOpacity
               style={styles.settingItem}
+              onPress={() => setShowCurrencyModal(true)}
+            >
+              <View style={styles.settingLeft}>
+                <View style={[styles.settingIconContainer, { backgroundColor: '#4CAF50' + '20' }]}>
+                  <Ionicons name="cash-outline" size={20} color="#4CAF50" />
+                </View>
+                <View>
+                  <Text style={styles.settingText}>Currency</Text>
+                  <Text style={styles.settingSubtext}>
+                    {CURRENCIES.find(c => c.code === currency)?.name || 'USD'} ({currency})
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#CCC" />
+            </TouchableOpacity>
+
+            <View style={styles.settingDivider} />
+
+            <TouchableOpacity
+              style={styles.settingItem}
               onPress={() => handleSettingPress('account')}
             >
               <View style={styles.settingLeft}>
@@ -398,6 +423,73 @@ export const ProfileScreenNew = () => {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Currency Selection Modal */}
+      <Modal
+        visible={showCurrencyModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowCurrencyModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Currency 💱</Text>
+              <TouchableOpacity onPress={() => setShowCurrencyModal(false)}>
+                <Ionicons name="close" size={28} color="#1A1A1A" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Search Input */}
+            <TextInput
+              style={styles.modalSearch}
+              placeholder="Search currency..."
+              value={currencySearch}
+              onChangeText={setCurrencySearch}
+              placeholderTextColor="#999"
+            />
+
+            {/* Currency List */}
+            <FlatList
+              data={CURRENCIES.filter(
+                (c) =>
+                  c.name.toLowerCase().includes(currencySearch.toLowerCase()) ||
+                  c.code.toLowerCase().includes(currencySearch.toLowerCase())
+              )}
+              keyExtractor={(item) => item.code}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.currencyOption,
+                    currency === item.code && styles.currencyOptionSelected,
+                  ]}
+                  onPress={async () => {
+                    await setCurrency(item.code);
+                    setShowCurrencyModal(false);
+                    setCurrencySearch('');
+                    Alert.alert(
+                      'Currency Updated! 💱',
+                      `All amounts will now be displayed in ${item.name} (${item.code})`,
+                      [{ text: 'OK' }]
+                    );
+                  }}
+                >
+                  <Text style={styles.currencyOptionFlag}>{item.flag}</Text>
+                  <View style={styles.currencyOptionInfo}>
+                    <Text style={styles.currencyOptionCode}>{item.code}</Text>
+                    <Text style={styles.currencyOptionName}>{item.name}</Text>
+                    <Text style={styles.currencyOptionSymbol}>Symbol: {item.symbol}</Text>
+                  </View>
+                  {currency === item.code && (
+                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -697,10 +789,91 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#1A1A1A',
   },
+  settingSubtext: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 2,
+  },
   settingDivider: {
     height: 1,
     backgroundColor: '#F3F4F6',
     marginLeft: 68,
+  },
+  // Currency Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+    paddingBottom: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+  },
+  modalSearch: {
+    backgroundColor: '#F5F8FA',
+    marginHorizontal: 20,
+    marginTop: 16,
+    marginBottom: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    fontSize: 16,
+    color: '#1A1A1A',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  currencyOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    marginHorizontal: 20,
+    marginVertical: 4,
+    borderRadius: 12,
+    backgroundColor: '#F5F8FA',
+    gap: 12,
+  },
+  currencyOptionSelected: {
+    backgroundColor: '#E8F5E9',
+    borderWidth: 2,
+    borderColor: '#4CAF50',
+  },
+  currencyOptionFlag: {
+    fontSize: 32,
+  },
+  currencyOptionInfo: {
+    flex: 1,
+  },
+  currencyOptionCode: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 2,
+  },
+  currencyOptionName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666',
+    marginBottom: 2,
+  },
+  currencyOptionSymbol: {
+    fontSize: 12,
+    color: '#999',
   },
   // Motivation Card
   motivationSection: {

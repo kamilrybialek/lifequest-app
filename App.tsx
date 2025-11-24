@@ -5,6 +5,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { useAuthStore } from './src/store/authStore';
 import { useAppStore } from './src/store/appStore';
+import { useCurrencyStore } from './src/store/currencyStore';
 import { theme } from './src/theme/theme';
 import { initDatabase } from './src/database/init';
 import { initializeNotifications } from './src/utils/notifications';
@@ -17,33 +18,38 @@ export default function App() {
   const [initError, setInitError] = useState<string | null>(null);
   const loadUser = useAuthStore((state) => state.loadUser);
   const loadAppData = useAppStore((state) => state.loadAppData);
+  const loadCurrency = useCurrencyStore((state) => state.loadCurrency);
 
   useEffect(() => {
     const initialize = async () => {
       try {
         // CRITICAL: Wait for Firebase Auth persistence FIRST
-        console.log('🔧 [0/5] Waiting for Firebase Auth persistence...');
+        console.log('🔧 [0/6] Waiting for Firebase Auth persistence...');
         await authPersistenceReady;
-        console.log('✅ [0/5] Firebase Auth persistence ready');
+        console.log('✅ [0/6] Firebase Auth persistence ready');
 
         // Initialize database first
-        console.log('🔧 [1/5] Initializing database...');
+        console.log('🔧 [1/6] Initializing database...');
         await initDatabase();
-        console.log('✅ [1/5] Database initialized successfully');
+        console.log('✅ [1/6] Database initialized successfully');
 
         // Load user and app data
-        console.log('🔧 [2/5] Loading user...');
+        console.log('🔧 [2/6] Loading user...');
         await loadUser();
-        console.log('✅ [2/5] User loaded');
+        console.log('✅ [2/6] User loaded');
 
-        console.log('🔧 [3/5] Loading app data...');
+        console.log('🔧 [3/6] Loading currency settings...');
+        await loadCurrency();
+        console.log('✅ [3/6] Currency settings loaded');
+
+        console.log('🔧 [4/6] Loading app data...');
         await loadAppData();
-        console.log('✅ [3/5] App data loaded');
+        console.log('✅ [4/6] App data loaded');
 
         // Initialize push notifications
-        console.log('🔧 [4/5] Initializing push notifications...');
+        console.log('🔧 [5/6] Initializing push notifications...');
         await initializeNotifications();
-        console.log('✅ [4/5] Push notifications initialized');
+        console.log('✅ [5/6] Push notifications initialized');
 
         console.log('🎉 All initialization complete!');
       } catch (error) {

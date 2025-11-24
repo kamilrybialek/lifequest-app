@@ -11,6 +11,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../theme/colors';
 import { addNetWorthEntry, getLatestNetWorth } from '../../database/financeIntegrated.web';
 import { useAuthStore } from '../../store/authStore';
+import { useCurrencyStore } from '../../store/currencyStore';
+import { getCurrency } from '../../constants/currencies';
 
 interface NetWorthFormProps {
   onComplete: (netWorth: number) => void;
@@ -18,6 +20,8 @@ interface NetWorthFormProps {
 
 export const NetWorthForm: React.FC<NetWorthFormProps> = ({ onComplete }) => {
   const { user } = useAuthStore();
+  const { currency, convertFromUSD, convertToUSD, formatAmount } = useCurrencyStore();
+  const currencyData = getCurrency(currency);
 
   // Assets
   const [cashSavings, setCashSavings] = useState('0');
@@ -40,26 +44,27 @@ export const NetWorthForm: React.FC<NetWorthFormProps> = ({ onComplete }) => {
 
   useEffect(() => {
     loadExistingData();
-  }, []);
+  }, [currency]); // Reload when currency changes
 
   const loadExistingData = async () => {
     if (!user?.id) return;
     try {
       const existing = await getLatestNetWorth(user.id);
       if (existing) {
-        setCashSavings(String(existing.cashSavings));
-        setCheckingBalance(String(existing.checkingBalance));
-        setInvestments(String(existing.investments));
-        setRetirement(String(existing.retirement));
-        setHomeValue(String(existing.homeValue));
-        setVehicleValue(String(existing.vehicleValue));
-        setOtherAssets(String(existing.otherAssets));
-        setMortgage(String(existing.mortgage));
-        setAutoLoans(String(existing.autoLoans));
-        setStudentLoans(String(existing.studentLoans));
-        setCreditCards(String(existing.creditCards));
-        setPersonalLoans(String(existing.personalLoans));
-        setOtherDebts(String(existing.otherDebts));
+        // Convert from USD (stored) to display currency
+        setCashSavings(existing.cashSavings ? String(Math.round(convertFromUSD(existing.cashSavings))) : '');
+        setCheckingBalance(existing.checkingBalance ? String(Math.round(convertFromUSD(existing.checkingBalance))) : '');
+        setInvestments(existing.investments ? String(Math.round(convertFromUSD(existing.investments))) : '');
+        setRetirement(existing.retirement ? String(Math.round(convertFromUSD(existing.retirement))) : '');
+        setHomeValue(existing.homeValue ? String(Math.round(convertFromUSD(existing.homeValue))) : '');
+        setVehicleValue(existing.vehicleValue ? String(Math.round(convertFromUSD(existing.vehicleValue))) : '');
+        setOtherAssets(existing.otherAssets ? String(Math.round(convertFromUSD(existing.otherAssets))) : '');
+        setMortgage(existing.mortgage ? String(Math.round(convertFromUSD(existing.mortgage))) : '');
+        setAutoLoans(existing.autoLoans ? String(Math.round(convertFromUSD(existing.autoLoans))) : '');
+        setStudentLoans(existing.studentLoans ? String(Math.round(convertFromUSD(existing.studentLoans))) : '');
+        setCreditCards(existing.creditCards ? String(Math.round(convertFromUSD(existing.creditCards))) : '');
+        setPersonalLoans(existing.personalLoans ? String(Math.round(convertFromUSD(existing.personalLoans))) : '');
+        setOtherDebts(existing.otherDebts ? String(Math.round(convertFromUSD(existing.otherDebts))) : '');
       }
     } catch (error) {
       console.error('Error loading net worth:', error);
@@ -103,25 +108,28 @@ export const NetWorthForm: React.FC<NetWorthFormProps> = ({ onComplete }) => {
     setLoading(true);
 
     try {
+      // Convert from display currency to USD before saving
       const netWorth = await addNetWorthEntry(user.id, {
-        cashSavings: parseValue(cashSavings),
-        checkingBalance: parseValue(checkingBalance),
-        investments: parseValue(investments),
-        retirement: parseValue(retirement),
-        homeValue: parseValue(homeValue),
-        vehicleValue: parseValue(vehicleValue),
-        otherAssets: parseValue(otherAssets),
-        mortgage: parseValue(mortgage),
-        autoLoans: parseValue(autoLoans),
-        studentLoans: parseValue(studentLoans),
-        creditCards: parseValue(creditCards),
-        personalLoans: parseValue(personalLoans),
-        otherDebts: parseValue(otherDebts),
+        cashSavings: convertToUSD(parseValue(cashSavings)),
+        checkingBalance: convertToUSD(parseValue(checkingBalance)),
+        investments: convertToUSD(parseValue(investments)),
+        retirement: convertToUSD(parseValue(retirement)),
+        homeValue: convertToUSD(parseValue(homeValue)),
+        vehicleValue: convertToUSD(parseValue(vehicleValue)),
+        otherAssets: convertToUSD(parseValue(otherAssets)),
+        mortgage: convertToUSD(parseValue(mortgage)),
+        autoLoans: convertToUSD(parseValue(autoLoans)),
+        studentLoans: convertToUSD(parseValue(studentLoans)),
+        creditCards: convertToUSD(parseValue(creditCards)),
+        personalLoans: convertToUSD(parseValue(personalLoans)),
+        otherDebts: convertToUSD(parseValue(otherDebts)),
       });
 
+      // Format net worth in selected currency for display
+      const netWorthInCurrency = convertFromUSD(netWorth);
       Alert.alert(
         'Net Worth Calculated! 📊',
-        `Your net worth is $${netWorth.toLocaleString()}. ${
+        `Your net worth is ${formatAmount(netWorthInCurrency)}. ${
           netWorth >= 0
             ? "Great job! You're in positive territory."
             : "Don't worry - this is your starting point. You'll improve from here!"
@@ -145,7 +153,7 @@ export const NetWorthForm: React.FC<NetWorthFormProps> = ({ onComplete }) => {
         <Text style={styles.inputLabelText}>{label}</Text>
       </View>
       <View style={styles.inputContainer}>
-        <Text style={styles.currencySymbol}>$</Text>
+        <Text style={styles.currencySymbol}>{currencyData?.symbol || '$'}</Text>
         <TextInput
           style={styles.input}
           value={value}
@@ -178,7 +186,7 @@ export const NetWorthForm: React.FC<NetWorthFormProps> = ({ onComplete }) => {
 
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Total Assets:</Text>
-            <Text style={[styles.totalValue, { color: '#4CAF50' }]}>${totalAssets.toLocaleString()}</Text>
+            <Text style={[styles.totalValue, { color: '#4CAF50' }]}>{formatAmount(totalAssets)}</Text>
           </View>
         </View>
 
@@ -198,7 +206,7 @@ export const NetWorthForm: React.FC<NetWorthFormProps> = ({ onComplete }) => {
 
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Total Liabilities:</Text>
-            <Text style={[styles.totalValue, { color: '#FF4B4B' }]}>${totalLiabilities.toLocaleString()}</Text>
+            <Text style={[styles.totalValue, { color: '#FF4B4B' }]}>{formatAmount(totalLiabilities)}</Text>
           </View>
         </View>
 
@@ -210,7 +218,7 @@ export const NetWorthForm: React.FC<NetWorthFormProps> = ({ onComplete }) => {
           end={{ x: 1, y: 1 }}
         >
           <Text style={styles.summaryLabel}>Your Net Worth</Text>
-          <Text style={styles.summaryValue}>${netWorth.toLocaleString()}</Text>
+          <Text style={styles.summaryValue}>{formatAmount(netWorth)}</Text>
           <Text style={styles.summarySubtext}>
             {netWorth >= 0 ? '✅ Positive Net Worth' : '⚠️ Negative Net Worth - Let\'s fix this!'}
           </Text>
