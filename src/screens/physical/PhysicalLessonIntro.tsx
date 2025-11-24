@@ -60,7 +60,7 @@ export const PhysicalLessonIntro = ({ route, navigation }: any) => {
         end={{ x: 1, y: 1 }}
       >
         <View style={styles.headerContent}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
+          <TouchableOpacity onPress={() => navigation.navigate('MainTabs', { screen: 'Physical' })} style={styles.closeButton}>
             <Ionicons name="close" size={28} color="#FFFFFF" />
           </TouchableOpacity>
 

@@ -239,7 +239,7 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
           >
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeButton}>
+            <TouchableOpacity onPress={() => navigation.navigate('FinancePathNew')} style={styles.closeButton}>
               <Ionicons name="close" size={28} color="#FFFFFF" />
             </TouchableOpacity>
             <View style={styles.progressBarContainer}>
@@ -353,7 +353,7 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
       return (
         <View style={styles.container}>
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
+            <TouchableOpacity onPress={() => navigation.navigate('FinancePathNew')}>
               <Ionicons name="close" size={28} color={colors.text} />
             </TouchableOpacity>
             <View style={styles.progressBarContainer}>

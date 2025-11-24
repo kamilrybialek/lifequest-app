@@ -175,7 +175,7 @@ export const FinanceLessonIntegratedScreen = ({ route, navigation }: any) => {
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
-          <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()}>
+          <TouchableOpacity style={styles.closeButton} onPress={() => navigation.navigate('FinancePathNew')}>
             <Ionicons name="close" size={28} color="#FFF" />
           </TouchableOpacity>
 
@@ -232,7 +232,7 @@ export const FinanceLessonIntegratedScreen = ({ route, navigation }: any) => {
     return (
       <View style={styles.container}>
         <View style={styles.formHeader}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity onPress={() => navigation.navigate('FinancePathNew')}>
             <Ionicons name="arrow-back" size={28} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.headerContent}>
