@@ -281,27 +281,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
 // Guard to prevent multiple simultaneous onAuthStateChanged calls
 let isHandlingAuthChange = false;
-
-// Wait for Firebase to initialize auth state from persistence before setting up listener
-// This prevents the "flash" of login screen while Firebase checks IndexedDB
-auth.authStateReady().then(() => {
-  console.log('✅ Firebase auth state ready, initial user:', auth.currentUser ? 'SIGNED_IN' : 'NOT_SIGNED_IN');
-
-  // Now we know the definitive initial auth state
-  if (!auth.currentUser) {
-    // Definitely no user - safe to show login
-    const currentState = useAuthStore.getState();
-    if (currentState.isLoading) {
-      console.log('📝 No persisted user found, showing login screen');
-      useAuthStore.setState({ isLoading: false });
-    }
-  }
-  // If there IS a user, onAuthStateChanged will handle loading the data
-});
+// Track if we've completed the initial auth check
+let hasCompletedInitialCheck = false;
 
 // Set up Firebase auth state change listener
 onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-  console.log('🔄 Auth state changed:', firebaseUser ? 'SIGNED_IN' : 'SIGNED_OUT');
+  console.log('🔄 Auth state changed:', firebaseUser ? 'SIGNED_IN' : 'SIGNED_OUT',
+    hasCompletedInitialCheck ? '' : '[INITIAL CHECK]');
 
   // Prevent multiple simultaneous calls
   if (isHandlingAuthChange) {
@@ -314,14 +300,16 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
 
     if (!firebaseUser) {
       // User signed out
-      const currentState = useAuthStore.getState();
-      // Only update if state actually changed (user was previously logged in)
-      if (currentState.user !== null || currentState.isAuthenticated !== false) {
-        console.log('📝 User signed out, clearing state');
-        useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: false });
-      }
-      // Note: We don't set isLoading=false here on initial load because
-      // authStateReady() handles that to prevent login screen flash
+      console.log('📝 User signed out or not found');
+
+      // Set state atomically - both isLoading and isAuthenticated together
+      useAuthStore.setState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false
+      });
+
+      hasCompletedInitialCheck = true;
     } else {
       // User signed in - reload user data
       try {
@@ -385,34 +373,29 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
             currentUser.onboarded !== newUser.onboarded;
 
           if (hasChanged) {
-            // Debug: log WHY it changed
-            if (!currentUser) {
-              console.log('📝 User data changed: no current user (first login)');
-            } else {
-              const changedFields: string[] = [];
-              if (currentUser.id !== newUser.id) changedFields.push(`id: ${currentUser.id} → ${newUser.id}`);
-              if (currentUser.email !== newUser.email) changedFields.push(`email: ${currentUser.email} → ${newUser.email}`);
-              if (currentUser.firstName !== newUser.firstName) changedFields.push(`firstName: ${currentUser.firstName} → ${newUser.firstName}`);
-              if (currentUser.age !== newUser.age) changedFields.push(`age: ${currentUser.age} → ${newUser.age}`);
-              if (currentUser.weight !== newUser.weight) changedFields.push(`weight: ${currentUser.weight} → ${newUser.weight}`);
-              if (currentUser.height !== newUser.height) changedFields.push(`height: ${currentUser.height} → ${newUser.height}`);
-              if (currentUser.gender !== newUser.gender) changedFields.push(`gender: ${currentUser.gender} → ${newUser.gender}`);
-              if (currentUser.onboarded !== newUser.onboarded) changedFields.push(`onboarded: ${currentUser.onboarded} → ${newUser.onboarded}`);
-              console.log('📝 User data changed:', changedFields.join(', '));
-            }
-            useAuthStore.setState({ user: newUser, isAuthenticated: true, isLoading: false });
+            console.log('📝 User data changed, updating state');
+            // Set ALL state atomically - user, isAuthenticated, AND isLoading together
+            useAuthStore.setState({
+              user: newUser,
+              isAuthenticated: true,
+              isLoading: false
+            });
           } else {
-            console.log('✓ User data unchanged, skipping state update');
-            // Still update loading state if needed
-            const currentState = useAuthStore.getState();
-            if (currentState.isLoading !== false || currentState.isAuthenticated !== true) {
-              useAuthStore.setState({ isAuthenticated: true, isLoading: false });
-            }
+            console.log('✓ User data unchanged, just ensuring auth flags are correct');
+            // Still update to ensure isAuthenticated and isLoading are correct
+            useAuthStore.setState({
+              user: newUser,
+              isAuthenticated: true,
+              isLoading: false
+            });
           }
+
+          hasCompletedInitialCheck = true;
         }
       } catch (error) {
         console.error('Error in auth state listener:', error);
         useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: false });
+        hasCompletedInitialCheck = true;
       }
     }
   } finally {
