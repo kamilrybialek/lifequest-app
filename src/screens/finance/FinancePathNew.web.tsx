@@ -18,8 +18,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../theme/colors';
 import { FinanceStep, FinanceLesson, FINANCE_STEPS } from '../../types/financeNew';
 import { useAuthStore } from '../../store/authStore';
-import { getCompletedLessons } from '../../database/lessons';
-import { getFinanceProgress } from '../../database/finance';
+import { getCompletedLessons } from '../../database/lessons.web';
+import { getFinanceProgress } from '../../database/finance.web';
 import { useFocusEffect } from '@react-navigation/native';
 import { PathScreenTabBar } from '../../components/navigation/PathScreenTabBar';
 
