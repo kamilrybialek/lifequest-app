@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, setPersistence, browserLocalPersistence, browserSessionPersistence, indexedDBLocalPersistence } from 'firebase/auth';
+import { getAuth, setPersistence, browserLocalPersistence, browserSessionPersistence, indexedDBLocalPersistence, Auth } from 'firebase/auth';
 import { getFirestore, enableIndexedDbPersistence, enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
 import { Platform } from 'react-native';
 
@@ -21,7 +21,7 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firebase Auth with proper persistence
 // CRITICAL for iOS PWA: Use explicit localStorage persistence (not IndexedDB)
 // IndexedDB can be cleared on iOS PWA when app closes, localStorage is more reliable
-let auth;
+let auth: Auth;
 if (Platform.OS === 'web') {
   auth = getAuth(app);
 

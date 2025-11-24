@@ -330,6 +330,7 @@ export const createUserProfile = async (userId: string, data: {
 export interface UserProfile {
   id: string;
   email: string;
+  firstName?: string;
   age?: number;
   weight?: number;
   height?: number;
