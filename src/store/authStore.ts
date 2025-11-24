@@ -281,12 +281,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
 // Guard to prevent multiple simultaneous onAuthStateChanged calls
 let isHandlingAuthChange = false;
-// Track if this is the first auth check (app startup)
-let isFirstAuthCheck = true;
+
+// Wait for Firebase to initialize auth state from persistence before setting up listener
+// This prevents the "flash" of login screen while Firebase checks IndexedDB
+auth.authStateReady().then(() => {
+  console.log('✅ Firebase auth state ready, initial user:', auth.currentUser ? 'SIGNED_IN' : 'NOT_SIGNED_IN');
+
+  // Now we know the definitive initial auth state
+  if (!auth.currentUser) {
+    // Definitely no user - safe to show login
+    const currentState = useAuthStore.getState();
+    if (currentState.isLoading) {
+      console.log('📝 No persisted user found, showing login screen');
+      useAuthStore.setState({ isLoading: false });
+    }
+  }
+  // If there IS a user, onAuthStateChanged will handle loading the data
+});
 
 // Set up Firebase auth state change listener
 onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-  console.log('🔄 Auth state changed:', firebaseUser ? 'SIGNED_IN' : 'SIGNED_OUT', isFirstAuthCheck ? '[FIRST CHECK]' : '[SUBSEQUENT]');
+  console.log('🔄 Auth state changed:', firebaseUser ? 'SIGNED_IN' : 'SIGNED_OUT');
 
   // Prevent multiple simultaneous calls
   if (isHandlingAuthChange) {
@@ -300,14 +315,13 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
     if (!firebaseUser) {
       // User signed out
       const currentState = useAuthStore.getState();
-      // Only update if state actually changed
+      // Only update if state actually changed (user was previously logged in)
       if (currentState.user !== null || currentState.isAuthenticated !== false) {
+        console.log('📝 User signed out, clearing state');
         useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: false });
-      } else if (isFirstAuthCheck) {
-        // First check and no user - definitely not authenticated
-        console.log('✅ First auth check complete: No user found');
-        useAuthStore.setState({ isLoading: false });
       }
+      // Note: We don't set isLoading=false here on initial load because
+      // authStateReady() handles that to prevent login screen flash
     } else {
       // User signed in - reload user data
       try {
@@ -402,9 +416,6 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       }
     }
   } finally {
-    // Mark first check as complete
-    isFirstAuthCheck = false;
-
     // Release guard after a small delay to prevent rapid-fire calls
     setTimeout(() => {
       isHandlingAuthChange = false;
