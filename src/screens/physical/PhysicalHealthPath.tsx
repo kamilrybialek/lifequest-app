@@ -14,6 +14,7 @@ import { useAppStore } from '../../store/appStore';
 import { ContinueJourneyCard } from '../../components/paths/ContinueJourneyCard';
 import { StepHeader } from '../../components/paths/StepHeader';
 import { LessonBubble } from '../../components/paths/LessonBubble';
+import { PathScreenTabBar } from '../../components/navigation/PathScreenTabBar';
 
 const { width } = Dimensions.get('window');
 
@@ -177,14 +178,8 @@ export const PhysicalHealthPath = ({ navigation }: any) => {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.navigate('MainTabs', { screen: 'Dashboard' })} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>💪 Physical Wellness Path</Text>
-            <Text style={styles.headerSubtitle}>5 Foundations of Physical Health</Text>
-          </View>
-          <View style={{ width: 24 }} />
+          <Text style={styles.headerTitle}>💪 Physical Wellness Path</Text>
+          <Text style={styles.headerSubtitle}>5 Foundations of Physical Health</Text>
         </View>
 
         {/* Health Stats & BMI Calculator */}
@@ -419,6 +414,9 @@ export const PhysicalHealthPath = ({ navigation }: any) => {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
+
+      {/* Bottom Tab Bar */}
+      <PathScreenTabBar activeTab="Journey" />
     </View>
   );
 };
@@ -435,19 +433,10 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     padding: 20,
     paddingTop: 60,
     backgroundColor: colors.background,
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerContent: {
-    flex: 1,
-    alignItems: 'center',
   },
   headerTitle: {
     ...typography.heading,
