@@ -63,6 +63,12 @@ const styles = StyleSheet.create({
     minHeight: Platform.OS === 'web' ? 100 : 70,
     alignItems: 'center',
     justifyContent: 'space-around',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    zIndex: 999,
   },
   tabButton: {
     flex: 1,
@@ -70,6 +76,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 8,
     gap: 4,
+    cursor: Platform.OS === 'web' ? 'pointer' : undefined,
   },
   tabLabel: {
     fontSize: 12,

@@ -350,9 +350,10 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    marginBottom: 0,
   },
   scrollContent: {
-    paddingBottom: 40,
+    paddingBottom: 120,
   },
   headerGradient: {
     paddingTop: 60,

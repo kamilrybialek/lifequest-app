@@ -428,9 +428,10 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    marginBottom: 0,
   },
   content: {
-    paddingBottom: 40,
+    paddingBottom: 100,
   },
   header: {
     alignItems: 'center',
