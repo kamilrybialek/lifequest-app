@@ -289,28 +289,31 @@ let hasCompletedInitialCheck = false;
 let isAuthStateReady = false;
 
 // MUST wait for persistence to be set up first, then check auth state
+console.log('⏳ [AuthStore] Waiting for Firebase Auth persistence to complete...');
 authPersistenceReady
   .then(() => {
-    console.log('🔐 Auth persistence ready, now checking auth state...');
+    console.log('🔐 [AuthStore] Persistence ready, now checking for existing auth state...');
     return auth.authStateReady();
   })
   .then(() => {
-    console.log('✅ Firebase auth state check complete');
+    console.log('✅ [AuthStore] Auth state check complete');
     isAuthStateReady = true;
 
     // If we completed auth ready check and there's no user, show login screen
     const currentState = useAuthStore.getState();
     if (!currentState.isAuthenticated && currentState.isLoading) {
-      console.log('✅ No user session found - showing login screen');
+      console.log('👤 [AuthStore] No user session found - showing login screen');
       useAuthStore.setState({
         user: null,
         isAuthenticated: false,
         isLoading: false
       });
+    } else if (currentState.isAuthenticated) {
+      console.log('✅ [AuthStore] User session restored from persistence');
     }
   })
   .catch((error) => {
-    console.error('❌ Auth initialization failed:', error);
+    console.error('❌ [AuthStore] Auth initialization failed:', error);
     // Even if there's an error, show login screen instead of hanging
     isAuthStateReady = true;
     useAuthStore.setState({

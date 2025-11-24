@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, setPersistence, browserLocalPersistence, browserSessionPersistence, indexedDBLocalPersistence, Auth } from 'firebase/auth';
-import { getFirestore, enableIndexedDbPersistence, enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
+import { getAuth, setPersistence, browserLocalPersistence, indexedDBLocalPersistence, Auth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
 import { Platform } from 'react-native';
 
 // 🔥 FIREBASE CONFIGURATION
@@ -35,25 +35,28 @@ let authPersistenceReady: Promise<void>;
 if (Platform.OS === 'web') {
   auth = getAuth(app);
 
-  console.log('🔧 Setting Firebase Auth persistence to localStorage...',
-    isStandalonePWA ? '[PWA MODE]' : '[WEB MODE]');
+  const mode = isStandalonePWA ? '[PWA MODE]' : '[WEB MODE]';
+  console.log(`🔧 [1/3] Setting Firebase Auth persistence to localStorage... ${mode}`);
 
   // Set persistence and export the promise so other modules can wait for it
   authPersistenceReady = setPersistence(auth, browserLocalPersistence)
     .then(() => {
-      console.log('✅ Auth persistence ready (localStorage)');
+      console.log('✅ [2/3] Auth persistence ready (localStorage)');
+      return Promise.resolve();
     })
     .catch((error) => {
-      console.error('❌ localStorage persistence failed, trying IndexedDB...', error);
+      console.error('❌ localStorage persistence failed, trying IndexedDB fallback...', error);
       // Fallback to IndexedDB
       return setPersistence(auth, indexedDBLocalPersistence)
         .then(() => {
-          console.log('✅ Auth persistence ready (IndexedDB fallback)');
+          console.log('✅ [2/3] Auth persistence ready (IndexedDB fallback)');
+          return Promise.resolve();
         });
     })
     .catch((fallbackError) => {
       console.error('❌ CRITICAL: All persistence methods failed!', fallbackError);
       console.warn('⚠️ Proceeding without persistence - auth state will NOT survive page reload');
+      return Promise.resolve(); // Resolve anyway to not block app startup
     });
 } else {
   // Only import on native platforms
@@ -68,30 +71,14 @@ if (Platform.OS === 'web') {
   authPersistenceReady = Promise.resolve();
 }
 
-// Initialize Firestore with offline persistence
+// Initialize Firestore (online-only mode, no offline persistence)
 const db = getFirestore(app);
 
-// Enable offline persistence for Firestore on web
-// IMPORTANT: Don't enable on iOS PWA as IndexedDB is unreliable there
-if (Platform.OS === 'web' && !isStandalonePWA) {
-  console.log('🔧 Enabling Firestore offline persistence (web mode)...');
-  enableMultiTabIndexedDbPersistence(db)
-    .then(() => {
-      console.log('✅ Firestore offline persistence enabled');
-    })
-    .catch((err) => {
-      if (err.code === 'failed-precondition') {
-        console.warn('⚠️ Firestore: Multiple tabs open, persistence disabled');
-      } else if (err.code === 'unimplemented') {
-        console.warn('⚠️ Firestore: Persistence not supported in this browser');
-      } else {
-        console.error('❌ Firestore persistence error:', err);
-      }
-    });
-} else if (isStandalonePWA) {
-  console.log('📱 Running in PWA mode - Firestore offline persistence DISABLED (IndexedDB unreliable on iOS PWA)');
-  console.log('📡 Firestore will work in online-only mode');
-}
+// DISABLED: Firestore offline persistence causes connection issues on Safari/iOS
+// Firestore will work in online-only mode, which is sufficient for this app
+// The critical persistence is Auth (localStorage), not Firestore cache
+console.log('📡 [3/3] Firestore initialized (online-only mode, no offline cache)');
+console.log('💡 Auth persistence: localStorage | Firestore: online-only')
 
 export { auth, db, authPersistenceReady };
 export default app;
