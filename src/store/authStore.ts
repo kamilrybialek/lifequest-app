@@ -284,10 +284,19 @@ let isHandlingAuthChange = false;
 // Track if we've completed the initial auth check
 let hasCompletedInitialCheck = false;
 
+// CRITICAL: Wait for Firebase to check persistence before allowing login screen to show
+// This prevents the flash of login screen while Firebase checks IndexedDB (especially on iOS PWA)
+let isAuthStateReady = false;
+auth.authStateReady().then(() => {
+  console.log('✅ Firebase auth persistence check complete');
+  isAuthStateReady = true;
+});
+
 // Set up Firebase auth state change listener
 onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
   console.log('🔄 Auth state changed:', firebaseUser ? 'SIGNED_IN' : 'SIGNED_OUT',
-    hasCompletedInitialCheck ? '' : '[INITIAL CHECK]');
+    hasCompletedInitialCheck ? '' : '[INITIAL CHECK]',
+    isAuthStateReady ? '[AUTH READY]' : '[WAITING FOR AUTH READY]');
 
   // Prevent multiple simultaneous calls
   if (isHandlingAuthChange) {
@@ -299,15 +308,23 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
     isHandlingAuthChange = true;
 
     if (!firebaseUser) {
-      // User signed out
-      console.log('📝 User signed out or not found');
+      // User signed out or not found
+      console.log('📝 No user found');
 
-      // Set state atomically - both isLoading and isAuthenticated together
-      useAuthStore.setState({
-        user: null,
-        isAuthenticated: false,
-        isLoading: false
-      });
+      // CRITICAL: Only show login screen if authStateReady has completed
+      // This prevents showing login screen while Firebase is still checking persistence
+      if (isAuthStateReady) {
+        console.log('✅ Auth ready confirmed - safe to show login screen');
+        useAuthStore.setState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false
+        });
+      } else {
+        console.log('⏳ Waiting for authStateReady before showing login screen...');
+        // Keep loading screen visible until authStateReady completes
+        // This will be handled by the second call to onAuthStateChanged
+      }
 
       hasCompletedInitialCheck = true;
     } else {
