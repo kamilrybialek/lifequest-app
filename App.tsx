@@ -8,7 +8,9 @@ import { useAppStore } from './src/store/appStore';
 import { theme } from './src/theme/theme';
 import { initDatabase } from './src/database/init';
 import { initializeNotifications } from './src/utils/notifications';
+import { authPersistenceReady } from './src/config/firebase';
 import Toast from 'react-native-toast-message';
+import { LoadingScreen } from './src/screens/LoadingScreen';
 
 export default function App() {
   const [isInitializing, setIsInitializing] = useState(true);
@@ -19,24 +21,29 @@ export default function App() {
   useEffect(() => {
     const initialize = async () => {
       try {
+        // CRITICAL: Wait for Firebase Auth persistence FIRST
+        console.log('🔧 [0/5] Waiting for Firebase Auth persistence...');
+        await authPersistenceReady;
+        console.log('✅ [0/5] Firebase Auth persistence ready');
+
         // Initialize database first
-        console.log('🔧 [1/4] Initializing database...');
+        console.log('🔧 [1/5] Initializing database...');
         await initDatabase();
-        console.log('✅ [1/4] Database initialized successfully');
+        console.log('✅ [1/5] Database initialized successfully');
 
         // Load user and app data
-        console.log('🔧 [2/4] Loading user...');
+        console.log('🔧 [2/5] Loading user...');
         await loadUser();
-        console.log('✅ [2/4] User loaded');
+        console.log('✅ [2/5] User loaded');
 
-        console.log('🔧 [3/4] Loading app data...');
+        console.log('🔧 [3/5] Loading app data...');
         await loadAppData();
-        console.log('✅ [3/4] App data loaded');
+        console.log('✅ [3/5] App data loaded');
 
         // Initialize push notifications
-        console.log('🔧 [4/4] Initializing push notifications...');
+        console.log('🔧 [4/5] Initializing push notifications...');
         await initializeNotifications();
-        console.log('✅ [4/4] Push notifications initialized');
+        console.log('✅ [4/5] Push notifications initialized');
 
         console.log('🎉 All initialization complete!');
       } catch (error) {
@@ -62,15 +69,7 @@ export default function App() {
   }, []);
 
   if (isInitializing) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#58CC02" />
-        <Text style={styles.loadingText}>Loading LifeQuest...</Text>
-        {Platform.OS === 'web' && (
-          <Text style={styles.debugText}>Check browser console for logs</Text>
-        )}
-      </View>
-    );
+    return <LoadingScreen />;
   }
 
   // Show error screen if initialization failed
