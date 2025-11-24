@@ -1,43 +1,42 @@
 /**
  * LoadingScreen - Shown while checking authentication state
- * Modern design with animations matching app's RPG theme
+ * Light design matching app's main theme for smooth transitions
  */
 
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, Platform } from 'react-native';
+import { View, StyleSheet, Animated } from 'react-native';
 import { Text } from 'react-native-paper';
 import { colors } from '../theme/colors';
-import { LinearGradient } from 'expo-linear-gradient';
 
 export const LoadingScreen = () => {
   // Animation values
   const pulseAnim = useRef(new Animated.Value(1)).current;
-  const rotateAnim = useRef(new Animated.Value(0)).current;
-  const fadeAnim = useRef(new Animated.Value(0.5)).current;
+  const progressAnim = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(0.6)).current;
 
   useEffect(() => {
     // Pulse animation for logo
     const pulseAnimation = Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {
-          toValue: 1.15,
-          duration: 1000,
+          toValue: 1.1,
+          duration: 1500,
           useNativeDriver: true,
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
-          duration: 1000,
+          duration: 1500,
           useNativeDriver: true,
         }),
       ])
     );
 
-    // Rotation animation for loader
-    const rotateAnimation = Animated.loop(
-      Animated.timing(rotateAnim, {
+    // Progress bar animation
+    const progressAnimation = Animated.loop(
+      Animated.timing(progressAnim, {
         toValue: 1,
         duration: 2000,
-        useNativeDriver: true,
+        useNativeDriver: false,
       })
     );
 
@@ -46,56 +45,50 @@ export const LoadingScreen = () => {
       Animated.sequence([
         Animated.timing(fadeAnim, {
           toValue: 1,
-          duration: 1000,
+          duration: 1200,
           useNativeDriver: true,
         }),
         Animated.timing(fadeAnim, {
-          toValue: 0.5,
-          duration: 1000,
+          toValue: 0.6,
+          duration: 1200,
           useNativeDriver: true,
         }),
       ])
     );
 
     pulseAnimation.start();
-    rotateAnimation.start();
+    progressAnimation.start();
     fadeAnimation.start();
 
     return () => {
       pulseAnimation.stop();
-      rotateAnimation.stop();
+      progressAnimation.stop();
       fadeAnimation.stop();
     };
   }, []);
 
-  const spin = rotateAnim.interpolate({
+  const progressWidth = progressAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: ['0deg', '360deg'],
+    outputRange: ['0%', '100%'],
   });
 
   return (
-    <LinearGradient
-      colors={['#1CB0F6', '#0E8AC5', '#0A7AAF']}
-      style={styles.container}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-    >
-      {/* Background decorative circles */}
-      <View style={styles.backgroundDecor}>
-        <View style={[styles.decorCircle, styles.decorCircle1]} />
-        <View style={[styles.decorCircle, styles.decorCircle2]} />
-        <View style={[styles.decorCircle, styles.decorCircle3]} />
+    <View style={styles.container}>
+      {/* Background subtle pattern */}
+      <View style={styles.backgroundPattern}>
+        <View style={[styles.patternCircle, styles.patternCircle1]} />
+        <View style={[styles.patternCircle, styles.patternCircle2]} />
       </View>
 
       <View style={styles.content}>
-        {/* Animated Logo Container */}
+        {/* Animated Logo Container - Card Style */}
         <Animated.View
           style={[
             styles.logoContainer,
             { transform: [{ scale: pulseAnim }] },
           ]}
         >
-          <View style={styles.logoCircle}>
+          <View style={styles.logoCard}>
             <Text style={styles.logoText}>🎯</Text>
           </View>
         </Animated.View>
@@ -104,18 +97,16 @@ export const LoadingScreen = () => {
         <Text style={styles.appName}>LifeQuest</Text>
         <Text style={styles.tagline}>Your Journey to Greatness</Text>
 
-        {/* Custom Animated Loader */}
-        <View style={styles.loaderContainer}>
-          <Animated.View
-            style={[
-              styles.loaderRing,
-              { transform: [{ rotate: spin }] },
-            ]}
-          >
-            <View style={styles.loaderDot1} />
-            <View style={styles.loaderDot2} />
-            <View style={styles.loaderDot3} />
-          </Animated.View>
+        {/* Progress Bar - Duolingo style */}
+        <View style={styles.progressContainer}>
+          <View style={styles.progressTrack}>
+            <Animated.View
+              style={[
+                styles.progressBar,
+                { width: progressWidth },
+              ]}
+            />
+          </View>
         </View>
 
         {/* Loading Text with Fade */}
@@ -125,164 +116,105 @@ export const LoadingScreen = () => {
             { opacity: fadeAnim },
           ]}
         >
-          Loading your adventure...
+          Initializing...
         </Animated.Text>
       </View>
-
-      {/* Bottom decorative element */}
-      <View style={styles.bottomDecor}>
-        <View style={styles.wave} />
-      </View>
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background, // White background like rest of app
     justifyContent: 'center',
     alignItems: 'center',
   },
-  backgroundDecor: {
+  backgroundPattern: {
     ...StyleSheet.absoluteFillObject,
     overflow: 'hidden',
   },
-  decorCircle: {
+  patternCircle: {
     position: 'absolute',
     borderRadius: 1000,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: colors.backgroundGray, // Subtle gray circles
+    opacity: 0.3,
   },
-  decorCircle1: {
-    width: 300,
-    height: 300,
-    top: -100,
-    right: -100,
+  patternCircle1: {
+    width: 250,
+    height: 250,
+    top: -80,
+    right: -80,
   },
-  decorCircle2: {
-    width: 200,
-    height: 200,
-    bottom: -50,
-    left: -50,
-  },
-  decorCircle3: {
-    width: 150,
-    height: 150,
-    top: '40%',
-    left: -75,
+  patternCircle2: {
+    width: 180,
+    height: 180,
+    bottom: -60,
+    left: -60,
   },
   content: {
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 10,
+    paddingHorizontal: 40,
   },
   logoContainer: {
-    marginBottom: 20,
+    marginBottom: 30,
   },
-  logoCircle: {
+  logoCard: {
     width: 120,
     height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 20, // Card-style rounded corners
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 4,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+    borderWidth: 3,
+    borderColor: colors.primary, // Green border
+    shadowColor: colors.shadow,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
   },
   logoText: {
     fontSize: 60,
   },
   appName: {
-    fontSize: 40,
+    fontSize: 36,
     fontWeight: '900',
-    color: '#FFFFFF',
-    letterSpacing: 2,
+    color: colors.text, // Dark text like rest of app
+    letterSpacing: 1,
     marginBottom: 8,
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 4,
   },
   tagline: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.85)',
-    fontWeight: '600',
-    letterSpacing: 1,
-    marginBottom: 50,
-  },
-  loaderContainer: {
-    marginVertical: 30,
-    width: 80,
-    height: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loaderRing: {
-    width: 80,
-    height: 80,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  loaderDot1: {
-    position: 'absolute',
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: '#FFFFFF',
-    top: 0,
-    left: '50%',
-    marginLeft: -8,
-    shadowColor: '#FFF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
-  },
-  loaderDot2: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    top: '50%',
-    right: 0,
-    marginTop: -6,
-  },
-  loaderDot3: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    bottom: 0,
-    left: '50%',
-    marginLeft: -6,
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#FFFFFF',
+    fontSize: 15,
+    color: colors.textSecondary,
     fontWeight: '600',
     letterSpacing: 0.5,
+    marginBottom: 50,
   },
-  bottomDecor: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 100,
+  progressContainer: {
+    width: '100%',
+    maxWidth: 300,
+    marginVertical: 30,
+  },
+  progressTrack: {
+    height: 12,
+    backgroundColor: colors.backgroundGray,
+    borderRadius: 20,
     overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: colors.border,
   },
-  wave: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 50,
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-    borderTopLeftRadius: 50,
-    borderTopRightRadius: 50,
+  progressBar: {
+    height: '100%',
+    backgroundColor: colors.primary, // Green progress bar
+    borderRadius: 20,
+  },
+  loadingText: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
 });
