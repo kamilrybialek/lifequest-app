@@ -192,23 +192,35 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
 
   // Net Worth Calculator data
   const [showNetWorthCalculator, setShowNetWorthCalculator] = useState(false);
-  const [cashSavings, setCashSavings] = useState('0');
-  const [checkingBalance, setCheckingBalance] = useState('0');
-  const [investments, setInvestments] = useState('0');
-  const [retirement, setRetirement] = useState('0');
-  const [homeValue, setHomeValue] = useState('0');
-  const [vehicleValue, setVehicleValue] = useState('0');
-  const [otherAssets, setOtherAssets] = useState('0');
-  const [mortgage, setMortgage] = useState('0');
-  const [autoLoans, setAutoLoans] = useState('0');
-  const [studentLoans, setStudentLoans] = useState('0');
-  const [creditCards, setCreditCards] = useState('0');
-  const [personalLoans, setPersonalLoans] = useState('0');
-  const [otherDebts, setOtherDebts] = useState('0');
+  const [cashSavings, setCashSavings] = useState('');
+  const [checkingBalance, setCheckingBalance] = useState('');
+  const [investments, setInvestments] = useState('');
+  const [retirement, setRetirement] = useState('');
+  const [homeValue, setHomeValue] = useState('');
+  const [vehicleValue, setVehicleValue] = useState('');
+  const [otherAssets, setOtherAssets] = useState('');
+  const [mortgage, setMortgage] = useState('');
+  const [autoLoans, setAutoLoans] = useState('');
+  const [studentLoans, setStudentLoans] = useState('');
+  const [creditCards, setCreditCards] = useState('');
+  const [personalLoans, setPersonalLoans] = useState('');
+  const [otherDebts, setOtherDebts] = useState('');
 
   useEffect(() => {
     loadAllData();
   }, [activeTab]);
+
+  // Load saved net worth data when component mounts
+  useEffect(() => {
+    loadSavedNetWorth();
+  }, []);
+
+  // Load saved net worth data when calculator is opened
+  useEffect(() => {
+    if (showNetWorthCalculator) {
+      loadSavedNetWorth();
+    }
+  }, [showNetWorthCalculator]);
 
   // ============================================
   // DATA LOADING
@@ -341,12 +353,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
   // ============================================
 
   const handleAddExpense = async () => {
-    console.log('🔧 handleAddExpense called', { userId: user?.id, amount: expenseAmount, category: expenseCategory });
-
-    if (!user?.id) {
-      Alert.alert('Error', 'You must be logged in to add expenses');
-      return;
-    }
+    console.log('🔧 handleAddExpense called', { userId: user?.id, amount: expenseAmount, category: expenseCategory, isDemoUser });
 
     const amount = parseFloat(expenseAmount);
     if (!amount || !expenseCategory) {
@@ -355,7 +362,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     }
 
     try {
-      console.log('💰 Adding expense:', { amount, category: expenseCategory, isDemoUser });
+      console.log('💰 Adding expense:', { amount, category: expenseCategory, isDemoUser, hasUserId: !!user?.id });
       const today = new Date().toISOString().split('T')[0];
       const expenseData = {
         amount,
@@ -366,10 +373,11 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
         tags: [],
       };
 
-      if (isDemoUser) {
+      // Work in demo mode if no user ID (handles both demo users and unauthenticated state)
+      if (isDemoUser || !user?.id) {
         const newExpense = {
           id: Date.now().toString(),
-          user_id: user.id,
+          user_id: user?.id || 'demo-user-local',
           ...expenseData,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -397,12 +405,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
   // ============================================
 
   const handleAddIncome = async () => {
-    console.log('🔧 handleAddIncome called', { userId: user?.id, amount: incomeAmount, source: incomeSource });
-
-    if (!user?.id) {
-      Alert.alert('Error', 'You must be logged in to add income');
-      return;
-    }
+    console.log('🔧 handleAddIncome called', { userId: user?.id, amount: incomeAmount, source: incomeSource, isDemoUser });
 
     const amount = parseFloat(incomeAmount);
     if (!amount || !incomeSource) {
@@ -411,7 +414,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     }
 
     try {
-      console.log('💵 Adding income:', { amount, source: incomeSource, isDemoUser });
+      console.log('💵 Adding income:', { amount, source: incomeSource, isDemoUser, hasUserId: !!user?.id });
       const today = new Date().toISOString().split('T')[0];
       const incomeData = {
         amount,
@@ -422,10 +425,11 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
         recurring_frequency: isRecurring ? ('monthly' as any) : undefined,
       };
 
-      if (isDemoUser) {
+      // Work in demo mode if no user ID (handles both demo users and unauthenticated state)
+      if (isDemoUser || !user?.id) {
         const newIncome = {
           id: Date.now().toString(),
-          user_id: user.id,
+          user_id: user?.id || 'demo-user-local',
           ...incomeData,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -472,12 +476,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
   };
 
   const handleSaveBudget = async () => {
-    console.log('🔧 handleSaveBudget called', { userId: user?.id, income: budgetIncome });
-
-    if (!user?.id) {
-      Alert.alert('Error', 'You must be logged in to save budget');
-      return;
-    }
+    console.log('🔧 handleSaveBudget called', { userId: user?.id, income: budgetIncome, isDemoUser });
 
     const income = parseFloat(budgetIncome);
     if (!income || income <= 0) {
@@ -486,7 +485,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     }
 
     try {
-      console.log('📊 Saving budget:', { income, categories: budgetCategories.length });
+      console.log('📊 Saving budget:', { income, categories: budgetCategories.length, isDemoUser, hasUserId: !!user?.id });
       const currentMonth = new Date().toISOString().slice(0, 7);
       const budgetData = {
         month: currentMonth,
@@ -499,9 +498,16 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
           color: cat.color,
         })),
       };
-      await createBudget(user.id, budgetData);
-      Alert.alert('Success! 🎉', 'Your budget has been saved.');
-      await loadFirebaseData();
+
+      // Work in demo mode if no user ID (handles both demo users and unauthenticated state)
+      if (isDemoUser || !user?.id) {
+        await AsyncStorage.setItem('budget', JSON.stringify(budgetData));
+        Alert.alert('Success! 🎉', 'Your budget has been saved (demo mode).');
+      } else {
+        await createBudget(user.id, budgetData);
+        Alert.alert('Success! 🎉', 'Your budget has been saved.');
+        await loadFirebaseData();
+      }
     } catch (error) {
       console.error('Error saving budget:', error);
       Alert.alert('Error', 'Failed to save budget.');
@@ -540,44 +546,74 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     return { totalAssets, totalLiabilities, calculatedNetWorth };
   };
 
-  const handleSaveNetWorth = async () => {
-    console.log('🔧 handleSaveNetWorth called', { userId: user?.id });
+  const loadSavedNetWorth = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('netWorth');
+      if (saved) {
+        const data = JSON.parse(saved);
+        console.log('📂 Loading saved net worth data:', data);
 
-    if (!user?.id) {
-      Alert.alert('Error', 'You must be logged in to save net worth');
-      return;
+        // Populate calculator fields with saved values
+        setCashSavings(String(data.cashSavings || ''));
+        setCheckingBalance(String(data.checkingBalance || ''));
+        setInvestments(String(data.investments || ''));
+        setRetirement(String(data.retirement || ''));
+        setHomeValue(String(data.homeValue || ''));
+        setVehicleValue(String(data.vehicleValue || ''));
+        setOtherAssets(String(data.otherAssets || ''));
+        setMortgage(String(data.mortgage || ''));
+        setAutoLoans(String(data.autoLoans || ''));
+        setStudentLoans(String(data.studentLoans || ''));
+        setCreditCards(String(data.creditCards || ''));
+        setPersonalLoans(String(data.personalLoans || ''));
+        setOtherDebts(String(data.otherDebts || ''));
+
+        // Update displayed net worth
+        if (data.calculatedNetWorth !== undefined) {
+          setNetWorth(data.calculatedNetWorth);
+        }
+        if (data.totalLiabilities !== undefined) {
+          setTotalDebt(data.totalLiabilities);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading saved net worth:', error);
     }
+  };
+
+  const handleSaveNetWorth = async () => {
+    console.log('🔧 handleSaveNetWorth called', { userId: user?.id, isDemoUser });
 
     try {
       const { totalAssets, totalLiabilities, calculatedNetWorth } = calculateNetWorthFromInputs();
 
-      console.log('💰 Calculated net worth:', { totalAssets, totalLiabilities, calculatedNetWorth });
+      console.log('💰 Calculated net worth:', { totalAssets, totalLiabilities, calculatedNetWorth, isDemoUser, hasUserId: !!user?.id });
 
       // Update the displayed net worth
       setNetWorth(calculatedNetWorth);
       setTotalDebt(totalLiabilities);
 
-      // Save to AsyncStorage for demo users or persistence
-      if (isDemoUser) {
-        await AsyncStorage.setItem('netWorth', JSON.stringify({
-          cashSavings: parseValue(cashSavings),
-          checkingBalance: parseValue(checkingBalance),
-          investments: parseValue(investments),
-          retirement: parseValue(retirement),
-          homeValue: parseValue(homeValue),
-          vehicleValue: parseValue(vehicleValue),
-          otherAssets: parseValue(otherAssets),
-          mortgage: parseValue(mortgage),
-          autoLoans: parseValue(autoLoans),
-          studentLoans: parseValue(studentLoans),
-          creditCards: parseValue(creditCards),
-          personalLoans: parseValue(personalLoans),
-          otherDebts: parseValue(otherDebts),
-          calculatedNetWorth,
-          totalAssets,
-          totalLiabilities,
-        }));
-      }
+      const netWorthData = {
+        cashSavings: parseValue(cashSavings),
+        checkingBalance: parseValue(checkingBalance),
+        investments: parseValue(investments),
+        retirement: parseValue(retirement),
+        homeValue: parseValue(homeValue),
+        vehicleValue: parseValue(vehicleValue),
+        otherAssets: parseValue(otherAssets),
+        mortgage: parseValue(mortgage),
+        autoLoans: parseValue(autoLoans),
+        studentLoans: parseValue(studentLoans),
+        creditCards: parseValue(creditCards),
+        personalLoans: parseValue(personalLoans),
+        otherDebts: parseValue(otherDebts),
+        calculatedNetWorth,
+        totalAssets,
+        totalLiabilities,
+      };
+
+      // Always save to AsyncStorage for persistence (works for both demo and regular users)
+      await AsyncStorage.setItem('netWorth', JSON.stringify(netWorthData));
 
       Alert.alert(
         'Net Worth Calculated! 📊',
@@ -589,7 +625,8 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
         [{ text: 'OK' }]
       );
 
-      setShowNetWorthCalculator(false);
+      // Don't close the calculator - keep values visible
+      // setShowNetWorthCalculator(false);
     } catch (error) {
       console.error('Error saving net worth:', error);
       Alert.alert('Error', 'Failed to save net worth. Please try again.');
