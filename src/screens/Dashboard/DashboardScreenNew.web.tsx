@@ -22,6 +22,8 @@ import { colors } from '../../theme/colors';
 import { designSystem } from '../../theme/designSystem';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
+import { HealthMetricsCard } from '../../components/health/HealthMetricsCard';
+import { WeeklyHealthQuiz } from '../../components/health/WeeklyHealthQuiz';
 
 interface QuickAction {
   id: string;
@@ -44,6 +46,8 @@ export const DashboardScreenNew = ({ navigation }: any) => {
   const { progress, loadAppData } = useAppStore();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showHealthQuiz, setShowHealthQuiz] = useState(false);
+  const [healthKey, setHealthKey] = useState(0); // For forcing refresh
 
   useEffect(() => {
     loadData();
@@ -121,6 +125,15 @@ export const DashboardScreenNew = ({ navigation }: any) => {
             You're on level {progress.level} with {progress.totalPoints} XP. Keep going!
           </Text>
         </View>
+
+        {/* Health Metrics Card */}
+        {user?.id && (
+          <HealthMetricsCard
+            key={healthKey}
+            userId={user.id}
+            onQuizPress={() => setShowHealthQuiz(true)}
+          />
+        )}
 
         {/* Quick Actions */}
         <View style={styles.section}>
@@ -240,6 +253,17 @@ export const DashboardScreenNew = ({ navigation }: any) => {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Weekly Health Quiz Modal */}
+      <WeeklyHealthQuiz
+        visible={showHealthQuiz}
+        onClose={() => setShowHealthQuiz(false)}
+        onComplete={() => {
+          setHealthKey(prev => prev + 1);
+          onRefresh();
+        }}
+        userId={user?.id || ''}
+      />
     </SafeAreaView>
   );
 };
