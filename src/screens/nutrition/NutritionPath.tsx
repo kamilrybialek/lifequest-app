@@ -139,8 +139,14 @@ export const NutritionPath = ({ navigation }: any) => {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>🥗 Nutrition Mastery Path</Text>
-          <Text style={styles.headerSubtitle}>8 Foundations of Optimal Nutrition</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('MainTabs', { screen: 'Dashboard' })} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <View style={styles.headerContent}>
+            <Text style={styles.headerTitle}>🥗 Nutrition Mastery Path</Text>
+            <Text style={styles.headerSubtitle}>8 Foundations of Optimal Nutrition</Text>
+          </View>
+          <View style={{ width: 24 }} />
         </View>
 
         {/* Nutrition Tools Section */}
@@ -265,8 +271,18 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 20,
+    paddingTop: 60,
     backgroundColor: colors.background,
+  },
+  backButton: {
+    padding: 8,
+  },
+  headerContent: {
+    flex: 1,
     alignItems: 'center',
   },
   headerTitle: {

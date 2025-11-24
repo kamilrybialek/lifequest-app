@@ -274,7 +274,7 @@ export const FinancePathNew = ({ navigation }: any) => {
         end={{ x: 1, y: 1 }}
       >
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+          <TouchableOpacity onPress={() => navigation.navigate('MainTabs', { screen: 'Dashboard' })} style={styles.backButton}>
             <Ionicons name="arrow-back" size={28} color="#FFFFFF" />
           </TouchableOpacity>
           <View style={styles.headerContent}>
