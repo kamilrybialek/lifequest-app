@@ -210,14 +210,16 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     loadAllData();
   }, [activeTab]);
 
-  // Load saved net worth data when component mounts
+  // Load saved net worth data after debts are loaded (to integrate with debt tracker)
   useEffect(() => {
-    loadSavedNetWorth();
-  }, []);
+    if (debts !== undefined) {
+      loadSavedNetWorth();
+    }
+  }, [debts]);
 
-  // Load saved net worth data when calculator is opened
+  // Reload net worth data when calculator is opened (to show fresh debt tracker data)
   useEffect(() => {
-    if (showNetWorthCalculator) {
+    if (showNetWorthCalculator && debts !== undefined) {
       loadSavedNetWorth();
     }
   }, [showNetWorthCalculator]);
@@ -249,11 +251,8 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
       const currentMonth = new Date().toISOString().slice(0, 7);
       const monthlySummary = await getMonthlyFinancialSummary(user.id, currentMonth);
 
-      setNetWorth(overview.profile?.net_worth || 0);
       setMonthlyIncome(monthlySummary.totalIncome || 0);
       setMonthlyExpenses(monthlySummary.totalExpenses || 0);
-      setTotalDebt(overview.totalDebt || 0);
-      setTotalSavings(overview.totalSavings || 0);
       setSavingsRate(monthlySummary.savingsRate || 0);
 
       // Load expenses
@@ -265,13 +264,26 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
       const incomeData = await getIncome(user.id, {});
       setIncomeList(incomeData);
 
-      // Load debts
+      // Load debts and calculate total from actual debt entries (source of truth)
       const debtsData = await getDebts(user.id, 'active');
       setDebts(debtsData);
+      const calculatedTotalDebt = debtsData.reduce((sum: number, d: any) => sum + (d.remaining_amount || 0), 0);
+      setTotalDebt(calculatedTotalDebt);
 
-      // Load savings goals
+      // Load savings goals and calculate total from actual savings entries (source of truth)
       const goalsData = await getSavingsGoals(user.id);
       setSavingsGoals(goalsData);
+      const calculatedTotalSavings = goalsData.reduce((sum: number, g: any) => sum + (g.current_amount || 0), 0);
+      setTotalSavings(calculatedTotalSavings);
+
+      // Calculate net worth from actual financial data (savings - debts)
+      const calculatedNetWorth = calculatedTotalSavings - calculatedTotalDebt;
+      setNetWorth(calculatedNetWorth);
+      console.log('💰 Calculated net worth from real data:', {
+        totalSavings: calculatedTotalSavings,
+        totalDebt: calculatedTotalDebt,
+        netWorth: calculatedNetWorth
+      });
 
       // Load subscriptions
       const subsData = await getSubscriptions(user.id, true);
@@ -548,12 +560,56 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
 
   const loadSavedNetWorth = async () => {
     try {
+      console.log('📂 Loading net worth data - integrating with debt tracker and savings');
+
+      // STEP 1: Load liabilities from DEBT TRACKER (source of truth for debts)
+      let calculatedLiabilities = {
+        mortgage: 0,
+        autoLoans: 0,
+        studentLoans: 0,
+        creditCards: 0,
+        personalLoans: 0,
+        otherDebts: 0,
+      };
+
+      // Load debts from debt tracker
+      if (debts && debts.length > 0) {
+        console.log('💳 Integrating', debts.length, 'debts from Debt Tracker');
+        debts.forEach((debt: any) => {
+          const amount = debt.remaining_amount || 0;
+          const type = debt.type?.toLowerCase() || '';
+
+          if (type.includes('mortgage') || type.includes('home')) {
+            calculatedLiabilities.mortgage += amount;
+          } else if (type.includes('car') || type.includes('auto') || type.includes('vehicle')) {
+            calculatedLiabilities.autoLoans += amount;
+          } else if (type.includes('student') || type.includes('education')) {
+            calculatedLiabilities.studentLoans += amount;
+          } else if (type.includes('credit') || type.includes('card')) {
+            calculatedLiabilities.creditCards += amount;
+          } else if (type.includes('personal')) {
+            calculatedLiabilities.personalLoans += amount;
+          } else {
+            calculatedLiabilities.otherDebts += amount;
+          }
+        });
+
+        // Populate liability fields from debt tracker
+        setMortgage(calculatedLiabilities.mortgage > 0 ? String(calculatedLiabilities.mortgage) : '');
+        setAutoLoans(calculatedLiabilities.autoLoans > 0 ? String(calculatedLiabilities.autoLoans) : '');
+        setStudentLoans(calculatedLiabilities.studentLoans > 0 ? String(calculatedLiabilities.studentLoans) : '');
+        setCreditCards(calculatedLiabilities.creditCards > 0 ? String(calculatedLiabilities.creditCards) : '');
+        setPersonalLoans(calculatedLiabilities.personalLoans > 0 ? String(calculatedLiabilities.personalLoans) : '');
+        setOtherDebts(calculatedLiabilities.otherDebts > 0 ? String(calculatedLiabilities.otherDebts) : '');
+      }
+
+      // STEP 2: Load assets from saved calculator data or savings tracker
       const saved = await AsyncStorage.getItem('netWorth');
       if (saved) {
         const data = JSON.parse(saved);
-        console.log('📂 Loading saved net worth data:', data);
+        console.log('💰 Loading saved asset data from calculator');
 
-        // Populate calculator fields with saved values
+        // Populate asset fields with saved values (no asset tracker exists yet)
         setCashSavings(String(data.cashSavings || ''));
         setCheckingBalance(String(data.checkingBalance || ''));
         setInvestments(String(data.investments || ''));
@@ -561,21 +617,24 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
         setHomeValue(String(data.homeValue || ''));
         setVehicleValue(String(data.vehicleValue || ''));
         setOtherAssets(String(data.otherAssets || ''));
-        setMortgage(String(data.mortgage || ''));
-        setAutoLoans(String(data.autoLoans || ''));
-        setStudentLoans(String(data.studentLoans || ''));
-        setCreditCards(String(data.creditCards || ''));
-        setPersonalLoans(String(data.personalLoans || ''));
-        setOtherDebts(String(data.otherDebts || ''));
 
-        // Update displayed net worth
-        if (data.calculatedNetWorth !== undefined) {
-          setNetWorth(data.calculatedNetWorth);
-        }
-        if (data.totalLiabilities !== undefined) {
-          setTotalDebt(data.totalLiabilities);
+        // If no debts in debt tracker, use saved liability values
+        if (!debts || debts.length === 0) {
+          setMortgage(String(data.mortgage || ''));
+          setAutoLoans(String(data.autoLoans || ''));
+          setStudentLoans(String(data.studentLoans || ''));
+          setCreditCards(String(data.creditCards || ''));
+          setPersonalLoans(String(data.personalLoans || ''));
+          setOtherDebts(String(data.otherDebts || ''));
         }
       }
+
+      // STEP 3: Calculate and update net worth from real data
+      const { totalAssets, totalLiabilities, calculatedNetWorth } = calculateNetWorthFromInputs();
+      setNetWorth(calculatedNetWorth);
+      setTotalDebt(totalLiabilities);
+
+      console.log('✅ Net worth integrated:', { totalAssets, totalLiabilities, calculatedNetWorth });
     } catch (error) {
       console.error('Error loading saved net worth:', error);
     }
