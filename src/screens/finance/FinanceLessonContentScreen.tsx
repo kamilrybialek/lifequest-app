@@ -199,8 +199,8 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
         toolOverride: lessonContent.navigateToTool, // Pass the tool to use
       });
     } else {
-      // Navigate back to main finance path
-      navigation.navigate('FinancePathNew');
+      // Navigate back to Dashboard
+      navigation.navigate('MainTabs', { screen: 'Dashboard' });
     }
   };
 

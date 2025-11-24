@@ -83,7 +83,7 @@ export const FinanceLessonIntegratedScreen = ({ route, navigation }: any) => {
   };
 
   const handleContinue = () => {
-    navigation.navigate('FinancePathNew');
+    navigation.navigate('MainTabs', { screen: 'Dashboard' });
   };
 
   // Render appropriate form based on integratedTool
