@@ -97,7 +97,7 @@ export const LoadingScreen = () => {
         <Text style={styles.appName}>LifeQuest</Text>
         <Text style={styles.tagline}>Your Journey to Greatness</Text>
 
-        {/* Progress Bar - Duolingo style */}
+        {/* Progress Bar - Blue style */}
         <View style={styles.progressContainer}>
           <View style={styles.progressTrack}>
             <Animated.View
@@ -126,7 +126,7 @@ export const LoadingScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background, // White background like rest of app
+    backgroundColor: colors.background, // White background
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -137,20 +137,20 @@ const styles = StyleSheet.create({
   patternCircle: {
     position: 'absolute',
     borderRadius: 1000,
-    backgroundColor: colors.backgroundGray, // Subtle gray circles
-    opacity: 0.3,
+    backgroundColor: colors.mental, // Blue circles
+    opacity: 0.06, // Very subtle
   },
   patternCircle1: {
-    width: 250,
-    height: 250,
-    top: -80,
-    right: -80,
+    width: 300,
+    height: 300,
+    top: -100,
+    right: -100,
   },
   patternCircle2: {
-    width: 180,
-    height: 180,
-    bottom: -60,
-    left: -60,
+    width: 220,
+    height: 220,
+    bottom: -80,
+    left: -80,
   },
   content: {
     alignItems: 'center',
@@ -169,10 +169,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: colors.primary, // Green border
-    shadowColor: colors.shadow,
+    borderColor: colors.mental, // Blue border
+    shadowColor: colors.mental,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.2,
     shadowRadius: 12,
     elevation: 8,
   },
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 36,
     fontWeight: '900',
-    color: colors.text, // Dark text like rest of app
+    color: colors.text, // Dark text
     letterSpacing: 1,
     marginBottom: 8,
   },
@@ -200,20 +200,20 @@ const styles = StyleSheet.create({
   },
   progressTrack: {
     height: 12,
-    backgroundColor: colors.backgroundGray,
+    backgroundColor: '#E8F5FC', // Light blue background
     borderRadius: 20,
     overflow: 'hidden',
     borderWidth: 2,
-    borderColor: colors.border,
+    borderColor: colors.mental, // Blue border
   },
   progressBar: {
     height: '100%',
-    backgroundColor: colors.primary, // Green progress bar
+    backgroundColor: colors.mental, // Blue progress bar
     borderRadius: 20,
   },
   loadingText: {
     fontSize: 15,
-    color: colors.textSecondary,
+    color: colors.mental, // Blue text
     fontWeight: '600',
     letterSpacing: 0.5,
   },
