@@ -21,6 +21,7 @@ import { useAuthStore } from '../../store/authStore';
 import { getCompletedLessons } from '../../database/lessons.web';
 import { getMentalProgress } from '../../database/mental.web';
 import { useFocusEffect } from '@react-navigation/native';
+import { PathScreenTabBar } from '../../components/navigation/PathScreenTabBar';
 
 const { width } = Dimensions.get('window');
 const BUBBLE_SIZE = 70;
@@ -309,16 +310,11 @@ export const MentalHealthPath = ({ navigation }: any) => {
         end={{ x: 1, y: 1 }}
       >
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={28} color="#FFFFFF" />
-          </TouchableOpacity>
-          <View style={styles.headerContent}>
-            <View style={styles.headerIconCircle}>
-              <Ionicons name="brain" size={32} color="#CE82FF" />
-            </View>
-            <Text style={styles.headerTitle}>Mental Wellness Path</Text>
-            <Text style={styles.headerSubtitle}>5 Foundations of Mental Health</Text>
+          <View style={styles.headerIconCircle}>
+            <Ionicons name="brain" size={32} color="#CE82FF" />
           </View>
+          <Text style={styles.headerTitle}>Mental Wellness Path</Text>
+          <Text style={styles.headerSubtitle}>5 Foundations of Mental Health</Text>
         </View>
       </LinearGradient>
 
@@ -398,6 +394,9 @@ export const MentalHealthPath = ({ navigation }: any) => {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Bottom Tab Bar */}
+      <PathScreenTabBar activeTab="Journey" />
     </View>
   );
 };
@@ -427,16 +426,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 20,
-  },
-  backButton: {
-    position: 'absolute',
-    top: 0,
-    left: 20,
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
   },
   headerIconCircle: {
     width: 60,

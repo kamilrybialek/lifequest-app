@@ -21,6 +21,7 @@ import { useAuthStore } from '../../store/authStore';
 import { getCompletedLessons } from '../../database/lessons.web';
 import { getNutritionProgress } from '../../database/nutrition.web';
 import { useFocusEffect } from '@react-navigation/native';
+import { PathScreenTabBar } from '../../components/navigation/PathScreenTabBar';
 
 const { width } = Dimensions.get('window');
 const BUBBLE_SIZE = 70;
@@ -274,16 +275,11 @@ export const NutritionPath = ({ navigation }: any) => {
         end={{ x: 1, y: 1 }}
       >
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={28} color="#FFFFFF" />
-          </TouchableOpacity>
-          <View style={styles.headerContent}>
-            <View style={styles.headerIconCircle}>
-              <Ionicons name="restaurant" size={32} color="#58CC02" />
-            </View>
-            <Text style={styles.headerTitle}>Nutrition Mastery Path</Text>
-            <Text style={styles.headerSubtitle}>8 Foundations of Optimal Nutrition</Text>
+          <View style={styles.headerIconCircle}>
+            <Ionicons name="restaurant" size={32} color="#58CC02" />
           </View>
+          <Text style={styles.headerTitle}>Nutrition Mastery Path</Text>
+          <Text style={styles.headerSubtitle}>8 Foundations of Optimal Nutrition</Text>
         </View>
       </LinearGradient>
 
@@ -363,6 +359,9 @@ export const NutritionPath = ({ navigation }: any) => {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Bottom Tab Bar */}
+      <PathScreenTabBar activeTab="Journey" />
     </View>
   );
 };
@@ -393,16 +392,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 20,
   },
-  backButton: {
-    position: 'absolute',
-    top: 0,
-    left: 20,
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
   headerIconCircle: {
     width: 60,
     height: 60,
@@ -416,10 +405,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 8,
-  },
-  headerContent: {
-    flex: 1,
-    alignItems: 'center',
   },
   headerTitle: {
     fontSize: 24,
