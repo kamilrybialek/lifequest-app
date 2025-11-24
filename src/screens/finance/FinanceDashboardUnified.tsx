@@ -190,6 +190,22 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [totalSubscriptions, setTotalSubscriptions] = useState(0);
 
+  // Net Worth Calculator data
+  const [showNetWorthCalculator, setShowNetWorthCalculator] = useState(false);
+  const [cashSavings, setCashSavings] = useState('0');
+  const [checkingBalance, setCheckingBalance] = useState('0');
+  const [investments, setInvestments] = useState('0');
+  const [retirement, setRetirement] = useState('0');
+  const [homeValue, setHomeValue] = useState('0');
+  const [vehicleValue, setVehicleValue] = useState('0');
+  const [otherAssets, setOtherAssets] = useState('0');
+  const [mortgage, setMortgage] = useState('0');
+  const [autoLoans, setAutoLoans] = useState('0');
+  const [studentLoans, setStudentLoans] = useState('0');
+  const [creditCards, setCreditCards] = useState('0');
+  const [personalLoans, setPersonalLoans] = useState('0');
+  const [otherDebts, setOtherDebts] = useState('0');
+
   useEffect(() => {
     loadAllData();
   }, [activeTab]);
@@ -325,7 +341,12 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
   // ============================================
 
   const handleAddExpense = async () => {
-    if (!user?.id) return;
+    console.log('🔧 handleAddExpense called', { userId: user?.id, amount: expenseAmount, category: expenseCategory });
+
+    if (!user?.id) {
+      Alert.alert('Error', 'You must be logged in to add expenses');
+      return;
+    }
 
     const amount = parseFloat(expenseAmount);
     if (!amount || !expenseCategory) {
@@ -334,6 +355,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     }
 
     try {
+      console.log('💰 Adding expense:', { amount, category: expenseCategory, isDemoUser });
       const today = new Date().toISOString().split('T')[0];
       const expenseData = {
         amount,
@@ -375,7 +397,12 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
   // ============================================
 
   const handleAddIncome = async () => {
-    if (!user?.id) return;
+    console.log('🔧 handleAddIncome called', { userId: user?.id, amount: incomeAmount, source: incomeSource });
+
+    if (!user?.id) {
+      Alert.alert('Error', 'You must be logged in to add income');
+      return;
+    }
 
     const amount = parseFloat(incomeAmount);
     if (!amount || !incomeSource) {
@@ -384,6 +411,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     }
 
     try {
+      console.log('💵 Adding income:', { amount, source: incomeSource, isDemoUser });
       const today = new Date().toISOString().split('T')[0];
       const incomeData = {
         amount,
@@ -444,7 +472,12 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
   };
 
   const handleSaveBudget = async () => {
-    if (!user?.id) return;
+    console.log('🔧 handleSaveBudget called', { userId: user?.id, income: budgetIncome });
+
+    if (!user?.id) {
+      Alert.alert('Error', 'You must be logged in to save budget');
+      return;
+    }
 
     const income = parseFloat(budgetIncome);
     if (!income || income <= 0) {
@@ -453,6 +486,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     }
 
     try {
+      console.log('📊 Saving budget:', { income, categories: budgetCategories.length });
       const currentMonth = new Date().toISOString().slice(0, 7);
       const budgetData = {
         month: currentMonth,
@@ -473,6 +507,120 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
       Alert.alert('Error', 'Failed to save budget.');
     }
   };
+
+  // ============================================
+  // NET WORTH CALCULATOR
+  // ============================================
+
+  const parseValue = (val: string): number => {
+    const parsed = parseFloat(val) || 0;
+    return Math.max(0, parsed);
+  };
+
+  const calculateNetWorthFromInputs = () => {
+    const totalAssets =
+      parseValue(cashSavings) +
+      parseValue(checkingBalance) +
+      parseValue(investments) +
+      parseValue(retirement) +
+      parseValue(homeValue) +
+      parseValue(vehicleValue) +
+      parseValue(otherAssets);
+
+    const totalLiabilities =
+      parseValue(mortgage) +
+      parseValue(autoLoans) +
+      parseValue(studentLoans) +
+      parseValue(creditCards) +
+      parseValue(personalLoans) +
+      parseValue(otherDebts);
+
+    const calculatedNetWorth = totalAssets - totalLiabilities;
+
+    return { totalAssets, totalLiabilities, calculatedNetWorth };
+  };
+
+  const handleSaveNetWorth = async () => {
+    console.log('🔧 handleSaveNetWorth called', { userId: user?.id });
+
+    if (!user?.id) {
+      Alert.alert('Error', 'You must be logged in to save net worth');
+      return;
+    }
+
+    try {
+      const { totalAssets, totalLiabilities, calculatedNetWorth } = calculateNetWorthFromInputs();
+
+      console.log('💰 Calculated net worth:', { totalAssets, totalLiabilities, calculatedNetWorth });
+
+      // Update the displayed net worth
+      setNetWorth(calculatedNetWorth);
+      setTotalDebt(totalLiabilities);
+
+      // Save to AsyncStorage for demo users or persistence
+      if (isDemoUser) {
+        await AsyncStorage.setItem('netWorth', JSON.stringify({
+          cashSavings: parseValue(cashSavings),
+          checkingBalance: parseValue(checkingBalance),
+          investments: parseValue(investments),
+          retirement: parseValue(retirement),
+          homeValue: parseValue(homeValue),
+          vehicleValue: parseValue(vehicleValue),
+          otherAssets: parseValue(otherAssets),
+          mortgage: parseValue(mortgage),
+          autoLoans: parseValue(autoLoans),
+          studentLoans: parseValue(studentLoans),
+          creditCards: parseValue(creditCards),
+          personalLoans: parseValue(personalLoans),
+          otherDebts: parseValue(otherDebts),
+          calculatedNetWorth,
+          totalAssets,
+          totalLiabilities,
+        }));
+      }
+
+      Alert.alert(
+        'Net Worth Calculated! 📊',
+        `Your net worth is $${calculatedNetWorth.toLocaleString()}.\n\n${
+          calculatedNetWorth >= 0
+            ? "Great job! You're in positive territory."
+            : "Don't worry - this is your starting point. You'll improve from here!"
+        }`,
+        [{ text: 'OK' }]
+      );
+
+      setShowNetWorthCalculator(false);
+    } catch (error) {
+      console.error('Error saving net worth:', error);
+      Alert.alert('Error', 'Failed to save net worth. Please try again.');
+    }
+  };
+
+  const renderCalculatorInput = (
+    label: string,
+    value: string,
+    setValue: (val: string) => void,
+    icon: string,
+    iconColor: string
+  ) => (
+    <View style={styles.calculatorInputRow}>
+      <View style={styles.calculatorInputLabel}>
+        <Ionicons name={icon as any} size={18} color={iconColor} />
+        <Text style={styles.calculatorInputLabelText}>{label}</Text>
+      </View>
+      <View style={styles.calculatorInputContainer}>
+        <Text style={styles.dollarSign}>$</Text>
+        <TextInput
+          style={styles.calculatorInput}
+          value={value}
+          onChangeText={setValue}
+          keyboardType="numeric"
+          placeholder="0"
+          placeholderTextColor={colors.textSecondary}
+        />
+      </View>
+    </View>
+  );
 
   // ============================================
   // RENDER: OVERVIEW TAB
@@ -538,6 +686,121 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
             </View>
           </View>
         </TouchableOpacity>
+
+        {/* Net Worth Calculator - Collapsible */}
+        <View style={styles.calculatorSection}>
+          <TouchableOpacity
+            style={styles.calculatorHeader}
+            onPress={() => setShowNetWorthCalculator(!showNetWorthCalculator)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.calculatorHeaderLeft}>
+              <Ionicons name="calculator" size={24} color={colors.finance} />
+              <Text style={styles.calculatorHeaderTitle}>Net Worth Calculator</Text>
+            </View>
+            <Ionicons
+              name={showNetWorthCalculator ? 'chevron-up' : 'chevron-down'}
+              size={24}
+              color={colors.textSecondary}
+            />
+          </TouchableOpacity>
+
+          {showNetWorthCalculator && (
+            <View style={styles.calculatorContent}>
+              {/* Assets Section */}
+              <View style={styles.calculatorSubsection}>
+                <View style={styles.calculatorSubsectionHeader}>
+                  <Ionicons name="trending-up" size={20} color={colors.success} />
+                  <Text style={styles.calculatorSubsectionTitle}>Assets (What You Own)</Text>
+                </View>
+
+                {renderCalculatorInput('Cash Savings', cashSavings, setCashSavings, 'cash', colors.success)}
+                {renderCalculatorInput('Checking Account', checkingBalance, setCheckingBalance, 'card', colors.success)}
+                {renderCalculatorInput('Investments', investments, setInvestments, 'stats-chart', colors.success)}
+                {renderCalculatorInput('Retirement Accounts', retirement, setRetirement, 'time', colors.success)}
+                {renderCalculatorInput('Home Value', homeValue, setHomeValue, 'home', colors.success)}
+                {renderCalculatorInput('Vehicle Value', vehicleValue, setVehicleValue, 'car', colors.success)}
+                {renderCalculatorInput('Other Assets', otherAssets, setOtherAssets, 'ellipsis-horizontal', colors.success)}
+
+                <View style={styles.calculatorTotalRow}>
+                  <Text style={styles.calculatorTotalLabel}>Total Assets:</Text>
+                  <Text style={[styles.calculatorTotalValue, { color: colors.success }]}>
+                    ${calculateNetWorthFromInputs().totalAssets.toLocaleString()}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Liabilities Section */}
+              <View style={styles.calculatorSubsection}>
+                <View style={styles.calculatorSubsectionHeader}>
+                  <Ionicons name="trending-down" size={20} color={colors.error} />
+                  <Text style={styles.calculatorSubsectionTitle}>Liabilities (What You Owe)</Text>
+                </View>
+
+                {renderCalculatorInput('Mortgage', mortgage, setMortgage, 'home-outline', colors.error)}
+                {renderCalculatorInput('Auto Loans', autoLoans, setAutoLoans, 'car-outline', colors.error)}
+                {renderCalculatorInput('Student Loans', studentLoans, setStudentLoans, 'school-outline', colors.error)}
+                {renderCalculatorInput('Credit Cards', creditCards, setCreditCards, 'card-outline', colors.error)}
+                {renderCalculatorInput('Personal Loans', personalLoans, setPersonalLoans, 'people-outline', colors.error)}
+                {renderCalculatorInput('Other Debts', otherDebts, setOtherDebts, 'ellipsis-horizontal-outline', colors.error)}
+
+                <View style={styles.calculatorTotalRow}>
+                  <Text style={styles.calculatorTotalLabel}>Total Liabilities:</Text>
+                  <Text style={[styles.calculatorTotalValue, { color: colors.error }]}>
+                    ${calculateNetWorthFromInputs().totalLiabilities.toLocaleString()}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Net Worth Summary */}
+              <LinearGradient
+                colors={
+                  calculateNetWorthFromInputs().calculatedNetWorth >= 0
+                    ? [colors.success, '#46A302']
+                    : [colors.error, '#CC0000']
+                }
+                style={styles.calculatorSummaryCard}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Text style={styles.calculatorSummaryLabel}>Your Net Worth</Text>
+                <Text style={styles.calculatorSummaryValue}>
+                  ${calculateNetWorthFromInputs().calculatedNetWorth.toLocaleString()}
+                </Text>
+                <Text style={styles.calculatorSummarySubtext}>
+                  {calculateNetWorthFromInputs().calculatedNetWorth >= 0
+                    ? '✅ Positive Net Worth'
+                    : '⚠️ Negative - Your Starting Point'}
+                </Text>
+              </LinearGradient>
+
+              {/* Info Card */}
+              <View style={styles.calculatorInfoCard}>
+                <Ionicons name="information-circle" size={20} color={colors.finance} />
+                <Text style={styles.calculatorInfoText}>
+                  Net worth = Assets − Liabilities. Track it monthly to see your financial progress!
+                </Text>
+              </View>
+
+              {/* Save Button */}
+              <TouchableOpacity
+                style={styles.calculatorSaveButton}
+                onPress={handleSaveNetWorth}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={[colors.finance, '#E68A00']}
+                  style={styles.calculatorSaveButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Text style={styles.calculatorSaveButtonText}>Calculate & Save Net Worth</Text>
+                  <Ionicons name="checkmark-circle" size={22} color="#FFF" />
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
 
         {/* Recent Transactions */}
         {recentExpenses.length > 0 && (
@@ -2548,6 +2811,164 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     fontStyle: 'italic',
     textAlign: 'center',
+  },
+
+  // Net Worth Calculator Styles
+  calculatorSection: {
+    backgroundColor: colors.background,
+    marginHorizontal: 20,
+    marginVertical: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  calculatorHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: colors.background,
+  },
+  calculatorHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  calculatorHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  calculatorContent: {
+    padding: 16,
+    paddingTop: 0,
+  },
+  calculatorSubsection: {
+    marginBottom: 20,
+  },
+  calculatorSubsectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  calculatorSubsectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  calculatorInputRow: {
+    marginBottom: 10,
+  },
+  calculatorInputLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  calculatorInputLabelText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  calculatorInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.backgroundGray,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  calculatorInput: {
+    flex: 1,
+    height: 40,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  calculatorTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 2,
+    borderTopColor: colors.border,
+  },
+  calculatorTotalLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  calculatorTotalValue: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  calculatorSummaryCard: {
+    marginTop: 8,
+    marginBottom: 16,
+    padding: 20,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  calculatorSummaryLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.9)',
+    marginBottom: 8,
+  },
+  calculatorSummaryValue: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  calculatorSummarySubtext: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  calculatorInfoCard: {
+    flexDirection: 'row',
+    backgroundColor: colors.backgroundGray,
+    padding: 12,
+    borderRadius: 10,
+    gap: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  calculatorInfoText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.textSecondary,
+  },
+  calculatorSaveButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  calculatorSaveButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    gap: 8,
+  },
+  calculatorSaveButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
 
   bottomSpacer: {
