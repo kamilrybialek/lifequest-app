@@ -7,6 +7,7 @@ import React, { useEffect, useRef } from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import { Text } from 'react-native-paper';
 import { colors } from '../theme/colors';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export const LoadingScreen = () => {
   // Animation values
@@ -73,7 +74,12 @@ export const LoadingScreen = () => {
   });
 
   return (
-    <View style={styles.container}>
+    <LinearGradient
+      colors={[colors.mental, '#0E8AC5', '#0A7AAF']}
+      style={styles.container}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+    >
       {/* Background decorative circles */}
       <View style={styles.backgroundDecor}>
         <View style={[styles.decorCircle, styles.decorCircle1]} />
@@ -127,7 +133,7 @@ export const LoadingScreen = () => {
       <View style={styles.bottomDecor}>
         <View style={styles.wave} />
       </View>
-    </View>
+    </LinearGradient>
   );
 };
 
@@ -136,7 +142,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.background, // White background
   },
   backgroundDecor: {
     ...StyleSheet.absoluteFillObject,
@@ -145,8 +150,8 @@ const styles = StyleSheet.create({
   decorCircle: {
     position: 'absolute',
     borderRadius: 1000,
-    backgroundColor: colors.mental, // Blue circles
-    opacity: 0.08,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)', // White circles on blue
+    opacity: 1,
   },
   decorCircle1: {
     width: 300,
@@ -178,14 +183,14 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: colors.background,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 4,
-    borderColor: colors.mental, // Blue border
-    shadowColor: colors.mental,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.3,
     shadowRadius: 20,
     elevation: 10,
   },
@@ -195,13 +200,16 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 40,
     fontWeight: '900',
-    color: colors.text, // Dark text
+    color: '#FFFFFF', // White text
     letterSpacing: 2,
     marginBottom: 8,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   tagline: {
     fontSize: 16,
-    color: colors.textSecondary,
+    color: 'rgba(255, 255, 255, 0.85)',
     fontWeight: '600',
     letterSpacing: 1,
     marginBottom: 50,
@@ -225,11 +233,11 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: colors.mental, // Blue dot
+    backgroundColor: '#FFFFFF', // White dot
     top: 0,
     left: '50%',
     marginLeft: -8,
-    shadowColor: colors.mental,
+    shadowColor: '#FFF',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 8,
@@ -239,8 +247,7 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: colors.mental, // Blue dot
-    opacity: 0.7,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)', // White dot
     top: '50%',
     right: 0,
     marginTop: -6,
@@ -250,15 +257,14 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: colors.mental, // Blue dot
-    opacity: 0.7,
+    backgroundColor: 'rgba(255, 255, 255, 0.7)', // White dot
     bottom: 0,
     left: '50%',
     marginLeft: -6,
   },
   loadingText: {
     fontSize: 16,
-    color: colors.mental, // Blue text
+    color: '#FFFFFF', // White text
     fontWeight: '600',
     letterSpacing: 0.5,
   },
@@ -276,7 +282,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 50,
-    backgroundColor: colors.backgroundGray, // Light gray wave
+    backgroundColor: 'rgba(255, 255, 255, 0.05)', // White wave
     borderTopLeftRadius: 50,
     borderTopRightRadius: 50,
   },
