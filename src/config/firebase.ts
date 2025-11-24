@@ -22,27 +22,38 @@ const app = initializeApp(firebaseConfig);
 // CRITICAL for iOS PWA: Use explicit localStorage persistence (not IndexedDB)
 // IndexedDB can be cleared on iOS PWA when app closes, localStorage is more reliable
 let auth: Auth;
+
+// Check if running as standalone PWA (iOS home screen app)
+const isStandalonePWA = Platform.OS === 'web' &&
+  typeof window !== 'undefined' &&
+  (window.navigator as any).standalone === true;
+
+// Promise that resolves when Auth persistence is ready
+// Other modules should await this before using auth
+let authPersistenceReady: Promise<void>;
+
 if (Platform.OS === 'web') {
   auth = getAuth(app);
 
-  // Set persistence explicitly to localStorage for iOS PWA compatibility
-  console.log('🔧 Setting Firebase persistence...');
-  setPersistence(auth, browserLocalPersistence)
+  console.log('🔧 Setting Firebase Auth persistence to localStorage...',
+    isStandalonePWA ? '[PWA MODE]' : '[WEB MODE]');
+
+  // Set persistence and export the promise so other modules can wait for it
+  authPersistenceReady = setPersistence(auth, browserLocalPersistence)
     .then(() => {
-      console.log('✅ Firebase persistence: browserLocalPersistence (localStorage)');
+      console.log('✅ Auth persistence ready (localStorage)');
     })
     .catch((error) => {
-      console.error('❌ Failed to set browserLocalPersistence:', error);
-      console.log('🔄 Trying indexedDBLocalPersistence fallback...');
-      // Fallback to IndexedDB if localStorage fails
+      console.error('❌ localStorage persistence failed, trying IndexedDB...', error);
+      // Fallback to IndexedDB
       return setPersistence(auth, indexedDBLocalPersistence)
         .then(() => {
-          console.log('✅ Firebase persistence: indexedDBLocalPersistence (IndexedDB)');
+          console.log('✅ Auth persistence ready (IndexedDB fallback)');
         });
     })
-    .catch((error) => {
-      console.error('❌ CRITICAL: Failed to set any persistence!', error);
-      console.error('Auth state will not persist between sessions!');
+    .catch((fallbackError) => {
+      console.error('❌ CRITICAL: All persistence methods failed!', fallbackError);
+      console.warn('⚠️ Proceeding without persistence - auth state will NOT survive page reload');
     });
 } else {
   // Only import on native platforms
@@ -52,30 +63,35 @@ if (Platform.OS === 'web') {
   auth = initializeAuth(app, {
     persistence: getReactNativePersistence(AsyncStorage)
   });
+
+  // Native persistence is synchronous, resolve immediately
+  authPersistenceReady = Promise.resolve();
 }
 
 // Initialize Firestore with offline persistence
 const db = getFirestore(app);
 
 // Enable offline persistence for Firestore on web
-if (Platform.OS === 'web') {
-  console.log('🔧 Enabling Firestore offline persistence...');
+// IMPORTANT: Don't enable on iOS PWA as IndexedDB is unreliable there
+if (Platform.OS === 'web' && !isStandalonePWA) {
+  console.log('🔧 Enabling Firestore offline persistence (web mode)...');
   enableMultiTabIndexedDbPersistence(db)
     .then(() => {
-      console.log('✅ Firestore offline persistence enabled (multi-tab)');
+      console.log('✅ Firestore offline persistence enabled');
     })
     .catch((err) => {
       if (err.code === 'failed-precondition') {
-        console.warn('⚠️ Firestore persistence failed: Multiple tabs open');
-        // Multiple tabs open, persistence can only be enabled in one tab at a time
+        console.warn('⚠️ Firestore: Multiple tabs open, persistence disabled');
       } else if (err.code === 'unimplemented') {
-        console.warn('⚠️ Firestore persistence not available in this browser');
-        // The current browser doesn't support persistence
+        console.warn('⚠️ Firestore: Persistence not supported in this browser');
       } else {
         console.error('❌ Firestore persistence error:', err);
       }
     });
+} else if (isStandalonePWA) {
+  console.log('📱 Running in PWA mode - Firestore offline persistence DISABLED (IndexedDB unreliable on iOS PWA)');
+  console.log('📡 Firestore will work in online-only mode');
 }
 
-export { auth, db };
+export { auth, db, authPersistenceReady };
 export default app;

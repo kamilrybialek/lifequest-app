@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { User } from '../types';
-import { auth } from '../config/firebase';
+import { auth, authPersistenceReady } from '../config/firebase';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -284,24 +284,41 @@ let isHandlingAuthChange = false;
 // Track if we've completed the initial auth check
 let hasCompletedInitialCheck = false;
 
-// CRITICAL: Wait for Firebase to check persistence before allowing login screen to show
-// This prevents the flash of login screen while Firebase checks IndexedDB (especially on iOS PWA)
+// CRITICAL: Wait for Firebase persistence setup AND auth state check before showing login
+// This prevents the flash of login screen while Firebase initializes (especially on iOS PWA)
 let isAuthStateReady = false;
-auth.authStateReady().then(() => {
-  console.log('✅ Firebase auth persistence check complete');
-  isAuthStateReady = true;
 
-  // If we completed auth ready check and there's no user, show login screen
-  const currentState = useAuthStore.getState();
-  if (!currentState.isAuthenticated && currentState.isLoading) {
-    console.log('✅ Auth ready complete, no user found - showing login screen');
+// MUST wait for persistence to be set up first, then check auth state
+authPersistenceReady
+  .then(() => {
+    console.log('🔐 Auth persistence ready, now checking auth state...');
+    return auth.authStateReady();
+  })
+  .then(() => {
+    console.log('✅ Firebase auth state check complete');
+    isAuthStateReady = true;
+
+    // If we completed auth ready check and there's no user, show login screen
+    const currentState = useAuthStore.getState();
+    if (!currentState.isAuthenticated && currentState.isLoading) {
+      console.log('✅ No user session found - showing login screen');
+      useAuthStore.setState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false
+      });
+    }
+  })
+  .catch((error) => {
+    console.error('❌ Auth initialization failed:', error);
+    // Even if there's an error, show login screen instead of hanging
+    isAuthStateReady = true;
     useAuthStore.setState({
       user: null,
       isAuthenticated: false,
       isLoading: false
     });
-  }
-});
+  });
 
 // Set up Firebase auth state change listener
 onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
