@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, setPersistence, browserLocalPersistence, browserSessionPersistence, indexedDBLocalPersistence } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, enableIndexedDbPersistence, enableMultiTabIndexedDbPersistence } from 'firebase/firestore';
 import { Platform } from 'react-native';
 
 // 🔥 FIREBASE CONFIGURATION
@@ -26,21 +26,23 @@ if (Platform.OS === 'web') {
   auth = getAuth(app);
 
   // Set persistence explicitly to localStorage for iOS PWA compatibility
-  // Try multiple persistence methods in order of reliability on iOS
+  console.log('🔧 Setting Firebase persistence...');
   setPersistence(auth, browserLocalPersistence)
     .then(() => {
-      console.log('✅ Firebase persistence set to browserLocalPersistence (localStorage)');
+      console.log('✅ Firebase persistence: browserLocalPersistence (localStorage)');
     })
     .catch((error) => {
-      console.error('❌ Failed to set browserLocalPersistence, trying indexedDB:', error);
+      console.error('❌ Failed to set browserLocalPersistence:', error);
+      console.log('🔄 Trying indexedDBLocalPersistence fallback...');
       // Fallback to IndexedDB if localStorage fails
-      return setPersistence(auth, indexedDBLocalPersistence);
-    })
-    .then(() => {
-      console.log('✅ Firebase persistence set to indexedDBLocalPersistence');
+      return setPersistence(auth, indexedDBLocalPersistence)
+        .then(() => {
+          console.log('✅ Firebase persistence: indexedDBLocalPersistence (IndexedDB)');
+        });
     })
     .catch((error) => {
-      console.error('❌ Failed to set any persistence, auth state will not persist!', error);
+      console.error('❌ CRITICAL: Failed to set any persistence!', error);
+      console.error('Auth state will not persist between sessions!');
     });
 } else {
   // Only import on native platforms
@@ -52,8 +54,28 @@ if (Platform.OS === 'web') {
   });
 }
 
-// Initialize Firestore
+// Initialize Firestore with offline persistence
 const db = getFirestore(app);
+
+// Enable offline persistence for Firestore on web
+if (Platform.OS === 'web') {
+  console.log('🔧 Enabling Firestore offline persistence...');
+  enableMultiTabIndexedDbPersistence(db)
+    .then(() => {
+      console.log('✅ Firestore offline persistence enabled (multi-tab)');
+    })
+    .catch((err) => {
+      if (err.code === 'failed-precondition') {
+        console.warn('⚠️ Firestore persistence failed: Multiple tabs open');
+        // Multiple tabs open, persistence can only be enabled in one tab at a time
+      } else if (err.code === 'unimplemented') {
+        console.warn('⚠️ Firestore persistence not available in this browser');
+        // The current browser doesn't support persistence
+      } else {
+        console.error('❌ Firestore persistence error:', err);
+      }
+    });
+}
 
 export { auth, db };
 export default app;
