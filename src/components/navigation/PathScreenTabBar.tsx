@@ -26,7 +26,7 @@ export const PathScreenTabBar: React.FC<PathScreenTabBarProps> = ({ activeTab = 
   ];
 
   const handleTabPress = (tabName: string) => {
-    (navigation as any).navigate('MainTabs', { screen: tabName });
+    (navigation as any).navigate('Main', { screen: tabName });
   };
 
   return (
