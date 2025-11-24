@@ -281,10 +281,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
 // Guard to prevent multiple simultaneous onAuthStateChanged calls
 let isHandlingAuthChange = false;
+// Track if this is the first auth check (app startup)
+let isFirstAuthCheck = true;
 
 // Set up Firebase auth state change listener
 onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-  console.log('🔄 Auth state changed:', firebaseUser ? 'SIGNED_IN' : 'SIGNED_OUT');
+  console.log('🔄 Auth state changed:', firebaseUser ? 'SIGNED_IN' : 'SIGNED_OUT', isFirstAuthCheck ? '[FIRST CHECK]' : '[SUBSEQUENT]');
 
   // Prevent multiple simultaneous calls
   if (isHandlingAuthChange) {
@@ -301,6 +303,10 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       // Only update if state actually changed
       if (currentState.user !== null || currentState.isAuthenticated !== false) {
         useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: false });
+      } else if (isFirstAuthCheck) {
+        // First check and no user - definitely not authenticated
+        console.log('✅ First auth check complete: No user found');
+        useAuthStore.setState({ isLoading: false });
       }
     } else {
       // User signed in - reload user data
@@ -396,6 +402,9 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       }
     }
   } finally {
+    // Mark first check as complete
+    isFirstAuthCheck = false;
+
     // Release guard after a small delay to prevent rapid-fire calls
     setTimeout(() => {
       isHandlingAuthChange = false;
