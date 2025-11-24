@@ -21,10 +21,11 @@ import { saveLessonData, initializeFinanceData } from '../../database/financeInt
 type LessonPhase = 'intro' | 'form' | 'complete';
 
 export const FinanceLessonIntegratedScreen = ({ route, navigation }: any) => {
-  const { lessonId, stepId, lessonTitle, toolOverride } = route.params;
+  const { lessonId, stepId, lessonTitle, toolOverride, skipIntro } = route.params;
   const { user } = useAuthStore();
 
-  const [phase, setPhase] = useState<LessonPhase>('intro');
+  // Start in 'form' phase if skipIntro is true, otherwise show intro
+  const [phase, setPhase] = useState<LessonPhase>(skipIntro ? 'form' : 'intro');
   const [completedData, setCompletedData] = useState<any>(null);
 
   // Find lesson details

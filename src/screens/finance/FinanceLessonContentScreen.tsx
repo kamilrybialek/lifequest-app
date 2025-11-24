@@ -170,13 +170,14 @@ export const FinanceLessonContentScreen = ({ route, navigation }: any) => {
        answer.toLowerCase().includes('dzisiaj'));
 
     if (shouldNavigateToTool && lessonContent.navigateToTool) {
-      // Navigate directly to the tool
+      // Navigate directly to the tool (skip intro)
       console.log('User chose to do it now, navigating to tool:', lessonContent.navigateToTool);
       navigation.navigate('FinanceLessonIntegrated', {
         lessonId: lessonId,
         stepId: stepId,
         lessonTitle: lessonTitle,
         toolOverride: lessonContent.navigateToTool,
+        skipIntro: true, // Skip intro screen, go directly to form
       });
     } else {
       // User chose other option - go back to journey
