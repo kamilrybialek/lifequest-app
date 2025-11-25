@@ -29,16 +29,13 @@ export const ProfileScreenNew = () => {
     const loadPhoto = async () => {
       if (user?.id) {
         try {
-          setPhotoLoading(true);
-          setPhotoError(false);
           const photoURL = await getProfilePhotoURL(user.id);
-          console.log('📸 Loaded photo URL:', photoURL);
+          console.log('📸 Loaded photo URL:', photoURL ? 'exists' : 'none');
           setProfilePhoto(photoURL);
+          setPhotoError(false);
         } catch (error) {
           console.error('❌ Error loading photo:', error);
           setPhotoError(true);
-        } finally {
-          setPhotoLoading(false);
         }
       }
     };
@@ -245,33 +242,16 @@ export const ProfileScreenNew = () => {
                   </Text>
                 </View>
               ) : profilePhoto && !photoError ? (
-                <>
-                  <Image
-                    key={profilePhoto}
-                    source={{ uri: profilePhoto }}
-                    style={styles.profilePhoto}
-                    resizeMode="cover"
-                    onLoadStart={() => {
-                      console.log('🔄 Photo loading started...');
-                      setPhotoLoading(true);
-                    }}
-                    onLoad={() => {
-                      console.log('✅ Photo loaded successfully');
-                      setPhotoLoading(false);
-                      setPhotoError(false);
-                    }}
-                    onError={(error) => {
-                      console.error('❌ Image load error:', error);
-                      setPhotoError(true);
-                      setPhotoLoading(false);
-                    }}
-                  />
-                  {photoLoading && (
-                    <View style={[styles.photoPlaceholder, { position: 'absolute' }]}>
-                      <ActivityIndicator size="large" color="#4A90E2" />
-                    </View>
-                  )}
-                </>
+                <Image
+                  key={profilePhoto}
+                  source={{ uri: profilePhoto }}
+                  style={styles.profilePhoto}
+                  resizeMode="cover"
+                  onError={(error) => {
+                    console.error('❌ Image load error:', error);
+                    setPhotoError(true);
+                  }}
+                />
               ) : (
                 <View style={styles.photoPlaceholder}>
                   <Ionicons name="person" size={60} color="#CCC" />
