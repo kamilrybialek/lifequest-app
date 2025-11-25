@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -80,40 +81,59 @@ export const WeeklyHealthQuiz: React.FC<WeeklyHealthQuizProps> = ({
         notes: notes.trim() || undefined,
       });
 
-      Alert.alert(
-        '✅ Quiz Completed!',
-        'Your health metrics have been updated. Keep up the great work!',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              resetForm();
-              onComplete();
-              onClose();
+      if (Platform.OS === 'web') {
+        window.alert('✅ Quiz Completed!\n\nYour health metrics have been updated. Keep up the great work!');
+        resetForm();
+        onComplete();
+        onClose();
+      } else {
+        Alert.alert(
+          '✅ Quiz Completed!',
+          'Your health metrics have been updated. Keep up the great work!',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                resetForm();
+                onComplete();
+                onClose();
+              },
             },
-          },
-        ]
-      );
+          ]
+        );
+      }
     } catch (error) {
       console.error('Error submitting quiz:', error);
-      Alert.alert('Error', 'Failed to submit quiz. Please try again.');
+      if (Platform.OS === 'web') {
+        window.alert('❌ Error\n\nFailed to submit quiz. Please try again.');
+      } else {
+        Alert.alert('Error', 'Failed to submit quiz. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const handleClose = () => {
-    Alert.alert('Close Quiz?', 'Your progress will be lost.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Close',
-        style: 'destructive',
-        onPress: () => {
-          resetForm();
-          onClose();
+    if (Platform.OS === 'web') {
+      const confirmed = window.confirm('Close Quiz?\n\nYour progress will be lost.');
+      if (confirmed) {
+        resetForm();
+        onClose();
+      }
+    } else {
+      Alert.alert('Close Quiz?', 'Your progress will be lost.', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Close',
+          style: 'destructive',
+          onPress: () => {
+            resetForm();
+            onClose();
+          },
         },
-      },
-    ]);
+      ]);
+    }
   };
 
   const renderStep = () => {
