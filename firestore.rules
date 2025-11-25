@@ -41,6 +41,13 @@ service cloud.firestore {
       allow read, write: if isAuthenticated() && isOwner(userId);
     }
 
+    // Streaks - users can only access their own
+    match /streaks/{streakId} {
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
+    }
+
     // ============================================
     // TASKS & ACHIEVEMENTS COLLECTIONS
     // ============================================
@@ -182,8 +189,20 @@ service cloud.firestore {
     }
 
     // ============================================
-    // HEALTH & WELLNESS COLLECTIONS (Future)
+    // HEALTH & WELLNESS COLLECTIONS
     // ============================================
+
+    // Health metrics - users can only access their own
+    match /health_metrics/{userId} {
+      allow read, write: if isAuthenticated() && isOwner(userId);
+    }
+
+    // Weekly health quizzes - users can only access their own
+    match /weekly_health_quizzes/{quizId} {
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
+    }
 
     // Mental health data - users can only access their own
     match /mental_health_data/{entryId} {
