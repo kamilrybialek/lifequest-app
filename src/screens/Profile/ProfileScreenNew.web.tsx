@@ -21,6 +21,7 @@ export const ProfileScreenNew = () => {
   const [photoLoading, setPhotoLoading] = useState(false);
   const [photoError, setPhotoError] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string>(''); // "compressing", "uploading", ""
+  const [showPhotoMenu, setShowPhotoMenu] = useState(false);
 
   const firstName = user?.firstName || user?.email?.split('@')[0] || 'Champion';
 
@@ -125,20 +126,22 @@ export const ProfileScreenNew = () => {
     if (uploadingPhoto) return;
 
     if (profilePhoto) {
-      // Show options: Change or Delete
-      const action = window.confirm(
-        'Profile Photo Options\n\nOK = Change Photo\nCancel = Delete Photo'
-      );
-
-      if (action) {
-        handleUploadPhoto();
-      } else {
-        handleDeletePhoto();
-      }
+      // Show edit menu
+      setShowPhotoMenu(!showPhotoMenu);
     } else {
       // No photo yet, just upload
       handleUploadPhoto();
     }
+  };
+
+  const handleChangePhoto = () => {
+    setShowPhotoMenu(false);
+    handleUploadPhoto();
+  };
+
+  const handleRemovePhoto = () => {
+    setShowPhotoMenu(false);
+    handleDeletePhoto();
   };
 
   const handleLogout = () => {
@@ -227,59 +230,104 @@ export const ProfileScreenNew = () => {
             <Ionicons name="log-out-outline" size={24} color="#666" />
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.photoContainer}
-            onPress={handlePhotoClick}
-            disabled={uploadingPhoto}
-            activeOpacity={0.7}
-          >
-            {uploadingPhoto ? (
-              <View style={styles.photoPlaceholder}>
-                <ActivityIndicator size="large" color="#4A90E2" />
-                <Text style={styles.uploadingText}>
-                  {uploadStatus === 'compressing' ? 'Compressing image...' : 'Uploading to cloud...'}
-                </Text>
-              </View>
-            ) : profilePhoto && !photoError ? (
-              <>
-                <Image
-                  key={profilePhoto}
-                  source={{ uri: profilePhoto }}
-                  style={styles.profilePhoto}
-                  resizeMode="cover"
-                  onLoadStart={() => {
-                    console.log('🔄 Photo loading started...');
-                    setPhotoLoading(true);
-                  }}
-                  onLoad={() => {
-                    console.log('✅ Photo loaded successfully');
-                    setPhotoLoading(false);
-                    setPhotoError(false);
-                  }}
-                  onError={(error) => {
-                    console.error('❌ Image load error:', error);
-                    setPhotoError(true);
-                    setPhotoLoading(false);
-                  }}
-                />
-                {photoLoading && (
-                  <View style={[styles.photoPlaceholder, { position: 'absolute' }]}>
-                    <ActivityIndicator size="large" color="#4A90E2" />
-                  </View>
-                )}
-              </>
-            ) : (
-              <View style={styles.photoPlaceholder}>
-                <Ionicons name="person" size={60} color="#CCC" />
-                {photoError && (
-                  <Text style={styles.errorText}>Tap to retry</Text>
-                )}
-                {!photoError && !profilePhoto && (
-                  <Text style={styles.uploadHint}>Tap to add photo</Text>
-                )}
-              </View>
+          <View style={styles.photoWrapper}>
+            <TouchableOpacity
+              style={styles.photoContainer}
+              onPress={handlePhotoClick}
+              disabled={uploadingPhoto}
+              activeOpacity={0.7}
+            >
+              {uploadingPhoto ? (
+                <View style={styles.photoPlaceholder}>
+                  <ActivityIndicator size="large" color="#4A90E2" />
+                  <Text style={styles.uploadingText}>
+                    {uploadStatus === 'compressing' ? 'Compressing...' : 'Uploading...'}
+                  </Text>
+                </View>
+              ) : profilePhoto && !photoError ? (
+                <>
+                  <Image
+                    key={profilePhoto}
+                    source={{ uri: profilePhoto }}
+                    style={styles.profilePhoto}
+                    resizeMode="cover"
+                    onLoadStart={() => {
+                      console.log('🔄 Photo loading started...');
+                      setPhotoLoading(true);
+                    }}
+                    onLoad={() => {
+                      console.log('✅ Photo loaded successfully');
+                      setPhotoLoading(false);
+                      setPhotoError(false);
+                    }}
+                    onError={(error) => {
+                      console.error('❌ Image load error:', error);
+                      setPhotoError(true);
+                      setPhotoLoading(false);
+                    }}
+                  />
+                  {photoLoading && (
+                    <View style={[styles.photoPlaceholder, { position: 'absolute' }]}>
+                      <ActivityIndicator size="large" color="#4A90E2" />
+                    </View>
+                  )}
+                </>
+              ) : (
+                <View style={styles.photoPlaceholder}>
+                  <Ionicons name="person" size={60} color="#CCC" />
+                  {photoError && (
+                    <Text style={styles.errorText}>Tap to retry</Text>
+                  )}
+                  {!photoError && !profilePhoto && (
+                    <Text style={styles.uploadHint}>Tap to add photo</Text>
+                  )}
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Edit Icon - only show when photo exists */}
+            {profilePhoto && !uploadingPhoto && (
+              <TouchableOpacity
+                style={styles.editIconButton}
+                onPress={handlePhotoClick}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="pencil" size={16} color="white" />
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
+
+            {/* Dropdown Menu with Overlay */}
+            {showPhotoMenu && profilePhoto && (
+              <>
+                <TouchableOpacity
+                  style={styles.photoMenuOverlay}
+                  onPress={() => setShowPhotoMenu(false)}
+                  activeOpacity={1}
+                />
+                <View style={styles.photoMenu}>
+                  <TouchableOpacity
+                    style={styles.photoMenuItem}
+                    onPress={handleChangePhoto}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="camera" size={20} color="#4A90E2" />
+                    <Text style={styles.photoMenuText}>Change Photo</Text>
+                  </TouchableOpacity>
+
+                  <View style={styles.photoMenuDivider} />
+
+                  <TouchableOpacity
+                    style={styles.photoMenuItem}
+                    onPress={handleRemovePhoto}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="trash" size={20} color="#FF4B4B" />
+                    <Text style={[styles.photoMenuText, { color: '#FF4B4B' }]}>Delete Photo</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
 
           <View style={styles.photoInfo}>
             <Text style={styles.photoTitle}>{firstName}</Text>
@@ -600,9 +648,16 @@ const styles = StyleSheet.create({
     padding: 8,
     zIndex: 10,
   },
-  photoContainer: {
+  photoWrapper: {
     position: 'relative',
     marginBottom: 12,
+  },
+  photoContainer: {
+    position: 'relative',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    overflow: 'hidden',
   },
   profilePhoto: {
     width: 120,
@@ -615,6 +670,63 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 5,
+  },
+  editIconButton: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#4A90E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  photoMenuOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 999,
+  },
+  photoMenu: {
+    position: 'absolute',
+    top: 130,
+    left: '50%',
+    transform: [{ translateX: -80 }],
+    width: 160,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 8,
+    overflow: 'hidden',
+    zIndex: 1000,
+  },
+  photoMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 10,
+  },
+  photoMenuDivider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+  },
+  photoMenuText: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '500',
   },
   photoPlaceholder: {
     width: 120,
