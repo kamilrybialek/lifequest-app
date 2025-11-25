@@ -8,7 +8,7 @@ export interface User {
   weight?: number;
   height?: number;
   gender?: 'male' | 'female' | 'other';
-  currency?: 'USD' | 'EUR' | 'PLN' | 'GBP' | 'JPY' | 'CNY'; // User's preferred currency
+  currency?: string; // User's preferred currency (supports all 40+ currencies)
   financialStatus?: 'debt' | 'paycheck' | 'stable' | 'saving' | 'investing';
   activityLevel?: 'sedentary' | 'light' | 'moderate' | 'active';
   sleepQuality?: number; // 1-5

@@ -67,11 +67,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         weight: userData.weight,
         height: userData.height,
         gender: userData.gender as 'male' | 'female' | 'other' | undefined,
+        currency: userData.currency,
+        financialStatus: userData.financialStatus as 'debt' | 'paycheck' | 'stable' | 'saving' | 'investing' | undefined,
+        activityLevel: userData.activityLevel as 'sedentary' | 'light' | 'moderate' | 'active' | undefined,
+        sleepQuality: userData.sleepQuality,
         onboarded: userData.onboarded ?? false,
         createdAt: userData.created_at?.toDate?.()?.toISOString() ?? new Date().toISOString(),
       };
 
       set({ user, isAuthenticated: true });
+
+      // Sync currency to currency store if available
+      if (userData.currency) {
+        const { useCurrencyStore } = await import('./currencyStore');
+        useCurrencyStore.getState().setCurrency(userData.currency);
+        console.log('💱 Currency synced from Firestore:', userData.currency);
+      }
+
       console.log('✅ User logged in successfully');
     } catch (error: any) {
       console.error('❌ Login error:', error);
@@ -207,18 +219,30 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       console.log('📝 Updating user profile...');
 
-      // Update in Firestore
+      // Update in Firestore (including all new fields)
       await updateUserProfile(currentUser.id, {
         age: data.age,
         weight: data.weight,
         height: data.height,
         gender: data.gender,
+        currency: data.currency,
+        financialStatus: data.financialStatus,
+        activityLevel: data.activityLevel,
+        sleepQuality: data.sleepQuality,
         onboarded: data.onboarded,
       });
 
       // Update local state
       const updatedUser = { ...currentUser, ...data };
       set({ user: updatedUser });
+
+      // Sync currency to currency store if changed
+      if (data.currency) {
+        const { useCurrencyStore } = await import('./currencyStore');
+        useCurrencyStore.getState().setCurrency(data.currency);
+        console.log('💱 Currency updated:', data.currency);
+      }
+
       console.log('✅ Profile updated successfully');
     } catch (error) {
       console.error('❌ Profile update error:', error);
@@ -266,11 +290,23 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         weight: userData.weight,
         height: userData.height,
         gender: userData.gender as 'male' | 'female' | 'other' | undefined,
+        currency: userData.currency,
+        financialStatus: userData.financialStatus as 'debt' | 'paycheck' | 'stable' | 'saving' | 'investing' | undefined,
+        activityLevel: userData.activityLevel as 'sedentary' | 'light' | 'moderate' | 'active' | undefined,
+        sleepQuality: userData.sleepQuality,
         onboarded: userData.onboarded ?? false,
         createdAt: userData.created_at?.toDate?.()?.toISOString() ?? new Date().toISOString(),
       };
 
       set({ user, isAuthenticated: true, isLoading: false });
+
+      // Sync currency to currency store if available
+      if (userData.currency) {
+        const { useCurrencyStore } = await import('./currencyStore');
+        useCurrencyStore.getState().setCurrency(userData.currency);
+        console.log('💱 Currency synced from Firestore:', userData.currency);
+      }
+
       console.log('✅ User loaded successfully');
     } catch (error) {
       console.error('❌ Error loading user:', error);

@@ -141,12 +141,13 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
       // Mark onboarding as complete in AsyncStorage
       await AsyncStorage.setItem('onboardingCompleted', 'true');
 
-      // Mark user as onboarded in Firestore with all profile data
+      // Mark user as onboarded in Firestore with all profile data (including currency)
       await updateProfile({
         age: parseInt(age),
         weight: parseFloat(weight),
         height: parseFloat(height),
         gender: gender as any,
+        currency: selectedCurrency, // Save currency to Firestore for cross-device sync
         financialStatus: financialStatus as any,
         activityLevel: activityLevel as any,
         sleepQuality,
