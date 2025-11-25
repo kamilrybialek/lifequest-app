@@ -59,6 +59,7 @@ export const ProfileScreenNew = () => {
 
   const handleUploadPhoto = async () => {
     if (!user?.id) {
+      console.error('❌ No user ID');
       return;
     }
 
@@ -72,7 +73,8 @@ export const ProfileScreenNew = () => {
         return;
       }
 
-      console.log('📸 Image selected, starting compression...');
+      console.log('📸 Image selected:', imageUri.substring(0, 50) + '...');
+      console.log('📸 Image URI length:', imageUri.length);
 
       // Step 2: Now show loading state for compression + upload
       setUploadingPhoto(true);
@@ -80,44 +82,73 @@ export const ProfileScreenNew = () => {
       setUploadStatus('compressing');
 
       // Step 3: Compress image (this is the slow part for iPhone photos)
-      console.log('🔄 Compressing image...');
+      console.log('🔄 Starting compression...');
+      const startCompress = Date.now();
       const compressedBlob = await compressImage(imageUri);
-      console.log(`✅ Compression done: ${(compressedBlob.size / 1024 / 1024).toFixed(2)}MB`);
+      const compressTime = Date.now() - startCompress;
+      console.log(`✅ Compression done in ${compressTime}ms`);
+      console.log(`📦 Compressed size: ${(compressedBlob.size / 1024 / 1024).toFixed(2)}MB`);
+      console.log(`📦 Blob type: ${compressedBlob.type}`);
 
       // Step 4: Upload to Firebase
       setUploadStatus('uploading');
-      console.log('☁️ Uploading to Firebase...');
+      console.log('☁️ Starting Firebase upload...');
+      console.log('👤 User ID:', user.id);
 
       const fileName = `profile_photos/${user.id}_${Date.now()}.jpg`;
-      const storageRef = ref(storage, fileName);
+      console.log('📝 File name:', fileName);
 
-      await uploadBytes(storageRef, compressedBlob, {
+      console.log('🔗 Creating storage reference...');
+      const storageRef = ref(storage, fileName);
+      console.log('✅ Storage ref created:', storageRef.fullPath);
+
+      console.log('📤 Uploading bytes to Firebase Storage...');
+      const startUpload = Date.now();
+      const uploadResult = await uploadBytes(storageRef, compressedBlob, {
         contentType: 'image/jpeg',
       });
+      const uploadTime = Date.now() - startUpload;
+      console.log(`✅ Upload bytes complete in ${uploadTime}ms`);
+      console.log('📊 Upload result:', uploadResult);
 
+      console.log('🔗 Getting download URL...');
       const downloadURL = await getDownloadURL(storageRef);
-      console.log('✅ Upload complete, URL:', downloadURL);
+      console.log('✅ Got download URL:', downloadURL);
 
       // Step 5: Update Firestore
+      console.log('💾 Updating Firestore...');
       const userRef = doc(db, 'users', user.id);
+      console.log('📝 User ref path:', userRef.path);
+
       await updateDoc(userRef, {
         photoURL: downloadURL,
         photoUpdatedAt: new Date().toISOString(),
       });
+      console.log('✅ Firestore updated');
 
       // Step 6: Update UI
+      console.log('🎨 Updating UI...');
       setProfilePhoto(downloadURL);
       setPhotoLoading(true); // Will be set to false when Image onLoad fires
+      console.log('✅ All done!');
       window.alert('✅ Photo uploaded successfully!');
 
     } catch (error) {
       console.error('❌ Error uploading photo:', error);
+      console.error('❌ Error type:', typeof error);
+      console.error('❌ Error constructor:', error?.constructor?.name);
+      if (error instanceof Error) {
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error stack:', error.stack);
+      }
       setPhotoError(true);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
       window.alert(`❌ Failed to upload photo: ${errorMessage}`);
     } finally {
+      console.log('🏁 Finally block executing...');
       setUploadingPhoto(false);
       setUploadStatus('');
+      console.log('🏁 Finally block done');
     }
   };
 
