@@ -1,5 +1,5 @@
 /**
- * New Onboarding Screen - Weekly Quiz Style (PWA/Web Version)
+ * New Onboarding Screen - Weekly Quiz Style
  * Modern, step-by-step onboarding matching WeeklyHealthQuiz design
  */
 
@@ -24,13 +24,47 @@ interface OnboardingScreenNewProps {
   navigation: any;
 }
 
-const POPULAR_CURRENCIES = [
+const CURRENCIES = [
   { code: 'USD', symbol: '$', name: 'US Dollar', flag: '🇺🇸' },
   { code: 'EUR', symbol: '€', name: 'Euro', flag: '🇪🇺' },
   { code: 'GBP', symbol: '£', name: 'British Pound', flag: '🇬🇧' },
   { code: 'PLN', symbol: 'zł', name: 'Polish Zloty', flag: '🇵🇱' },
   { code: 'JPY', symbol: '¥', name: 'Japanese Yen', flag: '🇯🇵' },
   { code: 'CAD', symbol: '$', name: 'Canadian Dollar', flag: '🇨🇦' },
+  { code: 'AUD', symbol: '$', name: 'Australian Dollar', flag: '🇦🇺' },
+  { code: 'CHF', symbol: 'Fr', name: 'Swiss Franc', flag: '🇨🇭' },
+  { code: 'CNY', symbol: '¥', name: 'Chinese Yuan', flag: '🇨🇳' },
+  { code: 'SEK', symbol: 'kr', name: 'Swedish Krona', flag: '🇸🇪' },
+  { code: 'NZD', symbol: '$', name: 'New Zealand Dollar', flag: '🇳🇿' },
+  { code: 'MXN', symbol: '$', name: 'Mexican Peso', flag: '🇲🇽' },
+  { code: 'SGD', symbol: '$', name: 'Singapore Dollar', flag: '🇸🇬' },
+  { code: 'HKD', symbol: '$', name: 'Hong Kong Dollar', flag: '🇭🇰' },
+  { code: 'NOK', symbol: 'kr', name: 'Norwegian Krone', flag: '🇳🇴' },
+  { code: 'KRW', symbol: '₩', name: 'South Korean Won', flag: '🇰🇷' },
+  { code: 'TRY', symbol: '₺', name: 'Turkish Lira', flag: '🇹🇷' },
+  { code: 'INR', symbol: '₹', name: 'Indian Rupee', flag: '🇮🇳' },
+  { code: 'RUB', symbol: '₽', name: 'Russian Ruble', flag: '🇷🇺' },
+  { code: 'BRL', symbol: 'R$', name: 'Brazilian Real', flag: '🇧🇷' },
+  { code: 'ZAR', symbol: 'R', name: 'South African Rand', flag: '🇿🇦' },
+  { code: 'DKK', symbol: 'kr', name: 'Danish Krone', flag: '🇩🇰' },
+  { code: 'THB', symbol: '฿', name: 'Thai Baht', flag: '🇹🇭' },
+  { code: 'MYR', symbol: 'RM', name: 'Malaysian Ringgit', flag: '🇲🇾' },
+  { code: 'IDR', symbol: 'Rp', name: 'Indonesian Rupiah', flag: '🇮🇩' },
+  { code: 'PHP', symbol: '₱', name: 'Philippine Peso', flag: '🇵🇭' },
+  { code: 'CZK', symbol: 'Kč', name: 'Czech Koruna', flag: '🇨🇿' },
+  { code: 'ILS', symbol: '₪', name: 'Israeli Shekel', flag: '🇮🇱' },
+  { code: 'CLP', symbol: '$', name: 'Chilean Peso', flag: '🇨🇱' },
+  { code: 'AED', symbol: 'د.إ', name: 'UAE Dirham', flag: '🇦🇪' },
+  { code: 'COP', symbol: '$', name: 'Colombian Peso', flag: '🇨🇴' },
+  { code: 'SAR', symbol: '﷼', name: 'Saudi Riyal', flag: '🇸🇦' },
+  { code: 'RON', symbol: 'lei', name: 'Romanian Leu', flag: '🇷🇴' },
+  { code: 'HUF', symbol: 'Ft', name: 'Hungarian Forint', flag: '🇭🇺' },
+  { code: 'ARS', symbol: '$', name: 'Argentine Peso', flag: '🇦🇷' },
+  { code: 'BGN', symbol: 'лв', name: 'Bulgarian Lev', flag: '🇧🇬' },
+  { code: 'HRK', symbol: 'kn', name: 'Croatian Kuna', flag: '🇭🇷' },
+  { code: 'VND', symbol: '₫', name: 'Vietnamese Dong', flag: '🇻🇳' },
+  { code: 'UAH', symbol: '₴', name: 'Ukrainian Hryvnia', flag: '🇺🇦' },
+  { code: 'EGP', symbol: '£', name: 'Egyptian Pound', flag: '🇪🇬' },
 ];
 
 const FINANCIAL_GOALS = [
@@ -48,14 +82,32 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
   const { setCurrency } = useCurrencyStore();
   const { updateProfile } = useAuthStore();
 
+  // Helper function to get currency symbol
+  const getCurrencySymbol = () => {
+    const currency = CURRENCIES.find(c => c.code === selectedCurrency);
+    return currency ? currency.symbol : '$';
+  };
+
+  // Helper function to format currency
+  const formatCurrency = (amount: number) => {
+    const symbol = getCurrencySymbol();
+    return `${symbol}${amount.toLocaleString()}`;
+  };
+
   // Form data
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
+  const [age, setAge] = useState('25');
+  const [weight, setWeight] = useState('70');
+  const [height, setHeight] = useState('170');
+  const [gender, setGender] = useState('');
+  const [activityLevel, setActivityLevel] = useState('');
+  const [sleepQuality, setSleepQuality] = useState(7);
   const [monthlyIncome, setMonthlyIncome] = useState(3000);
   const [monthlyExpenses, setMonthlyExpenses] = useState(2000);
-  const [currentSavings, setCurrentSavings] = useState(5000);
+  const [financialStatus, setFinancialStatus] = useState('');
   const [financialGoal, setFinancialGoal] = useState('save_emergency');
 
-  const totalSteps = 5;
+  const totalSteps = 10;
   const progress = ((step + 1) / totalSteps) * 100;
 
   const completeOnboarding = async () => {
@@ -70,9 +122,15 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
         'onboardingData',
         JSON.stringify({
           currency: selectedCurrency,
+          age: parseInt(age),
+          weight: parseFloat(weight),
+          height: parseFloat(height),
+          gender,
+          activityLevel,
+          sleepQuality,
           monthlyIncome,
           monthlyExpenses,
-          currentSavings,
+          financialStatus,
           financialGoal,
           completedAt: new Date().toISOString(),
         })
@@ -81,8 +139,17 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
       // Mark onboarding as complete in AsyncStorage
       await AsyncStorage.setItem('onboardingCompleted', 'true');
 
-      // Mark user as onboarded in Firestore
-      await updateProfile({ onboarded: true });
+      // Mark user as onboarded in Firestore with all profile data
+      await updateProfile({
+        age: parseInt(age),
+        weight: parseFloat(weight),
+        height: parseFloat(height),
+        gender: gender as any,
+        financialStatus: financialStatus as any,
+        activityLevel: activityLevel as any,
+        sleepQuality,
+        onboarded: true,
+      });
 
       console.log('✅ Onboarding completed');
 
@@ -130,8 +197,9 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
               Select your preferred currency for tracking finances.
             </Text>
 
-            <View style={styles.currencyGrid}>
-              {POPULAR_CURRENCIES.map((currency) => (
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.currencyGrid}>
+                {CURRENCIES.map((currency) => (
                 <TouchableOpacity
                   key={currency.code}
                   style={[
@@ -146,11 +214,244 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
                   <Text style={styles.currencySymbol}>{currency.symbol}</Text>
                 </TouchableOpacity>
               ))}
-            </View>
+              </View>
+            </ScrollView>
           </View>
         );
 
       case 2:
+        return (
+          <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>📋 Basic Information</Text>
+            <Text style={styles.stepDescription}>
+              Tell us a bit about yourself for personalized recommendations.
+            </Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Age</Text>
+              <TextInput
+                style={styles.input}
+                value={age}
+                onChangeText={setAge}
+                keyboardType="numeric"
+                placeholder="25"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Weight (kg)</Text>
+              <TextInput
+                style={styles.input}
+                value={weight}
+                onChangeText={setWeight}
+                keyboardType="numeric"
+                placeholder="70"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Height (cm)</Text>
+              <TextInput
+                style={styles.input}
+                value={height}
+                onChangeText={setHeight}
+                keyboardType="numeric"
+                placeholder="170"
+              />
+            </View>
+          </View>
+        );
+
+      case 3:
+        return (
+          <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>⚧️ Gender</Text>
+            <Text style={styles.stepDescription}>
+              This helps us calculate your calorie needs accurately.
+            </Text>
+
+            <View style={styles.optionsGrid}>
+              <TouchableOpacity
+                style={[styles.optionCard, gender === 'male' && styles.optionCardSelected]}
+                onPress={() => setGender('male')}
+              >
+                <Text style={styles.optionIcon}>👨</Text>
+                <Text style={styles.optionTitle}>Male</Text>
+                {gender === 'male' && (
+                  <View style={styles.optionCheck}>
+                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.optionCard, gender === 'female' && styles.optionCardSelected]}
+                onPress={() => setGender('female')}
+              >
+                <Text style={styles.optionIcon}>👩</Text>
+                <Text style={styles.optionTitle}>Female</Text>
+                {gender === 'female' && (
+                  <View style={styles.optionCheck}>
+                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.optionCard, gender === 'other' && styles.optionCardSelected]}
+                onPress={() => setGender('other')}
+              >
+                <Text style={styles.optionIcon}>⚧️</Text>
+                <Text style={styles.optionTitle}>Other / Prefer not to say</Text>
+                {gender === 'other' && (
+                  <View style={styles.optionCheck}>
+                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+
+      case 4:
+        return (
+          <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>🏃 Activity Level</Text>
+            <Text style={styles.stepDescription}>
+              How physically active are you currently?
+            </Text>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.optionsGrid}>
+                <TouchableOpacity
+                  style={[styles.optionCard, activityLevel === 'sedentary' && styles.optionCardSelected]}
+                  onPress={() => setActivityLevel('sedentary')}
+                >
+                  <Text style={styles.optionIcon}>💺</Text>
+                  <Text style={styles.optionTitle}>Sedentary</Text>
+                  <Text style={styles.optionDescription}>Desk job, little exercise</Text>
+                  {activityLevel === 'sedentary' && (
+                    <View style={styles.optionCheck}>
+                      <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.optionCard, activityLevel === 'light' && styles.optionCardSelected]}
+                  onPress={() => setActivityLevel('light')}
+                >
+                  <Text style={styles.optionIcon}>🚶</Text>
+                  <Text style={styles.optionTitle}>Light Activity</Text>
+                  <Text style={styles.optionDescription}>Light walks, daily movement</Text>
+                  {activityLevel === 'light' && (
+                    <View style={styles.optionCheck}>
+                      <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.optionCard, activityLevel === 'moderate' && styles.optionCardSelected]}
+                  onPress={() => setActivityLevel('moderate')}
+                >
+                  <Text style={styles.optionIcon}>🏋️</Text>
+                  <Text style={styles.optionTitle}>Moderate</Text>
+                  <Text style={styles.optionDescription}>Exercise 2-3 times per week</Text>
+                  {activityLevel === 'moderate' && (
+                    <View style={styles.optionCheck}>
+                      <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.optionCard, activityLevel === 'active' && styles.optionCardSelected]}
+                  onPress={() => setActivityLevel('active')}
+                >
+                  <Text style={styles.optionIcon}>🤸</Text>
+                  <Text style={styles.optionTitle}>Active</Text>
+                  <Text style={styles.optionDescription}>Exercise 4-5 times per week</Text>
+                  {activityLevel === 'active' && (
+                    <View style={styles.optionCheck}>
+                      <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.optionCard, activityLevel === 'very_active' && styles.optionCardSelected]}
+                  onPress={() => setActivityLevel('very_active')}
+                >
+                  <Text style={styles.optionIcon}>💪</Text>
+                  <Text style={styles.optionTitle}>Very Active</Text>
+                  <Text style={styles.optionDescription}>Daily intense training</Text>
+                  {activityLevel === 'very_active' && (
+                    <View style={styles.optionCheck}>
+                      <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        );
+
+      case 5:
+        return (
+          <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>😴 Sleep Quality</Text>
+            <Text style={styles.stepDescription}>
+              How would you rate your sleep quality?
+            </Text>
+
+            <View style={styles.sliderContainer}>
+              <Text style={styles.sliderValue}>{sleepQuality} / 10</Text>
+              <Slider
+                style={styles.slider}
+                minimumValue={1}
+                maximumValue={10}
+                step={1}
+                value={sleepQuality}
+                onValueChange={setSleepQuality}
+                minimumTrackTintColor="#4A90E2"
+                maximumTrackTintColor="#E0E0E0"
+                thumbTintColor="#4A90E2"
+              />
+              <View style={styles.sliderLabels}>
+                <Text style={styles.sliderLabel}>😓 Poor</Text>
+                <Text style={styles.sliderLabel}>😊 Excellent</Text>
+              </View>
+            </View>
+
+            <View style={styles.sleepIndicator}>
+              {sleepQuality >= 8 ? (
+                <>
+                  <Ionicons name="moon" size={24} color="#4A90E2" />
+                  <Text style={[styles.savingsText, { color: '#4A90E2' }]}>
+                    Excellent sleep quality!
+                  </Text>
+                </>
+              ) : sleepQuality >= 5 ? (
+                <>
+                  <Ionicons name="partly-sunny" size={24} color="#FFA726" />
+                  <Text style={[styles.savingsText, { color: '#FFA726' }]}>
+                    Moderate sleep quality
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="alert-circle" size={24} color="#FF6B6B" />
+                  <Text style={[styles.savingsText, { color: '#FF6B6B' }]}>
+                    Consider improving sleep habits
+                  </Text>
+                </>
+              )}
+            </View>
+          </View>
+        );
+
+      case 6:
         return (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>💰 Monthly Income</Text>
@@ -160,7 +461,7 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
 
             <View style={styles.sliderContainer}>
               <Text style={styles.sliderValue}>
-                {selectedCurrency === 'PLN' ? `${monthlyIncome} zł` : `$${monthlyIncome}`}
+                {formatCurrency(monthlyIncome)}
               </Text>
               <Slider
                 style={styles.slider}
@@ -192,7 +493,7 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
           </View>
         );
 
-      case 3:
+      case 7:
         return (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>💸 Monthly Expenses</Text>
@@ -202,7 +503,7 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
 
             <View style={styles.sliderContainer}>
               <Text style={styles.sliderValue}>
-                {selectedCurrency === 'PLN' ? `${monthlyExpenses} zł` : `$${monthlyExpenses}`}
+                {formatCurrency(monthlyExpenses)}
               </Text>
               <Slider
                 style={styles.slider}
@@ -226,14 +527,14 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
                 <>
                   <Ionicons name="trending-up" size={24} color="#4CAF50" />
                   <Text style={[styles.savingsText, { color: '#4CAF50' }]}>
-                    Monthly Savings: {selectedCurrency === 'PLN' ? `${monthlyIncome - monthlyExpenses} zł` : `$${monthlyIncome - monthlyExpenses}`}
+                    Monthly Savings: {formatCurrency(monthlyIncome - monthlyExpenses)}
                   </Text>
                 </>
               ) : monthlyExpenses > monthlyIncome ? (
                 <>
                   <Ionicons name="trending-down" size={24} color="#FF6B6B" />
                   <Text style={[styles.savingsText, { color: '#FF6B6B' }]}>
-                    Monthly Deficit: {selectedCurrency === 'PLN' ? `${monthlyExpenses - monthlyIncome} zł` : `$${monthlyExpenses - monthlyIncome}`}
+                    Monthly Deficit: {formatCurrency(monthlyExpenses - monthlyIncome)}
                   </Text>
                 </>
               ) : (
@@ -248,7 +549,91 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
           </View>
         );
 
-      case 4:
+      case 8:
+        return (
+          <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>💼 Financial Situation</Text>
+            <Text style={styles.stepDescription}>
+              This helps us tailor your financial recommendations.
+            </Text>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.optionsGrid}>
+                <TouchableOpacity
+                  style={[styles.optionCard, financialStatus === 'debt' && styles.optionCardSelected]}
+                  onPress={() => setFinancialStatus('debt')}
+                >
+                  <Text style={styles.optionIcon}>💳</Text>
+                  <Text style={styles.optionTitle}>Have Debts</Text>
+                  <Text style={styles.optionDescription}>Need to pay off debts</Text>
+                  {financialStatus === 'debt' && (
+                    <View style={styles.optionCheck}>
+                      <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.optionCard, financialStatus === 'paycheck' && styles.optionCardSelected]}
+                  onPress={() => setFinancialStatus('paycheck')}
+                >
+                  <Text style={styles.optionIcon}>📅</Text>
+                  <Text style={styles.optionTitle}>Paycheck to Paycheck</Text>
+                  <Text style={styles.optionDescription}>Living month to month</Text>
+                  {financialStatus === 'paycheck' && (
+                    <View style={styles.optionCheck}>
+                      <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.optionCard, financialStatus === 'stable' && styles.optionCardSelected]}
+                  onPress={() => setFinancialStatus('stable')}
+                >
+                  <Text style={styles.optionIcon}>⚖️</Text>
+                  <Text style={styles.optionTitle}>Stable</Text>
+                  <Text style={styles.optionDescription}>Stable but not saving much</Text>
+                  {financialStatus === 'stable' && (
+                    <View style={styles.optionCheck}>
+                      <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.optionCard, financialStatus === 'saving' && styles.optionCardSelected]}
+                  onPress={() => setFinancialStatus('saving')}
+                >
+                  <Text style={styles.optionIcon}>💰</Text>
+                  <Text style={styles.optionTitle}>Saving Regularly</Text>
+                  <Text style={styles.optionDescription}>Building savings each month</Text>
+                  {financialStatus === 'saving' && (
+                    <View style={styles.optionCheck}>
+                      <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.optionCard, financialStatus === 'investing' && styles.optionCardSelected]}
+                  onPress={() => setFinancialStatus('investing')}
+                >
+                  <Text style={styles.optionIcon}>📈</Text>
+                  <Text style={styles.optionTitle}>Already Investing</Text>
+                  <Text style={styles.optionDescription}>Growing wealth through investments</Text>
+                  {financialStatus === 'investing' && (
+                    <View style={styles.optionCheck}>
+                      <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        );
+
+      case 9:
         return (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>🎯 Your Financial Goal</Text>
@@ -589,5 +974,52 @@ const styles = StyleSheet.create({
   },
   fullWidthButton: {
     flex: 1,
+  },
+  // Options Grid (for gender, activity, financial status)
+  optionsGrid: {
+    gap: 12,
+  },
+  optionCard: {
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    position: 'relative',
+    minHeight: 80,
+  },
+  optionCardSelected: {
+    borderColor: '#4CAF50',
+    backgroundColor: '#F1F8F4',
+  },
+  optionIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  optionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  optionDescription: {
+    fontSize: 14,
+    color: '#666',
+  },
+  optionCheck: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+  },
+  // Sleep Indicator
+  sleepIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 12,
+    gap: 8,
+    marginTop: 16,
   },
 });
