@@ -67,7 +67,7 @@ export const WeeklyHealthQuiz: React.FC<WeeklyHealthQuizProps> = ({
     try {
       setLoading(true);
 
-      await submitWeeklyQuiz(userId, {
+      const quizData: any = {
         quiz_date: new Date().toISOString(),
         sleepQuality,
         sleepHours,
@@ -78,8 +78,15 @@ export const WeeklyHealthQuiz: React.FC<WeeklyHealthQuizProps> = ({
         mealsCount,
         mood,
         energy,
-        notes: notes.trim() || undefined,
-      });
+      };
+
+      // Only include notes if it's not empty (Firestore doesn't accept undefined)
+      const trimmedNotes = notes.trim();
+      if (trimmedNotes) {
+        quizData.notes = trimmedNotes;
+      }
+
+      await submitWeeklyQuiz(userId, quizData);
 
       if (Platform.OS === 'web') {
         window.alert('✅ Quiz Completed!\n\nYour health metrics have been updated. Keep up the great work!');
