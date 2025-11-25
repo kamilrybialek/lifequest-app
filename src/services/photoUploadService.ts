@@ -17,7 +17,7 @@ const MAX_SIZE_MB = 2; // Maximum 2MB after compression
 /**
  * Compress image using Canvas (Web) or native APIs
  */
-const compressImage = async (
+export const compressImage = async (
   imageUri: string,
   maxWidth: number = MAX_WIDTH,
   maxHeight: number = MAX_HEIGHT,

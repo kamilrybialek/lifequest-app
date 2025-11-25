@@ -20,6 +20,7 @@ export const ProfileScreenNew = () => {
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [photoLoading, setPhotoLoading] = useState(false);
   const [photoError, setPhotoError] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<string>(''); // "compressing", "uploading", ""
 
   const firstName = user?.firstName || user?.email?.split('@')[0] || 'Champion';
 
@@ -59,24 +60,68 @@ export const ProfileScreenNew = () => {
     }
 
     try {
-      setUploadingPhoto(true);
-      setPhotoError(false);
+      // Step 1: Pick image (no loading state yet - just file picker)
+      console.log('📂 Opening file picker...');
       const imageUri = await pickImage();
 
-      if (imageUri) {
-        console.log('📸 Image picked, uploading...');
-        const downloadURL = await uploadProfilePhoto(user.id, imageUri);
-        console.log('✅ Upload complete, URL:', downloadURL);
-        setProfilePhoto(downloadURL);
-        setPhotoLoading(true); // Will be set to false when Image onLoad fires
-        window.alert('✅ Photo uploaded successfully!');
+      if (!imageUri) {
+        console.log('❌ No image selected');
+        return;
       }
+
+      console.log('📸 Image selected, starting compression...');
+
+      // Step 2: Now show loading state for compression + upload
+      setUploadingPhoto(true);
+      setPhotoError(false);
+      setUploadStatus('compressing');
+
+      // Import compression and upload functions
+      const { compressImage } = await import('../services/photoUploadService');
+
+      // Step 3: Compress image (this is the slow part for iPhone photos)
+      console.log('🔄 Compressing image...');
+      const compressedBlob = await compressImage(imageUri);
+      console.log(`✅ Compression done: ${(compressedBlob.size / 1024 / 1024).toFixed(2)}MB`);
+
+      // Step 4: Upload to Firebase
+      setUploadStatus('uploading');
+      console.log('☁️ Uploading to Firebase...');
+
+      const { ref, uploadBytes, getDownloadURL } = await import('firebase/storage');
+      const { doc, updateDoc } = await import('firebase/firestore');
+      const { storage, db } = await import('../config/firebase');
+
+      const fileName = `profile_photos/${user.id}_${Date.now()}.jpg`;
+      const storageRef = ref(storage, fileName);
+
+      await uploadBytes(storageRef, compressedBlob, {
+        contentType: 'image/jpeg',
+      });
+
+      const downloadURL = await getDownloadURL(storageRef);
+      console.log('✅ Upload complete, URL:', downloadURL);
+
+      // Step 5: Update Firestore
+      const userRef = doc(db, 'users', user.id);
+      await updateDoc(userRef, {
+        photoURL: downloadURL,
+        photoUpdatedAt: new Date().toISOString(),
+      });
+
+      // Step 6: Update UI
+      setProfilePhoto(downloadURL);
+      setPhotoLoading(true); // Will be set to false when Image onLoad fires
+      window.alert('✅ Photo uploaded successfully!');
+
     } catch (error) {
       console.error('❌ Error uploading photo:', error);
       setPhotoError(true);
-      window.alert('❌ Failed to upload photo. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      window.alert(`❌ Failed to upload photo: ${errorMessage}`);
     } finally {
       setUploadingPhoto(false);
+      setUploadStatus('');
     }
   };
 
@@ -193,7 +238,9 @@ export const ProfileScreenNew = () => {
             {uploadingPhoto ? (
               <View style={styles.photoPlaceholder}>
                 <ActivityIndicator size="large" color="#4A90E2" />
-                <Text style={styles.uploadingText}>Uploading...</Text>
+                <Text style={styles.uploadingText}>
+                  {uploadStatus === 'compressing' ? 'Compressing image...' : 'Uploading to cloud...'}
+                </Text>
               </View>
             ) : profilePhoto && !photoError ? (
               <>
