@@ -71,6 +71,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         financialStatus: userData.financialStatus as 'debt' | 'paycheck' | 'stable' | 'saving' | 'investing' | undefined,
         activityLevel: userData.activityLevel as 'sedentary' | 'light' | 'moderate' | 'active' | undefined,
         sleepQuality: userData.sleepQuality,
+        mealsPerDay: userData.mealsPerDay,
+        fastFoodFrequency: userData.fastFoodFrequency,
+        waterIntakeLevel: userData.waterIntakeLevel,
+        dietQuality: userData.dietQuality,
         onboarded: userData.onboarded ?? false,
         createdAt: userData.created_at?.toDate?.()?.toISOString() ?? new Date().toISOString(),
       };
@@ -229,6 +233,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         financialStatus: data.financialStatus,
         activityLevel: data.activityLevel,
         sleepQuality: data.sleepQuality,
+        mealsPerDay: data.mealsPerDay,
+        fastFoodFrequency: data.fastFoodFrequency,
+        waterIntakeLevel: data.waterIntakeLevel,
+        dietQuality: data.dietQuality,
         onboarded: data.onboarded,
       });
 
@@ -294,6 +302,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         financialStatus: userData.financialStatus as 'debt' | 'paycheck' | 'stable' | 'saving' | 'investing' | undefined,
         activityLevel: userData.activityLevel as 'sedentary' | 'light' | 'moderate' | 'active' | undefined,
         sleepQuality: userData.sleepQuality,
+        mealsPerDay: userData.mealsPerDay,
+        fastFoodFrequency: userData.fastFoodFrequency,
+        waterIntakeLevel: userData.waterIntakeLevel,
+        dietQuality: userData.dietQuality,
         onboarded: userData.onboarded ?? false,
         createdAt: userData.created_at?.toDate?.()?.toISOString() ?? new Date().toISOString(),
       };

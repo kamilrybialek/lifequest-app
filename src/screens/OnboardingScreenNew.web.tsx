@@ -107,7 +107,13 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
   const [financialStatus, setFinancialStatus] = useState('');
   const [financialGoal, setFinancialGoal] = useState('save_emergency');
 
-  const totalSteps = 10;
+  // Nutrition data
+  const [mealsPerDay, setMealsPerDay] = useState(-1);
+  const [fastFoodFrequency, setFastFoodFrequency] = useState(-1);
+  const [waterIntake, setWaterIntake] = useState(-1);
+  const [dietQuality, setDietQuality] = useState(5);
+
+  const totalSteps = 14;
   const progress = ((step + 1) / totalSteps) * 100;
 
   const completeOnboarding = async () => {
@@ -128,6 +134,10 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
           gender,
           activityLevel,
           sleepQuality,
+          mealsPerDay,
+          fastFoodFrequency,
+          waterIntake,
+          dietQuality,
           monthlyIncome,
           monthlyExpenses,
           financialStatus,
@@ -139,7 +149,7 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
       // Mark onboarding as complete in AsyncStorage
       await AsyncStorage.setItem('onboardingCompleted', 'true');
 
-      // Mark user as onboarded in Firestore with all profile data (including currency)
+      // Mark user as onboarded in Firestore with all profile data (including currency and nutrition)
       await updateProfile({
         age: parseInt(age),
         weight: parseFloat(weight),
@@ -149,6 +159,10 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
         financialStatus: financialStatus as any,
         activityLevel: activityLevel as any,
         sleepQuality,
+        mealsPerDay,
+        fastFoodFrequency,
+        waterIntakeLevel: waterIntake,
+        dietQuality,
         onboarded: true,
       });
 
@@ -455,6 +469,264 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
       case 6:
         return (
           <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>🍽️ Meals Per Day</Text>
+            <Text style={styles.stepDescription}>
+              How many meals do you eat per day?
+            </Text>
+
+            <View style={styles.optionsGrid}>
+              <TouchableOpacity
+                style={[styles.optionCard, mealsPerDay === 0 && styles.optionCardSelected]}
+                onPress={() => setMealsPerDay(0)}
+              >
+                <Text style={styles.optionIcon}>🥄</Text>
+                <Text style={styles.optionTitle}>1-2 meals</Text>
+                <Text style={styles.optionDescription}>Eating once or twice</Text>
+                {mealsPerDay === 0 && (
+                  <View style={styles.optionCheck}>
+                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.optionCard, mealsPerDay === 1 && styles.optionCardSelected]}
+                onPress={() => setMealsPerDay(1)}
+              >
+                <Text style={styles.optionIcon}>🍽️</Text>
+                <Text style={styles.optionTitle}>3 meals</Text>
+                <Text style={styles.optionDescription}>Breakfast, lunch, dinner</Text>
+                {mealsPerDay === 1 && (
+                  <View style={styles.optionCheck}>
+                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.optionCard, mealsPerDay === 2 && styles.optionCardSelected]}
+                onPress={() => setMealsPerDay(2)}
+              >
+                <Text style={styles.optionIcon}>🍴</Text>
+                <Text style={styles.optionTitle}>4-5 meals</Text>
+                <Text style={styles.optionDescription}>3 meals + snacks</Text>
+                {mealsPerDay === 2 && (
+                  <View style={styles.optionCheck}>
+                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.optionCard, mealsPerDay === 3 && styles.optionCardSelected]}
+                onPress={() => setMealsPerDay(3)}
+              >
+                <Text style={styles.optionIcon}>🍱</Text>
+                <Text style={styles.optionTitle}>6+ meals</Text>
+                <Text style={styles.optionDescription}>Frequent small meals</Text>
+                {mealsPerDay === 3 && (
+                  <View style={styles.optionCheck}>
+                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+
+      case 7:
+        return (
+          <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>🍔 Fast Food Frequency</Text>
+            <Text style={styles.stepDescription}>
+              How often do you eat fast food or unhealthy food?
+            </Text>
+
+            <View style={styles.optionsGrid}>
+              <TouchableOpacity
+                style={[styles.optionCard, fastFoodFrequency === 0 && styles.optionCardSelected]}
+                onPress={() => setFastFoodFrequency(0)}
+              >
+                <Text style={styles.optionIcon}>🍟</Text>
+                <Text style={styles.optionTitle}>Every day or almost</Text>
+                <Text style={styles.optionDescription}>Daily fast food habit</Text>
+                {fastFoodFrequency === 0 && (
+                  <View style={styles.optionCheck}>
+                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.optionCard, fastFoodFrequency === 1 && styles.optionCardSelected]}
+                onPress={() => setFastFoodFrequency(1)}
+              >
+                <Text style={styles.optionIcon}>🍕</Text>
+                <Text style={styles.optionTitle}>3-4 times a week</Text>
+                <Text style={styles.optionDescription}>Several times weekly</Text>
+                {fastFoodFrequency === 1 && (
+                  <View style={styles.optionCheck}>
+                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.optionCard, fastFoodFrequency === 2 && styles.optionCardSelected]}
+                onPress={() => setFastFoodFrequency(2)}
+              >
+                <Text style={styles.optionIcon}>🌮</Text>
+                <Text style={styles.optionTitle}>1-2 times a week</Text>
+                <Text style={styles.optionDescription}>Occasional treat</Text>
+                {fastFoodFrequency === 2 && (
+                  <View style={styles.optionCheck}>
+                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.optionCard, fastFoodFrequency === 3 && styles.optionCardSelected]}
+                onPress={() => setFastFoodFrequency(3)}
+              >
+                <Text style={styles.optionIcon}>🥗</Text>
+                <Text style={styles.optionTitle}>Rarely or never</Text>
+                <Text style={styles.optionDescription}>Clean eating lifestyle</Text>
+                {fastFoodFrequency === 3 && (
+                  <View style={styles.optionCheck}>
+                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+
+      case 8:
+        return (
+          <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>💧 Water Intake</Text>
+            <Text style={styles.stepDescription}>
+              Do you drink enough water daily?
+            </Text>
+
+            <View style={styles.optionsGrid}>
+              <TouchableOpacity
+                style={[styles.optionCard, waterIntake === 0 && styles.optionCardSelected]}
+                onPress={() => setWaterIntake(0)}
+              >
+                <Text style={styles.optionIcon}>💧</Text>
+                <Text style={styles.optionTitle}>Below 1L per day</Text>
+                <Text style={styles.optionDescription}>Need more hydration</Text>
+                {waterIntake === 0 && (
+                  <View style={styles.optionCheck}>
+                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.optionCard, waterIntake === 1 && styles.optionCardSelected]}
+                onPress={() => setWaterIntake(1)}
+              >
+                <Text style={styles.optionIcon}>💦</Text>
+                <Text style={styles.optionTitle}>1-2L per day</Text>
+                <Text style={styles.optionDescription}>Moderate hydration</Text>
+                {waterIntake === 1 && (
+                  <View style={styles.optionCheck}>
+                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.optionCard, waterIntake === 2 && styles.optionCardSelected]}
+                onPress={() => setWaterIntake(2)}
+              >
+                <Text style={styles.optionIcon}>🌊</Text>
+                <Text style={styles.optionTitle}>2-3L per day</Text>
+                <Text style={styles.optionDescription}>Good hydration</Text>
+                {waterIntake === 2 && (
+                  <View style={styles.optionCheck}>
+                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                  </View>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.optionCard, waterIntake === 3 && styles.optionCardSelected]}
+                onPress={() => setWaterIntake(3)}
+              >
+                <Text style={styles.optionIcon}>🏞️</Text>
+                <Text style={styles.optionTitle}>3L+ per day</Text>
+                <Text style={styles.optionDescription}>Excellent hydration</Text>
+                {waterIntake === 3 && (
+                  <View style={styles.optionCheck}>
+                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        );
+
+      case 9:
+        return (
+          <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>🥗 Diet Quality</Text>
+            <Text style={styles.stepDescription}>
+              How would you rate the quality of your diet?
+            </Text>
+
+            <View style={styles.sliderContainer}>
+              <Text style={styles.sliderValue}>{dietQuality} / 10</Text>
+              <Slider
+                style={styles.slider}
+                minimumValue={1}
+                maximumValue={10}
+                step={1}
+                value={dietQuality}
+                onValueChange={setDietQuality}
+                minimumTrackTintColor="#4CAF50"
+                maximumTrackTintColor="#E0E0E0"
+                thumbTintColor="#4CAF50"
+              />
+              <View style={styles.sliderLabels}>
+                <Text style={styles.sliderLabel}>😞 Very Unhealthy</Text>
+                <Text style={styles.sliderLabel}>😊 Very Healthy</Text>
+              </View>
+            </View>
+
+            <View style={styles.sleepIndicator}>
+              {dietQuality >= 8 ? (
+                <>
+                  <Ionicons name="leaf" size={24} color="#4CAF50" />
+                  <Text style={[styles.savingsText, { color: '#4CAF50' }]}>
+                    Excellent diet quality!
+                  </Text>
+                </>
+              ) : dietQuality >= 5 ? (
+                <>
+                  <Ionicons name="fast-food" size={24} color="#FFA726" />
+                  <Text style={[styles.savingsText, { color: '#FFA726' }]}>
+                    Moderate diet quality
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="alert-circle" size={24} color="#FF6B6B" />
+                  <Text style={[styles.savingsText, { color: '#FF6B6B' }]}>
+                    Consider improving eating habits
+                  </Text>
+                </>
+              )}
+            </View>
+          </View>
+        );
+
+      case 10:
+        return (
+          <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>💰 Monthly Income</Text>
             <Text style={styles.stepDescription}>
               How much do you earn per month?
@@ -494,7 +766,7 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
           </View>
         );
 
-      case 7:
+      case 11:
         return (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>💸 Monthly Expenses</Text>
@@ -550,7 +822,7 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
           </View>
         );
 
-      case 8:
+      case 12:
         return (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>💼 Financial Situation</Text>
@@ -634,7 +906,7 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
           </View>
         );
 
-      case 9:
+      case 13:
         return (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>🎯 Your Financial Goal</Text>

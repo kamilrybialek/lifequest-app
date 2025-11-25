@@ -11,7 +11,12 @@ export interface User {
   currency?: string; // User's preferred currency (supports all 40+ currencies)
   financialStatus?: 'debt' | 'paycheck' | 'stable' | 'saving' | 'investing';
   activityLevel?: 'sedentary' | 'light' | 'moderate' | 'active';
-  sleepQuality?: number; // 1-5
+  sleepQuality?: number; // 1-10
+  // Nutrition baseline (from onboarding)
+  mealsPerDay?: number; // 0-3 (0: 1-2 meals, 1: 3 meals, 2: 4-5 meals, 3: 6+ meals)
+  fastFoodFrequency?: number; // 0-3 (0: every day, 1: 3-4/week, 2: 1-2/week, 3: rarely)
+  waterIntakeLevel?: number; // 0-3 (0: <1L, 1: 1-2L, 2: 2-3L, 3: 3L+)
+  dietQuality?: number; // 1-10 rating
   onboarded: boolean;
   createdAt: string;
 }
