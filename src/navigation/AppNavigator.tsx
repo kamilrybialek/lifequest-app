@@ -6,7 +6,7 @@ import { TabNavigatorNew } from './TabNavigatorNew';
 
 // Auth screens - these are simple and don't use expo-file-system
 import { LoginScreen } from '../screens/auth/LoginScreen';
-import { OnboardingScreen } from '../screens/auth/OnboardingScreen';
+import { OnboardingScreenNew } from '../screens/OnboardingScreenNew';
 
 // Loading screen
 import { LoadingScreen } from '../screens/LoadingScreen';
@@ -95,7 +95,7 @@ export const AppNavigator = () => {
         {!isAuthenticated ? (
           <Stack.Screen name="Login" component={LoginScreen} />
         ) : !user?.onboarded ? (
-          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+          <Stack.Screen name="Onboarding" component={OnboardingScreenNew} />
         ) : (
           <>
             <Stack.Screen name="Main" component={TabNavigatorNew} />
