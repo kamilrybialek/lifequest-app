@@ -121,6 +121,26 @@ export const ProfileScreenNew = () => {
     }
   };
 
+  const handlePhotoClick = () => {
+    if (uploadingPhoto) return;
+
+    if (profilePhoto) {
+      // Show options: Change or Delete
+      const action = window.confirm(
+        'Profile Photo Options\n\nOK = Change Photo\nCancel = Delete Photo'
+      );
+
+      if (action) {
+        handleUploadPhoto();
+      } else {
+        handleDeletePhoto();
+      }
+    } else {
+      // No photo yet, just upload
+      handleUploadPhoto();
+    }
+  };
+
   const handleLogout = () => {
     const confirmed = window.confirm('Are you sure you want to logout?');
     if (confirmed) {
@@ -207,7 +227,12 @@ export const ProfileScreenNew = () => {
             <Ionicons name="log-out-outline" size={24} color="#666" />
           </TouchableOpacity>
 
-          <View style={styles.photoContainer}>
+          <TouchableOpacity
+            style={styles.photoContainer}
+            onPress={handlePhotoClick}
+            disabled={uploadingPhoto}
+            activeOpacity={0.7}
+          >
             {uploadingPhoto ? (
               <View style={styles.photoPlaceholder}>
                 <ActivityIndicator size="large" color="#4A90E2" />
@@ -247,31 +272,14 @@ export const ProfileScreenNew = () => {
               <View style={styles.photoPlaceholder}>
                 <Ionicons name="person" size={60} color="#CCC" />
                 {photoError && (
-                  <Text style={styles.errorText}>Load failed</Text>
+                  <Text style={styles.errorText}>Tap to retry</Text>
+                )}
+                {!photoError && !profilePhoto && (
+                  <Text style={styles.uploadHint}>Tap to add photo</Text>
                 )}
               </View>
             )}
-
-            {/* Photo Actions */}
-            <View style={styles.photoActions}>
-              <TouchableOpacity
-                style={styles.photoButton}
-                onPress={handleUploadPhoto}
-                disabled={uploadingPhoto}
-              >
-                <Ionicons name="camera" size={20} color="white" />
-              </TouchableOpacity>
-
-              {profilePhoto && !uploadingPhoto && (
-                <TouchableOpacity
-                  style={[styles.photoButton, styles.deleteButton]}
-                  onPress={handleDeletePhoto}
-                >
-                  <Ionicons name="trash" size={20} color="white" />
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.photoInfo}>
             <Text style={styles.photoTitle}>{firstName}</Text>
@@ -632,31 +640,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#FF4B4B',
     marginTop: 8,
+    textAlign: 'center',
   },
-  photoActions: {
-    position: 'absolute',
-    bottom: 0,
-    right: -5,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  photoButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: '#4A90E2',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: 'white',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  deleteButton: {
-    backgroundColor: '#FF4B4B',
+  uploadHint: {
+    fontSize: 11,
+    color: '#999',
+    marginTop: 8,
+    textAlign: 'center',
   },
   photoInfo: {
     alignItems: 'center',

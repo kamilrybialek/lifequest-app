@@ -108,14 +108,28 @@ export const pickImage = async (): Promise<string | null> => {
     return new Promise((resolve) => {
       const input = document.createElement('input');
       input.type = 'file';
-      input.accept = 'image/*';
+      // Accept JPEG, PNG, and HEIC (iPhone images)
+      input.accept = 'image/jpeg,image/jpg,image/png,image/heic,image/heif';
 
       input.onchange = (e: any) => {
         const file = e.target.files?.[0];
         if (file) {
+          console.log('📸 File selected:', file.name, file.type, `${(file.size / 1024 / 1024).toFixed(2)}MB`);
+
+          // Check file type
+          if (file.type === 'image/heic' || file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heic')) {
+            console.warn('⚠️ HEIC format detected - will attempt conversion via Canvas');
+          }
+
           const reader = new FileReader();
           reader.onload = (event) => {
-            resolve(event.target?.result as string);
+            const dataUrl = event.target?.result as string;
+            console.log('✅ File read successfully, data URL length:', dataUrl?.length);
+            resolve(dataUrl);
+          };
+          reader.onerror = (error) => {
+            console.error('❌ FileReader error:', error);
+            resolve(null);
           };
           reader.readAsDataURL(file);
         } else {
