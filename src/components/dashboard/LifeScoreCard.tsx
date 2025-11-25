@@ -7,7 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getHealthMetrics, getRecentQuizzes } from '../../services/healthDataService';
-import { getFinancialData } from '../../services/financeService';
+import { getFinancialProfile, getExpenses, getIncome } from '../../services/firebaseFinanceService';
 
 interface LifeScoreCardProps {
   userId: string;
@@ -39,8 +39,43 @@ export const LifeScoreCard: React.FC<LifeScoreCardProps> = ({ userId, onSurveyPr
       // Load health metrics
       const healthMetrics = await getHealthMetrics(userId);
 
-      // Load financial data
-      const financialData = await getFinancialData(userId);
+      // Load financial data from Firestore
+      let financialData: any = null;
+      try {
+        const profile = await getFinancialProfile(userId);
+
+        if (profile) {
+          // Use profile data if available
+          financialData = {
+            monthlyIncome: profile.monthly_income || 0,
+            monthlyExpenses: profile.monthly_expenses || 0,
+            monthlySavings: (profile.monthly_income || 0) - (profile.monthly_expenses || 0),
+          };
+        } else {
+          // Calculate from recent transactions if no profile
+          const currentMonth = new Date().toISOString().slice(0, 7); // "2025-01"
+          const startDate = `${currentMonth}-01`;
+          const endDate = `${currentMonth}-31`;
+
+          const [expenses, income] = await Promise.all([
+            getExpenses(userId, { startDate, endDate }),
+            getIncome(userId, { startDate, endDate }),
+          ]);
+
+          // Calculate monthly totals
+          const monthlyExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+          const monthlyIncome = income.reduce((sum, i) => sum + i.amount, 0);
+
+          financialData = {
+            monthlyIncome,
+            monthlyExpenses,
+            monthlySavings: monthlyIncome - monthlyExpenses,
+          };
+        }
+      } catch (error) {
+        console.error('❌ Error loading financial data:', error);
+        financialData = null;
+      }
 
       // Load recent quizzes for trend
       const recentQuizzes = await getRecentQuizzes(userId, 2);
