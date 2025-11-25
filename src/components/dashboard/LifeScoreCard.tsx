@@ -38,99 +38,49 @@ export const LifeScoreCard: React.FC<LifeScoreCardProps> = ({ userId, onSurveyPr
     try {
       setLoading(true);
 
+      // Load onboarding data (primary source for calculations)
+      const onboardingDataStr = await AsyncStorage.getItem('onboardingData');
+      let onboardingData: any = {};
+
+      if (onboardingDataStr) {
+        onboardingData = JSON.parse(onboardingDataStr);
+      }
+
       // Load health metrics
       const healthMetrics = await getHealthMetrics(userId);
 
-      // Load financial data from Firestore, fallback to onboarding data
-      let financialData: any = null;
-      try {
-        const profile = await getFinancialProfile(userId);
-
-        if (profile && profile.monthly_income) {
-          // Use profile data if available
-          financialData = {
-            monthlyIncome: profile.monthly_income || 0,
-            monthlyExpenses: profile.monthly_expenses || 0,
-            monthlySavings: (profile.monthly_income || 0) - (profile.monthly_expenses || 0),
-          };
-        } else {
-          // Try to calculate from recent transactions
-          const currentMonth = new Date().toISOString().slice(0, 7); // "2025-01"
-          const startDate = `${currentMonth}-01`;
-          const endDate = `${currentMonth}-31`;
-
-          const [expenses, income] = await Promise.all([
-            getExpenses(userId, { startDate, endDate }),
-            getIncome(userId, { startDate, endDate }),
-          ]);
-
-          const monthlyExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-          const monthlyIncome = income.reduce((sum, i) => sum + i.amount, 0);
-
-          if (monthlyIncome > 0 || monthlyExpenses > 0) {
-            // Use transaction data if available
-            financialData = {
-              monthlyIncome,
-              monthlyExpenses,
-              monthlySavings: monthlyIncome - monthlyExpenses,
-            };
-          } else {
-            // Fallback to onboarding data
-            const onboardingDataStr = await AsyncStorage.getItem('onboardingData');
-            if (onboardingDataStr) {
-              const onboardingData = JSON.parse(onboardingDataStr);
-              financialData = {
-                monthlyIncome: onboardingData.monthlyIncome || 0,
-                monthlyExpenses: onboardingData.monthlyExpenses || 0,
-                monthlySavings: (onboardingData.monthlyIncome || 0) - (onboardingData.monthlyExpenses || 0),
-              };
-            }
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error loading financial data:', error);
-        // Try onboarding data as last resort
-        try {
-          const onboardingDataStr = await AsyncStorage.getItem('onboardingData');
-          if (onboardingDataStr) {
-            const onboardingData = JSON.parse(onboardingDataStr);
-            financialData = {
-              monthlyIncome: onboardingData.monthlyIncome || 0,
-              monthlyExpenses: onboardingData.monthlyExpenses || 0,
-              monthlySavings: (onboardingData.monthlyIncome || 0) - (onboardingData.monthlyExpenses || 0),
-            };
-          }
-        } catch (fallbackError) {
-          console.error('❌ Error loading onboarding data:', fallbackError);
-        }
-      }
+      // Merge onboarding data with health metrics for comprehensive calculation
+      const combinedData = {
+        ...onboardingData,
+        ...healthMetrics,
+      };
 
       // Load recent quizzes for trend
       const recentQuizzes = await getRecentQuizzes(userId, 2);
 
-      // Calculate pillar scores
+      // Calculate pillar scores using onboarding logic
       const scores: PillarScore[] = [
         {
           name: 'Finance',
-          score: calculateFinanceScore(financialData),
+          score: calculateFinanceScore(combinedData),
           color: '#4CAF50',
           icon: '💰',
         },
         {
           name: 'Mental',
-          score: calculateMentalScore(healthMetrics),
+          score: calculateMentalScore(combinedData),
           color: '#2196F3',
           icon: '🧠',
         },
         {
           name: 'Physical',
-          score: calculatePhysicalScore(healthMetrics),
+          score: calculatePhysicalScore(combinedData),
           color: '#FF9800',
           icon: '💪',
         },
         {
           name: 'Nutrition',
-          score: calculateNutritionScore(healthMetrics),
+          score: calculateNutritionScore(combinedData),
           color: '#9C27B0',
           icon: '🥗',
         },
@@ -172,87 +122,134 @@ export const LifeScoreCard: React.FC<LifeScoreCardProps> = ({ userId, onSurveyPr
   };
 
   const calculateFinanceScore = (data: any): number => {
-    if (!data) return 50;
+    if (!data) return 0;
 
-    // Simple scoring based on financial health
-    // Income > expenses + savings = good score
-    const income = data.monthlyIncome || 0;
-    const expenses = data.monthlyExpenses || 0;
-    const savings = data.monthlySavings || 0;
+    const monthlyIncome = data.monthlyIncome || 0;
+    const monthlyExpenses = data.monthlyExpenses || 0;
+    const estimatedDebt = data.estimatedDebt || 0;
 
-    if (income === 0) return 50;
+    let score = 0;
 
-    const savingsRate = (savings / income) * 100;
-    const expenseRatio = (expenses / income) * 100;
+    // 1. Income vs Expenses (40 points max)
+    const expenseRatio = monthlyIncome > 0 ? monthlyExpenses / monthlyIncome : 2;
+    if (expenseRatio <= 0.5) score += 40; // Saving 50%+
+    else if (expenseRatio <= 0.7) score += 35; // Saving 30-50%
+    else if (expenseRatio <= 0.85) score += 25; // Saving 15-30%
+    else if (expenseRatio < 1.0) score += 15; // Saving something
+    else if (expenseRatio <= 1.1) score += 5; // Slight deficit
+    else score += 0; // Major deficit
 
-    let score = 50; // Base score
+    // 2. Debt Level (40 points max)
+    const annualIncome = monthlyIncome * 12;
+    const debtToIncomeRatio = annualIncome > 0 ? estimatedDebt / annualIncome : 100;
+    if (estimatedDebt === 0) score += 40; // No debt
+    else if (debtToIncomeRatio <= 0.5) score += 35; // Manageable debt
+    else if (debtToIncomeRatio <= 1.0) score += 25; // Moderate debt
+    else if (debtToIncomeRatio <= 2.0) score += 15; // High debt
+    else if (debtToIncomeRatio <= 5.0) score += 5; // Very high debt
+    else score += 0; // Critical debt
 
-    // Savings rate bonus (0-30 points)
-    if (savingsRate >= 20) score += 30;
-    else if (savingsRate >= 15) score += 25;
-    else if (savingsRate >= 10) score += 20;
-    else if (savingsRate >= 5) score += 10;
+    // 3. Monthly Savings (20 points max)
+    const monthlySavings = monthlyIncome - monthlyExpenses;
+    if (monthlySavings >= monthlyIncome * 0.3) score += 20; // Saving 30%+
+    else if (monthlySavings >= monthlyIncome * 0.2) score += 15; // Saving 20%+
+    else if (monthlySavings >= monthlyIncome * 0.1) score += 10; // Saving 10%+
+    else if (monthlySavings > 0) score += 5; // Saving something
+    else score += 0; // No savings or deficit
 
-    // Expense ratio (0-20 points)
-    if (expenseRatio <= 50) score += 20;
-    else if (expenseRatio <= 70) score += 10;
-    else if (expenseRatio <= 90) score += 5;
-
-    return Math.min(100, score);
+    return Math.min(100, Math.max(0, score));
   };
 
-  const calculateMentalScore = (metrics: any): number => {
-    if (!metrics) return 50;
+  const calculateMentalScore = (data: any): number => {
+    if (!data) return 0;
 
-    let score = 50;
+    const sleepQuality = data.sleepQuality || 5;
+    const activityLevel = data.activityLevel || 'sedentary';
 
-    // Sleep quality (0-25 points)
-    const sleepScore = ((metrics.sleepQuality || 3) / 5) * 25;
-    score += sleepScore;
+    let score = 0;
 
-    // Stress level (0-25 points) - lower is better
-    const stressScore = ((5 - (metrics.stressLevel || 3)) / 5) * 25;
-    score += stressScore;
+    // Sleep quality (70 points max)
+    score += sleepQuality * 7;
 
-    return Math.min(100, Math.round(score));
+    // Activity level bonus (30 points max)
+    const activityPoints: Record<string, number> = {
+      'sedentary': 5,
+      'light': 15,
+      'moderate': 22,
+      'active': 27,
+      'very_active': 30,
+    };
+    score += activityPoints[activityLevel] || 15;
+
+    return Math.min(100, Math.max(0, score));
   };
 
-  const calculatePhysicalScore = (metrics: any): number => {
-    if (!metrics) return 50;
+  const calculatePhysicalScore = (data: any): number => {
+    if (!data) return 0;
 
-    let score = 50;
+    const height = data.height || 170;
+    const weight = data.weight || 70;
+    const activityLevel = data.activityLevel || 'sedentary';
 
-    // Exercise hours (0-30 points)
-    const exerciseScore = Math.min((metrics.weeklyExerciseHours || 0) / 5 * 30, 30);
-    score += exerciseScore;
+    let score = 50; // Start at middle
 
-    // BMI in healthy range (0-20 points)
-    if (metrics.height && metrics.weight) {
-      const bmi = metrics.weight / Math.pow(metrics.height / 100, 2);
-      if (bmi >= 18.5 && bmi <= 24.9) {
-        score += 20;
-      } else if (bmi >= 17 && bmi <= 27) {
-        score += 10;
-      }
-    }
+    // BMI score (60 points max)
+    const heightM = height / 100;
+    const bmi = weight / (heightM * heightM);
+    const bmiRounded = Math.round(bmi * 10) / 10;
 
-    return Math.min(100, Math.round(score));
+    if (bmiRounded >= 18.5 && bmiRounded < 25) score += 40; // Normal
+    else if (bmiRounded >= 17 && bmiRounded < 18.5) score += 25; // Slightly underweight
+    else if (bmiRounded >= 25 && bmiRounded < 27) score += 30; // Slightly overweight
+    else if (bmiRounded >= 27 && bmiRounded < 30) score += 20; // Overweight
+    else if (bmiRounded >= 30 && bmiRounded < 35) score += 10; // Obese
+    else score += 0; // Very underweight or very obese
+
+    // Activity level (40 points max)
+    const activityPoints: Record<string, number> = {
+      'sedentary': 5,
+      'light': 15,
+      'moderate': 25,
+      'active': 35,
+      'very_active': 40,
+    };
+    score += activityPoints[activityLevel] || 15;
+
+    return Math.min(100, Math.max(0, score));
   };
 
-  const calculateNutritionScore = (metrics: any): number => {
-    if (!metrics) return 50;
+  const calculateNutritionScore = (data: any): number => {
+    if (!data) return 0;
 
-    let score = 50;
+    const mealsPerDay = data.mealsPerDay ?? 1;
+    const fastFoodFrequency = data.fastFoodFrequency ?? 3;
+    const waterIntake = data.waterIntake ?? 1;
+    const dietQuality = data.dietQuality ?? 5;
 
-    // Water intake (0-25 points)
-    const waterScore = Math.min((metrics.waterIntakeLiters || 0) / 2.5 * 25, 25);
-    score += waterScore;
+    let score = 0;
 
-    // Meals per day (0-25 points)
-    const mealsScore = (metrics.mealsPerDay || 0) >= 3 ? 25 : ((metrics.mealsPerDay || 0) / 3) * 25;
-    score += mealsScore;
+    // Meals per day (25 points max)
+    if (mealsPerDay === 1) score += 25; // 3 meals - optimal
+    else if (mealsPerDay === 2) score += 20; // 4-5 meals - good
+    else if (mealsPerDay === 0) score += 10; // 1-2 meals - poor
+    else if (mealsPerDay === 3) score += 15; // 6+ meals - okay
 
-    return Math.min(100, Math.round(score));
+    // Fast food frequency (30 points max) - inverted
+    if (fastFoodFrequency === 0) score += 30; // Never/rarely
+    else if (fastFoodFrequency === 1) score += 20; // Once a week
+    else if (fastFoodFrequency === 2) score += 10; // Few times a week
+    else score += 0; // Daily
+
+    // Water intake (20 points max)
+    if (waterIntake === 3) score += 20; // 8+ glasses
+    else if (waterIntake === 2) score += 15; // 5-7 glasses
+    else if (waterIntake === 1) score += 8; // 3-4 glasses
+    else score += 0; // <3 glasses
+
+    // Diet quality (25 points max)
+    score += Math.min((dietQuality / 10) * 25, 25);
+
+    return Math.min(100, Math.max(0, score));
   };
 
   const getScoreColor = (score: number): string => {
