@@ -76,6 +76,50 @@ const FINANCIAL_GOALS = [
   { id: 'other', icon: '🎯', title: 'Other Goal', description: 'Custom financial goal' },
 ];
 
+// Currency-specific max values for sliders (approximated to ~10000 USD equivalent)
+const CURRENCY_MAX_VALUES: Record<string, number> = {
+  USD: 15000,
+  EUR: 14000,
+  GBP: 12000,
+  PLN: 60000,
+  JPY: 2200000,
+  CAD: 21000,
+  AUD: 23000,
+  CHF: 13000,
+  CNY: 110000,
+  SEK: 160000,
+  NZD: 25000,
+  MXN: 250000,
+  SGD: 20000,
+  HKD: 120000,
+  NOK: 160000,
+  KRW: 20000000,
+  TRY: 500000,
+  INR: 1200000,
+  RUB: 1500000,
+  BRL: 75000,
+  ZAR: 270000,
+  DKK: 105000,
+  THB: 520000,
+  MYR: 67000,
+  IDR: 240000000,
+  PHP: 850000,
+  CZK: 340000,
+  ILS: 55000,
+  CLP: 14500000,
+  AED: 55000,
+  COP: 65000000,
+  SAR: 56000,
+  RON: 70000,
+  HUF: 5600000,
+  ARS: 15000000,
+  BGN: 28000,
+  HRK: 105000,
+  VND: 375000000,
+  UAH: 610000,
+  EGP: 730000,
+};
+
 export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ navigation }) => {
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -94,7 +138,13 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
     return `${symbol}${amount.toLocaleString()}`;
   };
 
+  // Helper function to get currency max value
+  const getCurrencyMaxValue = () => {
+    return CURRENCY_MAX_VALUES[selectedCurrency] || 20000;
+  };
+
   // Form data
+  const [name, setName] = useState('');
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
   const [age, setAge] = useState('25');
   const [weight, setWeight] = useState('70');
@@ -104,6 +154,7 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
   const [sleepQuality, setSleepQuality] = useState(7);
   const [monthlyIncome, setMonthlyIncome] = useState(3000);
   const [monthlyExpenses, setMonthlyExpenses] = useState(2000);
+  const [estimatedDebt, setEstimatedDebt] = useState(0);
   const [financialStatus, setFinancialStatus] = useState('');
   const [financialGoal, setFinancialGoal] = useState('save_emergency');
 
@@ -113,7 +164,7 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
   const [waterIntake, setWaterIntake] = useState(-1);
   const [dietQuality, setDietQuality] = useState(5);
 
-  const totalSteps = 14;
+  const totalSteps = 16;
   const progress = ((step + 1) / totalSteps) * 100;
 
   const completeOnboarding = async () => {
@@ -127,6 +178,7 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
       await AsyncStorage.setItem(
         'onboardingData',
         JSON.stringify({
+          name,
           currency: selectedCurrency,
           age: parseInt(age),
           weight: parseFloat(weight),
@@ -140,6 +192,7 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
           dietQuality,
           monthlyIncome,
           monthlyExpenses,
+          estimatedDebt,
           financialStatus,
           financialGoal,
           completedAt: new Date().toISOString(),
@@ -207,30 +260,21 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
       case 1:
         return (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>💱 Choose Your Currency</Text>
+            <Text style={styles.stepTitle}>👋 What's your name?</Text>
             <Text style={styles.stepDescription}>
-              Select your preferred currency for tracking finances.
+              Let's personalize your experience.
             </Text>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={styles.currencyGrid}>
-                {CURRENCIES.map((currency) => (
-                <TouchableOpacity
-                  key={currency.code}
-                  style={[
-                    styles.currencyCard,
-                    selectedCurrency === currency.code && styles.currencyCardSelected,
-                  ]}
-                  onPress={() => setSelectedCurrency(currency.code)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.currencyFlag}>{currency.flag}</Text>
-                  <Text style={styles.currencyCode}>{currency.code}</Text>
-                  <Text style={styles.currencySymbol}>{currency.symbol}</Text>
-                </TouchableOpacity>
-              ))}
-              </View>
-            </ScrollView>
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Name</Text>
+              <TextInput
+                style={styles.input}
+                value={name}
+                onChangeText={setName}
+                placeholder="Enter your name"
+                autoCapitalize="words"
+              />
+            </View>
           </View>
         );
 
@@ -727,6 +771,36 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
       case 10:
         return (
           <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>💱 Choose Your Currency</Text>
+            <Text style={styles.stepDescription}>
+              Select your preferred currency for tracking finances.
+            </Text>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.currencyGrid}>
+                {CURRENCIES.map((currency) => (
+                <TouchableOpacity
+                  key={currency.code}
+                  style={[
+                    styles.currencyCard,
+                    selectedCurrency === currency.code && styles.currencyCardSelected,
+                  ]}
+                  onPress={() => setSelectedCurrency(currency.code)}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.currencyFlag}>{currency.flag}</Text>
+                  <Text style={styles.currencyCode}>{currency.code}</Text>
+                  <Text style={styles.currencySymbol}>{currency.symbol}</Text>
+                </TouchableOpacity>
+              ))}
+              </View>
+            </ScrollView>
+          </View>
+        );
+
+      case 11:
+        return (
+          <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>💰 Monthly Income</Text>
             <Text style={styles.stepDescription}>
               How much do you earn per month?
@@ -739,8 +813,8 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
               <Slider
                 style={styles.slider}
                 minimumValue={0}
-                maximumValue={20000}
-                step={100}
+                maximumValue={getCurrencyMaxValue()}
+                step={getCurrencyMaxValue() / 200}
                 value={monthlyIncome}
                 onValueChange={setMonthlyIncome}
                 minimumTrackTintColor="#4CAF50"
@@ -749,7 +823,7 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
               />
               <View style={styles.sliderLabels}>
                 <Text style={styles.sliderLabel}>0</Text>
-                <Text style={styles.sliderLabel}>20,000</Text>
+                <Text style={styles.sliderLabel}>{formatCurrency(getCurrencyMaxValue())}</Text>
               </View>
             </View>
 
@@ -766,7 +840,7 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
           </View>
         );
 
-      case 11:
+      case 12:
         return (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>💸 Monthly Expenses</Text>
@@ -781,8 +855,8 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
               <Slider
                 style={styles.slider}
                 minimumValue={0}
-                maximumValue={20000}
-                step={100}
+                maximumValue={Math.max(getCurrencyMaxValue(), monthlyIncome * 1.5)}
+                step={getCurrencyMaxValue() / 200}
                 value={monthlyExpenses}
                 onValueChange={setMonthlyExpenses}
                 minimumTrackTintColor="#FF6B6B"
@@ -791,8 +865,19 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
               />
               <View style={styles.sliderLabels}>
                 <Text style={styles.sliderLabel}>0</Text>
-                <Text style={styles.sliderLabel}>20,000</Text>
+                <Text style={styles.sliderLabel}>{formatCurrency(Math.max(getCurrencyMaxValue(), monthlyIncome * 1.5))}</Text>
               </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Or enter exact amount:</Text>
+              <TextInput
+                style={styles.input}
+                value={String(monthlyExpenses)}
+                onChangeText={(text) => setMonthlyExpenses(Number(text.replace(/[^0-9]/g, '')) || 0)}
+                keyboardType="numeric"
+                placeholder="0"
+              />
             </View>
 
             <View style={styles.savingsIndicator}>
@@ -822,7 +907,58 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
           </View>
         );
 
-      case 12:
+      case 13:
+        return (
+          <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>💳 Estimated Debt</Text>
+            <Text style={styles.stepDescription}>
+              Do you have any debt? (credit cards, loans, etc.)
+            </Text>
+
+            <View style={styles.sliderContainer}>
+              <Text style={styles.sliderValue}>
+                {formatCurrency(estimatedDebt)}
+              </Text>
+              <Slider
+                style={styles.slider}
+                minimumValue={0}
+                maximumValue={getCurrencyMaxValue() * 2}
+                step={getCurrencyMaxValue() / 100}
+                value={estimatedDebt}
+                onValueChange={setEstimatedDebt}
+                minimumTrackTintColor="#FFA726"
+                maximumTrackTintColor="#E0E0E0"
+                thumbTintColor="#FFA726"
+              />
+              <View style={styles.sliderLabels}>
+                <Text style={styles.sliderLabel}>0 (No debt)</Text>
+                <Text style={styles.sliderLabel}>{formatCurrency(getCurrencyMaxValue() * 2)}</Text>
+              </View>
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.inputLabel}>Or enter exact amount:</Text>
+              <TextInput
+                style={styles.input}
+                value={String(estimatedDebt)}
+                onChangeText={(text) => setEstimatedDebt(Number(text.replace(/[^0-9]/g, '')) || 0)}
+                keyboardType="numeric"
+                placeholder="0"
+              />
+            </View>
+
+            {estimatedDebt > 0 && (
+              <View style={styles.sleepIndicator}>
+                <Ionicons name="information-circle" size={24} color="#4A90E2" />
+                <Text style={[styles.savingsText, { color: '#4A90E2' }]}>
+                  We'll help you create a debt payoff plan
+                </Text>
+              </View>
+            )}
+          </View>
+        );
+
+      case 14:
         return (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>💼 Financial Situation</Text>
@@ -906,7 +1042,7 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
           </View>
         );
 
-      case 13:
+      case 15:
         return (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>🎯 Your Financial Goal</Text>
