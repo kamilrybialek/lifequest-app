@@ -96,7 +96,6 @@ const PHYSICAL_GOALS = [
 
 const NUTRITION_GOALS = [
   { id: 'eat_healthy', icon: '🥗', title: 'Eat Healthier', description: 'Choose nutritious foods' },
-  { id: 'lose_weight_diet', icon: '📉', title: 'Lose Weight', description: 'Through better nutrition' },
   { id: 'gain_weight', icon: '📈', title: 'Gain Weight', description: 'Healthy weight gain' },
   { id: 'meal_prep', icon: '🍱', title: 'Meal Prep', description: 'Plan and prepare meals' },
   { id: 'hydration', icon: '💧', title: 'Stay Hydrated', description: 'Drink more water' },
@@ -182,14 +181,14 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
   // Form data
   const [name, setName] = useState('');
   const [selectedCurrency, setSelectedCurrency] = useState('USD');
-  const [age, setAge] = useState('25');
-  const [weight, setWeight] = useState('70');
-  const [height, setHeight] = useState('170');
+  const [age, setAge] = useState('');
+  const [weight, setWeight] = useState('');
+  const [height, setHeight] = useState('');
   const [gender, setGender] = useState('');
   const [activityLevel, setActivityLevel] = useState('');
   const [sleepQuality, setSleepQuality] = useState(7);
-  const [monthlyIncome, setMonthlyIncome] = useState(3000);
-  const [monthlyExpenses, setMonthlyExpenses] = useState(2000);
+  const [monthlyIncome, setMonthlyIncome] = useState(0);
+  const [monthlyExpenses, setMonthlyExpenses] = useState(0);
   const [estimatedDebt, setEstimatedDebt] = useState(0);
   const [financialStatus, setFinancialStatus] = useState('');
 
@@ -205,7 +204,7 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
   const [waterIntake, setWaterIntake] = useState(-1);
   const [dietQuality, setDietQuality] = useState(5);
 
-  const totalSteps = 20;
+  const totalSteps = 18;
   const progress = ((step + 1) / totalSteps) * 100;
 
   const completeOnboarding = async () => {
@@ -337,7 +336,8 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
                 value={age}
                 onChangeText={setAge}
                 keyboardType="numeric"
-                placeholder="25"
+                placeholder="e.g., 25"
+                placeholderTextColor="#999"
               />
             </View>
 
@@ -348,7 +348,8 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
                 value={weight}
                 onChangeText={setWeight}
                 keyboardType="numeric"
-                placeholder="70"
+                placeholder="e.g., 70"
+                placeholderTextColor="#999"
               />
             </View>
 
@@ -359,7 +360,8 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
                 value={height}
                 onChangeText={setHeight}
                 keyboardType="numeric"
-                placeholder="170"
+                placeholder="e.g., 170"
+                placeholderTextColor="#999"
               />
             </View>
           </View>
@@ -875,10 +877,11 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
               <Text style={styles.inputLabel}>Or enter exact amount:</Text>
               <TextInput
                 style={styles.input}
-                value={String(monthlyIncome)}
+                value={monthlyIncome > 0 ? String(monthlyIncome) : ''}
                 onChangeText={(text) => setMonthlyIncome(Number(text.replace(/[^0-9]/g, '')) || 0)}
                 keyboardType="numeric"
-                placeholder="0"
+                placeholder="Enter amount"
+                placeholderTextColor="#999"
               />
             </View>
           </View>
@@ -917,10 +920,11 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
               <Text style={styles.inputLabel}>Or enter exact amount:</Text>
               <TextInput
                 style={styles.input}
-                value={String(monthlyExpenses)}
+                value={monthlyExpenses > 0 ? String(monthlyExpenses) : ''}
                 onChangeText={(text) => setMonthlyExpenses(Number(text.replace(/[^0-9]/g, '')) || 0)}
                 keyboardType="numeric"
-                placeholder="0"
+                placeholder="Enter amount"
+                placeholderTextColor="#999"
               />
             </View>
 
@@ -984,10 +988,11 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
               <Text style={styles.inputLabel}>Or enter exact amount:</Text>
               <TextInput
                 style={styles.input}
-                value={String(estimatedDebt)}
+                value={estimatedDebt > 0 ? String(estimatedDebt) : ''}
                 onChangeText={(text) => setEstimatedDebt(Number(text.replace(/[^0-9]/g, '')) || 0)}
                 keyboardType="numeric"
-                placeholder="0"
+                placeholder="Enter amount"
+                placeholderTextColor="#999"
               />
             </View>
 
@@ -1003,90 +1008,6 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
         );
 
       case 14:
-        return (
-          <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>💼 Financial Situation</Text>
-            <Text style={styles.stepDescription}>
-              This helps us tailor your financial recommendations.
-            </Text>
-
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={styles.optionsGrid}>
-                <TouchableOpacity
-                  style={[styles.optionCard, financialStatus === 'debt' && styles.optionCardSelected]}
-                  onPress={() => setFinancialStatus('debt')}
-                >
-                  <Text style={styles.optionIcon}>💳</Text>
-                  <Text style={styles.optionTitle}>Have Debts</Text>
-                  <Text style={styles.optionDescription}>Need to pay off debts</Text>
-                  {financialStatus === 'debt' && (
-                    <View style={styles.optionCheck}>
-                      <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.optionCard, financialStatus === 'paycheck' && styles.optionCardSelected]}
-                  onPress={() => setFinancialStatus('paycheck')}
-                >
-                  <Text style={styles.optionIcon}>📅</Text>
-                  <Text style={styles.optionTitle}>Paycheck to Paycheck</Text>
-                  <Text style={styles.optionDescription}>Living month to month</Text>
-                  {financialStatus === 'paycheck' && (
-                    <View style={styles.optionCheck}>
-                      <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.optionCard, financialStatus === 'stable' && styles.optionCardSelected]}
-                  onPress={() => setFinancialStatus('stable')}
-                >
-                  <Text style={styles.optionIcon}>⚖️</Text>
-                  <Text style={styles.optionTitle}>Stable</Text>
-                  <Text style={styles.optionDescription}>Stable but not saving much</Text>
-                  {financialStatus === 'stable' && (
-                    <View style={styles.optionCheck}>
-                      <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.optionCard, financialStatus === 'saving' && styles.optionCardSelected]}
-                  onPress={() => setFinancialStatus('saving')}
-                >
-                  <Text style={styles.optionIcon}>💰</Text>
-                  <Text style={styles.optionTitle}>Saving Regularly</Text>
-                  <Text style={styles.optionDescription}>Building savings each month</Text>
-                  {financialStatus === 'saving' && (
-                    <View style={styles.optionCheck}>
-                      <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.optionCard, financialStatus === 'investing' && styles.optionCardSelected]}
-                  onPress={() => setFinancialStatus('investing')}
-                >
-                  <Text style={styles.optionIcon}>📈</Text>
-                  <Text style={styles.optionTitle}>Already Investing</Text>
-                  <Text style={styles.optionDescription}>Growing wealth through investments</Text>
-                  {financialStatus === 'investing' && (
-                    <View style={styles.optionCheck}>
-                      <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-                    </View>
-                  )}
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          </View>
-        );
-
-      case 15:
         return (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>💰 Your Financial Goal</Text>
@@ -1121,7 +1042,7 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
           </View>
         );
 
-      case 16:
+      case 15:
         return (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>🧠 Your Mental Goal</Text>
@@ -1156,7 +1077,7 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
           </View>
         );
 
-      case 17:
+      case 16:
         return (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>💪 Your Physical Goal</Text>
@@ -1191,7 +1112,7 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
           </View>
         );
 
-      case 18:
+      case 17:
         return (
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>🥗 Your Nutrition Goal</Text>
@@ -1226,10 +1147,12 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
           </View>
         );
 
-      case 19:
+      case 18:
         // Summary screen with BMI and Life Score calculation
-        const heightM = parseFloat(height) / 100;
-        const bmi = parseFloat(weight) / (heightM * heightM);
+        const heightNum = parseFloat(height) || 170;
+        const weightNum = parseFloat(weight) || 70;
+        const heightM = heightNum / 100;
+        const bmi = weightNum / (heightM * heightM);
         const bmiRounded = Math.round(bmi * 10) / 10;
 
         // Calculate Finance Score (0-100)
