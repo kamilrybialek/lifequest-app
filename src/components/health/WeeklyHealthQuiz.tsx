@@ -88,59 +88,22 @@ export const WeeklyHealthQuiz: React.FC<WeeklyHealthQuizProps> = ({
 
       await submitWeeklyQuiz(userId, quizData);
 
-      if (Platform.OS === 'web') {
-        window.alert('✅ Quiz Completed!\n\nYour health metrics have been updated. Keep up the great work!');
-        resetForm();
-        onComplete();
-        onClose();
-      } else {
-        Alert.alert(
-          '✅ Quiz Completed!',
-          'Your health metrics have been updated. Keep up the great work!',
-          [
-            {
-              text: 'OK',
-              onPress: () => {
-                resetForm();
-                onComplete();
-                onClose();
-              },
-            },
-          ]
-        );
-      }
+      // Success - just close and refresh, no alerts
+      resetForm();
+      onComplete();
+      onClose();
     } catch (error) {
       console.error('Error submitting quiz:', error);
-      if (Platform.OS === 'web') {
-        window.alert('❌ Error\n\nFailed to submit quiz. Please try again.');
-      } else {
-        Alert.alert('Error', 'Failed to submit quiz. Please try again.');
-      }
+      // Show error only in console, no user-facing alert
     } finally {
       setLoading(false);
     }
   };
 
   const handleClose = () => {
-    if (Platform.OS === 'web') {
-      const confirmed = window.confirm('Close Quiz?\n\nYour progress will be lost.');
-      if (confirmed) {
-        resetForm();
-        onClose();
-      }
-    } else {
-      Alert.alert('Close Quiz?', 'Your progress will be lost.', [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Close',
-          style: 'destructive',
-          onPress: () => {
-            resetForm();
-            onClose();
-          },
-        },
-      ]);
-    }
+    // Just close without confirmation
+    resetForm();
+    onClose();
   };
 
   const renderStep = () => {

@@ -83,13 +83,12 @@ export const ProfileScreenNew = () => {
       // Step 4: Update UI
       setProfilePhoto(photoDataUrl);
       setPhotoLoading(true); // Will be set to false when Image onLoad fires
-      window.alert('✅ Photo uploaded successfully!');
+      // Success - no alert needed
 
     } catch (error) {
       console.error('❌ Error uploading photo:', error);
       setPhotoError(true);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      window.alert(`❌ Failed to upload photo: ${errorMessage}`);
+      // Error logged to console, no user-facing alert
     } finally {
       setUploadingPhoto(false);
       setUploadStatus('');
@@ -101,19 +100,15 @@ export const ProfileScreenNew = () => {
       return;
     }
 
-    const confirmed = window.confirm('Are you sure you want to delete your profile photo?');
-    if (!confirmed) {
-      return;
-    }
-
+    // Just delete without confirmation
     try {
       setUploadingPhoto(true);
       await deleteProfilePhoto(user.id);
       setProfilePhoto(null);
-      window.alert('✅ Photo deleted successfully!');
+      // Success - no alert needed
     } catch (error) {
       console.error('❌ Error deleting photo:', error);
-      window.alert('❌ Failed to delete photo. Please try again.');
+      // Error logged to console, no user-facing alert
     } finally {
       setUploadingPhoto(false);
     }
@@ -142,11 +137,9 @@ export const ProfileScreenNew = () => {
   };
 
   const handleLogout = () => {
-    const confirmed = window.confirm('Are you sure you want to logout?');
-    if (confirmed) {
-      console.log('Logging out...');
-      logout();
-    }
+    // Just logout without confirmation
+    console.log('Logging out...');
+    logout();
   };
 
   const handleSettingPress = (setting: string) => {
