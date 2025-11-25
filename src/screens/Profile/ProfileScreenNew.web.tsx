@@ -10,7 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
 import { deleteAllUserData } from '../../services/firebaseUserService';
-import { uploadProfilePhoto, deleteProfilePhoto, getProfilePhotoURL } from '../../services/photoUploadService';
+import { uploadProfilePhoto, deleteProfilePhoto, getProfilePhotoURL, pickImage } from '../../services/photoUploadService';
 
 export const ProfileScreenNew = () => {
   const { user, logout } = useAuthStore();
