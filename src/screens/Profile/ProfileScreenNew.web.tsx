@@ -651,6 +651,7 @@ const styles = StyleSheet.create({
   photoWrapper: {
     position: 'relative',
     marginBottom: 12,
+    zIndex: 100,
   },
   photoContainer: {
     position: 'relative',
@@ -658,11 +659,6 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     overflow: 'hidden',
-  },
-  profilePhoto: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
     borderWidth: 4,
     borderColor: 'white',
     shadowColor: '#000',
@@ -670,6 +666,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 5,
+  },
+  profilePhoto: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 60,
   },
   editIconButton: {
     position: 'absolute',
@@ -695,7 +696,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    zIndex: 999,
+    zIndex: 9998,
   },
   photoMenu: {
     position: 'absolute',
@@ -709,9 +710,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 12,
-    elevation: 8,
+    elevation: 10,
     overflow: 'hidden',
-    zIndex: 1000,
+    zIndex: 9999,
   },
   photoMenuItem: {
     flexDirection: 'row',
