@@ -24,6 +24,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
 import { HealthMetricsCard } from '../../components/health/HealthMetricsCard';
 import { WeeklyHealthQuiz } from '../../components/health/WeeklyHealthQuiz';
+import { LifeScoreCard } from '../../components/dashboard/LifeScoreCard';
 
 interface QuickAction {
   id: string;
@@ -118,20 +119,11 @@ export const DashboardScreenNew = ({ navigation }: any) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Welcome Card */}
-        <View style={styles.welcomeCard}>
-          <Text style={styles.welcomeTitle}>🎯 Welcome to LifeQuest!</Text>
-          <Text style={styles.welcomeText}>
-            You're on level {progress.level} with {progress.totalPoints} XP. Keep going!
-          </Text>
-        </View>
-
-        {/* Health Metrics Card */}
+        {/* Life Score Result */}
         {user?.id && (
-          <HealthMetricsCard
-            key={healthKey}
+          <LifeScoreCard
             userId={user.id}
-            onQuizPress={() => setShowHealthQuiz(true)}
+            onSurveyPress={() => setShowHealthQuiz(true)}
           />
         )}
 
