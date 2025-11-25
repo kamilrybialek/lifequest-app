@@ -76,6 +76,33 @@ const FINANCIAL_GOALS = [
   { id: 'other', icon: '🎯', title: 'Other Goal', description: 'Custom financial goal' },
 ];
 
+const MENTAL_GOALS = [
+  { id: 'reduce_stress', icon: '🧘', title: 'Reduce Stress', description: 'Find peace and calm' },
+  { id: 'improve_focus', icon: '🎯', title: 'Improve Focus', description: 'Enhance concentration' },
+  { id: 'better_sleep', icon: '😴', title: 'Better Sleep', description: 'Quality rest every night' },
+  { id: 'mindfulness', icon: '🕉️', title: 'Practice Mindfulness', description: 'Live in the moment' },
+  { id: 'happiness', icon: '😊', title: 'Increase Happiness', description: 'Find daily joy' },
+  { id: 'confidence', icon: '💪', title: 'Build Confidence', description: 'Believe in yourself' },
+];
+
+const PHYSICAL_GOALS = [
+  { id: 'lose_weight', icon: '⚖️', title: 'Lose Weight', description: 'Reach healthy weight' },
+  { id: 'gain_muscle', icon: '💪', title: 'Build Muscle', description: 'Get stronger' },
+  { id: 'get_fit', icon: '🏃', title: 'Get Fit', description: 'Improve overall fitness' },
+  { id: 'flexibility', icon: '🤸', title: 'Increase Flexibility', description: 'Move with ease' },
+  { id: 'endurance', icon: '🚴', title: 'Build Endurance', description: 'Last longer' },
+  { id: 'health', icon: '❤️', title: 'Improve Health', description: 'Feel better overall' },
+];
+
+const NUTRITION_GOALS = [
+  { id: 'eat_healthy', icon: '🥗', title: 'Eat Healthier', description: 'Choose nutritious foods' },
+  { id: 'lose_weight_diet', icon: '📉', title: 'Lose Weight', description: 'Through better nutrition' },
+  { id: 'gain_weight', icon: '📈', title: 'Gain Weight', description: 'Healthy weight gain' },
+  { id: 'meal_prep', icon: '🍱', title: 'Meal Prep', description: 'Plan and prepare meals' },
+  { id: 'hydration', icon: '💧', title: 'Stay Hydrated', description: 'Drink more water' },
+  { id: 'reduce_junk', icon: '🚫', title: 'Cut Junk Food', description: 'Eat cleaner' },
+];
+
 // Currency-specific max values for sliders (approximated to ~10000 USD equivalent)
 const CURRENCY_MAX_VALUES: Record<string, number> = {
   USD: 15000,
@@ -124,7 +151,16 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const { setCurrency } = useCurrencyStore();
-  const { updateProfile } = useAuthStore();
+  const { updateProfile, logout } = useAuthStore();
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigation.replace('Login');
+    } catch (error) {
+      console.error('Error logging out:', error);
+    }
+  };
 
   // Helper function to get currency symbol
   const getCurrencySymbol = () => {
@@ -156,7 +192,12 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
   const [monthlyExpenses, setMonthlyExpenses] = useState(2000);
   const [estimatedDebt, setEstimatedDebt] = useState(0);
   const [financialStatus, setFinancialStatus] = useState('');
+
+  // Goals for each pillar
   const [financialGoal, setFinancialGoal] = useState('save_emergency');
+  const [mentalGoal, setMentalGoal] = useState('reduce_stress');
+  const [physicalGoal, setPhysicalGoal] = useState('get_fit');
+  const [nutritionGoal, setNutritionGoal] = useState('eat_healthy');
 
   // Nutrition data
   const [mealsPerDay, setMealsPerDay] = useState(-1);
@@ -164,7 +205,7 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
   const [waterIntake, setWaterIntake] = useState(-1);
   const [dietQuality, setDietQuality] = useState(5);
 
-  const totalSteps = 16;
+  const totalSteps = 20;
   const progress = ((step + 1) / totalSteps) * 100;
 
   const completeOnboarding = async () => {
@@ -195,6 +236,9 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
           estimatedDebt,
           financialStatus,
           financialGoal,
+          mentalGoal,
+          physicalGoal,
+          nutritionGoal,
           completedAt: new Date().toISOString(),
         })
       );
@@ -1045,7 +1089,7 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
       case 15:
         return (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>🎯 Your Financial Goal</Text>
+            <Text style={styles.stepTitle}>💰 Your Financial Goal</Text>
             <Text style={styles.stepDescription}>
               What's your main financial priority?
             </Text>
@@ -1077,6 +1121,204 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
           </View>
         );
 
+      case 16:
+        return (
+          <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>🧠 Your Mental Goal</Text>
+            <Text style={styles.stepDescription}>
+              What do you want to achieve mentally?
+            </Text>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.goalsGrid}>
+                {MENTAL_GOALS.map((goal) => (
+                  <TouchableOpacity
+                    key={goal.id}
+                    style={[
+                      styles.goalCard,
+                      mentalGoal === goal.id && styles.goalCardSelected,
+                    ]}
+                    onPress={() => setMentalGoal(goal.id)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.goalIcon}>{goal.icon}</Text>
+                    <Text style={styles.goalTitle}>{goal.title}</Text>
+                    <Text style={styles.goalDescription}>{goal.description}</Text>
+                    {mentalGoal === goal.id && (
+                      <View style={styles.goalCheck}>
+                        <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        );
+
+      case 17:
+        return (
+          <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>💪 Your Physical Goal</Text>
+            <Text style={styles.stepDescription}>
+              What's your fitness objective?
+            </Text>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.goalsGrid}>
+                {PHYSICAL_GOALS.map((goal) => (
+                  <TouchableOpacity
+                    key={goal.id}
+                    style={[
+                      styles.goalCard,
+                      physicalGoal === goal.id && styles.goalCardSelected,
+                    ]}
+                    onPress={() => setPhysicalGoal(goal.id)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.goalIcon}>{goal.icon}</Text>
+                    <Text style={styles.goalTitle}>{goal.title}</Text>
+                    <Text style={styles.goalDescription}>{goal.description}</Text>
+                    {physicalGoal === goal.id && (
+                      <View style={styles.goalCheck}>
+                        <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        );
+
+      case 18:
+        return (
+          <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>🥗 Your Nutrition Goal</Text>
+            <Text style={styles.stepDescription}>
+              What do you want to achieve with your diet?
+            </Text>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={styles.goalsGrid}>
+                {NUTRITION_GOALS.map((goal) => (
+                  <TouchableOpacity
+                    key={goal.id}
+                    style={[
+                      styles.goalCard,
+                      nutritionGoal === goal.id && styles.goalCardSelected,
+                    ]}
+                    onPress={() => setNutritionGoal(goal.id)}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={styles.goalIcon}>{goal.icon}</Text>
+                    <Text style={styles.goalTitle}>{goal.title}</Text>
+                    <Text style={styles.goalDescription}>{goal.description}</Text>
+                    {nutritionGoal === goal.id && (
+                      <View style={styles.goalCheck}>
+                        <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+        );
+
+      case 19:
+        // Summary screen with BMI and Life Score calculation
+        const heightM = parseFloat(height) / 100;
+        const bmi = parseFloat(weight) / (heightM * heightM);
+        const bmiRounded = Math.round(bmi * 10) / 10;
+
+        // Simple Life Score calculation (placeholder - you can make this more sophisticated)
+        const lifeScore = Math.round(
+          (sleepQuality * 10 +
+           (mealsPerDay + 1) * 5 +
+           (fastFoodFrequency + 1) * 5 +
+           (waterIntake + 1) * 5 +
+           dietQuality * 5) / 4
+        );
+
+        const selectedFinancialGoalObj = FINANCIAL_GOALS.find(g => g.id === financialGoal);
+        const selectedMentalGoalObj = MENTAL_GOALS.find(g => g.id === mentalGoal);
+        const selectedPhysicalGoalObj = PHYSICAL_GOALS.find(g => g.id === physicalGoal);
+        const selectedNutritionGoalObj = NUTRITION_GOALS.find(g => g.id === nutritionGoal);
+
+        return (
+          <View style={styles.stepContainer}>
+            <Text style={styles.stepTitle}>📊 Your LifeQuest Summary</Text>
+            <Text style={styles.stepDescription}>
+              Here's your personalized profile
+            </Text>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Health Metrics */}
+              <View style={styles.summarySection}>
+                <Text style={styles.sectionTitle}>Health Metrics</Text>
+                <View style={styles.metricsRow}>
+                  <View style={styles.metricCard}>
+                    <Text style={styles.metricLabel}>BMI</Text>
+                    <Text style={styles.metricValue}>{bmiRounded}</Text>
+                    <Text style={styles.metricSubtext}>
+                      {bmiRounded < 18.5 ? 'Underweight' : bmiRounded < 25 ? 'Normal' : bmiRounded < 30 ? 'Overweight' : 'Obese'}
+                    </Text>
+                  </View>
+                  <View style={styles.metricCard}>
+                    <Text style={styles.metricLabel}>Life Score</Text>
+                    <Text style={styles.metricValue}>{lifeScore}</Text>
+                    <Text style={styles.metricSubtext}>out of 100</Text>
+                  </View>
+                </View>
+              </View>
+
+              {/* Selected Goals */}
+              <View style={styles.summarySection}>
+                <Text style={styles.sectionTitle}>Your Goals</Text>
+                <View style={styles.goalsSummary}>
+                  <View style={styles.goalSummaryItem}>
+                    <Text style={styles.goalSummaryIcon}>{selectedFinancialGoalObj?.icon}</Text>
+                    <View style={styles.goalSummaryText}>
+                      <Text style={styles.goalSummaryLabel}>Financial</Text>
+                      <Text style={styles.goalSummaryTitle}>{selectedFinancialGoalObj?.title}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.goalSummaryItem}>
+                    <Text style={styles.goalSummaryIcon}>{selectedMentalGoalObj?.icon}</Text>
+                    <View style={styles.goalSummaryText}>
+                      <Text style={styles.goalSummaryLabel}>Mental</Text>
+                      <Text style={styles.goalSummaryTitle}>{selectedMentalGoalObj?.title}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.goalSummaryItem}>
+                    <Text style={styles.goalSummaryIcon}>{selectedPhysicalGoalObj?.icon}</Text>
+                    <View style={styles.goalSummaryText}>
+                      <Text style={styles.goalSummaryLabel}>Physical</Text>
+                      <Text style={styles.goalSummaryTitle}>{selectedPhysicalGoalObj?.title}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.goalSummaryItem}>
+                    <Text style={styles.goalSummaryIcon}>{selectedNutritionGoalObj?.icon}</Text>
+                    <View style={styles.goalSummaryText}>
+                      <Text style={styles.goalSummaryLabel}>Nutrition</Text>
+                      <Text style={styles.goalSummaryTitle}>{selectedNutritionGoalObj?.title}</Text>
+                    </View>
+                  </View>
+                </View>
+              </View>
+
+              <View style={styles.readyCard}>
+                <Ionicons name="rocket" size={40} color="#4A90E2" />
+                <Text style={styles.readyTitle}>Ready to Start Your Journey!</Text>
+                <Text style={styles.readyDescription}>
+                  We've created a personalized plan just for you
+                </Text>
+              </View>
+            </ScrollView>
+          </View>
+        );
+
       default:
         return null;
     }
@@ -1089,7 +1331,9 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
         <View style={styles.header}>
           <View style={{ width: 28 }} />
           <Text style={styles.headerTitle}>Setup LifeQuest</Text>
-          <View style={{ width: 28 }} />
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+            <Ionicons name="log-out-outline" size={24} color="white" />
+          </TouchableOpacity>
         </View>
 
         {/* Progress Bar */}
@@ -1097,9 +1341,6 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
           <View style={styles.progressBar}>
             <View style={[styles.progressFill, { width: `${progress}%` }]} />
           </View>
-          <Text style={styles.progressText}>
-            {step + 1} of {totalSteps}
-          </Text>
         </View>
 
         {/* Content */}
@@ -1154,6 +1395,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     color: 'white',
+  },
+  logoutButton: {
+    width: 28,
+    height: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   // Progress
   progressContainer: {
@@ -1430,5 +1677,102 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 8,
     marginTop: 16,
+  },
+  // Summary Screen
+  summarySection: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 16,
+  },
+  metricsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  metricCard: {
+    flex: 1,
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  metricLabel: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 8,
+  },
+  metricValue: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#4A90E2',
+    marginBottom: 4,
+  },
+  metricSubtext: {
+    fontSize: 12,
+    color: '#999',
+  },
+  goalsSummary: {
+    gap: 12,
+  },
+  goalSummaryItem: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  goalSummaryIcon: {
+    fontSize: 32,
+  },
+  goalSummaryText: {
+    flex: 1,
+  },
+  goalSummaryLabel: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 4,
+  },
+  goalSummaryTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1A1A1A',
+  },
+  readyCard: {
+    backgroundColor: 'white',
+    padding: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginTop: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  readyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  readyDescription: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
   },
 });
