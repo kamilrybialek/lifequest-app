@@ -7,13 +7,10 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, RefreshControl, Image, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { doc, updateDoc } from 'firebase/firestore';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
 import { deleteAllUserData } from '../../services/firebaseUserService';
-import { pickImage, compressImage, deleteProfilePhoto, getProfilePhotoURL } from '../../services/photoUploadService';
-import { storage, db } from '../../config/firebase';
+import { uploadProfilePhoto, deleteProfilePhoto, getProfilePhotoURL } from '../../services/photoUploadService';
 
 export const ProfileScreenNew = () => {
   const { user, logout } = useAuthStore();
@@ -73,82 +70,31 @@ export const ProfileScreenNew = () => {
         return;
       }
 
-      console.log('📸 Image selected:', imageUri.substring(0, 50) + '...');
-      console.log('📸 Image URI length:', imageUri.length);
+      console.log('📸 Image selected');
 
-      // Step 2: Now show loading state for compression + upload
+      // Step 2: Show loading state
       setUploadingPhoto(true);
       setPhotoError(false);
       setUploadStatus('compressing');
 
-      // Step 3: Compress image (this is the slow part for iPhone photos)
-      console.log('🔄 Starting compression...');
-      const startCompress = Date.now();
-      const compressedBlob = await compressImage(imageUri);
-      const compressTime = Date.now() - startCompress;
-      console.log(`✅ Compression done in ${compressTime}ms`);
-      console.log(`📦 Compressed size: ${(compressedBlob.size / 1024 / 1024).toFixed(2)}MB`);
-      console.log(`📦 Blob type: ${compressedBlob.type}`);
+      // Step 3: Upload photo (compress + save to Firestore)
+      console.log('🔄 Uploading photo...');
+      const photoDataUrl = await uploadProfilePhoto(user.id, imageUri);
+      console.log('✅ Photo uploaded successfully');
 
-      // Step 4: Upload to Firebase
-      setUploadStatus('uploading');
-      console.log('☁️ Starting Firebase upload...');
-      console.log('👤 User ID:', user.id);
-
-      const fileName = `profile_photos/${user.id}_${Date.now()}.jpg`;
-      console.log('📝 File name:', fileName);
-
-      console.log('🔗 Creating storage reference...');
-      const storageRef = ref(storage, fileName);
-      console.log('✅ Storage ref created:', storageRef.fullPath);
-
-      console.log('📤 Uploading bytes to Firebase Storage...');
-      const startUpload = Date.now();
-      const uploadResult = await uploadBytes(storageRef, compressedBlob, {
-        contentType: 'image/jpeg',
-      });
-      const uploadTime = Date.now() - startUpload;
-      console.log(`✅ Upload bytes complete in ${uploadTime}ms`);
-      console.log('📊 Upload result:', uploadResult);
-
-      console.log('🔗 Getting download URL...');
-      const downloadURL = await getDownloadURL(storageRef);
-      console.log('✅ Got download URL:', downloadURL);
-
-      // Step 5: Update Firestore
-      console.log('💾 Updating Firestore...');
-      const userRef = doc(db, 'users', user.id);
-      console.log('📝 User ref path:', userRef.path);
-
-      await updateDoc(userRef, {
-        photoURL: downloadURL,
-        photoUpdatedAt: new Date().toISOString(),
-      });
-      console.log('✅ Firestore updated');
-
-      // Step 6: Update UI
-      console.log('🎨 Updating UI...');
-      setProfilePhoto(downloadURL);
+      // Step 4: Update UI
+      setProfilePhoto(photoDataUrl);
       setPhotoLoading(true); // Will be set to false when Image onLoad fires
-      console.log('✅ All done!');
       window.alert('✅ Photo uploaded successfully!');
 
     } catch (error) {
       console.error('❌ Error uploading photo:', error);
-      console.error('❌ Error type:', typeof error);
-      console.error('❌ Error constructor:', error?.constructor?.name);
-      if (error instanceof Error) {
-        console.error('❌ Error message:', error.message);
-        console.error('❌ Error stack:', error.stack);
-      }
       setPhotoError(true);
-      const errorMessage = error instanceof Error ? error.message : JSON.stringify(error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       window.alert(`❌ Failed to upload photo: ${errorMessage}`);
     } finally {
-      console.log('🏁 Finally block executing...');
       setUploadingPhoto(false);
       setUploadStatus('');
-      console.log('🏁 Finally block done');
     }
   };
 
@@ -164,11 +110,11 @@ export const ProfileScreenNew = () => {
 
     try {
       setUploadingPhoto(true);
-      await deleteProfilePhoto(user.id, profilePhoto);
+      await deleteProfilePhoto(user.id);
       setProfilePhoto(null);
       window.alert('✅ Photo deleted successfully!');
     } catch (error) {
-      console.error('Error deleting photo:', error);
+      console.error('❌ Error deleting photo:', error);
       window.alert('❌ Failed to delete photo. Please try again.');
     } finally {
       setUploadingPhoto(false);

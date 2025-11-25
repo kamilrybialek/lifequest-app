@@ -122,7 +122,7 @@ export const ProfileScreenNew = () => {
           onPress: async () => {
             try {
               setUploadingPhoto(true);
-              await deleteProfilePhoto(user.id, profilePhoto);
+              await deleteProfilePhoto(user.id);
               setProfilePhoto(null);
 
               // Update auth store
@@ -132,7 +132,7 @@ export const ProfileScreenNew = () => {
 
               Alert.alert('✅ Deleted', 'Profile photo removed successfully');
             } catch (error) {
-              console.error('Error deleting photo:', error);
+              console.error('❌ Error deleting photo:', error);
               Alert.alert('Error', 'Failed to delete photo. Please try again.');
             } finally {
               setUploadingPhoto(false);

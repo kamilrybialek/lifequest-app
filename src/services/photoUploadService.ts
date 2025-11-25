@@ -1,12 +1,12 @@
 /**
  * Photo Upload Service
- * Handles profile photo upload with compression to Firebase Storage
+ * Handles profile photo upload with compression and storage in Firestore (base64)
+ * No Firebase Storage needed - works with free tier
  */
 
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, getDoc } from 'firebase/firestore';
 import { Platform } from 'react-native';
-import { storage, db } from '../config/firebase';
+import { db } from '../config/firebase';
 
 // Compression settings
 const MAX_WIDTH = 800;
@@ -86,6 +86,21 @@ export const compressImage = async (
 };
 
 /**
+ * Convert Blob to base64 data URL
+ */
+const blobToBase64 = async (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      resolve(base64String);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+};
+
+/**
  * Pick image from device (Web file input or Native picker)
  */
 export const pickImage = async (): Promise<string | null> => {
@@ -134,7 +149,8 @@ export const pickImage = async (): Promise<string | null> => {
 };
 
 /**
- * Upload profile photo to Firebase Storage
+ * Upload profile photo to Firestore (as base64)
+ * No Firebase Storage needed - works with free tier
  */
 export const uploadProfilePhoto = async (
   userId: string,
@@ -143,41 +159,34 @@ export const uploadProfilePhoto = async (
   try {
     console.log('📸 Starting photo upload for user:', userId);
 
-    // Compress image
+    // Step 1: Compress image
+    console.log('🔄 Compressing image...');
     const compressedBlob = await compressImage(imageUri);
-
-    // Check size
     const sizeMB = compressedBlob.size / 1024 / 1024;
-    if (sizeMB > MAX_SIZE_MB) {
+    console.log(`✅ Compression done: ${sizeMB.toFixed(2)}MB`);
+
+    // Check size (should be < 0.5MB for Firestore base64 storage)
+    if (sizeMB > 0.5) {
       throw new Error(
-        `Image too large: ${sizeMB.toFixed(2)}MB. Maximum size is ${MAX_SIZE_MB}MB`
+        `Image too large: ${sizeMB.toFixed(2)}MB. Please use a smaller image or lower quality.`
       );
     }
 
-    // Create storage reference
-    const fileName = `profile_photos/${userId}_${Date.now()}.jpg`;
-    const storageRef = ref(storage, fileName);
+    // Step 2: Convert blob to base64 data URL
+    console.log('🔄 Converting to base64...');
+    const base64DataUrl = await blobToBase64(compressedBlob);
+    console.log(`✅ Base64 conversion done: ${(base64DataUrl.length / 1024).toFixed(2)}KB`);
 
-    // Upload to Firebase Storage
-    console.log('☁️ Uploading to Firebase Storage...');
-    await uploadBytes(storageRef, compressedBlob, {
-      contentType: 'image/jpeg',
-    });
-
-    // Get download URL
-    const downloadURL = await getDownloadURL(storageRef);
-    console.log('✅ Photo uploaded successfully:', downloadURL);
-
-    // Update user document in Firestore
+    // Step 3: Store in Firestore user document
+    console.log('💾 Saving to Firestore...');
     const userRef = doc(db, 'users', userId);
     await updateDoc(userRef, {
-      photoURL: downloadURL,
+      photoURL: base64DataUrl,
       photoUpdatedAt: new Date().toISOString(),
     });
 
-    console.log('✅ User profile updated with photo URL');
-
-    return downloadURL;
+    console.log('✅ Photo saved to Firestore');
+    return base64DataUrl;
   } catch (error) {
     console.error('❌ Error uploading photo:', error);
     throw error;
@@ -185,23 +194,11 @@ export const uploadProfilePhoto = async (
 };
 
 /**
- * Delete profile photo from Firebase Storage
+ * Delete profile photo from Firestore
  */
-export const deleteProfilePhoto = async (userId: string, photoURL: string): Promise<void> => {
+export const deleteProfilePhoto = async (userId: string): Promise<void> => {
   try {
-    // Extract storage path from URL
-    const urlObj = new URL(photoURL);
-    const pathMatch = urlObj.pathname.match(/\/o\/(.+)\?/);
-    if (!pathMatch) {
-      throw new Error('Invalid photo URL');
-    }
-
-    const storagePath = decodeURIComponent(pathMatch[1]);
-    const storageRef = ref(storage, storagePath);
-
-    // Delete from storage
-    await deleteObject(storageRef);
-    console.log('🗑️ Photo deleted from storage');
+    console.log('🗑️ Deleting photo for user:', userId);
 
     // Remove from user document
     const userRef = doc(db, 'users', userId);
@@ -210,7 +207,7 @@ export const deleteProfilePhoto = async (userId: string, photoURL: string): Prom
       photoUpdatedAt: new Date().toISOString(),
     });
 
-    console.log('✅ Photo URL removed from user profile');
+    console.log('✅ Photo removed from Firestore');
   } catch (error) {
     console.error('❌ Error deleting photo:', error);
     throw error;
@@ -218,21 +215,19 @@ export const deleteProfilePhoto = async (userId: string, photoURL: string): Prom
 };
 
 /**
- * Get user's current profile photo URL
+ * Get user's current profile photo URL (base64 data URL from Firestore)
  */
 export const getProfilePhotoURL = async (userId: string): Promise<string | null> => {
   try {
     const userRef = doc(db, 'users', userId);
-    const userDoc = await import('firebase/firestore').then((firestore) =>
-      firestore.getDoc(userRef)
-    );
+    const userDoc = await getDoc(userRef);
 
     if (userDoc.exists()) {
       return userDoc.data()?.photoURL || null;
     }
     return null;
   } catch (error) {
-    console.error('Error getting photo URL:', error);
+    console.error('❌ Error getting photo URL:', error);
     return null;
   }
 };
