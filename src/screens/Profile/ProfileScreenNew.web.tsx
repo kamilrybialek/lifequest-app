@@ -254,7 +254,7 @@ export const ProfileScreenNew = () => {
                 />
               ) : (
                 <View style={styles.photoPlaceholder}>
-                  <Ionicons name="person" size={60} color="#CCC" />
+                  <Ionicons name="person" size={50} color="#CCC" />
                   {photoError && (
                     <Text style={styles.errorText}>Tap to retry</Text>
                   )}
@@ -710,8 +710,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   photoPlaceholder: {
-    width: 120,
-    height: 120,
+    width: '100%',
+    height: '100%',
     borderRadius: 60,
     backgroundColor: '#F5F8FA',
     justifyContent: 'center',
