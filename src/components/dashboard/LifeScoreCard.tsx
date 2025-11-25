@@ -6,6 +6,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getHealthMetrics, getRecentQuizzes } from '../../services/healthDataService';
 import { getFinancialProfile, getExpenses, getIncome } from '../../services/firebaseFinanceService';
 
@@ -27,6 +28,7 @@ export const LifeScoreCard: React.FC<LifeScoreCardProps> = ({ userId, onSurveyPr
   const [trend, setTrend] = useState<'up' | 'down' | 'same'>('same');
   const [trendValue, setTrendValue] = useState(0);
   const [pillarScores, setPillarScores] = useState<PillarScore[]>([]);
+  const [showDetails, setShowDetails] = useState(false);
 
   useEffect(() => {
     loadLifeScore();
@@ -39,12 +41,12 @@ export const LifeScoreCard: React.FC<LifeScoreCardProps> = ({ userId, onSurveyPr
       // Load health metrics
       const healthMetrics = await getHealthMetrics(userId);
 
-      // Load financial data from Firestore
+      // Load financial data from Firestore, fallback to onboarding data
       let financialData: any = null;
       try {
         const profile = await getFinancialProfile(userId);
 
-        if (profile) {
+        if (profile && profile.monthly_income) {
           // Use profile data if available
           financialData = {
             monthlyIncome: profile.monthly_income || 0,
@@ -52,7 +54,7 @@ export const LifeScoreCard: React.FC<LifeScoreCardProps> = ({ userId, onSurveyPr
             monthlySavings: (profile.monthly_income || 0) - (profile.monthly_expenses || 0),
           };
         } else {
-          // Calculate from recent transactions if no profile
+          // Try to calculate from recent transactions
           const currentMonth = new Date().toISOString().slice(0, 7); // "2025-01"
           const startDate = `${currentMonth}-01`;
           const endDate = `${currentMonth}-31`;
@@ -62,19 +64,45 @@ export const LifeScoreCard: React.FC<LifeScoreCardProps> = ({ userId, onSurveyPr
             getIncome(userId, { startDate, endDate }),
           ]);
 
-          // Calculate monthly totals
           const monthlyExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
           const monthlyIncome = income.reduce((sum, i) => sum + i.amount, 0);
 
-          financialData = {
-            monthlyIncome,
-            monthlyExpenses,
-            monthlySavings: monthlyIncome - monthlyExpenses,
-          };
+          if (monthlyIncome > 0 || monthlyExpenses > 0) {
+            // Use transaction data if available
+            financialData = {
+              monthlyIncome,
+              monthlyExpenses,
+              monthlySavings: monthlyIncome - monthlyExpenses,
+            };
+          } else {
+            // Fallback to onboarding data
+            const onboardingDataStr = await AsyncStorage.getItem('onboardingData');
+            if (onboardingDataStr) {
+              const onboardingData = JSON.parse(onboardingDataStr);
+              financialData = {
+                monthlyIncome: onboardingData.monthlyIncome || 0,
+                monthlyExpenses: onboardingData.monthlyExpenses || 0,
+                monthlySavings: (onboardingData.monthlyIncome || 0) - (onboardingData.monthlyExpenses || 0),
+              };
+            }
+          }
         }
       } catch (error) {
         console.error('❌ Error loading financial data:', error);
-        financialData = null;
+        // Try onboarding data as last resort
+        try {
+          const onboardingDataStr = await AsyncStorage.getItem('onboardingData');
+          if (onboardingDataStr) {
+            const onboardingData = JSON.parse(onboardingDataStr);
+            financialData = {
+              monthlyIncome: onboardingData.monthlyIncome || 0,
+              monthlyExpenses: onboardingData.monthlyExpenses || 0,
+              monthlySavings: (onboardingData.monthlyIncome || 0) - (onboardingData.monthlyExpenses || 0),
+            };
+          }
+        } catch (fallbackError) {
+          console.error('❌ Error loading onboarding data:', fallbackError);
+        }
       }
 
       // Load recent quizzes for trend
@@ -274,18 +302,36 @@ export const LifeScoreCard: React.FC<LifeScoreCardProps> = ({ userId, onSurveyPr
         )}
       </View>
 
-      {/* Pillar Scores */}
-      <View style={styles.pillarsGrid}>
-        {pillarScores.map((pillar) => (
-          <View key={pillar.name} style={styles.pillarCard}>
-            <Text style={styles.pillarIcon}>{pillar.icon}</Text>
-            <Text style={styles.pillarName}>{pillar.name}</Text>
-            <Text style={[styles.pillarScore, { color: pillar.color }]}>
-              {pillar.score}
-            </Text>
-          </View>
-        ))}
-      </View>
+      {/* More Details Button */}
+      <TouchableOpacity
+        style={styles.detailsButton}
+        onPress={() => setShowDetails(!showDetails)}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.detailsButtonText}>
+          {showDetails ? 'Hide Details' : 'More Details'}
+        </Text>
+        <Ionicons
+          name={showDetails ? 'chevron-up' : 'chevron-down'}
+          size={20}
+          color="#4A90E2"
+        />
+      </TouchableOpacity>
+
+      {/* Pillar Scores - Collapsible */}
+      {showDetails && (
+        <View style={styles.pillarsGrid}>
+          {pillarScores.map((pillar) => (
+            <View key={pillar.name} style={styles.pillarCard}>
+              <Text style={styles.pillarIcon}>{pillar.icon}</Text>
+              <Text style={styles.pillarName}>{pillar.name}</Text>
+              <Text style={[styles.pillarScore, { color: pillar.color }]}>
+                {pillar.score}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
 
       {/* Survey Button */}
       <TouchableOpacity style={styles.surveyButton} onPress={onSurveyPress} activeOpacity={0.8}>
@@ -338,6 +384,22 @@ const styles = StyleSheet.create({
   trendText: {
     fontSize: 14,
     fontWeight: '600',
+  },
+  detailsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    backgroundColor: '#F5F8FA',
+    marginBottom: 16,
+    gap: 8,
+  },
+  detailsButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#4A90E2',
   },
   pillarsGrid: {
     flexDirection: 'row',

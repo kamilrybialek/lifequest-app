@@ -345,7 +345,10 @@ export const WeeklyHealthQuiz: React.FC<WeeklyHealthQuizProps> = ({
           {step > 0 && (
             <TouchableOpacity
               style={[styles.navButton, styles.backButton]}
-              onPress={() => setStep(step - 1)}
+              onPress={() => {
+                resetForm();
+                onClose();
+              }}
             >
               <Ionicons name="chevron-back" size={24} color="#4A90E2" />
               <Text style={styles.backButtonText}>Back</Text>
