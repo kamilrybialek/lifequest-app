@@ -1234,14 +1234,118 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
         const bmi = parseFloat(weight) / (heightM * heightM);
         const bmiRounded = Math.round(bmi * 10) / 10;
 
-        // Simple Life Score calculation (placeholder - you can make this more sophisticated)
-        const lifeScore = Math.round(
-          (sleepQuality * 10 +
-           (mealsPerDay + 1) * 5 +
-           (fastFoodFrequency + 1) * 5 +
-           (waterIntake + 1) * 5 +
-           dietQuality * 5) / 4
-        );
+        // Calculate Finance Score (0-100)
+        const calculateFinanceScore = () => {
+          let score = 0;
+
+          // 1. Income vs Expenses (40 points max)
+          const expenseRatio = monthlyIncome > 0 ? monthlyExpenses / monthlyIncome : 2;
+          if (expenseRatio <= 0.5) score += 40; // Saving 50%+
+          else if (expenseRatio <= 0.7) score += 35; // Saving 30-50%
+          else if (expenseRatio <= 0.85) score += 25; // Saving 15-30%
+          else if (expenseRatio < 1.0) score += 15; // Saving something
+          else if (expenseRatio <= 1.1) score += 5; // Slight deficit
+          else score += 0; // Major deficit
+
+          // 2. Debt Level (40 points max)
+          const annualIncome = monthlyIncome * 12;
+          const debtToIncomeRatio = annualIncome > 0 ? estimatedDebt / annualIncome : 100;
+          if (estimatedDebt === 0) score += 40; // No debt
+          else if (debtToIncomeRatio <= 0.5) score += 35; // Manageable debt
+          else if (debtToIncomeRatio <= 1.0) score += 25; // Moderate debt
+          else if (debtToIncomeRatio <= 2.0) score += 15; // High debt
+          else if (debtToIncomeRatio <= 5.0) score += 5; // Very high debt
+          else score += 0; // Critical debt
+
+          // 3. Monthly Savings (20 points max)
+          const monthlySavings = monthlyIncome - monthlyExpenses;
+          if (monthlySavings >= monthlyIncome * 0.3) score += 20; // Saving 30%+
+          else if (monthlySavings >= monthlyIncome * 0.2) score += 15; // Saving 20%+
+          else if (monthlySavings >= monthlyIncome * 0.1) score += 10; // Saving 10%+
+          else if (monthlySavings > 0) score += 5; // Saving something
+          else score += 0; // No savings or deficit
+
+          return Math.min(100, Math.max(0, score));
+        };
+
+        // Calculate Mental Score (0-100)
+        const calculateMentalScore = () => {
+          let score = 0;
+
+          // Sleep quality (70 points max)
+          score += sleepQuality * 7;
+
+          // Activity level bonus (30 points max)
+          const activityPoints: Record<string, number> = {
+            'sedentary': 5,
+            'light': 15,
+            'moderate': 22,
+            'active': 27,
+            'very_active': 30,
+          };
+          score += activityPoints[activityLevel] || 15;
+
+          return Math.min(100, Math.max(0, score));
+        };
+
+        // Calculate Physical Score (0-100)
+        const calculatePhysicalScore = () => {
+          let score = 50; // Start at middle
+
+          // BMI score (60 points max)
+          if (bmiRounded >= 18.5 && bmiRounded < 25) score += 40; // Normal
+          else if (bmiRounded >= 17 && bmiRounded < 18.5) score += 25; // Slightly underweight
+          else if (bmiRounded >= 25 && bmiRounded < 27) score += 30; // Slightly overweight
+          else if (bmiRounded >= 27 && bmiRounded < 30) score += 20; // Overweight
+          else if (bmiRounded >= 30 && bmiRounded < 35) score += 10; // Obese
+          else score += 0; // Very underweight or very obese
+
+          // Activity level (40 points max)
+          const activityPoints: Record<string, number> = {
+            'sedentary': 5,
+            'light': 15,
+            'moderate': 25,
+            'active': 35,
+            'very_active': 40,
+          };
+          score += activityPoints[activityLevel] || 15;
+
+          return Math.min(100, Math.max(0, score));
+        };
+
+        // Calculate Nutrition Score (0-100)
+        const calculateNutritionScore = () => {
+          let score = 0;
+
+          // Meals per day (25 points max)
+          if (mealsPerDay === 1) score += 25; // 3 meals - optimal
+          else if (mealsPerDay === 2) score += 20; // 4-5 meals - good
+          else if (mealsPerDay === 0) score += 10; // 1-2 meals - poor
+          else if (mealsPerDay === 3) score += 15; // 6+ meals - okay
+
+          // Fast food frequency (30 points max) - inverted
+          if (fastFoodFrequency === 3) score += 30; // Rarely/never
+          else if (fastFoodFrequency === 2) score += 20; // 1-2 times/week
+          else if (fastFoodFrequency === 1) score += 10; // 3-4 times/week
+          else if (fastFoodFrequency === 0) score += 0; // Daily
+
+          // Water intake (20 points max)
+          if (waterIntake === 3) score += 20; // 3L+
+          else if (waterIntake === 2) score += 17; // 2-3L
+          else if (waterIntake === 1) score += 10; // 1-2L
+          else if (waterIntake === 0) score += 3; // <1L
+
+          // Diet quality (25 points max)
+          score += dietQuality * 2.5;
+
+          return Math.min(100, Math.max(0, score));
+        };
+
+        const financeScore = Math.round(calculateFinanceScore());
+        const mentalScore = Math.round(calculateMentalScore());
+        const physicalScore = Math.round(calculatePhysicalScore());
+        const nutritionScore = Math.round(calculateNutritionScore());
+        const lifeScore = Math.round((financeScore + mentalScore + physicalScore + nutritionScore) / 4);
 
         const selectedFinancialGoalObj = FINANCIAL_GOALS.find(g => g.id === financialGoal);
         const selectedMentalGoalObj = MENTAL_GOALS.find(g => g.id === mentalGoal);
@@ -1256,6 +1360,49 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
             </Text>
 
             <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Overall Life Score */}
+              <View style={styles.summarySection}>
+                <Text style={styles.sectionTitle}>Your Life Score</Text>
+                <View style={styles.lifeScoreCard}>
+                  <Text style={styles.lifeScoreValue}>{lifeScore}</Text>
+                  <Text style={styles.lifeScoreLabel}>out of 100</Text>
+                  <Text style={styles.lifeScoreDescription}>
+                    {lifeScore >= 80 ? 'Excellent! You\'re doing great!' :
+                     lifeScore >= 60 ? 'Good! Keep up the momentum!' :
+                     lifeScore >= 40 ? 'Fair. Room for improvement!' :
+                     lifeScore >= 20 ? 'Needs work. Let\'s improve together!' :
+                     'Critical. Time to take action!'}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Pillar Scores */}
+              <View style={styles.summarySection}>
+                <Text style={styles.sectionTitle}>Pillar Scores</Text>
+                <View style={styles.pillarScoresGrid}>
+                  <View style={styles.pillarScoreCard}>
+                    <Text style={styles.pillarIcon}>💰</Text>
+                    <Text style={styles.pillarScoreValue}>{financeScore}</Text>
+                    <Text style={styles.pillarLabel}>Finance</Text>
+                  </View>
+                  <View style={styles.pillarScoreCard}>
+                    <Text style={styles.pillarIcon}>🧠</Text>
+                    <Text style={styles.pillarScoreValue}>{mentalScore}</Text>
+                    <Text style={styles.pillarLabel}>Mental</Text>
+                  </View>
+                  <View style={styles.pillarScoreCard}>
+                    <Text style={styles.pillarIcon}>💪</Text>
+                    <Text style={styles.pillarScoreValue}>{physicalScore}</Text>
+                    <Text style={styles.pillarLabel}>Physical</Text>
+                  </View>
+                  <View style={styles.pillarScoreCard}>
+                    <Text style={styles.pillarIcon}>🥗</Text>
+                    <Text style={styles.pillarScoreValue}>{nutritionScore}</Text>
+                    <Text style={styles.pillarLabel}>Nutrition</Text>
+                  </View>
+                </View>
+              </View>
+
               {/* Health Metrics */}
               <View style={styles.summarySection}>
                 <Text style={styles.sectionTitle}>Health Metrics</Text>
@@ -1268,9 +1415,9 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
                     </Text>
                   </View>
                   <View style={styles.metricCard}>
-                    <Text style={styles.metricLabel}>Life Score</Text>
-                    <Text style={styles.metricValue}>{lifeScore}</Text>
-                    <Text style={styles.metricSubtext}>out of 100</Text>
+                    <Text style={styles.metricLabel}>Weight</Text>
+                    <Text style={styles.metricValue}>{weight}</Text>
+                    <Text style={styles.metricSubtext}>kg</Text>
                   </View>
                 </View>
               </View>
@@ -1689,6 +1836,66 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1A1A1A',
     marginBottom: 16,
+  },
+  lifeScoreCard: {
+    backgroundColor: 'white',
+    padding: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  lifeScoreValue: {
+    fontSize: 64,
+    fontWeight: 'bold',
+    color: '#4A90E2',
+    marginBottom: 8,
+  },
+  lifeScoreLabel: {
+    fontSize: 16,
+    color: '#999',
+    marginBottom: 12,
+  },
+  lifeScoreDescription: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  pillarScoresGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  pillarScoreCard: {
+    width: '48%',
+    backgroundColor: 'white',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  pillarIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  pillarScoreValue: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#4A90E2',
+    marginBottom: 4,
+  },
+  pillarLabel: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '600',
   },
   metricsRow: {
     flexDirection: 'row',
