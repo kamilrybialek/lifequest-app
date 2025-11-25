@@ -7,10 +7,13 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, RefreshControl, Image, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { doc, updateDoc } from 'firebase/firestore';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
 import { deleteAllUserData } from '../../services/firebaseUserService';
-import { pickImage, uploadProfilePhoto, deleteProfilePhoto, getProfilePhotoURL } from '../../services/photoUploadService';
+import { pickImage, compressImage, deleteProfilePhoto, getProfilePhotoURL } from '../../services/photoUploadService';
+import { storage, db } from '../../config/firebase';
 
 export const ProfileScreenNew = () => {
   const { user, logout } = useAuthStore();
@@ -76,9 +79,6 @@ export const ProfileScreenNew = () => {
       setPhotoError(false);
       setUploadStatus('compressing');
 
-      // Import compression and upload functions
-      const { compressImage } = await import('../services/photoUploadService');
-
       // Step 3: Compress image (this is the slow part for iPhone photos)
       console.log('🔄 Compressing image...');
       const compressedBlob = await compressImage(imageUri);
@@ -87,10 +87,6 @@ export const ProfileScreenNew = () => {
       // Step 4: Upload to Firebase
       setUploadStatus('uploading');
       console.log('☁️ Uploading to Firebase...');
-
-      const { ref, uploadBytes, getDownloadURL } = await import('firebase/storage');
-      const { doc, updateDoc } = await import('firebase/firestore');
-      const { storage, db } = await import('../config/firebase');
 
       const fileName = `profile_photos/${user.id}_${Date.now()}.jpg`;
       const storageRef = ref(storage, fileName);
