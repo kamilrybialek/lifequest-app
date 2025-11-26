@@ -247,28 +247,33 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
 
     try {
       // Check if onboarding data has been imported
-      const importedFlag = await AsyncStorage.getItem('onboardingDataImported');
+      const importedFlag = await AsyncStorage.getItem(`onboardingDataImported_${user.id}`);
       if (importedFlag === 'true') return;
 
       // Load onboarding data
       const onboardingDataStr = await AsyncStorage.getItem('onboardingData');
-      if (!onboardingDataStr) return;
+      if (!onboardingDataStr) {
+        await AsyncStorage.setItem(`onboardingDataImported_${user.id}`, 'true');
+        return;
+      }
 
       const onboardingData = JSON.parse(onboardingDataStr);
 
       // Import monthly income if available
       if (onboardingData.monthlyIncome && onboardingData.monthlyIncome > 0) {
-        await addIncome({
-          user_id: user.id,
-          amount: onboardingData.monthlyIncome,
-          source: 'Monthly Income (from onboarding)',
-          category: 'salary',
-          date: new Date().toISOString().split('T')[0],
-          is_recurring: true,
-        });
-
-        // Set budget income
-        setBudgetIncome(String(onboardingData.monthlyIncome));
+        try {
+          await addIncome(user.id, {
+            amount: onboardingData.monthlyIncome,
+            source: 'Monthly Income (from onboarding)',
+            category: 'salary',
+            date: new Date().toISOString().split('T')[0],
+            is_recurring: true,
+            recurring_frequency: 'monthly',
+          });
+          console.log('✅ Income imported from onboarding');
+        } catch (error) {
+          console.error('Error importing income:', error);
+        }
       }
 
       // Import debt if available
@@ -282,18 +287,23 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
               text: 'Later',
               style: 'cancel',
               onPress: async () => {
-                // Add as single debt entry
-                await addDebt({
-                  user_id: user.id,
-                  name: 'Total Debt (from onboarding)',
-                  type: 'other',
-                  original_amount: onboardingData.estimatedDebt,
-                  remaining_amount: onboardingData.estimatedDebt,
-                  interest_rate: 0,
-                  minimum_payment: 0,
-                  due_date: new Date().getDate().toString(),
-                  status: 'active',
-                });
+                try {
+                  // Add as single debt entry
+                  await addDebt({
+                    user_id: user.id,
+                    name: 'Total Debt (from onboarding)',
+                    type: 'other',
+                    original_amount: onboardingData.estimatedDebt,
+                    remaining_amount: onboardingData.estimatedDebt,
+                    interest_rate: 0,
+                    minimum_payment: 0,
+                    due_date: new Date().getDate().toString(),
+                    status: 'active',
+                  });
+                  await loadFirebaseData();
+                } catch (error) {
+                  console.error('Error importing debt:', error);
+                }
               },
             },
             {
@@ -307,8 +317,11 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
         );
       }
 
-      // Mark as imported
-      await AsyncStorage.setItem('onboardingDataImported', 'true');
+      // Mark as imported (with user ID to prevent issues with multiple users)
+      await AsyncStorage.setItem(`onboardingDataImported_${user.id}`, 'true');
+
+      // Reload data after import
+      await loadFirebaseData();
     } catch (error) {
       console.error('Error importing onboarding data:', error);
     }
@@ -607,10 +620,13 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
 
   const applyBudgetTemplate = (templateKey: string) => {
     const template = BUDGET_TEMPLATES[templateKey as keyof typeof BUDGET_TEMPLATES];
-    const income = parseFloat(budgetIncome) || 0;
+    // Calculate total income from recurring income entries
+    const income = incomeList
+      .filter(inc => inc.is_recurring)
+      .reduce((sum, inc) => sum + (inc.amount || 0), 0);
 
     if (income === 0) {
-      Alert.alert('No Income', 'Please enter your monthly income first.');
+      Alert.alert('No Income', 'Please add your income in the Income tab first.');
       return;
     }
 
@@ -625,11 +641,15 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
   };
 
   const handleSaveBudget = async () => {
-    console.log('🔧 handleSaveBudget called', { userId: user?.id, income: budgetIncome, isDemoUser });
+    // Calculate total income from recurring income entries
+    const income = incomeList
+      .filter(inc => inc.is_recurring)
+      .reduce((sum, inc) => sum + (inc.amount || 0), 0);
 
-    const income = parseFloat(budgetIncome);
+    console.log('🔧 handleSaveBudget called', { userId: user?.id, income, isDemoUser });
+
     if (!income || income <= 0) {
-      Alert.alert('Invalid Income', 'Please enter your monthly income.');
+      Alert.alert('Invalid Income', 'Please add your income in the Income tab first.');
       return;
     }
 
@@ -991,33 +1011,59 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
   // ============================================
 
   const renderBudgetTab = () => {
+    // Calculate total income from recurring income entries
+    const totalIncome = incomeList
+      .filter(income => income.is_recurring)
+      .reduce((sum, income) => sum + (income.amount || 0), 0);
+
     const totalAllocated = budgetCategories.reduce((sum, cat) => sum + cat.allocatedAmount, 0);
-    const remaining = (parseFloat(budgetIncome) || 0) - totalAllocated;
+    const remaining = totalIncome - totalAllocated;
 
     return (
       <ScrollView style={styles.tabContent}>
-        {/* Monthly Income */}
+        {/* Monthly Income - Auto-calculated from Income tab */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>💵 Monthly Income</Text>
-          <View style={styles.inputContainer}>
-            <Text style={styles.dollarSign}>$</Text>
-            <TextInput
-              style={styles.input}
-              value={budgetIncome}
-              onChangeText={setBudgetIncome}
-              keyboardType="decimal-pad"
-              placeholder="0.00"
-              placeholderTextColor={colors.textSecondary}
-            />
-          </View>
 
-          <TouchableOpacity
-            style={styles.templateButton}
-            onPress={() => setShowBudgetTemplates(true)}
-          >
-            <Ionicons name="grid" size={20} color={colors.primary} />
-            <Text style={styles.templateButtonText}>Use Budget Template</Text>
-          </TouchableOpacity>
+          {totalIncome > 0 ? (
+            <View style={styles.incomeDisplayCard}>
+              <View style={styles.incomeDisplayRow}>
+                <Text style={styles.incomeDisplayLabel}>Total Recurring Income:</Text>
+                <Text style={styles.incomeDisplayAmount}>{formatAmount(totalIncome)}</Text>
+              </View>
+              <View style={styles.incomeHintContainer}>
+                <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
+                <Text style={styles.incomeHint}>
+                  Income calculated from recurring entries in Income tab
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.emptyIncomeCard}>
+              <Ionicons name="cash-outline" size={48} color={colors.textSecondary} />
+              <Text style={styles.emptyIncomeTitle}>No Income Added</Text>
+              <Text style={styles.emptyIncomeText}>
+                Add your income sources in the Income tab to start budgeting
+              </Text>
+              <TouchableOpacity
+                style={styles.goToIncomeButton}
+                onPress={() => setActiveTab('income')}
+              >
+                <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+                <Text style={styles.goToIncomeButtonText}>Go to Income</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {totalIncome > 0 && (
+            <TouchableOpacity
+              style={styles.templateButton}
+              onPress={() => setShowBudgetTemplates(true)}
+            >
+              <Ionicons name="grid" size={20} color={colors.primary} />
+              <Text style={styles.templateButtonText}>Use Budget Template</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Budget Categories */}
@@ -1082,7 +1128,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Total Income:</Text>
-            <Text style={styles.summaryValue}>{formatAmount(parseFloat(budgetIncome) || 0)}</Text>
+            <Text style={styles.summaryValue}>{formatAmount(totalIncome)}</Text>
           </View>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Total Allocated:</Text>
@@ -2686,6 +2732,74 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.primary,
+  },
+  incomeDisplayCard: {
+    backgroundColor: colors.backgroundGray,
+    borderRadius: 12,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  incomeDisplayRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  incomeDisplayLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  incomeDisplayAmount: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.success,
+  },
+  incomeHintContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  incomeHint: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  emptyIncomeCard: {
+    backgroundColor: colors.backgroundGray,
+    borderRadius: 12,
+    padding: spacing.xl,
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  emptyIncomeTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  emptyIncomeText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+  },
+  goToIncomeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.success,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: 12,
+    gap: spacing.xs,
+  },
+  goToIncomeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   addButton: {
     flexDirection: 'row',
