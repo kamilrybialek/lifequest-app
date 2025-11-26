@@ -1126,32 +1126,44 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
         style={styles.tabContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* Stats Bar - overlapping style */}
-        <View style={styles.statsBarOverview}>
-          <View style={styles.statItem}>
-            <Ionicons name="arrow-down" size={20} color="#58CC02" />
-            <Text style={styles.statValueSmall}>{formatAmount(monthlyIncome)}</Text>
-            <Text style={styles.statLabelSmall}>Income</Text>
+        {/* Stats Grid - Card Style */}
+        <View style={styles.statsGridContainer}>
+          {/* Income Card */}
+          <View style={[styles.statCardLarge, { backgroundColor: '#58CC02' }]}>
+            <View style={styles.statCardIconContainer}>
+              <Ionicons name="arrow-down" size={28} color="white" />
+            </View>
+            <Text style={styles.statCardLabel}>Income</Text>
+            <Text style={styles.statCardValue}>{formatAmount(monthlyIncome)}</Text>
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Ionicons name="arrow-up" size={20} color="#FF4B4B" />
-            <Text style={styles.statValueSmall}>{formatAmount(monthlyExpenses)}</Text>
-            <Text style={styles.statLabelSmall}>Expenses</Text>
+
+          {/* Expenses Card */}
+          <View style={[styles.statCardLarge, { backgroundColor: '#FF4B4B' }]}>
+            <View style={styles.statCardIconContainer}>
+              <Ionicons name="arrow-up" size={28} color="white" />
+            </View>
+            <Text style={styles.statCardLabel}>Expenses</Text>
+            <Text style={styles.statCardValue}>{formatAmount(monthlyExpenses)}</Text>
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Ionicons name={cashFlow >= 0 ? 'checkmark-circle' : 'close-circle'} size={20} color={cashFlow >= 0 ? '#58CC02' : '#FF4B4B'} />
-            <Text style={[styles.statValueSmall, { color: cashFlow >= 0 ? '#58CC02' : '#FF4B4B' }]}>
+
+          {/* Cash Flow Card */}
+          <View style={[styles.statCardLarge, { backgroundColor: cashFlow >= 0 ? '#58CC02' : '#FF4B4B' }]}>
+            <View style={styles.statCardIconContainer}>
+              <Ionicons name={cashFlow >= 0 ? 'checkmark-circle' : 'close-circle'} size={28} color="white" />
+            </View>
+            <Text style={styles.statCardLabel}>Cash Flow</Text>
+            <Text style={styles.statCardValue}>
               {cashFlow >= 0 ? '+' : ''}{formatAmount(Math.abs(cashFlow))}
             </Text>
-            <Text style={styles.statLabelSmall}>Cash Flow</Text>
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Ionicons name="wallet" size={20} color="#00CD9C" />
-            <Text style={styles.statValueSmall}>{savingsRate.toFixed(0)}%</Text>
-            <Text style={styles.statLabelSmall}>Savings</Text>
+
+          {/* Savings Rate Card */}
+          <View style={[styles.statCardLarge, { backgroundColor: '#00CD9C' }]}>
+            <View style={styles.statCardIconContainer}>
+              <Ionicons name="wallet" size={28} color="white" />
+            </View>
+            <Text style={styles.statCardLabel}>Savings Rate</Text>
+            <Text style={styles.statCardValue}>{savingsRate.toFixed(0)}%</Text>
           </View>
         </View>
 
@@ -2615,40 +2627,45 @@ const styles = StyleSheet.create({
   },
 
   // Stats Bar Overview - Duolingo Style
-  statsBarOverview: {
+  // Stats Grid - Card Style (like Net Worth)
+  statsGridContainer: {
     flexDirection: 'row',
-    backgroundColor: 'white',
+    flexWrap: 'wrap',
     marginHorizontal: 20,
     marginTop: 20,
+    gap: 12,
+  },
+  statCardLarge: {
+    flex: 1,
+    minWidth: '47%',
     borderRadius: 16,
-    padding: 12,
-    justifyContent: 'space-around',
-    alignItems: 'center',
+    padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
     elevation: 5,
-  },
-  statItem: {
     alignItems: 'center',
-    flex: 1,
   },
-  statValueSmall: {
-    fontSize: 16,
+  statCardIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  statCardLabel: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.9)',
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  statCardValue: {
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginTop: 4,
-  },
-  statLabelSmall: {
-    fontSize: 11,
-    color: '#666',
-    textAlign: 'center',
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: '#E5E5E5',
+    color: 'white',
   },
 
   // Net Worth Card - Duolingo Style
