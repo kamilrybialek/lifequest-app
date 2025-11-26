@@ -41,6 +41,7 @@ import { SleepTrackerScreen } from '../screens/physical/tools/SleepTrackerScreen
 import { BodyMeasurementsScreen } from '../screens/physical/tools/BodyMeasurementsScreen';
 
 // Nutrition tool screens
+import { DietDashboardScreen } from '../screens/nutrition/tools/DietDashboardScreen';
 import { MealLoggerScreen } from '../screens/nutrition/tools/MealLoggerScreen';
 import { WaterTrackerScreen } from '../screens/nutrition/tools/WaterTrackerScreen';
 import { CalorieCalculatorScreen } from '../screens/nutrition/tools/CalorieCalculatorScreen';
@@ -131,6 +132,7 @@ export const AppNavigator = () => {
             <Stack.Screen name="BodyMeasurementsScreen" component={BodyMeasurementsScreen} />
 
             {/* Nutrition tool screens */}
+            <Stack.Screen name="DietDashboardScreen" component={DietDashboardScreen} />
             <Stack.Screen name="MealLoggerScreen" component={MealLoggerScreen} />
             <Stack.Screen name="WaterTrackerScreen" component={WaterTrackerScreen} />
             <Stack.Screen name="CalorieCalculatorScreen" component={CalorieCalculatorScreen} />

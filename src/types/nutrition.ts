@@ -368,6 +368,14 @@ export const NUTRITION_FOUNDATIONS: NutritionFoundation[] = [
 // Nutrition Tools - Integrated into the nutrition journey
 export const NUTRITION_TOOLS: NutritionTool[] = [
   {
+    id: 'diet-dashboard',
+    title: 'Diet Dashboard',
+    icon: '📊',
+    description: 'Plan meals, shop smart & save money',
+    screen: 'DietDashboardScreen',
+    color: colors.nutrition,
+  },
+  {
     id: 'meal-logger',
     title: 'Meal Logger',
     icon: '🍽️',
