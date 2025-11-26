@@ -262,17 +262,25 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
       // Import monthly income if available
       if (onboardingData.monthlyIncome && onboardingData.monthlyIncome > 0) {
         try {
-          await addIncome(user.id, {
+          console.log('💰 Importing income from onboarding:', onboardingData.monthlyIncome);
+          const incomeData: any = {
             amount: onboardingData.monthlyIncome,
             source: 'Monthly Income (from onboarding)',
             category: 'salary',
             date: new Date().toISOString().split('T')[0],
             is_recurring: true,
             recurring_frequency: 'monthly',
+          };
+          const docId = await addIncome(user.id, incomeData);
+          console.log('✅ Income imported from onboarding with ID:', docId);
+        } catch (error: any) {
+          console.error('❌ Error importing income:', error);
+          console.error('Error details:', {
+            message: error?.message,
+            code: error?.code,
+            userId: user.id,
+            amount: onboardingData.monthlyIncome,
           });
-          console.log('✅ Income imported from onboarding');
-        } catch (error) {
-          console.error('Error importing income:', error);
         }
       }
 
@@ -527,17 +535,22 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     try {
       console.log('💵 Adding income:', { amount, source: incomeSource, isDemoUser, hasUserId: !!user?.id });
       const today = new Date().toISOString().split('T')[0];
-      const incomeData = {
+      const incomeData: any = {
         amount,
         source: incomeSource,
-        category: incomeCategory as any,
+        category: incomeCategory,
         date: today,
         is_recurring: isRecurring,
-        recurring_frequency: isRecurring ? ('monthly' as any) : undefined,
       };
+
+      // Only add recurring_frequency if it's recurring
+      if (isRecurring) {
+        incomeData.recurring_frequency = 'monthly';
+      }
 
       // Work in demo mode if no user ID (handles both demo users and unauthenticated state)
       if (isDemoUser || !user?.id) {
+        console.log('📝 Saving to AsyncStorage (demo mode)');
         const newIncome = {
           id: Date.now().toString(),
           user_id: user?.id || 'demo-user-local',
@@ -548,8 +561,11 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
         const updated = [newIncome, ...incomeList];
         await AsyncStorage.setItem('income', JSON.stringify(updated));
         setIncomeList(updated);
+        console.log('✅ Income saved to AsyncStorage');
       } else {
-        await addIncome(user.id, incomeData);
+        console.log('☁️ Saving to Firebase with userId:', user.id);
+        const docId = await addIncome(user.id, incomeData);
+        console.log('✅ Income saved to Firebase with ID:', docId);
         await loadFirebaseData();
       }
 
@@ -557,9 +573,14 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
       setIncomeSource('');
       setIsRecurring(false);
       Alert.alert('Success!', 'Income added');
-    } catch (error) {
-      console.error('Error adding income:', error);
-      Alert.alert('Error', 'Failed to add income');
+    } catch (error: any) {
+      console.error('❌ Error adding income:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        code: error?.code,
+        stack: error?.stack,
+      });
+      Alert.alert('Error', `Failed to add income: ${error?.message || 'Unknown error'}`);
     }
   };
 
