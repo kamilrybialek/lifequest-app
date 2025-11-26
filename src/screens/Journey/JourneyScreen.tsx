@@ -65,11 +65,11 @@ const PATHS: PathCard[] = [
     completed: 0,
   },
   {
-    pillar: 'nutrition',
-    title: 'Nutrition Mastery',
-    subtitle: 'Fuel Like a Champion',
+    pillar: 'diet',
+    title: 'Diet Mastery',
+    subtitle: 'Smart Eating, Smart Spending',
     icon: 'restaurant',
-    emoji: '🥗',
+    emoji: '🍽️',
     color: '#4CAF50',
     lessons: 30,
     completed: 0,
@@ -86,7 +86,7 @@ export const JourneyScreen = ({ navigation }: any) => {
       finance: 'FinancePathNew',
       mental: 'MentalHealthPath',
       physical: 'PhysicalHealthPath',
-      nutrition: 'NutritionPath',
+      diet: 'DietDashboardScreen',
     };
     navigation.navigate(screenMap[pillar]);
   };

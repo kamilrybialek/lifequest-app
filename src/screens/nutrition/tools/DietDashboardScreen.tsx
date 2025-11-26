@@ -219,7 +219,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
         </TouchableOpacity>
       </View>
 
-      {loading && <ActivityIndicator size="large" color={colors.nutrition} style={styles.loader} />}
+      {loading && <ActivityIndicator size="large" color={colors.diet} style={styles.loader} />}
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.recipeScroll}>
         {searchResults.map((recipe) => (
@@ -293,7 +293,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
                       }
                     }}
                   >
-                    <Ionicons name="add" size={20} color={colors.nutrition} />
+                    <Ionicons name="add" size={20} color={colors.diet} />
                   </TouchableOpacity>
                 </View>
 
@@ -565,7 +565,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
           <Ionicons
             name="calendar"
             size={20}
-            color={activeTab === 'planner' ? colors.nutrition : colors.textSecondary}
+            color={activeTab === 'planner' ? colors.diet : colors.textSecondary}
           />
           <Text
             style={[
@@ -584,7 +584,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
           <Ionicons
             name="cart"
             size={20}
-            color={activeTab === 'shopping' ? colors.nutrition : colors.textSecondary}
+            color={activeTab === 'shopping' ? colors.diet : colors.textSecondary}
           />
           <Text
             style={[
@@ -603,7 +603,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
           <Ionicons
             name="cash"
             size={20}
-            color={activeTab === 'costs' ? colors.nutrition : colors.textSecondary}
+            color={activeTab === 'costs' ? colors.diet : colors.textSecondary}
           />
           <Text
             style={[
@@ -673,7 +673,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabActive: {
-    borderBottomColor: colors.nutrition,
+    borderBottomColor: colors.diet,
   },
   tabText: {
     fontSize: 13,
@@ -681,7 +681,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   tabTextActive: {
-    color: colors.nutrition,
+    color: colors.diet,
     fontWeight: '600',
   },
   tabContent: {
@@ -713,7 +713,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   searchButton: {
-    backgroundColor: colors.nutrition,
+    backgroundColor: colors.diet,
     borderRadius: 12,
     width: 48,
     justifyContent: 'center',
@@ -784,7 +784,7 @@ const styles = StyleSheet.create({
     marginRight: spacing.sm,
   },
   dayChipActive: {
-    backgroundColor: colors.nutrition,
+    backgroundColor: colors.diet,
   },
   dayChipText: {
     fontSize: 14,
@@ -822,7 +822,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.nutrition + '20',
+    backgroundColor: colors.diet + '20',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -923,7 +923,7 @@ const styles = StyleSheet.create({
   shoppingItemCost: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.nutrition,
+    color: colors.diet,
   },
   costsSection: {
     padding: spacing.lg,
@@ -968,10 +968,10 @@ const styles = StyleSheet.create({
   costSummaryValueTotal: {
     fontSize: 20,
     fontWeight: '700',
-    color: colors.nutrition,
+    color: colors.diet,
   },
   projectionCard: {
-    backgroundColor: colors.nutrition,
+    backgroundColor: colors.diet,
     borderRadius: 16,
     padding: spacing.xl,
     marginBottom: spacing.lg,
@@ -1077,7 +1077,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
   },
   modalButtonConfirm: {
-    backgroundColor: colors.nutrition,
+    backgroundColor: colors.diet,
   },
   modalButtonText: {
     fontSize: 15,
@@ -1119,14 +1119,14 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.nutrition + '20',
+    backgroundColor: colors.diet + '20',
     justifyContent: 'center',
     alignItems: 'center',
   },
   portionCount: {
     fontSize: 48,
     fontWeight: '700',
-    color: colors.nutrition,
+    color: colors.diet,
     minWidth: 80,
     textAlign: 'center',
   },
