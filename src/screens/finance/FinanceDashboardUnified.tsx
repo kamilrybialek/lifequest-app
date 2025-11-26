@@ -180,6 +180,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
   const [incomeSource, setIncomeSource] = useState('');
   const [incomeCategory, setIncomeCategory] = useState('salary');
   const [isRecurring, setIsRecurring] = useState(false);
+  const [isAddingIncome, setIsAddingIncome] = useState(false);
 
   // Debt data
   const [debts, setDebts] = useState<any[]>([]);
@@ -668,6 +669,12 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
   // ============================================
 
   const handleAddIncome = async () => {
+    // Prevent double-submit
+    if (isAddingIncome) {
+      console.log('⚠️ Already adding income, ignoring duplicate call');
+      return;
+    }
+
     console.log('🔧 handleAddIncome called', { userId: user?.id, amount: incomeAmount, source: incomeSource, isDemoUser });
 
     const amount = parseFloat(incomeAmount);
@@ -676,6 +683,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
       return;
     }
 
+    setIsAddingIncome(true);
     try {
       console.log('💵 Adding income:', { amount, source: incomeSource, isDemoUser, hasUserId: !!user?.id });
       const today = new Date().toISOString().split('T')[0];
@@ -734,6 +742,8 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
         stack: error?.stack,
       });
       Alert.alert('Error', `Failed to add income: ${error?.message || 'Unknown error'}`);
+    } finally {
+      setIsAddingIncome(false);
     }
   };
 
@@ -1533,9 +1543,22 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
             <Text style={styles.recurringText}>Recurring Monthly Income</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.addButton, { backgroundColor: '#58CC02' }]} onPress={handleAddIncome}>
-            <Ionicons name="add-circle" size={24} color="#FFFFFF" />
-            <Text style={styles.addButtonText}>Add Income</Text>
+          <TouchableOpacity
+            style={[
+              styles.addButton,
+              { backgroundColor: isAddingIncome ? '#cccccc' : '#58CC02' }
+            ]}
+            onPress={handleAddIncome}
+            disabled={isAddingIncome}
+          >
+            <Ionicons
+              name={isAddingIncome ? "hourglass-outline" : "add-circle"}
+              size={24}
+              color="#FFFFFF"
+            />
+            <Text style={styles.addButtonText}>
+              {isAddingIncome ? 'Adding...' : 'Add Income'}
+            </Text>
           </TouchableOpacity>
         </View>
 
