@@ -28,9 +28,13 @@ export const AdminDashboard = () => {
 
   const loadStats = async () => {
     try {
+      console.log('🔄 AdminDashboard: Loading stats from Firebase...');
+
       // Get total users
+      console.log('📊 Fetching users collection...');
       const usersSnapshot = await getDocs(collection(db, 'users'));
       const totalUsers = usersSnapshot.size;
+      console.log(`✅ Found ${totalUsers} users`);
 
       // Get active users (last 7 days)
       const sevenDaysAgo = new Date();
@@ -41,8 +45,10 @@ export const AdminDashboard = () => {
       const activeUsers = Math.floor(totalUsers * 0.3); // Placeholder
 
       // Get total recipes
+      console.log('🍽️ Fetching recipes collection...');
       const recipesSnapshot = await getDocs(collection(db, 'recipes'));
       const totalRecipes = recipesSnapshot.size;
+      console.log(`✅ Found ${totalRecipes} recipes`);
 
       // Get total lessons (count from all pillars)
       // For now, placeholder
@@ -54,8 +60,16 @@ export const AdminDashboard = () => {
         totalRecipes,
         totalLessons,
       });
+
+      console.log('✅ AdminDashboard: Stats loaded successfully', {
+        totalUsers,
+        activeUsers,
+        totalRecipes,
+        totalLessons,
+      });
     } catch (error) {
-      console.error('Error loading stats:', error);
+      console.error('❌ AdminDashboard: Error loading stats:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
     } finally {
       setLoading(false);
     }
@@ -168,7 +182,7 @@ export const AdminDashboard = () => {
               <View style={[styles.statusDot, { backgroundColor: colors.success }]} />
               <Text style={styles.statusText}>Storage</Text>
             </View>
-            <Text style={styles.statusValue}>47% Used</Text>
+            <Text style={styles.statusValue}>Available</Text>
           </View>
         </View>
       </View>

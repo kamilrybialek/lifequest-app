@@ -56,12 +56,17 @@ export const AdminUsers = () => {
   const loadUsers = async () => {
     try {
       setLoading(true);
+      console.log('🔄 AdminUsers: Loading users from Firebase...');
+
       const usersQuery = query(
         collection(db, 'users'),
         orderBy('createdAt', 'desc'),
         limit(100)
       );
+
+      console.log('📊 Executing Firestore query...');
       const snapshot = await getDocs(usersQuery);
+      console.log(`✅ Query returned ${snapshot.size} documents`);
 
       const loadedUsers: User[] = [];
       snapshot.forEach((doc) => {
@@ -79,10 +84,20 @@ export const AdminUsers = () => {
         });
       });
 
+      console.log(`✅ Loaded ${loadedUsers.length} users`);
+      console.log('First user sample:', loadedUsers[0]);
+
       setUsers(loadedUsers);
       setFilteredUsers(loadedUsers);
     } catch (error) {
-      console.error('Error loading users:', error);
+      console.error('❌ AdminUsers: Error loading users:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+
+      // Check if it's a Firestore index error
+      if (error instanceof Error && error.message.includes('index')) {
+        console.error('⚠️ FIRESTORE INDEX ERROR - You may need to create a composite index');
+        console.error('Check the Firebase Console for the index creation link');
+      }
     } finally {
       setLoading(false);
     }
