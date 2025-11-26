@@ -235,7 +235,14 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
 
   // Import onboarding data on first launch
   useEffect(() => {
-    importOnboardingDataIfNeeded();
+    // Wait a bit for Firebase to initialize before importing
+    const timer = setTimeout(() => {
+      if (user?.id) {
+        importOnboardingDataIfNeeded();
+      }
+    }, 2000); // Wait 2 seconds for Firebase to be ready
+
+    return () => clearTimeout(timer);
   }, [user?.id]);
 
   // ============================================
@@ -271,7 +278,20 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
             is_recurring: true,
             recurring_frequency: 'monthly',
           };
-          const docId = await addIncome(user.id, incomeData);
+
+          let docId;
+          try {
+            docId = await addIncome(user.id, incomeData);
+          } catch (firestoreError: any) {
+            if (firestoreError?.code === 'failed-precondition') {
+              console.log('⚠️ Firebase not ready for import, waiting 3 seconds...');
+              await new Promise(resolve => setTimeout(resolve, 3000));
+              docId = await addIncome(user.id, incomeData);
+            } else {
+              throw firestoreError;
+            }
+          }
+
           console.log('✅ Income imported from onboarding with ID:', docId);
         } catch (error: any) {
           console.error('❌ Error importing income:', error);
@@ -564,9 +584,21 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
         console.log('✅ Income saved to AsyncStorage');
       } else {
         console.log('☁️ Saving to Firebase with userId:', user.id);
-        const docId = await addIncome(user.id, incomeData);
-        console.log('✅ Income saved to Firebase with ID:', docId);
-        await loadFirebaseData();
+        try {
+          const docId = await addIncome(user.id, incomeData);
+          console.log('✅ Income saved to Firebase with ID:', docId);
+          await loadFirebaseData();
+        } catch (firestoreError: any) {
+          if (firestoreError?.code === 'failed-precondition') {
+            console.error('⚠️ Firebase not ready yet, retrying in 2 seconds...');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            const docId = await addIncome(user.id, incomeData);
+            console.log('✅ Income saved to Firebase with ID (retry):', docId);
+            await loadFirebaseData();
+          } else {
+            throw firestoreError;
+          }
+        }
       }
 
       setIncomeAmount('');
