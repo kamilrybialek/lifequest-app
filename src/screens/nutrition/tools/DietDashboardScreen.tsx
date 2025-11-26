@@ -13,7 +13,7 @@ import {
 import { Text } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../../theme/colors';
-import { spacing } from '../../../theme/theme';
+import { spacing } from '../../../theme/spacing';
 import { useAuthStore } from '../../../store/authStore';
 
 // Types
@@ -868,7 +868,7 @@ const styles = StyleSheet.create({
   emptyState: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: spacing.xxxl * 2,
+    paddingVertical: spacing.xxl * 2,
   },
   emptyStateText: {
     fontSize: 18,
