@@ -57,7 +57,7 @@ import { SavingsGoalsScreen } from '../screens/finance/SavingsGoalsScreen';
 import { NetWorthCalculatorScreen } from '../screens/finance/NetWorthCalculatorScreen';
 
 // Admin
-import { AdminScreen } from '../screens/admin/AdminScreen';
+import { AdminGuard } from '../screens/admin/AdminGuard';
 
 import { useAuthStore } from '../store/authStore';
 
@@ -93,8 +93,21 @@ export const AppNavigator = () => {
   // TEMPORARY DEBUG: Log before returning JSX
   console.log(`📱 About to return JSX, branch: ${!isAuthenticated ? 'Login' : !user?.onboarded ? 'Onboarding' : 'Main'}`);
 
+  // Web linking configuration
+  const linking = {
+    prefixes: ['http://localhost:8081', 'https://lifequest-app.web.app'],
+    config: {
+      screens: {
+        Login: 'login',
+        Onboarding: 'onboarding',
+        Main: '',
+        Admin: 'admin',
+      },
+    },
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
           <Stack.Screen name="Login" component={LoginScreen} />
@@ -151,7 +164,7 @@ export const AppNavigator = () => {
             <Stack.Screen name="NetWorthCalculatorScreen" component={NetWorthCalculatorScreen} />
 
             {/* Admin Panel */}
-            <Stack.Screen name="Admin" component={AdminScreen} />
+            <Stack.Screen name="Admin" component={AdminGuard} />
           </>
         )}
       </Stack.Navigator>
