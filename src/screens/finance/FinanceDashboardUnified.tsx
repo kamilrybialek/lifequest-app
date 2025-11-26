@@ -184,6 +184,11 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
   const [debts, setDebts] = useState<any[]>([]);
   const [debtStrategy, setDebtStrategy] = useState<'snowball' | 'avalanche' | 'optimal'>('snowball');
   const [showAddDebt, setShowAddDebt] = useState(false);
+  const [debtName, setDebtName] = useState('');
+  const [debtType, setDebtType] = useState('credit_card');
+  const [debtAmount, setDebtAmount] = useState('');
+  const [debtInterestRate, setDebtInterestRate] = useState('');
+  const [debtMinPayment, setDebtMinPayment] = useState('');
 
   // Savings data
   const [savingsGoals, setSavingsGoals] = useState<any[]>([]);
@@ -228,9 +233,86 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     }
   }, [showNetWorthCalculator]);
 
+  // Import onboarding data on first launch
+  useEffect(() => {
+    importOnboardingDataIfNeeded();
+  }, [user?.id]);
+
   // ============================================
   // DATA LOADING
   // ============================================
+
+  const importOnboardingDataIfNeeded = async () => {
+    if (!user?.id || isDemoUser) return;
+
+    try {
+      // Check if onboarding data has been imported
+      const importedFlag = await AsyncStorage.getItem('onboardingDataImported');
+      if (importedFlag === 'true') return;
+
+      // Load onboarding data
+      const onboardingDataStr = await AsyncStorage.getItem('onboardingData');
+      if (!onboardingDataStr) return;
+
+      const onboardingData = JSON.parse(onboardingDataStr);
+
+      // Import monthly income if available
+      if (onboardingData.monthlyIncome && onboardingData.monthlyIncome > 0) {
+        await addIncome({
+          user_id: user.id,
+          amount: onboardingData.monthlyIncome,
+          source: 'Monthly Income (from onboarding)',
+          category: 'salary',
+          date: new Date().toISOString().split('T')[0],
+          is_recurring: true,
+        });
+
+        // Set budget income
+        setBudgetIncome(String(onboardingData.monthlyIncome));
+      }
+
+      // Import debt if available
+      if (onboardingData.estimatedDebt && onboardingData.estimatedDebt > 0) {
+        // Show dialog to ask for debt details
+        Alert.alert(
+          'Import Debt from Onboarding',
+          `You indicated you have ${formatAmount(onboardingData.estimatedDebt)} in debt. Would you like to add detailed debt information now?`,
+          [
+            {
+              text: 'Later',
+              style: 'cancel',
+              onPress: async () => {
+                // Add as single debt entry
+                await addDebt({
+                  user_id: user.id,
+                  name: 'Total Debt (from onboarding)',
+                  type: 'other',
+                  original_amount: onboardingData.estimatedDebt,
+                  remaining_amount: onboardingData.estimatedDebt,
+                  interest_rate: 0,
+                  minimum_payment: 0,
+                  due_date: new Date().getDate().toString(),
+                  status: 'active',
+                });
+              },
+            },
+            {
+              text: 'Add Details',
+              onPress: () => {
+                setActiveTab('debt');
+                setShowAddDebt(true);
+              },
+            },
+          ]
+        );
+      }
+
+      // Mark as imported
+      await AsyncStorage.setItem('onboardingDataImported', 'true');
+    } catch (error) {
+      console.error('Error importing onboarding data:', error);
+    }
+  };
 
   const loadAllData = async () => {
     if (!user?.id) return;
@@ -465,6 +547,57 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     } catch (error) {
       console.error('Error adding income:', error);
       Alert.alert('Error', 'Failed to add income');
+    }
+  };
+
+  const handleAddDebt = async () => {
+    const amount = parseFloat(debtAmount);
+    const interestRate = parseFloat(debtInterestRate) || 0;
+    const minPayment = parseFloat(debtMinPayment) || 0;
+
+    if (!amount || !debtName) {
+      Alert.alert('Missing Info', 'Please enter debt name and total amount');
+      return;
+    }
+
+    try {
+      const debtData = {
+        user_id: user?.id || 'demo-user-local',
+        name: debtName,
+        type: debtType as any,
+        original_amount: amount,
+        remaining_amount: amount,
+        interest_rate: interestRate,
+        minimum_payment: minPayment,
+        due_date: new Date().getDate().toString(),
+        status: 'active' as any,
+      };
+
+      if (isDemoUser || !user?.id) {
+        const newDebt = {
+          id: Date.now().toString(),
+          ...debtData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        const updated = [...debts, newDebt];
+        await AsyncStorage.setItem('debts', JSON.stringify(updated));
+        setDebts(updated);
+      } else {
+        await addDebt(debtData);
+        await loadFirebaseData();
+      }
+
+      // Clear form
+      setDebtName('');
+      setDebtAmount('');
+      setDebtInterestRate('');
+      setDebtMinPayment('');
+      setShowAddDebt(false);
+      Alert.alert('Success!', 'Debt added');
+    } catch (error) {
+      console.error('Error adding debt:', error);
+      Alert.alert('Error', 'Failed to add debt');
     }
   };
 
@@ -1273,7 +1406,12 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
 
         {/* Debts List */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Debts</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Your Debts</Text>
+            <TouchableOpacity onPress={() => setShowAddDebt(true)}>
+              <Ionicons name="add-circle" size={28} color={colors.error} />
+            </TouchableOpacity>
+          </View>
           {debts.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="checkmark-circle" size={64} color={colors.success} />
@@ -1316,6 +1454,102 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
             })
           )}
         </View>
+
+        {/* Add Debt Modal */}
+        <Modal visible={showAddDebt} transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Add Debt</Text>
+                <TouchableOpacity onPress={() => setShowAddDebt(false)}>
+                  <Ionicons name="close" size={28} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView>
+                <Text style={styles.inputLabel}>Debt Name *</Text>
+                <TextInput
+                  style={styles.descriptionInput}
+                  value={debtName}
+                  onChangeText={setDebtName}
+                  placeholder="e.g., Credit Card, Student Loan"
+                  placeholderTextColor={colors.textSecondary}
+                />
+
+                <Text style={styles.inputLabel}>Debt Type</Text>
+                <View style={styles.categorySelector}>
+                  {[
+                    { id: 'credit_card', label: 'Credit Card', icon: '💳' },
+                    { id: 'student_loan', label: 'Student Loan', icon: '🎓' },
+                    { id: 'mortgage', label: 'Mortgage', icon: '🏠' },
+                    { id: 'personal_loan', label: 'Personal Loan', icon: '💰' },
+                    { id: 'other', label: 'Other', icon: '📋' },
+                  ].map((type) => (
+                    <TouchableOpacity
+                      key={type.id}
+                      style={[
+                        styles.categoryChip,
+                        debtType === type.id && styles.categoryChipSelected,
+                      ]}
+                      onPress={() => setDebtType(type.id)}
+                    >
+                      <Text style={styles.categoryChipIcon}>{type.icon}</Text>
+                      <Text
+                        style={[
+                          styles.categoryChipText,
+                          debtType === type.id && styles.categoryChipTextSelected,
+                        ]}
+                      >
+                        {type.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={styles.inputLabel}>Total Amount *</Text>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.dollarSign}>{currencyData?.symbol || '$'}</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={debtAmount}
+                    onChangeText={setDebtAmount}
+                    keyboardType="decimal-pad"
+                    placeholder="Enter total debt amount"
+                    placeholderTextColor={colors.textSecondary}
+                  />
+                </View>
+
+                <Text style={styles.inputLabel}>Interest Rate (APR %)</Text>
+                <TextInput
+                  style={styles.descriptionInput}
+                  value={debtInterestRate}
+                  onChangeText={setDebtInterestRate}
+                  keyboardType="decimal-pad"
+                  placeholder="e.g., 18.5"
+                  placeholderTextColor={colors.textSecondary}
+                />
+
+                <Text style={styles.inputLabel}>Minimum Monthly Payment</Text>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.dollarSign}>{currencyData?.symbol || '$'}</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={debtMinPayment}
+                    onChangeText={setDebtMinPayment}
+                    keyboardType="decimal-pad"
+                    placeholder="Enter minimum payment"
+                    placeholderTextColor={colors.textSecondary}
+                  />
+                </View>
+
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.error, marginTop: spacing.lg }]} onPress={handleAddDebt}>
+                  <Ionicons name="add-circle" size={24} color="#FFFFFF" />
+                  <Text style={styles.addButtonText}>Add Debt</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
@@ -2239,6 +2473,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text,
     paddingVertical: spacing.md,
+    textAlign: 'left',
   },
   descriptionInput: {
     backgroundColor: colors.backgroundGray,
@@ -2247,6 +2482,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
     marginBottom: spacing.md,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: spacing.xs,
+    marginTop: spacing.sm,
   },
 
   // Category Selector
