@@ -252,27 +252,42 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     operationName: string,
     maxRetries: number = 3
   ): Promise<T> => {
+    let lastError: any;
+
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
-        return await operation();
+        const result = await operation();
+        if (attempt > 0) {
+          console.log(`✅ ${operationName} succeeded on attempt ${attempt + 1}`);
+        }
+        return result;
       } catch (error: any) {
+        lastError = error;
         const isLastAttempt = attempt === maxRetries;
 
+        console.log(`⚠️ ${operationName} failed on attempt ${attempt + 1}/${maxRetries + 1}:`, {
+          code: error?.code,
+          message: error?.message
+        });
+
         if (error?.code === 'failed-precondition' && !isLastAttempt) {
-          const delay = Math.pow(2, attempt) * 500; // 500ms, 1s, 2s
-          console.log(`⚠️ ${operationName} failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms...`);
+          const delay = Math.pow(2, attempt) * 500; // 500ms, 1s, 2s, 4s
+          console.log(`⏳ Retrying ${operationName} in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
+          // Continue to next attempt
+        } else if (isLastAttempt) {
+          console.error(`❌ ${operationName} failed after ${maxRetries + 1} attempts`);
+          throw error;
         } else {
-          // Either not a failed-precondition error, or we're out of retries
-          if (!isLastAttempt) {
-            throw error;
-          }
-          console.error(`❌ ${operationName} failed after ${maxRetries + 1} attempts:`, error);
+          // Not a failed-precondition error, don't retry
+          console.error(`❌ ${operationName} failed with non-retryable error:`, error?.code);
           throw error;
         }
       }
     }
-    throw new Error(`Failed after ${maxRetries + 1} attempts`);
+
+    // This should never be reached, but throw last error just in case
+    throw lastError;
   };
 
   const loadFirebaseData = async () => {
