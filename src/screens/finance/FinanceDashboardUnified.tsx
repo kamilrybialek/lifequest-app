@@ -61,6 +61,7 @@ import {
   getBudgetForMonth,
   updateBudgetCategorySpent,
 } from '../../services/firebaseFinanceService';
+import { authPersistenceReady } from '../../config/firebase';
 
 const { width, height } = Dimensions.get('window');
 
@@ -235,14 +236,9 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
 
   // Import onboarding data on first launch
   useEffect(() => {
-    // Wait a bit for Firebase to initialize before importing
-    const timer = setTimeout(() => {
-      if (user?.id) {
-        importOnboardingDataIfNeeded();
-      }
-    }, 2000); // Wait 2 seconds for Firebase to be ready
-
-    return () => clearTimeout(timer);
+    if (user?.id) {
+      importOnboardingDataIfNeeded();
+    }
   }, [user?.id]);
 
   // ============================================
@@ -253,6 +249,11 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     if (!user?.id || isDemoUser) return;
 
     try {
+      // CRITICAL: Wait for Firebase Auth persistence to be ready before any Firestore operations
+      console.log('🔐 Waiting for Firebase Auth persistence...');
+      await authPersistenceReady;
+      console.log('✅ Firebase Auth persistence ready');
+
       // Check if onboarding data has been imported
       const importedFlag = await AsyncStorage.getItem(`onboardingDataImported_${user.id}`);
       if (importedFlag === 'true') return;
@@ -279,19 +280,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
             recurring_frequency: 'monthly',
           };
 
-          let docId;
-          try {
-            docId = await addIncome(user.id, incomeData);
-          } catch (firestoreError: any) {
-            if (firestoreError?.code === 'failed-precondition') {
-              console.log('⚠️ Firebase not ready for import, waiting 3 seconds...');
-              await new Promise(resolve => setTimeout(resolve, 3000));
-              docId = await addIncome(user.id, incomeData);
-            } else {
-              throw firestoreError;
-            }
-          }
-
+          const docId = await addIncome(user.id, incomeData);
           console.log('✅ Income imported from onboarding with ID:', docId);
         } catch (error: any) {
           console.error('❌ Error importing income:', error);
@@ -373,6 +362,9 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     if (!user?.id) return;
 
     try {
+      // CRITICAL: Wait for Firebase Auth persistence before any Firestore reads
+      await authPersistenceReady;
+
       // Load overview
       const overview = await getFinancialOverview(user.id);
       const currentMonth = new Date().toISOString().slice(0, 7);
@@ -583,22 +575,14 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
         setIncomeList(updated);
         console.log('✅ Income saved to AsyncStorage');
       } else {
-        console.log('☁️ Saving to Firebase with userId:', user.id);
-        try {
-          const docId = await addIncome(user.id, incomeData);
-          console.log('✅ Income saved to Firebase with ID:', docId);
-          await loadFirebaseData();
-        } catch (firestoreError: any) {
-          if (firestoreError?.code === 'failed-precondition') {
-            console.error('⚠️ Firebase not ready yet, retrying in 2 seconds...');
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            const docId = await addIncome(user.id, incomeData);
-            console.log('✅ Income saved to Firebase with ID (retry):', docId);
-            await loadFirebaseData();
-          } else {
-            throw firestoreError;
-          }
-        }
+        // CRITICAL: Wait for Firebase Auth persistence before Firestore operations
+        console.log('🔐 Waiting for Firebase Auth persistence...');
+        await authPersistenceReady;
+        console.log('✅ Firebase Auth ready, saving to Firebase with userId:', user.id);
+
+        const docId = await addIncome(user.id, incomeData);
+        console.log('✅ Income saved to Firebase with ID:', docId);
+        await loadFirebaseData();
       }
 
       setIncomeAmount('');
