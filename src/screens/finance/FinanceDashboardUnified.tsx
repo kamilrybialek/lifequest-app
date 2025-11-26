@@ -180,7 +180,9 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
   const [incomeSource, setIncomeSource] = useState('');
   const [incomeCategory, setIncomeCategory] = useState('salary');
   const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringDay, setRecurringDay] = useState(1); // Day of month for recurring income
   const [isAddingIncome, setIsAddingIncome] = useState(false);
+  const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
 
   // Debt data
   const [debts, setDebts] = useState<any[]>([]);
@@ -624,26 +626,28 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     console.log('🔧 handleAddIncome called', { userId: user?.id, amount: incomeAmount, source: incomeSource, isDemoUser });
 
     const amount = parseFloat(incomeAmount);
-    if (!amount || !incomeSource) {
-      Alert.alert('Missing Info', 'Please enter amount and source');
+    if (!amount) {
+      Alert.alert('Missing Info', 'Please enter amount');
       return;
     }
 
     setIsAddingIncome(true);
     try {
-      console.log('💵 Adding income:', { amount, source: incomeSource, isDemoUser, hasUserId: !!user?.id });
+      const sourceName = incomeSource.trim() || 'Bez nazwy';
+      console.log('💵 Adding income:', { amount, source: sourceName, isDemoUser, hasUserId: !!user?.id });
       const today = new Date().toISOString().split('T')[0];
       const incomeData: any = {
         amount,
-        source: incomeSource,
+        source: sourceName,
         category: incomeCategory,
         date: today,
         is_recurring: isRecurring,
       };
 
-      // Only add recurring_frequency if it's recurring
+      // Add recurring fields if it's recurring
       if (isRecurring) {
         incomeData.recurring_frequency = 'monthly';
+        incomeData.recurring_day = recurringDay; // Day of month when income recurs
       }
 
       // Work in demo mode if no user ID (handles both demo users and unauthenticated state)
@@ -691,6 +695,103 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     } finally {
       setIsAddingIncome(false);
     }
+  };
+
+  const handleDeleteIncome = async (incomeId: string) => {
+    try {
+      if (isDemoUser || !user?.id) {
+        // Delete from AsyncStorage
+        const updated = incomeList.filter(income => income.id !== incomeId);
+        await AsyncStorage.setItem('income', JSON.stringify(updated));
+        setIncomeList(updated);
+      } else {
+        // Delete from Firebase
+        await deleteIncome(incomeId);
+        await loadFirebaseData();
+      }
+      Alert.alert('Success', 'Income deleted');
+    } catch (error: any) {
+      console.error('Error deleting income:', error);
+      Alert.alert('Error', 'Failed to delete income');
+    }
+  };
+
+  const handleStartEditIncome = (income: any) => {
+    setEditingIncomeId(income.id);
+    setIncomeAmount(income.amount.toString());
+    setIncomeSource(income.source === 'Bez nazwy' ? '' : income.source);
+    setIncomeCategory(income.category || 'salary');
+    setIsRecurring(income.is_recurring || false);
+    setRecurringDay(income.recurring_day || 1);
+  };
+
+  const handleUpdateIncome = async () => {
+    if (!editingIncomeId) return;
+
+    const amount = parseFloat(incomeAmount);
+    if (!amount) {
+      Alert.alert('Missing Info', 'Please enter amount');
+      return;
+    }
+
+    setIsAddingIncome(true);
+    try {
+      const sourceName = incomeSource.trim() || 'Bez nazwy';
+      const incomeData: any = {
+        amount,
+        source: sourceName,
+        category: incomeCategory,
+        is_recurring: isRecurring,
+      };
+
+      if (isRecurring) {
+        incomeData.recurring_frequency = 'monthly';
+        incomeData.recurring_day = recurringDay;
+      }
+
+      if (isDemoUser || !user?.id) {
+        // Update in AsyncStorage
+        const updated = incomeList.map(income =>
+          income.id === editingIncomeId
+            ? { ...income, ...incomeData, updated_at: new Date().toISOString() }
+            : income
+        );
+        await AsyncStorage.setItem('income', JSON.stringify(updated));
+        setIncomeList(updated);
+      } else {
+        // Update in Firebase
+        await authPersistenceReady;
+        const { updateDoc, doc } = await import('firebase/firestore');
+        const { db } = await import('../../config/firebase');
+        const incomeRef = doc(db, 'income', editingIncomeId);
+        await updateDoc(incomeRef, {
+          ...incomeData,
+          updated_at: new Date(),
+        });
+        await loadFirebaseData();
+      }
+
+      // Reset form
+      setEditingIncomeId(null);
+      setIncomeAmount('');
+      setIncomeSource('');
+      setIsRecurring(false);
+      setRecurringDay(1);
+      Alert.alert('Success', 'Income updated');
+    } catch (error: any) {
+      console.error('Error updating income:', error);
+      Alert.alert('Error', 'Failed to update income');
+    } finally {
+      setIsAddingIncome(false);
+    }
+  };
+
+  const handleCancelEditIncome = () => {
+    setEditingIncomeId(null);
+    setIncomeAmount('');
+    setIncomeSource('');
+    setIsRecurring(false);
+    setRecurringDay(1);
   };
 
   const handleAddDebt = async () => {
@@ -1489,23 +1590,62 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
             <Text style={styles.recurringText}>Recurring Monthly Income</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[
-              styles.addButton,
-              { backgroundColor: isAddingIncome ? '#cccccc' : '#58CC02' }
-            ]}
-            onPress={handleAddIncome}
-            disabled={isAddingIncome}
-          >
-            <Ionicons
-              name={isAddingIncome ? "hourglass-outline" : "add-circle"}
-              size={24}
-              color="#FFFFFF"
-            />
-            <Text style={styles.addButtonText}>
-              {isAddingIncome ? 'Adding...' : 'Add Income'}
-            </Text>
-          </TouchableOpacity>
+          {isRecurring && (
+            <View style={styles.dayPickerContainer}>
+              <Text style={styles.dayPickerLabel}>Day of month:</Text>
+              <View style={styles.dayPickerButtons}>
+                {[1, 5, 10, 15, 20, 25].map(day => (
+                  <TouchableOpacity
+                    key={day}
+                    style={[
+                      styles.dayButton,
+                      recurringDay === day && styles.dayButtonActive
+                    ]}
+                    onPress={() => setRecurringDay(day)}
+                  >
+                    <Text style={[
+                      styles.dayButtonText,
+                      recurringDay === day && styles.dayButtonTextActive
+                    ]}>
+                      {day}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          <View style={styles.buttonRow}>
+            {editingIncomeId && (
+              <TouchableOpacity
+                style={[styles.addButton, { backgroundColor: colors.textSecondary, flex: 1, marginRight: 8 }]}
+                onPress={handleCancelEditIncome}
+              >
+                <Ionicons name="close-circle" size={24} color="#FFFFFF" />
+                <Text style={styles.addButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              style={[
+                styles.addButton,
+                {
+                  backgroundColor: isAddingIncome ? '#cccccc' : '#58CC02',
+                  flex: editingIncomeId ? 1 : undefined
+                }
+              ]}
+              onPress={editingIncomeId ? handleUpdateIncome : handleAddIncome}
+              disabled={isAddingIncome}
+            >
+              <Ionicons
+                name={isAddingIncome ? "hourglass-outline" : editingIncomeId ? "checkmark-circle" : "add-circle"}
+                size={24}
+                color="#FFFFFF"
+              />
+              <Text style={styles.addButtonText}>
+                {isAddingIncome ? 'Saving...' : editingIncomeId ? 'Update' : 'Add Income'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Income List */}
@@ -1518,16 +1658,53 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
             </View>
           ) : (
             incomeList.map((income, index) => (
-              <View key={index} style={styles.incomeCard}>
+              <View key={income.id || index} style={styles.incomeCard}>
                 <View style={[styles.incomeIcon, { backgroundColor: colors.success + '20' }]}>
                   <Ionicons name="cash" size={24} color={colors.success} />
                 </View>
                 <View style={styles.incomeInfo}>
-                  <Text style={styles.incomeName}>{income.source}</Text>
-                  <Text style={styles.incomeCategory}>{income.category}</Text>
+                  <Text style={[
+                    styles.incomeName,
+                    income.source === 'Bez nazwy' && { fontStyle: 'italic', color: colors.textSecondary }
+                  ]}>
+                    {income.source}
+                  </Text>
+                  <Text style={styles.incomeCategory}>
+                    {income.category}
+                    {income.is_recurring && ` • Every ${income.recurring_day || 1}th`}
+                  </Text>
                   <Text style={styles.incomeDate}>{income.date}</Text>
                 </View>
-                <Text style={styles.incomeAmount}>+{formatAmount(income.amount)}</Text>
+                <View style={styles.incomeActions}>
+                  <Text style={styles.incomeAmount}>+{formatAmount(income.amount)}</Text>
+                  <View style={styles.incomeButtons}>
+                    <TouchableOpacity
+                      onPress={() => handleStartEditIncome(income)}
+                      style={styles.iconButton}
+                    >
+                      <Ionicons name="create-outline" size={20} color={colors.primary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => {
+                        Alert.alert(
+                          'Delete Income',
+                          `Are you sure you want to delete "${income.source}"?`,
+                          [
+                            { text: 'Cancel', style: 'cancel' },
+                            {
+                              text: 'Delete',
+                              style: 'destructive',
+                              onPress: () => handleDeleteIncome(income.id)
+                            }
+                          ]
+                        );
+                      }}
+                      style={styles.iconButton}
+                    >
+                      <Ionicons name="trash-outline" size={20} color={colors.error} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
             ))
           )}
@@ -3572,5 +3749,60 @@ const styles = StyleSheet.create({
 
   bottomSpacer: {
     height: spacing.xl * 2,
+  },
+
+  // Day Picker for Recurring Income
+  dayPickerContainer: {
+    marginBottom: spacing.md,
+  },
+  dayPickerLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  dayPickerButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  dayButton: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+  },
+  dayButtonActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  dayButtonText: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  dayButtonTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+
+  // Button Row
+  buttonRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+
+  // Income Actions
+  incomeActions: {
+    alignItems: 'flex-end',
+  },
+  incomeButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  iconButton: {
+    padding: spacing.xs,
   },
 });
