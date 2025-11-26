@@ -183,6 +183,9 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
   const [recurringDay, setRecurringDay] = useState(1); // Day of month for recurring income
   const [isAddingIncome, setIsAddingIncome] = useState(false);
   const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
+  const [showEditIncomeModal, setShowEditIncomeModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [incomeToDelete, setIncomeToDelete] = useState<any>(null);
 
   // Debt data
   const [debts, setDebts] = useState<any[]>([]);
@@ -697,22 +700,25 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     }
   };
 
-  const handleDeleteIncome = async (incomeId: string) => {
+  const handleDeleteIncome = async () => {
+    if (!incomeToDelete) return;
+
     try {
       if (isDemoUser || !user?.id) {
         // Delete from AsyncStorage
-        const updated = incomeList.filter(income => income.id !== incomeId);
+        const updated = incomeList.filter(income => income.id !== incomeToDelete.id);
         await AsyncStorage.setItem('income', JSON.stringify(updated));
         setIncomeList(updated);
       } else {
         // Delete from Firebase
-        await deleteIncome(incomeId);
+        await deleteIncome(incomeToDelete.id);
         await loadFirebaseData();
       }
-      Alert.alert('Success', 'Income deleted');
+      setShowDeleteConfirm(false);
+      setIncomeToDelete(null);
     } catch (error: any) {
       console.error('Error deleting income:', error);
-      Alert.alert('Error', 'Failed to delete income');
+      alert('Failed to delete income');
     }
   };
 
@@ -723,6 +729,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     setIncomeCategory(income.category || 'salary');
     setIsRecurring(income.is_recurring || false);
     setRecurringDay(income.recurring_day || 1);
+    setShowEditIncomeModal(true);
   };
 
   const handleUpdateIncome = async () => {
@@ -771,16 +778,16 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
         await loadFirebaseData();
       }
 
-      // Reset form
+      // Reset form and close modal
       setEditingIncomeId(null);
       setIncomeAmount('');
       setIncomeSource('');
       setIsRecurring(false);
       setRecurringDay(1);
-      Alert.alert('Success', 'Income updated');
+      setShowEditIncomeModal(false);
     } catch (error: any) {
       console.error('Error updating income:', error);
-      Alert.alert('Error', 'Failed to update income');
+      alert('Failed to update income');
     } finally {
       setIsAddingIncome(false);
     }
@@ -792,6 +799,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     setIncomeSource('');
     setIsRecurring(false);
     setRecurringDay(1);
+    setShowEditIncomeModal(false);
   };
 
   const handleAddDebt = async () => {
@@ -1615,37 +1623,23 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
             </View>
           )}
 
-          <View style={styles.buttonRow}>
-            {editingIncomeId && (
-              <TouchableOpacity
-                style={[styles.addButton, { backgroundColor: colors.textSecondary, flex: 1, marginRight: 8 }]}
-                onPress={handleCancelEditIncome}
-              >
-                <Ionicons name="close-circle" size={24} color="#FFFFFF" />
-                <Text style={styles.addButtonText}>Cancel</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              style={[
-                styles.addButton,
-                {
-                  backgroundColor: isAddingIncome ? '#cccccc' : '#58CC02',
-                  flex: editingIncomeId ? 1 : undefined
-                }
-              ]}
-              onPress={editingIncomeId ? handleUpdateIncome : handleAddIncome}
-              disabled={isAddingIncome}
-            >
-              <Ionicons
-                name={isAddingIncome ? "hourglass-outline" : editingIncomeId ? "checkmark-circle" : "add-circle"}
-                size={24}
-                color="#FFFFFF"
-              />
-              <Text style={styles.addButtonText}>
-                {isAddingIncome ? 'Saving...' : editingIncomeId ? 'Update' : 'Add Income'}
-              </Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={[
+              styles.addButton,
+              { backgroundColor: isAddingIncome ? '#cccccc' : '#58CC02' }
+            ]}
+            onPress={handleAddIncome}
+            disabled={isAddingIncome}
+          >
+            <Ionicons
+              name={isAddingIncome ? "hourglass-outline" : "add-circle"}
+              size={24}
+              color="#FFFFFF"
+            />
+            <Text style={styles.addButtonText}>
+              {isAddingIncome ? 'Adding...' : 'Add Income'}
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Income List */}
@@ -1686,18 +1680,8 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => {
-                        Alert.alert(
-                          'Delete Income',
-                          `Are you sure you want to delete "${income.source}"?`,
-                          [
-                            { text: 'Cancel', style: 'cancel' },
-                            {
-                              text: 'Delete',
-                              style: 'destructive',
-                              onPress: () => handleDeleteIncome(income.id)
-                            }
-                          ]
-                        );
+                        setIncomeToDelete(income);
+                        setShowDeleteConfirm(true);
                       }}
                       style={styles.iconButton}
                     >
@@ -2432,6 +2416,125 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
 
       {/* Tab Content */}
       {renderTabContent()}
+
+      {/* Edit Income Modal */}
+      <Modal
+        visible={showEditIncomeModal}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCancelEditIncome}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Edit Income</Text>
+
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Amount"
+              keyboardType="numeric"
+              value={incomeAmount}
+              onChangeText={setIncomeAmount}
+            />
+
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Source (optional)"
+              value={incomeSource}
+              onChangeText={setIncomeSource}
+            />
+
+            <TouchableOpacity
+              style={styles.modalCheckbox}
+              onPress={() => setIsRecurring(!isRecurring)}
+            >
+              <Ionicons
+                name={isRecurring ? 'checkbox' : 'square-outline'}
+                size={24}
+                color={colors.primary}
+              />
+              <Text style={styles.modalCheckboxText}>Recurring Monthly</Text>
+            </TouchableOpacity>
+
+            {isRecurring && (
+              <View style={styles.modalDayPicker}>
+                <Text style={styles.modalLabel}>Day of month:</Text>
+                <View style={styles.dayPickerButtons}>
+                  {[1, 5, 10, 15, 20, 25].map(day => (
+                    <TouchableOpacity
+                      key={day}
+                      style={[
+                        styles.dayButton,
+                        recurringDay === day && styles.dayButtonActive
+                      ]}
+                      onPress={() => setRecurringDay(day)}
+                    >
+                      <Text style={[
+                        styles.dayButtonText,
+                        recurringDay === day && styles.dayButtonTextActive
+                      ]}>
+                        {day}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={handleCancelEditIncome}
+              >
+                <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonConfirm]}
+                onPress={handleUpdateIncome}
+                disabled={isAddingIncome}
+              >
+                <Text style={styles.modalButtonText}>
+                  {isAddingIncome ? 'Saving...' : 'Update'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        visible={showDeleteConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDeleteConfirm(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Ionicons name="trash" size={48} color={colors.error} style={{ marginBottom: 16 }} />
+            <Text style={styles.modalTitle}>Delete Income?</Text>
+            <Text style={styles.modalMessage}>
+              Are you sure you want to delete "{incomeToDelete?.source}"?
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => {
+                  setShowDeleteConfirm(false);
+                  setIncomeToDelete(null);
+                }}
+              >
+                <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonDelete]}
+                onPress={handleDeleteIncome}
+              >
+                <Text style={styles.modalButtonText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -3804,5 +3907,98 @@ const styles = StyleSheet.create({
   },
   iconButton: {
     padding: spacing.xs,
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: spacing.xl,
+    width: '90%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: spacing.md,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+    textAlign: 'center',
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: spacing.md,
+    fontSize: 16,
+    marginBottom: spacing.md,
+    backgroundColor: colors.background,
+  },
+  modalCheckbox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  modalCheckboxText: {
+    fontSize: 16,
+    color: colors.text,
+  },
+  modalLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  modalDayPicker: {
+    marginBottom: spacing.md,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.md,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalButtonCancel: {
+    backgroundColor: colors.backgroundGray,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modalButtonConfirm: {
+    backgroundColor: colors.success,
+  },
+  modalButtonDelete: {
+    backgroundColor: colors.error,
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  modalButtonTextCancel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
   },
 });
