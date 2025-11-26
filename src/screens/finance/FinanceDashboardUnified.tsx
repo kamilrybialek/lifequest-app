@@ -245,6 +245,138 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
   // DATA LOADING
   // ============================================
 
+  // Helper function to retry Firestore operations with exponential backoff
+  const retryFirestoreOperation = async <T,>(
+    operation: () => Promise<T>,
+    operationName: string,
+    maxRetries: number = 3
+  ): Promise<T> => {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await operation();
+      } catch (error: any) {
+        const isLastAttempt = attempt === maxRetries;
+
+        if (error?.code === 'failed-precondition' && !isLastAttempt) {
+          const delay = Math.pow(2, attempt) * 500; // 500ms, 1s, 2s
+          console.log(`⚠️ ${operationName} failed (attempt ${attempt + 1}/${maxRetries + 1}), retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        } else {
+          // Either not a failed-precondition error, or we're out of retries
+          if (!isLastAttempt) {
+            throw error;
+          }
+          console.error(`❌ ${operationName} failed after ${maxRetries + 1} attempts:`, error);
+          throw error;
+        }
+      }
+    }
+    throw new Error(`Failed after ${maxRetries + 1} attempts`);
+  };
+
+  const loadFirebaseData = async () => {
+    if (!user?.id) return;
+
+    try {
+      // CRITICAL: Wait for Firebase Auth persistence before any Firestore reads
+      await authPersistenceReady;
+      console.log('✅ Auth ready, loading Firebase data...');
+
+      const currentMonth = new Date().toISOString().slice(0, 7);
+
+      // Wrap all Firestore operations with retry logic
+      const overview = await retryFirestoreOperation(
+        () => getFinancialOverview(user.id),
+        'getFinancialOverview'
+      );
+
+      const monthlySummary = await retryFirestoreOperation(
+        () => getMonthlyFinancialSummary(user.id, currentMonth),
+        'getMonthlyFinancialSummary'
+      );
+
+      setMonthlyIncome(monthlySummary.totalIncome || 0);
+      setMonthlyExpenses(monthlySummary.totalExpenses || 0);
+      setSavingsRate(monthlySummary.savingsRate || 0);
+
+      // Load expenses
+      const expensesData = await retryFirestoreOperation(
+        () => getExpenses(user.id, { startDate: currentMonth + '-01', endDate: currentMonth + '-31' }),
+        'getExpenses'
+      );
+      setExpenses(expensesData);
+      setRecentExpenses(expensesData.slice(0, 5));
+
+      // Load income
+      const incomeData = await retryFirestoreOperation(
+        () => getIncome(user.id, {}),
+        'getIncome'
+      );
+      setIncomeList(incomeData);
+      console.log('📊 Loaded income data:', incomeData.length, 'entries');
+
+      // Load debts and calculate total from actual debt entries (source of truth)
+      const debtsData = await retryFirestoreOperation(
+        () => getDebts(user.id, 'active'),
+        'getDebts'
+      );
+      setDebts(debtsData);
+      const calculatedTotalDebt = debtsData.reduce((sum: number, d: any) => sum + (d.remaining_amount || 0), 0);
+      setTotalDebt(calculatedTotalDebt);
+
+      // Load savings goals and calculate total from actual savings entries (source of truth)
+      const goalsData = await retryFirestoreOperation(
+        () => getSavingsGoals(user.id),
+        'getSavingsGoals'
+      );
+      setSavingsGoals(goalsData);
+      const calculatedTotalSavings = goalsData.reduce((sum: number, g: any) => sum + (g.current_amount || 0), 0);
+      setTotalSavings(calculatedTotalSavings);
+
+      // Calculate net worth from actual financial data (savings - debts)
+      const calculatedNetWorth = calculatedTotalSavings - calculatedTotalDebt;
+      setNetWorth(calculatedNetWorth);
+      console.log('💰 Calculated net worth from real data:', {
+        totalSavings: calculatedTotalSavings,
+        totalDebt: calculatedTotalDebt,
+        netWorth: calculatedNetWorth
+      });
+
+      // Load subscriptions
+      const subsData = await retryFirestoreOperation(
+        () => getSubscriptions(user.id, true),
+        'getSubscriptions'
+      );
+      setSubscriptions(subsData);
+
+      const totalSubs = await retryFirestoreOperation(
+        () => getTotalMonthlySubscriptions(user.id),
+        'getTotalMonthlySubscriptions'
+      );
+      setTotalSubscriptions(totalSubs);
+
+      // Load budget
+      const budget = await retryFirestoreOperation(
+        () => getBudgetForMonth(user.id, currentMonth),
+        'getBudgetForMonth'
+      );
+      if (budget) {
+        setBudgetIncome(budget.total_income.toString());
+        const updatedCategories = DEFAULT_CATEGORIES.map((defaultCat) => {
+          const existingCat = budget.categories.find((c: any) => c.name === defaultCat.name);
+          return existingCat
+            ? { ...defaultCat, allocatedAmount: existingCat.budgeted, spent: existingCat.spent || 0 }
+            : defaultCat;
+        });
+        setBudgetCategories(updatedCategories);
+      }
+
+      console.log('✅ All Firebase data loaded successfully');
+    } catch (error) {
+      console.error('❌ Error loading Firebase data:', error);
+    }
+  };
+
   const importOnboardingDataIfNeeded = async () => {
     if (!user?.id || isDemoUser) return;
 
@@ -582,6 +714,11 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
 
         const docId = await addIncome(user.id, incomeData);
         console.log('✅ Income saved to Firebase with ID:', docId);
+
+        // Small delay to let Firestore propagate the write before reading
+        console.log('⏳ Waiting 500ms before reloading data...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         await loadFirebaseData();
       }
 
