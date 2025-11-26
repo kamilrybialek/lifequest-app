@@ -851,7 +851,8 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
           <View style={styles.stepContainer}>
             <Text style={styles.stepTitle}>💰 Monthly Income</Text>
             <Text style={styles.stepDescription}>
-              How much do you earn per month?
+              What's your main monthly income? (salary, pension, etc.){'\n'}
+              You can add additional income sources later in the Finance Dashboard.
             </Text>
 
             <View style={styles.sliderContainer}>
