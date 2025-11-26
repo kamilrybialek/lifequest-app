@@ -54,7 +54,7 @@ import { WaterTrackerScreen } from '../screens/nutrition/tools/WaterTrackerScree
 import { CalorieCalculatorScreen } from '../screens/nutrition/tools/CalorieCalculatorScreen';
 
 // Admin
-import { AdminScreen } from '../screens/AdminScreen';
+import { AdminScreen } from '../screens/admin/AdminScreen';
 
 // Achievements
 import { AchievementsScreen } from '../screens/AchievementsScreen';
