@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../../theme/colors';
 import { spacing } from '../../../theme/spacing';
 import { useAuthStore } from '../../../store/authStore';
+import { COMMON_INGREDIENTS } from '../../../data/ingredients';
 
 // Types
 interface Recipe {
@@ -115,6 +116,10 @@ export const DietDashboardScreen = ({ navigation }: any) => {
   const [selectedCuisine, setSelectedCuisine] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
 
+  // Ingredient search state
+  const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
+  const [showTextSearch, setShowTextSearch] = useState(false);
+
   // Calculate total costs
   const totalWeeklyCost = mealPlan.reduce((sum, item) => {
     return sum + (item.recipe.pricePerServing * item.portions);
@@ -138,7 +143,69 @@ export const DietDashboardScreen = ({ navigation }: any) => {
     setSelectedCuisine('');
   };
 
-  // Search recipes via Spoonacular API with filters
+  // Toggle ingredient selection
+  const toggleIngredient = (ingredientId: string) => {
+    if (selectedIngredients.includes(ingredientId)) {
+      setSelectedIngredients(selectedIngredients.filter(id => id !== ingredientId));
+    } else {
+      setSelectedIngredients([...selectedIngredients, ingredientId]);
+    }
+  };
+
+  // Search by ingredients
+  const searchByIngredients = async () => {
+    if (selectedIngredients.length === 0) {
+      Alert.alert('No Ingredients', 'Please select at least one ingredient');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const ingredientNames = selectedIngredients
+        .map((id) => COMMON_INGREDIENTS.find((i) => i.id === id)?.name)
+        .filter(Boolean)
+        .join(',');
+
+      let url = `${SPOONACULAR_BASE_URL}/recipes/findByIngredients?apiKey=${SPOONACULAR_API_KEY}&ingredients=${encodeURIComponent(
+        ingredientNames
+      )}&number=20&ranking=1&ignorePantry=true`;
+
+      // Add diet filters if selected
+      if (selectedDietFilters.length > 0) {
+        url += `&diet=${selectedDietFilters.join(',')}`;
+      }
+
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch recipes');
+      }
+
+      const data = await response.json();
+
+      // Transform the response to match our Recipe interface
+      const recipes = data.map((recipe: any) => ({
+        id: recipe.id,
+        title: recipe.title,
+        image: recipe.image,
+        readyInMinutes: 0, // Not provided by findByIngredients endpoint
+        servings: 0, // Not provided by findByIngredients endpoint
+        pricePerServing: 0, // Not provided by findByIngredients endpoint
+        cuisines: [],
+        diets: [],
+        summary: '',
+      }));
+
+      setSearchResults(recipes);
+    } catch (error) {
+      console.error('Error searching recipes by ingredients:', error);
+      Alert.alert('Error', 'Failed to search recipes');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Search recipes via Spoonacular API with filters (text search)
   const searchRecipes = async (query: string) => {
     if (!query.trim()) return;
 
@@ -278,27 +345,29 @@ export const DietDashboardScreen = ({ navigation }: any) => {
   const renderRecipeSearch = () => (
     <View style={styles.searchSection}>
       <View style={styles.searchHeader}>
-        <Text style={styles.searchTitle}>🔍 Search Recipes</Text>
-        <TouchableOpacity
-          style={styles.filterToggleButton}
-          onPress={() => setShowFilters(!showFilters)}
-        >
-          <Ionicons
-            name={showFilters ? "chevron-up" : "filter"}
-            size={20}
-            color={colors.diet}
-          />
-          <Text style={styles.filterToggleText}>
-            {showFilters ? 'Hide Filters' : 'Filters'}
-          </Text>
-          {(selectedDietFilters.length > 0 || selectedType || selectedCuisine) && (
-            <View style={styles.filterBadge}>
-              <Text style={styles.filterBadgeText}>
-                {selectedDietFilters.length + (selectedType ? 1 : 0) + (selectedCuisine ? 1 : 0)}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        <Text style={styles.searchTitle}>🥘 What's in your fridge?</Text>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity
+            style={styles.filterToggleButton}
+            onPress={() => setShowFilters(!showFilters)}
+          >
+            <Ionicons
+              name={showFilters ? "chevron-up" : "filter"}
+              size={20}
+              color={colors.diet}
+            />
+            <Text style={styles.filterToggleText}>
+              {showFilters ? 'Hide' : 'Filters'}
+            </Text>
+            {(selectedDietFilters.length > 0 || selectedType || selectedCuisine) && (
+              <View style={styles.filterBadge}>
+                <Text style={styles.filterBadgeText}>
+                  {selectedDietFilters.length + (selectedType ? 1 : 0) + (selectedCuisine ? 1 : 0)}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Filters Section */}
@@ -339,116 +408,129 @@ export const DietDashboardScreen = ({ navigation }: any) => {
             </ScrollView>
           </View>
 
-          {/* Type Filters */}
-          <View style={styles.filterGroup}>
-            <Text style={styles.filterGroupTitle}>Meal Type</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.filterChipsRow}>
-                {TYPE_FILTERS.map((filter) => (
-                  <TouchableOpacity
-                    key={filter.id}
-                    style={[
-                      styles.filterChip,
-                      selectedType === filter.id && styles.filterChipSelected,
-                    ]}
-                    onPress={() => setSelectedType(selectedType === filter.id ? '' : filter.id)}
-                  >
-                    <Text style={styles.filterChipIcon}>{filter.icon}</Text>
-                    <Text
-                      style={[
-                        styles.filterChipText,
-                        selectedType === filter.id && styles.filterChipTextSelected,
-                      ]}
-                    >
-                      {filter.label}
-                    </Text>
-                    {selectedType === filter.id && (
-                      <Ionicons name="checkmark-circle" size={16} color={colors.diet} />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
-
-          {/* Cuisine Filters */}
-          <View style={styles.filterGroup}>
-            <Text style={styles.filterGroupTitle}>Cuisine</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              <View style={styles.filterChipsRow}>
-                {CUISINE_FILTERS.map((filter) => (
-                  <TouchableOpacity
-                    key={filter.id}
-                    style={[
-                      styles.filterChip,
-                      selectedCuisine === filter.id && styles.filterChipSelected,
-                    ]}
-                    onPress={() => setSelectedCuisine(selectedCuisine === filter.id ? '' : filter.id)}
-                  >
-                    <Text style={styles.filterChipIcon}>{filter.icon}</Text>
-                    <Text
-                      style={[
-                        styles.filterChipText,
-                        selectedCuisine === filter.id && styles.filterChipTextSelected,
-                      ]}
-                    >
-                      {filter.label}
-                    </Text>
-                    {selectedCuisine === filter.id && (
-                      <Ionicons name="checkmark-circle" size={16} color={colors.diet} />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </ScrollView>
-          </View>
-
           {/* Clear Filters Button */}
-          {(selectedDietFilters.length > 0 || selectedType || selectedCuisine) && (
+          {selectedDietFilters.length > 0 && (
             <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters}>
               <Ionicons name="close-circle" size={18} color={colors.error} />
-              <Text style={styles.clearFiltersText}>Clear All Filters</Text>
+              <Text style={styles.clearFiltersText}>Clear Diet Filters</Text>
             </TouchableOpacity>
           )}
         </View>
       )}
 
-      <View style={styles.searchBar}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search recipes (e.g., chicken, pasta, vegan...)"
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          onSubmitEditing={() => searchRecipes(searchQuery)}
-        />
+      {/* Ingredient Selection - PRIMARY METHOD */}
+      <Text style={styles.ingredientSectionTitle}>Select ingredients you have:</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.ingredientScroll}
+      >
+        <View style={styles.ingredientsRow}>
+          {COMMON_INGREDIENTS.map((ingredient) => {
+            const isSelected = selectedIngredients.includes(ingredient.id);
+            return (
+              <TouchableOpacity
+                key={ingredient.id}
+                style={[
+                  styles.ingredientChip,
+                  isSelected && styles.ingredientChipSelected,
+                ]}
+                onPress={() => toggleIngredient(ingredient.id)}
+              >
+                <Text style={styles.ingredientIcon}>{ingredient.icon}</Text>
+                <Text
+                  style={[
+                    styles.ingredientLabel,
+                    isSelected && styles.ingredientLabelSelected,
+                  ]}
+                >
+                  {ingredient.name}
+                </Text>
+                {isSelected && (
+                  <Ionicons name="checkmark-circle" size={16} color={colors.diet} />
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </ScrollView>
+
+      {/* Search Button */}
+      {selectedIngredients.length > 0 && (
         <TouchableOpacity
-          style={styles.searchButton}
-          onPress={() => searchRecipes(searchQuery)}
+          style={styles.searchByIngredientsButton}
+          onPress={searchByIngredients}
         >
           <Ionicons name="search" size={20} color="white" />
+          <Text style={styles.searchByIngredientsText}>
+            Find Recipes ({selectedIngredients.length} ingredients)
+          </Text>
         </TouchableOpacity>
-      </View>
+      )}
+
+      {/* Text Search - OPTIONAL/SECONDARY */}
+      <TouchableOpacity
+        style={styles.textSearchToggle}
+        onPress={() => setShowTextSearch(!showTextSearch)}
+      >
+        <Ionicons
+          name={showTextSearch ? "chevron-up" : "text"}
+          size={18}
+          color={colors.textSecondary}
+        />
+        <Text style={styles.textSearchToggleText}>
+          {showTextSearch ? 'Hide text search' : 'Or search by recipe name'}
+        </Text>
+      </TouchableOpacity>
+
+      {showTextSearch && (
+        <View style={styles.searchBar}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search recipes (e.g., chicken, pasta, vegan...)"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            onSubmitEditing={() => searchRecipes(searchQuery)}
+          />
+          <TouchableOpacity
+            style={styles.searchButton}
+            onPress={() => searchRecipes(searchQuery)}
+          >
+            <Ionicons name="search" size={20} color="white" />
+          </TouchableOpacity>
+        </View>
+      )}
 
       {loading && <ActivityIndicator size="large" color={colors.diet} style={styles.loader} />}
 
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.recipeScroll}>
-        {searchResults.map((recipe) => (
-          <TouchableOpacity
-            key={recipe.id}
-            style={styles.recipeCard}
-            onPress={() => getRecipeDetails(recipe.id)}
-          >
-            <Image source={{ uri: recipe.image }} style={styles.recipeImage} />
-            <Text style={styles.recipeTitle} numberOfLines={2}>{recipe.title}</Text>
-            <View style={styles.recipeInfo}>
-              <Text style={styles.recipeInfoText}>⏱ {recipe.readyInMinutes}m</Text>
-              <Text style={styles.recipeInfoText}>
-                💰 ${((recipe.pricePerServing || 0) / 100).toFixed(2)}/serving
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
+      {/* Recipe Results */}
+      {searchResults.length > 0 && (
+        <>
+          <Text style={styles.resultsTitle}>
+            Found {searchResults.length} recipes
+          </Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.recipeScroll}>
+            {searchResults.map((recipe) => (
+              <TouchableOpacity
+                key={recipe.id}
+                style={styles.recipeCard}
+                onPress={() => getRecipeDetails(recipe.id)}
+              >
+                <Image source={{ uri: recipe.image }} style={styles.recipeImage} />
+                <Text style={styles.recipeTitle} numberOfLines={2}>{recipe.title}</Text>
+                {recipe.readyInMinutes > 0 && (
+                  <View style={styles.recipeInfo}>
+                    <Text style={styles.recipeInfoText}>⏱ {recipe.readyInMinutes}m</Text>
+                    <Text style={styles.recipeInfoText}>
+                      💰 ${((recipe.pricePerServing || 0) / 100).toFixed(2)}/serving
+                    </Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </>
+      )}
     </View>
   );
 
@@ -1444,5 +1526,88 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: colors.error,
+  },
+  // Ingredient selection styles
+  headerButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  ingredientSectionTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  ingredientScroll: {
+    marginBottom: spacing.md,
+  },
+  ingredientsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    paddingRight: spacing.lg,
+  },
+  ingredientChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#E5E5E5',
+  },
+  ingredientChipSelected: {
+    backgroundColor: colors.diet + '15',
+    borderColor: colors.diet,
+  },
+  ingredientIcon: {
+    fontSize: 18,
+  },
+  ingredientLabel: {
+    fontSize: 13,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  ingredientLabelSelected: {
+    color: colors.diet,
+    fontWeight: '600',
+  },
+  searchByIngredientsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.diet,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: 12,
+    marginBottom: spacing.md,
+  },
+  searchByIngredientsText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: 'white',
+  },
+  textSearchToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  textSearchToggleText: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  resultsTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
   },
 });
