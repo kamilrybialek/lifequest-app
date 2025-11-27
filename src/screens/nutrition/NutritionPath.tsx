@@ -136,8 +136,8 @@ export const NutritionPath = ({ navigation }: any) => {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>🥗 Nutrition Mastery Path</Text>
-          <Text style={styles.headerSubtitle}>8 Foundations of Optimal Nutrition</Text>
+          <Text style={styles.headerTitle}>🥗 Diet Mastery Path</Text>
+          <Text style={styles.headerSubtitle}>8 Foundations of Smart Eating</Text>
         </View>
 
         {/* Next Lesson Card */}
@@ -151,7 +151,7 @@ export const NutritionPath = ({ navigation }: any) => {
               xp: nextLesson.lesson.xp,
               duration: nextLesson.lesson.estimatedTime,
             }}
-            color={colors.nutrition}
+            color={colors.diet}
             onPress={() => handleLessonPress(nextLesson.foundation, nextLesson.lesson)}
           />
         )}

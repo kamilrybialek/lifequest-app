@@ -1,5 +1,5 @@
 /**
- * Nutrition Path - Duolingo Style
+ * Diet Path - Duolingo Style
  * 8 Foundations with fun bubble design
  */
 
@@ -16,7 +16,7 @@ import { Text } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../theme/colors';
-import { NutritionFoundation, NutritionLesson, NUTRITION_FOUNDATIONS, NUTRITION_TOOLS } from '../../types/nutrition';
+import { NutritionFoundation, NutritionLesson, NUTRITION_FOUNDATIONS } from '../../types/nutrition';
 import { useAuthStore } from '../../store/authStore';
 import { getCompletedLessons } from '../../database/lessons.web';
 import { getNutritionProgress } from '../../database/nutrition.web';
@@ -117,10 +117,6 @@ export const NutritionPath = ({ navigation }: any) => {
       foundationId: foundation.id,
       lessonTitle: lesson.title,
     });
-  };
-
-  const handleToolPress = (toolScreen: string) => {
-    navigation.navigate(toolScreen);
   };
 
   const renderLessonBubble = (
@@ -278,8 +274,8 @@ export const NutritionPath = ({ navigation }: any) => {
           <View style={styles.headerIconCircle}>
             <Ionicons name="restaurant" size={32} color="#58CC02" />
           </View>
-          <Text style={styles.headerTitle}>Nutrition Mastery Path</Text>
-          <Text style={styles.headerSubtitle}>8 Foundations of Optimal Nutrition</Text>
+          <Text style={styles.headerTitle}>Diet Mastery Path</Text>
+          <Text style={styles.headerSubtitle}>8 Foundations of Smart Eating</Text>
         </View>
       </LinearGradient>
 
@@ -288,34 +284,6 @@ export const NutritionPath = ({ navigation }: any) => {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-
-        {/* Nutrition Tools Section */}
-        <View style={styles.toolsSection}>
-          <Text style={styles.toolsSectionTitle}>🔧 My Nutrition Tools</Text>
-          <Text style={styles.toolsSectionSubtitle}>
-            Track meals, plan diets, and monitor your nutrition
-          </Text>
-
-          <View style={styles.toolsGrid}>
-            {NUTRITION_TOOLS.map((tool) => (
-              <TouchableOpacity
-                key={tool.id}
-                style={styles.toolCard}
-                onPress={() => handleToolPress(tool.screen)}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.toolIconContainer, { backgroundColor: tool.color + '20' }]}>
-                  <Text style={styles.toolIcon}>{tool.icon}</Text>
-                </View>
-                <Text style={styles.toolTitle}>{tool.title}</Text>
-                <Text style={styles.toolDescription}>{tool.description}</Text>
-                <View style={styles.toolArrow}>
-                  <Ionicons name="chevron-forward" size={20} color={tool.color} />
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
 
         {/* Next Lesson Card */}
         {nextLesson && (
@@ -417,62 +385,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'rgba(255,255,255,0.9)',
     fontWeight: '600',
-  },
-  // Tools Section
-  toolsSection: {
-    padding: 20,
-    backgroundColor: colors.background,
-    marginBottom: 8,
-  },
-  toolsSectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  toolsSectionSubtitle: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 16,
-  },
-  toolsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  toolCard: {
-    backgroundColor: colors.backgroundGray,
-    width: (width - 52) / 2,
-    padding: 16,
-    borderRadius: 12,
-    position: 'relative',
-  },
-  toolIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  toolIcon: {
-    fontSize: 24,
-  },
-  toolTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 4,
-  },
-  toolDescription: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginBottom: 8,
-  },
-  toolArrow: {
-    position: 'absolute',
-    top: 12,
-    right: 12,
   },
   nextLessonCard: {
     margin: 20,

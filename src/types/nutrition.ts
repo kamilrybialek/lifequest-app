@@ -34,8 +34,8 @@ export const NUTRITION_FOUNDATIONS: NutritionFoundation[] = [
   {
     id: 'nutrition-foundation1',
     number: 1,
-    title: 'Nutrition Fundamentals',
-    description: 'Understanding macros, calories, and how food fuels your body',
+    title: 'Diet Fundamentals',
+    description: 'Understanding macros, calories, and smart eating basics',
     icon: '🥗',
     status: 'current',
     lessons: [
@@ -275,7 +275,7 @@ export const NUTRITION_FOUNDATIONS: NutritionFoundation[] = [
     id: 'nutrition-foundation7',
     number: 7,
     title: 'Special Diets & Approaches',
-    description: 'Explore different nutrition strategies',
+    description: 'Explore different diet strategies',
     icon: '🥑',
     status: 'locked',
     lessons: [
@@ -354,7 +354,7 @@ export const NUTRITION_FOUNDATIONS: NutritionFoundation[] = [
       },
       {
         id: 'nutrition-foundation8-lesson4',
-        title: 'Your Nutrition Journey Continues',
+        title: 'Your Diet Journey Continues',
         description: 'Celebrate progress and plan your next steps',
         type: 'education',
         status: 'locked',
@@ -365,46 +365,14 @@ export const NUTRITION_FOUNDATIONS: NutritionFoundation[] = [
   },
 ];
 
-// Nutrition Tools - Integrated into the nutrition journey
-export const NUTRITION_TOOLS: NutritionTool[] = [
+// Diet Tools - Available from Tools screen
+export const DIET_TOOLS: NutritionTool[] = [
   {
     id: 'diet-dashboard',
     title: 'Diet Dashboard',
     icon: '📊',
-    description: 'Plan meals, shop smart & save money',
+    description: 'Complete diet management & recipes',
     screen: 'DietDashboardScreen',
-    color: colors.nutrition,
-  },
-  {
-    id: 'meal-logger',
-    title: 'Meal Logger',
-    icon: '🍽️',
-    description: 'Log meals with calories & macros',
-    screen: 'MealLoggerScreen',
-    color: colors.nutrition,
-  },
-  {
-    id: 'calorie-counter',
-    title: 'Calorie Calculator',
-    icon: '🔥',
-    description: 'Calculate BMR, TDEE & set goals',
-    screen: 'CalorieCalculatorScreen',
-    color: '#FF9800',
-  },
-  {
-    id: 'water-tracker',
-    title: 'Water Tracker',
-    icon: '💧',
-    description: 'Track daily hydration (2L goal)',
-    screen: 'WaterTrackerScreen',
-    color: '#1CB0F6',
-  },
-  {
-    id: 'recipe-finder',
-    title: 'Recipe Finder',
-    icon: '🥘',
-    description: 'Find recipes by ingredients you have',
-    screen: 'RecipeFinder',
     color: colors.diet,
   },
 ];
