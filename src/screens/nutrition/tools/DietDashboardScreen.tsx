@@ -72,9 +72,10 @@ interface ShoppingListItem {
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
 
-// Spoonacular API configuration
+// API configuration - Priority: Firebase → TheMealDB → Spoonacular
 const SPOONACULAR_API_KEY = '8b6cd47792ff4057ad699f9b0523d9df';
 const SPOONACULAR_BASE_URL = 'https://api.spoonacular.com';
+const THEMEALDB_BASE_URL = 'https://www.themealdb.com/api/json/v1/1';
 
 // Filter configurations (same as admin panel)
 const DIET_FILTERS = [
@@ -171,6 +172,133 @@ export const DietDashboardScreen = ({ navigation }: any) => {
     setSelectedCuisine('');
   };
 
+  // Helper: Transform TheMealDB meal to Recipe format
+  const transformMealDBToRecipe = (meal: any): Recipe => {
+    // Extract ingredients from TheMealDB format (strIngredient1-20, strMeasure1-20)
+    const ingredients = [];
+    for (let i = 1; i <= 20; i++) {
+      const ingredient = meal[`strIngredient${i}`];
+      const measure = meal[`strMeasure${i}`];
+      if (ingredient && ingredient.trim()) {
+        ingredients.push({
+          id: i,
+          name: ingredient,
+          amount: 0,
+          unit: measure || '',
+          original: `${measure || ''} ${ingredient}`.trim(),
+        });
+      }
+    }
+
+    // Parse instructions into steps
+    const instructions = meal.strInstructions || '';
+    const steps = instructions
+      .split(/\r?\n/)
+      .filter((line: string) => line.trim().length > 0)
+      .map((step: string, index: number) => ({
+        number: index + 1,
+        step: step.trim(),
+      }));
+
+    return {
+      id: parseInt(meal.idMeal),
+      title: meal.strMeal,
+      image: meal.strMealThumb,
+      readyInMinutes: 30, // TheMealDB doesn't provide this, using default
+      servings: 4, // TheMealDB doesn't provide this, using default
+      pricePerServing: 300, // Estimated default ($3.00)
+      cuisines: meal.strArea ? [meal.strArea] : [],
+      diets: meal.strCategory ? [meal.strCategory] : [],
+      summary: `${meal.strMeal} is a ${meal.strCategory || ''} ${meal.strArea || ''} dish.`,
+      calories: 0, // TheMealDB doesn't provide nutrition
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+      extendedIngredients: ingredients,
+      instructions: instructions,
+      analyzedInstructions: steps.length > 0 ? [{ steps }] : [],
+    };
+  };
+
+  // Search Firebase database for recipes
+  const searchFirebaseRecipes = async (searchTerm: string): Promise<Recipe[]> => {
+    try {
+      const recipesRef = collection(db, 'recipes');
+      const querySnapshot = await getDocs(recipesRef);
+
+      const recipes: Recipe[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        const title = data.title?.toLowerCase() || '';
+        if (title.includes(searchTerm.toLowerCase())) {
+          recipes.push({
+            id: data.spoonacularId || parseInt(doc.id),
+            title: data.title,
+            image: data.image,
+            readyInMinutes: data.readyInMinutes || 0,
+            servings: data.servings || 0,
+            pricePerServing: data.pricePerServing || 0,
+            cuisines: data.cuisines || [],
+            diets: data.diets || [],
+            summary: data.summary || '',
+            calories: data.calories || 0,
+            protein: data.protein || 0,
+            carbs: data.carbs || 0,
+            fat: data.fat || 0,
+            extendedIngredients: data.extendedIngredients || [],
+            instructions: data.instructions || '',
+            analyzedInstructions: data.analyzedInstructions || [],
+          });
+        }
+      });
+
+      return recipes;
+    } catch (error) {
+      console.error('Error searching Firebase:', error);
+      return [];
+    }
+  };
+
+  // Search TheMealDB by name
+  const searchTheMealDB = async (searchTerm: string): Promise<Recipe[]> => {
+    try {
+      const response = await fetch(`${THEMEALDB_BASE_URL}/search.php?s=${encodeURIComponent(searchTerm)}`);
+      const data = await response.json();
+
+      if (data.meals && data.meals.length > 0) {
+        return data.meals.map(transformMealDBToRecipe);
+      }
+      return [];
+    } catch (error) {
+      console.error('Error searching TheMealDB:', error);
+      return [];
+    }
+  };
+
+  // Search TheMealDB by ingredient
+  const searchTheMealDBByIngredient = async (ingredient: string): Promise<Recipe[]> => {
+    try {
+      const response = await fetch(`${THEMEALDB_BASE_URL}/filter.php?i=${encodeURIComponent(ingredient)}`);
+      const data = await response.json();
+
+      if (data.meals && data.meals.length > 0) {
+        // Note: filter endpoint returns limited data, need to fetch full details
+        const detailedMeals = await Promise.all(
+          data.meals.slice(0, 10).map(async (meal: any) => {
+            const detailResponse = await fetch(`${THEMEALDB_BASE_URL}/lookup.php?i=${meal.idMeal}`);
+            const detailData = await detailResponse.json();
+            return detailData.meals?.[0] ? transformMealDBToRecipe(detailData.meals[0]) : null;
+          })
+        );
+        return detailedMeals.filter((meal): meal is Recipe => meal !== null);
+      }
+      return [];
+    } catch (error) {
+      console.error('Error searching TheMealDB by ingredient:', error);
+      return [];
+    }
+  };
+
   // Toggle ingredient selection
   const toggleIngredient = (ingredientId: string) => {
     if (selectedIngredients.includes(ingredientId)) {
@@ -180,7 +308,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
     }
   };
 
-  // Search by ingredients
+  // Search by ingredients - Priority: Firebase → TheMealDB → Spoonacular
   const searchByIngredients = async () => {
     if (selectedIngredients.length === 0) {
       Alert.alert('No Ingredients', 'Please select at least one ingredient');
@@ -191,40 +319,68 @@ export const DietDashboardScreen = ({ navigation }: any) => {
     try {
       const ingredientNames = selectedIngredients
         .map((id) => COMMON_INGREDIENTS.find((i) => i.id === id)?.name)
-        .filter(Boolean)
-        .join(',');
+        .filter(Boolean);
 
-      let url = `${SPOONACULAR_BASE_URL}/recipes/findByIngredients?apiKey=${SPOONACULAR_API_KEY}&ingredients=${encodeURIComponent(
-        ingredientNames
-      )}&number=20&ranking=1&ignorePantry=true`;
+      let allRecipes: Recipe[] = [];
 
-      // Add diet filters if selected
-      if (selectedDietFilters.length > 0) {
-        url += `&diet=${selectedDietFilters.join(',')}`;
+      // Priority 1: Search Firebase database first
+      console.log('🔍 Searching Firebase database...');
+      for (const ingredient of ingredientNames) {
+        const firebaseRecipes = await searchFirebaseRecipes(ingredient);
+        allRecipes = [...allRecipes, ...firebaseRecipes];
       }
 
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch recipes');
+      // Priority 2: If not enough results, try TheMealDB (FREE API)
+      if (allRecipes.length < 5) {
+        console.log('🔍 Searching TheMealDB (FREE)...');
+        for (const ingredient of ingredientNames.slice(0, 3)) {
+          const mealDBRecipes = await searchTheMealDBByIngredient(ingredient);
+          allRecipes = [...allRecipes, ...mealDBRecipes];
+          if (allRecipes.length >= 15) break;
+        }
       }
 
-      const data = await response.json();
+      // Priority 3: If still not enough, fallback to Spoonacular (PAID - use sparingly)
+      if (allRecipes.length < 5) {
+        console.log('⚠️ Using Spoonacular API (PAID) as fallback...');
+        const ingredientNamesStr = ingredientNames.join(',');
+        let url = `${SPOONACULAR_BASE_URL}/recipes/findByIngredients?apiKey=${SPOONACULAR_API_KEY}&ingredients=${encodeURIComponent(
+          ingredientNamesStr
+        )}&number=20&ranking=1&ignorePantry=true`;
 
-      // Transform the response to match our Recipe interface
-      const recipes = data.map((recipe: any) => ({
-        id: recipe.id,
-        title: recipe.title,
-        image: recipe.image,
-        readyInMinutes: 0, // Not provided by findByIngredients endpoint
-        servings: 0, // Not provided by findByIngredients endpoint
-        pricePerServing: 0, // Not provided by findByIngredients endpoint
-        cuisines: [],
-        diets: [],
-        summary: '',
-      }));
+        if (selectedDietFilters.length > 0) {
+          url += `&diet=${selectedDietFilters.join(',')}`;
+        }
 
-      setSearchResults(recipes);
+        const response = await fetch(url);
+        if (response.ok) {
+          const data = await response.json();
+          const spoonacularRecipes = data.map((recipe: any) => ({
+            id: recipe.id,
+            title: recipe.title,
+            image: recipe.image,
+            readyInMinutes: 0,
+            servings: 0,
+            pricePerServing: 0,
+            cuisines: [],
+            diets: [],
+            summary: '',
+          }));
+          allRecipes = [...allRecipes, ...spoonacularRecipes];
+        }
+      }
+
+      // Remove duplicates based on title
+      const uniqueRecipes = Array.from(
+        new Map(allRecipes.map(recipe => [recipe.title.toLowerCase(), recipe])).values()
+      );
+
+      console.log(`✅ Found ${uniqueRecipes.length} unique recipes`);
+      setSearchResults(uniqueRecipes);
+
+      if (uniqueRecipes.length === 0) {
+        Alert.alert('No Results', 'No recipes found with the selected ingredients. Try different ingredients!');
+      }
     } catch (error) {
       console.error('Error searching recipes by ingredients:', error);
       Alert.alert('Error', 'Failed to search recipes');
@@ -233,60 +389,83 @@ export const DietDashboardScreen = ({ navigation }: any) => {
     }
   };
 
-  // Search recipes via Spoonacular API with filters (text search)
+  // Search recipes by text - Priority: Firebase → TheMealDB → Spoonacular
   const searchRecipes = async (query: string) => {
     if (!query.trim()) return;
 
     setLoading(true);
     try {
-      // Build query parameters
-      let url = `${SPOONACULAR_BASE_URL}/recipes/complexSearch?apiKey=${SPOONACULAR_API_KEY}&query=${encodeURIComponent(
-        query
-      )}&number=20&addRecipeInformation=true&fillIngredients=true&addRecipeNutrition=true`;
+      let allRecipes: Recipe[] = [];
 
-      // Add diet filters
-      if (selectedDietFilters.length > 0) {
-        url += `&diet=${selectedDietFilters.join(',')}`;
+      // Priority 1: Search Firebase database first
+      console.log('🔍 Searching Firebase database...');
+      const firebaseRecipes = await searchFirebaseRecipes(query);
+      allRecipes = [...firebaseRecipes];
+
+      // Priority 2: If not enough results, try TheMealDB (FREE API)
+      if (allRecipes.length < 5) {
+        console.log('🔍 Searching TheMealDB (FREE)...');
+        const mealDBRecipes = await searchTheMealDB(query);
+        allRecipes = [...allRecipes, ...mealDBRecipes];
       }
 
-      // Add type filter
-      if (selectedType) {
-        url += `&type=${encodeURIComponent(selectedType)}`;
+      // Priority 3: If still not enough, fallback to Spoonacular (PAID - use sparingly)
+      if (allRecipes.length < 5) {
+        console.log('⚠️ Using Spoonacular API (PAID) as fallback...');
+        let url = `${SPOONACULAR_BASE_URL}/recipes/complexSearch?apiKey=${SPOONACULAR_API_KEY}&query=${encodeURIComponent(
+          query
+        )}&number=20&addRecipeInformation=true&fillIngredients=true&addRecipeNutrition=true`;
+
+        // Add diet filters
+        if (selectedDietFilters.length > 0) {
+          url += `&diet=${selectedDietFilters.join(',')}`;
+        }
+
+        // Add type filter
+        if (selectedType) {
+          url += `&type=${encodeURIComponent(selectedType)}`;
+        }
+
+        // Add cuisine filter
+        if (selectedCuisine) {
+          url += `&cuisine=${encodeURIComponent(selectedCuisine)}`;
+        }
+
+        const response = await fetch(url);
+        if (response.ok) {
+          const data = await response.json();
+          const recipesWithNutrition = (data.results || []).map((recipe: any) => {
+            const calories = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0;
+            const protein = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0;
+            const carbs = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0;
+            const fat = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0;
+
+            return {
+              ...recipe,
+              calories: Math.round(calories),
+              protein: Math.round(protein),
+              carbs: Math.round(carbs),
+              fat: Math.round(fat),
+            };
+          });
+          allRecipes = [...allRecipes, ...recipesWithNutrition];
+        }
       }
 
-      // Add cuisine filter
-      if (selectedCuisine) {
-        url += `&cuisine=${encodeURIComponent(selectedCuisine)}`;
+      // Remove duplicates based on title
+      const uniqueRecipes = Array.from(
+        new Map(allRecipes.map(recipe => [recipe.title.toLowerCase(), recipe])).values()
+      );
+
+      console.log(`✅ Found ${uniqueRecipes.length} unique recipes`);
+      setSearchResults(uniqueRecipes);
+
+      if (uniqueRecipes.length === 0) {
+        Alert.alert('No Results', `No recipes found for "${query}". Try a different search term!`);
       }
-
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch recipes');
-      }
-
-      const data = await response.json();
-
-      // Extract nutrition data from response
-      const recipesWithNutrition = (data.results || []).map((recipe: any) => {
-        const calories = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0;
-        const protein = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0;
-        const carbs = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0;
-        const fat = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0;
-
-        return {
-          ...recipe,
-          calories: Math.round(calories),
-          protein: Math.round(protein),
-          carbs: Math.round(carbs),
-          fat: Math.round(fat),
-        };
-      });
-
-      setSearchResults(recipesWithNutrition);
     } catch (error) {
       console.error('Error searching recipes:', error);
-      Alert.alert('Error', 'Failed to search recipes. Please check your API key.');
+      Alert.alert('Error', 'Failed to search recipes');
     } finally {
       setLoading(false);
     }
@@ -334,42 +513,93 @@ export const DietDashboardScreen = ({ navigation }: any) => {
     }
   };
 
-  // Get recipe details
+  // Get recipe details - Priority: Firebase → TheMealDB → Spoonacular
   const getRecipeDetails = async (recipeId: number) => {
     setLoading(true);
     try {
-      const response = await fetch(
-        `${SPOONACULAR_BASE_URL}/recipes/${recipeId}/information?apiKey=${SPOONACULAR_API_KEY}&includeNutrition=true`
-      );
+      let recipe: any = null;
 
-      if (!response.ok) {
-        throw new Error('Failed to fetch recipe details');
+      // Priority 1: Check Firebase database first
+      console.log('🔍 Checking Firebase for recipe details...');
+      const recipesRef = collection(db, 'recipes');
+      const q = query(recipesRef, where('spoonacularId', '==', recipeId));
+      const querySnapshot = await getDocs(q);
+
+      if (!querySnapshot.empty) {
+        const data = querySnapshot.docs[0].data();
+        recipe = {
+          id: data.spoonacularId || recipeId,
+          title: data.title,
+          image: data.image,
+          readyInMinutes: data.readyInMinutes || 0,
+          servings: data.servings || 0,
+          pricePerServing: data.pricePerServing || 0,
+          cuisines: data.cuisines || [],
+          diets: data.diets || [],
+          summary: data.summary || '',
+          calories: data.calories || 0,
+          protein: data.protein || 0,
+          carbs: data.carbs || 0,
+          fat: data.fat || 0,
+          extendedIngredients: data.extendedIngredients || [],
+          instructions: data.instructions || '',
+          analyzedInstructions: data.analyzedInstructions || [],
+        };
+        console.log('✅ Found in Firebase database');
       }
 
-      const recipe = await response.json();
+      // Priority 2: Try TheMealDB if not in Firebase
+      if (!recipe) {
+        console.log('🔍 Trying TheMealDB (FREE)...');
+        try {
+          const response = await fetch(`${THEMEALDB_BASE_URL}/lookup.php?i=${recipeId}`);
+          const data = await response.json();
+          if (data.meals && data.meals.length > 0) {
+            recipe = transformMealDBToRecipe(data.meals[0]);
+            console.log('✅ Found in TheMealDB');
+          }
+        } catch (error) {
+          console.log('TheMealDB lookup failed, trying Spoonacular...');
+        }
+      }
 
-      // Extract nutrition data
-      const calories = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0;
-      const protein = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0;
-      const carbs = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0;
-      const fat = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0;
+      // Priority 3: Fallback to Spoonacular (PAID)
+      if (!recipe) {
+        console.log('⚠️ Using Spoonacular API (PAID) as fallback...');
+        const response = await fetch(
+          `${SPOONACULAR_BASE_URL}/recipes/${recipeId}/information?apiKey=${SPOONACULAR_API_KEY}&includeNutrition=true`
+        );
 
-      const recipeWithNutrition = {
-        ...recipe,
-        calories: Math.round(calories),
-        protein: Math.round(protein),
-        carbs: Math.round(carbs),
-        fat: Math.round(fat),
-      };
+        if (!response.ok) {
+          throw new Error('Failed to fetch recipe details from all sources');
+        }
 
-      setSelectedRecipe(recipeWithNutrition);
+        const spoonacularRecipe = await response.json();
+
+        // Extract nutrition data
+        const calories = spoonacularRecipe.nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0;
+        const protein = spoonacularRecipe.nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0;
+        const carbs = spoonacularRecipe.nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0;
+        const fat = spoonacularRecipe.nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0;
+
+        recipe = {
+          ...spoonacularRecipe,
+          calories: Math.round(calories),
+          protein: Math.round(protein),
+          carbs: Math.round(carbs),
+          fat: Math.round(fat),
+        };
+        console.log('✅ Found in Spoonacular');
+      }
+
+      setSelectedRecipe(recipe);
       setShowRecipeModal(true);
 
       // Auto-save recipe to database (background operation)
-      saveRecipeToDatabase(recipeWithNutrition);
+      saveRecipeToDatabase(recipe);
     } catch (error) {
       console.error('Error fetching recipe details:', error);
-      Alert.alert('Error', 'Failed to load recipe details');
+      Alert.alert('Error', 'Failed to load recipe details from all sources');
     } finally {
       setLoading(false);
     }
@@ -446,7 +676,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
     generateShoppingList(updatedPlan);
   };
 
-  // Generate automatic meal plan
+  // Generate automatic meal plan - Priority: Firebase → TheMealDB → Spoonacular
   const generateAutomaticMealPlan = async () => {
     if (selectedIngredients.length === 0 && preferredCuisines.length === 0) {
       Alert.alert(
@@ -470,55 +700,128 @@ export const DietDashboardScreen = ({ navigation }: any) => {
         // Generate specified number of meals per day
         for (let mealIndex = 0; mealIndex < mealsPerDay; mealIndex++) {
           const mealType = mealTypes[mealIndex];
+          let recipe: any = null;
 
-          // Build search query
-          let url = `${SPOONACULAR_BASE_URL}/recipes/complexSearch?apiKey=${SPOONACULAR_API_KEY}&number=1&addRecipeInformation=true&addRecipeNutrition=true`;
-
-          // Add ingredients if selected
-          if (selectedIngredients.length > 0) {
+          // Priority 1: Try Firebase first (search by ingredients)
+          if (selectedIngredients.length > 0 && newMealPlan.length < 5) {
             const ingredientNames = selectedIngredients
               .map((id) => COMMON_INGREDIENTS.find((i) => i.id === id)?.name)
-              .filter(Boolean)
-              .join(',');
-            url += `&includeIngredients=${encodeURIComponent(ingredientNames)}`;
+              .filter(Boolean);
+
+            for (const ingredient of ingredientNames.slice(0, 2)) {
+              const firebaseRecipes = await searchFirebaseRecipes(ingredient);
+              if (firebaseRecipes.length > 0) {
+                recipe = firebaseRecipes[Math.floor(Math.random() * firebaseRecipes.length)];
+                console.log('✅ Using Firebase recipe for meal plan');
+                break;
+              }
+            }
           }
 
-          // Add meal type
-          url += `&type=${mealType}`;
+          // Priority 2: Try TheMealDB (FREE API)
+          if (!recipe) {
+            console.log('🔍 Trying TheMealDB (FREE) for meal plan...');
+            try {
+              // Use random meal or filter by area (cuisine)
+              let mealDBUrl = `${THEMEALDB_BASE_URL}/random.php`;
 
-          // Add cuisine if selected
-          if (preferredCuisines.length > 0) {
-            const cuisine = preferredCuisines[Math.floor(Math.random() * preferredCuisines.length)];
-            url += `&cuisine=${encodeURIComponent(cuisine)}`;
+              // If cuisine selected, try to get meal by area
+              if (preferredCuisines.length > 0) {
+                const cuisine = preferredCuisines[Math.floor(Math.random() * preferredCuisines.length)];
+                // Map our cuisine names to TheMealDB areas
+                const areaMap: { [key: string]: string } = {
+                  'italian': 'Italian',
+                  'mexican': 'Mexican',
+                  'chinese': 'Chinese',
+                  'japanese': 'Japanese',
+                  'thai': 'Thai',
+                  'indian': 'Indian',
+                  'american': 'American',
+                  'french': 'French',
+                  'greek': 'Greek',
+                };
+                const area = areaMap[cuisine];
+                if (area) {
+                  mealDBUrl = `${THEMEALDB_BASE_URL}/filter.php?a=${area}`;
+                }
+              }
+
+              const response = await fetch(mealDBUrl);
+              const data = await response.json();
+
+              if (data.meals && data.meals.length > 0) {
+                // If we got filtered results, pick random and fetch details
+                const meal = data.meals[Math.floor(Math.random() * Math.min(data.meals.length, 10))];
+                const detailResponse = await fetch(`${THEMEALDB_BASE_URL}/lookup.php?i=${meal.idMeal}`);
+                const detailData = await detailResponse.json();
+
+                if (detailData.meals && detailData.meals[0]) {
+                  recipe = transformMealDBToRecipe(detailData.meals[0]);
+                  console.log('✅ Using TheMealDB recipe for meal plan');
+                }
+              }
+            } catch (error) {
+              console.log('TheMealDB failed, trying Spoonacular...');
+            }
           }
 
-          // Add diet filters if any
-          if (selectedDietFilters.length > 0) {
-            url += `&diet=${selectedDietFilters.join(',')}`;
-          }
+          // Priority 3: Fallback to Spoonacular (PAID - use sparingly)
+          if (!recipe) {
+            console.log('⚠️ Using Spoonacular API (PAID) for meal plan...');
+            let url = `${SPOONACULAR_BASE_URL}/recipes/complexSearch?apiKey=${SPOONACULAR_API_KEY}&number=1&addRecipeInformation=true&addRecipeNutrition=true`;
 
-          const response = await fetch(url);
-          const data = await response.json();
+            // Add ingredients if selected
+            if (selectedIngredients.length > 0) {
+              const ingredientNames = selectedIngredients
+                .map((id) => COMMON_INGREDIENTS.find((i) => i.id === id)?.name)
+                .filter(Boolean)
+                .join(',');
+              url += `&includeIngredients=${encodeURIComponent(ingredientNames)}`;
+            }
 
-          if (data.results && data.results.length > 0) {
-            const recipe = data.results[0];
+            // Add meal type
+            url += `&type=${mealType}`;
 
-            // Extract nutrition data
-            const calories = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0;
-            const protein = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0;
-            const carbs = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0;
-            const fat = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0;
+            // Add cuisine if selected
+            if (preferredCuisines.length > 0) {
+              const cuisine = preferredCuisines[Math.floor(Math.random() * preferredCuisines.length)];
+              url += `&cuisine=${encodeURIComponent(cuisine)}`;
+            }
 
-            const meal: MealPlanItem = {
-              id: `${day}-${mealType}-${Date.now()}-${mealIndex}`,
-              recipeId: recipe.id,
-              recipe: {
-                ...recipe,
+            // Add diet filters if any
+            if (selectedDietFilters.length > 0) {
+              url += `&diet=${selectedDietFilters.join(',')}`;
+            }
+
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data.results && data.results.length > 0) {
+              const spoonacularRecipe = data.results[0];
+
+              // Extract nutrition data
+              const calories = spoonacularRecipe.nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0;
+              const protein = spoonacularRecipe.nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0;
+              const carbs = spoonacularRecipe.nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0;
+              const fat = spoonacularRecipe.nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0;
+
+              recipe = {
+                ...spoonacularRecipe,
                 calories: Math.round(calories),
                 protein: Math.round(protein),
                 carbs: Math.round(carbs),
                 fat: Math.round(fat),
-              },
+              };
+              console.log('✅ Using Spoonacular recipe for meal plan');
+            }
+          }
+
+          // Add recipe to meal plan if found
+          if (recipe) {
+            const meal: MealPlanItem = {
+              id: `${day}-${mealType}-${Date.now()}-${mealIndex}`,
+              recipeId: recipe.id,
+              recipe: recipe,
               day,
               mealType,
               portions: 2,
