@@ -22,6 +22,9 @@ import { colors } from '../../theme/colors';
 import { designSystem } from '../../theme/designSystem';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
+import { HealthMetricsCard } from '../../components/health/HealthMetricsCard';
+import { WeeklyHealthQuiz } from '../../components/health/WeeklyHealthQuiz';
+import { LifeScoreCard } from '../../components/dashboard/LifeScoreCard';
 
 interface QuickAction {
   id: string;
@@ -33,7 +36,7 @@ interface QuickAction {
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
-  { id: '1', title: 'Finance', icon: '💰', color: ['#4A90E2', '#5FA3E8'], description: 'Track finances', screen: 'FinancePathNew' },
+  { id: '1', title: 'Finance', icon: '💰', color: ['#4A90E2', '#4A90E2'], description: 'Track finances', screen: 'FinancePathNew' },
   { id: '2', title: 'Mental', icon: '🧠', color: ['#9C27B0', '#BA68C8'], description: 'Mental wellness', screen: 'MentalHealthPath' },
   { id: '3', title: 'Physical', icon: '💪', color: ['#FF6B6B', '#FF8787'], description: 'Physical health', screen: 'PhysicalHealthPath' },
   { id: '4', title: 'Nutrition', icon: '🥗', color: ['#4CAF50', '#66BB6A'], description: 'Nutrition', screen: 'NutritionPath' },
@@ -44,6 +47,8 @@ export const DashboardScreenNew = ({ navigation }: any) => {
   const { progress, loadAppData } = useAppStore();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showHealthQuiz, setShowHealthQuiz] = useState(false);
+  const [healthKey, setHealthKey] = useState(0); // For forcing refresh
 
   useEffect(() => {
     loadData();
@@ -92,7 +97,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <LinearGradient
-        colors={['#4A90E2', '#5FA3E8']}
+        colors={['#4A90E2', '#4A90E2']}
         style={styles.header}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
@@ -114,13 +119,13 @@ export const DashboardScreenNew = ({ navigation }: any) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Welcome Card */}
-        <View style={styles.welcomeCard}>
-          <Text style={styles.welcomeTitle}>🎯 Welcome to LifeQuest!</Text>
-          <Text style={styles.welcomeText}>
-            You're on level {progress.level} with {progress.totalPoints} XP. Keep going!
-          </Text>
-        </View>
+        {/* Life Score Result */}
+        {user?.id && (
+          <LifeScoreCard
+            userId={user.id}
+            onSurveyPress={() => setShowHealthQuiz(true)}
+          />
+        )}
 
         {/* Quick Actions */}
         <View style={styles.section}>
@@ -240,6 +245,17 @@ export const DashboardScreenNew = ({ navigation }: any) => {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Weekly Health Quiz Modal */}
+      <WeeklyHealthQuiz
+        visible={showHealthQuiz}
+        onClose={() => setShowHealthQuiz(false)}
+        onComplete={() => {
+          setHealthKey(prev => prev + 1);
+          onRefresh();
+        }}
+        userId={user?.id || ''}
+      />
     </SafeAreaView>
   );
 };

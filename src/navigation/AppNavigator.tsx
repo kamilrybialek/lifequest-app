@@ -6,7 +6,10 @@ import { TabNavigatorNew } from './TabNavigatorNew';
 
 // Auth screens - these are simple and don't use expo-file-system
 import { LoginScreen } from '../screens/auth/LoginScreen';
-import { OnboardingScreen } from '../screens/auth/OnboardingScreen';
+import { OnboardingScreenNew } from '../screens/OnboardingScreenNew';
+
+// Loading screen
+import { LoadingScreen } from '../screens/LoadingScreen';
 
 // Path screens - web versions
 import { FinancePathNew } from '../screens/finance/FinancePathNew';
@@ -15,6 +18,9 @@ import { PhysicalHealthPath } from '../screens/physical/PhysicalHealthPath';
 import { NutritionPath } from '../screens/nutrition/NutritionPath';
 
 // Lesson screens
+import { FinanceLessonIntro } from '../screens/finance/FinanceLessonIntro';
+import { FinanceLessonIntegratedScreen } from '../screens/finance/FinanceLessonIntegratedScreen';
+import { FinanceLessonContentScreen } from '../screens/finance/FinanceLessonContentScreen';
 import { MentalLessonIntro } from '../screens/mental/MentalLessonIntro';
 import { MentalLessonContent } from '../screens/mental/MentalLessonContent';
 import { PhysicalLessonIntro } from '../screens/physical/PhysicalLessonIntro';
@@ -35,6 +41,7 @@ import { SleepTrackerScreen } from '../screens/physical/tools/SleepTrackerScreen
 import { BodyMeasurementsScreen } from '../screens/physical/tools/BodyMeasurementsScreen';
 
 // Nutrition tool screens
+import { DietDashboardScreen } from '../screens/nutrition/tools/DietDashboardScreen';
 import { MealLoggerScreen } from '../screens/nutrition/tools/MealLoggerScreen';
 import { WaterTrackerScreen } from '../screens/nutrition/tools/WaterTrackerScreen';
 import { CalorieCalculatorScreen } from '../screens/nutrition/tools/CalorieCalculatorScreen';
@@ -48,6 +55,9 @@ import { BudgetManagerScreenEnhanced } from '../screens/finance/BudgetManagerScr
 import { SubscriptionsScreen } from '../screens/finance/SubscriptionsScreen';
 import { SavingsGoalsScreen } from '../screens/finance/SavingsGoalsScreen';
 import { NetWorthCalculatorScreen } from '../screens/finance/NetWorthCalculatorScreen';
+
+// Admin
+import { AdminGuard } from '../screens/admin/AdminGuard';
 
 import { useAuthStore } from '../store/authStore';
 
@@ -77,19 +87,32 @@ export const AppNavigator = () => {
   }
 
   if (isLoading) {
-    return null;
+    return <LoadingScreen />;
   }
 
   // TEMPORARY DEBUG: Log before returning JSX
   console.log(`📱 About to return JSX, branch: ${!isAuthenticated ? 'Login' : !user?.onboarded ? 'Onboarding' : 'Main'}`);
 
+  // Web linking configuration
+  const linking = {
+    prefixes: ['http://localhost:8081', 'https://lifequest-app.web.app'],
+    config: {
+      screens: {
+        Login: 'login',
+        Onboarding: 'onboarding',
+        Main: '',
+        Admin: 'admin',
+      },
+    },
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
           <Stack.Screen name="Login" component={LoginScreen} />
         ) : !user?.onboarded ? (
-          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+          <Stack.Screen name="Onboarding" component={OnboardingScreenNew} />
         ) : (
           <>
             <Stack.Screen name="Main" component={TabNavigatorNew} />
@@ -102,6 +125,9 @@ export const AppNavigator = () => {
             <Stack.Screen name="NutritionPath" component={NutritionPath} />
 
             {/* Lesson screens */}
+            <Stack.Screen name="FinanceLessonIntro" component={FinanceLessonIntro} />
+            <Stack.Screen name="FinanceLessonIntegrated" component={FinanceLessonIntegratedScreen} />
+            <Stack.Screen name="FinanceLessonContent" component={FinanceLessonContentScreen} />
             <Stack.Screen name="MentalLessonIntro" component={MentalLessonIntro} />
             <Stack.Screen name="MentalLessonContent" component={MentalLessonContent} />
             <Stack.Screen name="PhysicalLessonIntro" component={PhysicalLessonIntro} />
@@ -122,6 +148,7 @@ export const AppNavigator = () => {
             <Stack.Screen name="BodyMeasurementsScreen" component={BodyMeasurementsScreen} />
 
             {/* Nutrition tool screens */}
+            <Stack.Screen name="DietDashboardScreen" component={DietDashboardScreen} />
             <Stack.Screen name="MealLoggerScreen" component={MealLoggerScreen} />
             <Stack.Screen name="WaterTrackerScreen" component={WaterTrackerScreen} />
             <Stack.Screen name="CalorieCalculatorScreen" component={CalorieCalculatorScreen} />
@@ -135,6 +162,9 @@ export const AppNavigator = () => {
             <Stack.Screen name="SubscriptionsScreen" component={SubscriptionsScreen} />
             <Stack.Screen name="SavingsGoalsScreen" component={SavingsGoalsScreen} />
             <Stack.Screen name="NetWorthCalculatorScreen" component={NetWorthCalculatorScreen} />
+
+            {/* Admin Panel */}
+            <Stack.Screen name="Admin" component={AdminGuard} />
           </>
         )}
       </Stack.Navigator>

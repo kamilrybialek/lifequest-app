@@ -8,7 +8,7 @@
 export const designSystem = {
   // COLORS - Vibrant gradients for each pillar
   gradients: {
-    finance: ['#4A90E2', '#5FA3E8'] as const,
+    finance: ['#4A90E2', '#4A90E2'] as const,
     mental: ['#9C27B0', '#BA68C8'] as const,
     physical: ['#FF6B6B', '#FF8787'] as const,
     nutrition: ['#4CAF50', '#66BB6A'] as const,

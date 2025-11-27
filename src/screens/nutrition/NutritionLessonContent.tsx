@@ -155,7 +155,7 @@ export const NutritionLessonContent = ({ route, navigation }: any) => {
       <View style={styles.container}>
         <ScrollView contentContainerStyle={styles.introContainer}>
           <View style={styles.introHeader}>
-            <TouchableOpacity style={styles.closeButton} onPress={() => navigation.goBack()}>
+            <TouchableOpacity style={styles.closeButton} onPress={() => navigation.navigate('MainTabs', { screen: 'Nutrition' })}>
               <Ionicons name="close" size={28} color={colors.text} />
             </TouchableOpacity>
           </View>
@@ -206,7 +206,7 @@ export const NutritionLessonContent = ({ route, navigation }: any) => {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity onPress={() => navigation.navigate('MainTabs', { screen: 'Nutrition' })}>
             <Ionicons name="close" size={28} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.progressBarContainer}>
@@ -257,7 +257,7 @@ export const NutritionLessonContent = ({ route, navigation }: any) => {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()}>
+          <TouchableOpacity onPress={() => navigation.navigate('MainTabs', { screen: 'Nutrition' })}>
             <Ionicons name="close" size={28} color={colors.text} />
           </TouchableOpacity>
           <View style={styles.progressBarContainer}>

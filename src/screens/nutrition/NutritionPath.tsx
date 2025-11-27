@@ -12,6 +12,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { ContinueJourneyCard } from '../../components/paths/ContinueJourneyCard';
 import { StepHeader } from '../../components/paths/StepHeader';
 import { LessonBubble } from '../../components/paths/LessonBubble';
+import { PathScreenTabBar } from '../../components/navigation/PathScreenTabBar';
 
 const { width } = Dimensions.get('window');
 
@@ -249,6 +250,9 @@ export const NutritionPath = ({ navigation }: any) => {
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
+
+      {/* Bottom Tab Bar */}
+      <PathScreenTabBar activeTab="Journey" />
     </View>
   );
 };
@@ -260,14 +264,16 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
+    marginBottom: 0,
   },
   content: {
-    paddingBottom: 40,
+    paddingBottom: 100,
   },
   header: {
-    padding: 20,
-    backgroundColor: colors.background,
     alignItems: 'center',
+    padding: 20,
+    paddingTop: 60,
+    backgroundColor: colors.background,
   },
   headerTitle: {
     ...typography.heading,

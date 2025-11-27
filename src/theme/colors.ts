@@ -9,7 +9,7 @@ export const colors = {
   finance: '#FF9500', // Orange
   mental: '#1CB0F6', // Blue
   physical: '#FF4B4B', // Red
-  nutrition: '#CE82FF', // Purple
+  diet: '#CE82FF', // Purple
 
   // UI colors
   background: '#FFFFFF',
@@ -47,5 +47,5 @@ export const gradients = {
   finance: ['#FF9500', '#FF6E00'],
   mental: ['#1CB0F6', '#0E8AC5'],
   physical: ['#FF4B4B', '#E63946'],
-  nutrition: ['#CE82FF', '#A855F7'],
+  diet: ['#CE82FF', '#A855F7'],
 };
