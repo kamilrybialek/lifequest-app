@@ -39,7 +39,7 @@ const QUICK_ACTIONS: QuickAction[] = [
   { id: '1', title: 'Finance', icon: '💰', color: ['#4A90E2', '#4A90E2'], description: 'Track finances', screen: 'FinancePathNew' },
   { id: '2', title: 'Mental', icon: '🧠', color: ['#9C27B0', '#BA68C8'], description: 'Mental wellness', screen: 'MentalHealthPath' },
   { id: '3', title: 'Physical', icon: '💪', color: ['#FF6B6B', '#FF8787'], description: 'Physical health', screen: 'PhysicalHealthPath' },
-  { id: '4', title: 'Nutrition', icon: '🥗', color: ['#4CAF50', '#66BB6A'], description: 'Nutrition', screen: 'NutritionPath' },
+  { id: '4', title: 'Diet', icon: '🥗', color: ['#4CAF50', '#66BB6A'], description: 'Diet', screen: 'NutritionPath' },
 ];
 
 export const DashboardScreenNew = ({ navigation }: any) => {
@@ -184,7 +184,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
                 finance: { icon: '💰', color: '#4A90E2', name: 'Finance' },
                 mental: { icon: '🧠', color: '#9C27B0', name: 'Mental' },
                 physical: { icon: '💪', color: '#FF6B6B', name: 'Physical' },
-                nutrition: { icon: '🥗', color: '#4CAF50', name: 'Nutrition' },
+                nutrition: { icon: '🥗', color: '#4CAF50', name: 'Diet' },
               };
               const data = pillarData[streak.pillar] || { icon: '📊', color: '#666', name: streak.pillar };
 
