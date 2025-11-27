@@ -30,6 +30,12 @@ export const LifeScoreCard: React.FC<LifeScoreCardProps> = ({ userId, onSurveyPr
   const [pillarScores, setPillarScores] = useState<PillarScore[]>([]);
   const [showDetails, setShowDetails] = useState(false);
 
+  // Real metrics from database
+  const [bmi, setBmi] = useState<number>(0);
+  const [netWorth, setNetWorth] = useState<number>(0);
+  const [currentStreak, setCurrentStreak] = useState<number>(0);
+  const [totalXP, setTotalXP] = useState<number>(0);
+
   useEffect(() => {
     loadLifeScore();
   }, [userId]);
@@ -55,8 +61,50 @@ export const LifeScoreCard: React.FC<LifeScoreCardProps> = ({ userId, onSurveyPr
         ...healthMetrics,
       };
 
+      // Load financial data for Net Worth calculation
+      const financialProfile = await getFinancialProfile(userId);
+      const expenses = await getExpenses(userId);
+      const income = await getIncome(userId);
+
       // Load recent quizzes for trend
       const recentQuizzes = await getRecentQuizzes(userId, 2);
+
+      // Calculate real metrics
+      // 1. BMI (Body Mass Index)
+      const height = combinedData.height || 170;
+      const weight = combinedData.weight || 70;
+      const heightM = height / 100;
+      const calculatedBMI = weight / (heightM * heightM);
+      setBmi(Math.round(calculatedBMI * 10) / 10);
+
+      // 2. Net Worth (Assets - Debts)
+      const monthlyIncome = financialProfile?.monthlyIncome || combinedData.monthlyIncome || 0;
+      const monthlyExpenses = financialProfile?.monthlyExpenses || combinedData.monthlyExpenses || 0;
+      const estimatedDebt = financialProfile?.estimatedDebt || combinedData.estimatedDebt || 0;
+
+      // Simple net worth calculation: (Monthly savings * 12) - Debt
+      const monthlySavings = monthlyIncome - monthlyExpenses;
+      const annualSavings = monthlySavings * 12;
+      const calculatedNetWorth = annualSavings - estimatedDebt;
+      setNetWorth(calculatedNetWorth);
+
+      // 3. Current Streak (from AsyncStorage or health metrics)
+      const streakData = await AsyncStorage.getItem('userStreak');
+      if (streakData) {
+        const streak = JSON.parse(streakData);
+        setCurrentStreak(streak.current || 0);
+      } else {
+        setCurrentStreak(0);
+      }
+
+      // 4. Total XP (from AsyncStorage or progress data)
+      const xpData = await AsyncStorage.getItem('userXP');
+      if (xpData) {
+        const xp = JSON.parse(xpData);
+        setTotalXP(xp.total || 0);
+      } else {
+        setTotalXP(0);
+      }
 
       // Calculate pillar scores using onboarding logic
       const scores: PillarScore[] = [
@@ -317,17 +365,71 @@ export const LifeScoreCard: React.FC<LifeScoreCardProps> = ({ userId, onSurveyPr
 
       {/* Pillar Scores - Collapsible */}
       {showDetails && (
-        <View style={styles.pillarsGrid}>
-          {pillarScores.map((pillar) => (
-            <View key={pillar.name} style={styles.pillarCard}>
-              <Text style={styles.pillarIcon}>{pillar.icon}</Text>
-              <Text style={styles.pillarName}>{pillar.name}</Text>
-              <Text style={[styles.pillarScore, { color: pillar.color }]}>
-                {pillar.score}
-              </Text>
+        <>
+          <View style={styles.pillarsGrid}>
+            {pillarScores.map((pillar) => (
+              <View key={pillar.name} style={styles.pillarCard}>
+                <Text style={styles.pillarIcon}>{pillar.icon}</Text>
+                <Text style={styles.pillarName}>{pillar.name}</Text>
+                <Text style={[styles.pillarScore, { color: pillar.color }]}>
+                  {pillar.score}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Key Metrics Section */}
+          <View style={styles.metricsSection}>
+            <Text style={styles.metricsTitle}>📊 Key Metrics</Text>
+            <View style={styles.metricsGrid}>
+              {/* BMI */}
+              <View style={styles.metricCard}>
+                <View style={styles.metricHeader}>
+                  <Ionicons name="fitness" size={20} color="#FF6B6B" />
+                  <Text style={styles.metricLabel}>BMI</Text>
+                </View>
+                <Text style={styles.metricValue}>{bmi.toFixed(1)}</Text>
+                <Text style={styles.metricSubtext}>
+                  {bmi < 18.5 ? 'Underweight' : bmi < 25 ? 'Normal' : bmi < 30 ? 'Overweight' : 'Obese'}
+                </Text>
+              </View>
+
+              {/* Net Worth */}
+              <View style={styles.metricCard}>
+                <View style={styles.metricHeader}>
+                  <Ionicons name="wallet" size={20} color="#4CAF50" />
+                  <Text style={styles.metricLabel}>Net Worth</Text>
+                </View>
+                <Text style={[styles.metricValue, { color: netWorth >= 0 ? '#4CAF50' : '#F44336' }]}>
+                  ${Math.abs(netWorth).toLocaleString()}
+                </Text>
+                <Text style={styles.metricSubtext}>
+                  {netWorth >= 0 ? 'Positive' : 'Negative'}
+                </Text>
+              </View>
+
+              {/* Current Streak */}
+              <View style={styles.metricCard}>
+                <View style={styles.metricHeader}>
+                  <Ionicons name="flame" size={20} color="#FF9800" />
+                  <Text style={styles.metricLabel}>Streak</Text>
+                </View>
+                <Text style={styles.metricValue}>{currentStreak}</Text>
+                <Text style={styles.metricSubtext}>days</Text>
+              </View>
+
+              {/* Total XP */}
+              <View style={styles.metricCard}>
+                <View style={styles.metricHeader}>
+                  <Ionicons name="star" size={20} color="#9C27B0" />
+                  <Text style={styles.metricLabel}>Total XP</Text>
+                </View>
+                <Text style={styles.metricValue}>{totalXP.toLocaleString()}</Text>
+                <Text style={styles.metricSubtext}>points</Text>
+              </View>
             </View>
-          ))}
-        </View>
+          </View>
+        </>
       )}
 
       {/* Survey Button */}
@@ -438,5 +540,55 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  metricsSection: {
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  metricsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 12,
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  metricCard: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  metricHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 8,
+  },
+  metricLabel: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+  },
+  metricValue: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  metricSubtext: {
+    fontSize: 11,
+    color: '#999',
   },
 });
