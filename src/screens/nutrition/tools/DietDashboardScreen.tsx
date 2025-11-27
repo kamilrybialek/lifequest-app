@@ -55,6 +55,43 @@ const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
 const SPOONACULAR_API_KEY = '8b6cd47792ff4057ad699f9b0523d9df';
 const SPOONACULAR_BASE_URL = 'https://api.spoonacular.com';
 
+// Filter configurations (same as admin panel)
+const DIET_FILTERS = [
+  { id: 'vegetarian', label: 'Vegetarian', icon: '🥬', color: colors.success },
+  { id: 'vegan', label: 'Vegan', icon: '🌱', color: colors.primary },
+  { id: 'glutenFree', label: 'Gluten Free', icon: '🌾', color: colors.warning },
+  { id: 'ketogenic', label: 'Keto', icon: '🥑', color: colors.physical },
+  { id: 'paleo', label: 'Paleo', icon: '🍖', color: colors.finance },
+];
+
+const TYPE_FILTERS = [
+  { id: 'main course', label: 'Main Course', icon: '🍽️' },
+  { id: 'breakfast', label: 'Breakfast', icon: '🥞' },
+  { id: 'dessert', label: 'Dessert', icon: '🍰' },
+  { id: 'soup', label: 'Soup', icon: '🍲' },
+  { id: 'salad', label: 'Salad', icon: '🥗' },
+  { id: 'snack', label: 'Snack', icon: '🍿' },
+  { id: 'side dish', label: 'Side Dish', icon: '🥙' },
+];
+
+const CUISINE_FILTERS = [
+  { id: 'italian', label: 'Italian', icon: '🇮🇹' },
+  { id: 'mexican', label: 'Mexican', icon: '🇲🇽' },
+  { id: 'chinese', label: 'Chinese', icon: '🥢' },
+  { id: 'japanese', label: 'Japanese', icon: '🍱' },
+  { id: 'thai', label: 'Thai', icon: '🌶️' },
+  { id: 'indian', label: 'Indian', icon: '🇮🇳' },
+  { id: 'american', label: 'American', icon: '🇺🇸' },
+  { id: 'french', label: 'French', icon: '🇫🇷' },
+  { id: 'greek', label: 'Greek', icon: '🇬🇷' },
+  { id: 'spanish', label: 'Spanish', icon: '🇪🇸' },
+  { id: 'korean', label: 'Korean', icon: '🇰🇷' },
+  { id: 'mediterranean', label: 'Mediterranean', icon: '🫒' },
+  { id: 'middle eastern', label: 'Middle Eastern', icon: '🧆' },
+  { id: 'vietnamese', label: 'Vietnamese', icon: '🍜' },
+  { id: 'caribbean', label: 'Caribbean', icon: '🏝️' },
+];
+
 export const DietDashboardScreen = ({ navigation }: any) => {
   const { user } = useAuthStore();
 
@@ -72,6 +109,12 @@ export const DietDashboardScreen = ({ navigation }: any) => {
   const [showRecipeModal, setShowRecipeModal] = useState(false);
   const [showPortionModal, setShowPortionModal] = useState(false);
 
+  // Filter state
+  const [selectedDietFilters, setSelectedDietFilters] = useState<string[]>([]);
+  const [selectedType, setSelectedType] = useState<string>('');
+  const [selectedCuisine, setSelectedCuisine] = useState<string>('');
+  const [showFilters, setShowFilters] = useState(false);
+
   // Calculate total costs
   const totalWeeklyCost = mealPlan.reduce((sum, item) => {
     return sum + (item.recipe.pricePerServing * item.portions);
@@ -79,17 +122,49 @@ export const DietDashboardScreen = ({ navigation }: any) => {
 
   const shoppingListCost = shoppingList.reduce((sum, item) => sum + item.estimatedCost, 0);
 
-  // Search recipes via Spoonacular API
+  // Toggle diet filter
+  const toggleDietFilter = (filterId: string) => {
+    if (selectedDietFilters.includes(filterId)) {
+      setSelectedDietFilters(selectedDietFilters.filter(f => f !== filterId));
+    } else {
+      setSelectedDietFilters([...selectedDietFilters, filterId]);
+    }
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSelectedDietFilters([]);
+    setSelectedType('');
+    setSelectedCuisine('');
+  };
+
+  // Search recipes via Spoonacular API with filters
   const searchRecipes = async (query: string) => {
     if (!query.trim()) return;
 
     setLoading(true);
     try {
-      const response = await fetch(
-        `${SPOONACULAR_BASE_URL}/recipes/complexSearch?apiKey=${SPOONACULAR_API_KEY}&query=${encodeURIComponent(
-          query
-        )}&number=20&addRecipeInformation=true&fillIngredients=true`
-      );
+      // Build query parameters
+      let url = `${SPOONACULAR_BASE_URL}/recipes/complexSearch?apiKey=${SPOONACULAR_API_KEY}&query=${encodeURIComponent(
+        query
+      )}&number=20&addRecipeInformation=true&fillIngredients=true`;
+
+      // Add diet filters
+      if (selectedDietFilters.length > 0) {
+        url += `&diet=${selectedDietFilters.join(',')}`;
+      }
+
+      // Add type filter
+      if (selectedType) {
+        url += `&type=${encodeURIComponent(selectedType)}`;
+      }
+
+      // Add cuisine filter
+      if (selectedCuisine) {
+        url += `&cuisine=${encodeURIComponent(selectedCuisine)}`;
+      }
+
+      const response = await fetch(url);
 
       if (!response.ok) {
         throw new Error('Failed to fetch recipes');
@@ -202,7 +277,142 @@ export const DietDashboardScreen = ({ navigation }: any) => {
   // Render Recipe Search
   const renderRecipeSearch = () => (
     <View style={styles.searchSection}>
-      <Text style={styles.searchTitle}>🔍 Search Recipes</Text>
+      <View style={styles.searchHeader}>
+        <Text style={styles.searchTitle}>🔍 Search Recipes</Text>
+        <TouchableOpacity
+          style={styles.filterToggleButton}
+          onPress={() => setShowFilters(!showFilters)}
+        >
+          <Ionicons
+            name={showFilters ? "chevron-up" : "filter"}
+            size={20}
+            color={colors.diet}
+          />
+          <Text style={styles.filterToggleText}>
+            {showFilters ? 'Hide Filters' : 'Filters'}
+          </Text>
+          {(selectedDietFilters.length > 0 || selectedType || selectedCuisine) && (
+            <View style={styles.filterBadge}>
+              <Text style={styles.filterBadgeText}>
+                {selectedDietFilters.length + (selectedType ? 1 : 0) + (selectedCuisine ? 1 : 0)}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Filters Section */}
+      {showFilters && (
+        <View style={styles.filtersContainer}>
+          {/* Diet Filters */}
+          <View style={styles.filterGroup}>
+            <Text style={styles.filterGroupTitle}>Diet Type</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.filterChipsRow}>
+                {DIET_FILTERS.map((filter) => (
+                  <TouchableOpacity
+                    key={filter.id}
+                    style={[
+                      styles.filterChip,
+                      selectedDietFilters.includes(filter.id) && {
+                        backgroundColor: filter.color + '20',
+                        borderColor: filter.color,
+                      },
+                    ]}
+                    onPress={() => toggleDietFilter(filter.id)}
+                  >
+                    <Text style={styles.filterChipIcon}>{filter.icon}</Text>
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        selectedDietFilters.includes(filter.id) && { color: filter.color, fontWeight: '600' },
+                      ]}
+                    >
+                      {filter.label}
+                    </Text>
+                    {selectedDietFilters.includes(filter.id) && (
+                      <Ionicons name="checkmark-circle" size={16} color={filter.color} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+
+          {/* Type Filters */}
+          <View style={styles.filterGroup}>
+            <Text style={styles.filterGroupTitle}>Meal Type</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.filterChipsRow}>
+                {TYPE_FILTERS.map((filter) => (
+                  <TouchableOpacity
+                    key={filter.id}
+                    style={[
+                      styles.filterChip,
+                      selectedType === filter.id && styles.filterChipSelected,
+                    ]}
+                    onPress={() => setSelectedType(selectedType === filter.id ? '' : filter.id)}
+                  >
+                    <Text style={styles.filterChipIcon}>{filter.icon}</Text>
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        selectedType === filter.id && styles.filterChipTextSelected,
+                      ]}
+                    >
+                      {filter.label}
+                    </Text>
+                    {selectedType === filter.id && (
+                      <Ionicons name="checkmark-circle" size={16} color={colors.diet} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+
+          {/* Cuisine Filters */}
+          <View style={styles.filterGroup}>
+            <Text style={styles.filterGroupTitle}>Cuisine</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={styles.filterChipsRow}>
+                {CUISINE_FILTERS.map((filter) => (
+                  <TouchableOpacity
+                    key={filter.id}
+                    style={[
+                      styles.filterChip,
+                      selectedCuisine === filter.id && styles.filterChipSelected,
+                    ]}
+                    onPress={() => setSelectedCuisine(selectedCuisine === filter.id ? '' : filter.id)}
+                  >
+                    <Text style={styles.filterChipIcon}>{filter.icon}</Text>
+                    <Text
+                      style={[
+                        styles.filterChipText,
+                        selectedCuisine === filter.id && styles.filterChipTextSelected,
+                      ]}
+                    >
+                      {filter.label}
+                    </Text>
+                    {selectedCuisine === filter.id && (
+                      <Ionicons name="checkmark-circle" size={16} color={colors.diet} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </ScrollView>
+          </View>
+
+          {/* Clear Filters Button */}
+          {(selectedDietFilters.length > 0 || selectedType || selectedCuisine) && (
+            <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters}>
+              <Ionicons name="close-circle" size={18} color={colors.error} />
+              <Text style={styles.clearFiltersText}>Clear All Filters</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
       <View style={styles.searchBar}>
         <TextInput
           style={styles.searchInput}
@@ -1136,5 +1346,103 @@ const styles = StyleSheet.create({
     color: colors.text,
     textAlign: 'center',
     marginBottom: spacing.xl,
+  },
+  // Filter styles
+  searchHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  filterToggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.diet + '10',
+    borderRadius: 8,
+  },
+  filterToggleText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.diet,
+  },
+  filterBadge: {
+    backgroundColor: colors.diet,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: spacing.xs,
+  },
+  filterBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'white',
+  },
+  filtersContainer: {
+    backgroundColor: '#F9F9F9',
+    borderRadius: 12,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    gap: spacing.md,
+  },
+  filterGroup: {
+    gap: spacing.xs,
+  },
+  filterGroupTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  filterChipsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+  },
+  filterChipSelected: {
+    backgroundColor: colors.diet + '20',
+    borderColor: colors.diet,
+  },
+  filterChipIcon: {
+    fontSize: 14,
+  },
+  filterChipText: {
+    fontSize: 13,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  filterChipTextSelected: {
+    color: colors.diet,
+    fontWeight: '600',
+  },
+  clearFiltersButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    backgroundColor: 'white',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.error + '30',
+  },
+  clearFiltersText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.error,
   },
 });
