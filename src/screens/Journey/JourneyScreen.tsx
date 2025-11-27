@@ -86,7 +86,7 @@ export const JourneyScreen = ({ navigation }: any) => {
       finance: 'FinancePathNew',
       mental: 'MentalHealthPath',
       physical: 'PhysicalHealthPath',
-      diet: 'DietDashboardScreen',
+      diet: 'NutritionPath', // Changed to NutritionPath for lessons
     };
     navigation.navigate(screenMap[pillar]);
   };
