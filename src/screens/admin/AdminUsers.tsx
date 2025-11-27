@@ -58,9 +58,9 @@ export const AdminUsers = () => {
       setLoading(true);
       console.log('🔄 AdminUsers: Loading users from Firebase...');
 
+      // Simplified query without orderBy for Safari compatibility
       const usersQuery = query(
         collection(db, 'users'),
-        orderBy('createdAt', 'desc'),
         limit(100)
       );
 
