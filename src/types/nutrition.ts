@@ -399,4 +399,12 @@ export const NUTRITION_TOOLS: NutritionTool[] = [
     screen: 'WaterTrackerScreen',
     color: '#1CB0F6',
   },
+  {
+    id: 'recipe-finder',
+    title: 'Recipe Finder',
+    icon: '🥘',
+    description: 'Find recipes by ingredients you have',
+    screen: 'RecipeFinder',
+    color: colors.diet,
+  },
 ];
