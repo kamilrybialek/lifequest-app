@@ -285,7 +285,7 @@ export const AdminUsers = () => {
               <Text style={[styles.tableCell, { flex: 1 }]} numberOfLines={1}>
                 {user.firstName || 'N/A'}
               </Text>
-              <View style={[styles.tableCell, { flex: 1 }]}>
+              <View style={{ flex: 1 }}>
                 <View
                   style={[
                     styles.badge,
@@ -310,7 +310,7 @@ export const AdminUsers = () => {
                   </Text>
                 </View>
               </View>
-              <View style={[styles.tableCell, { flex: 1 }]}>
+              <View style={{ flex: 1 }}>
                 <View
                   style={[
                     styles.badge,
@@ -335,7 +335,7 @@ export const AdminUsers = () => {
                 {formatDate(user.createdAt)}
               </Text>
               <TouchableOpacity
-                style={[styles.tableCell, { flex: 0.5 }]}
+                style={{ flex: 0.5 }}
                 onPress={() => {
                   setSelectedUser(user);
                   setShowUserModal(true);
