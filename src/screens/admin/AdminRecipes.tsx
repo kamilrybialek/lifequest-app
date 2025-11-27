@@ -17,6 +17,7 @@ import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { collection, addDoc, getDocs, query, limit, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
+import { COMMON_INGREDIENTS } from '../../data/ingredients';
 
 const SPOONACULAR_API_KEY = '8b6cd47792ff4057ad699f9b0523d9df';
 const SPOONACULAR_BASE_URL = 'https://api.spoonacular.com';
@@ -72,10 +73,19 @@ const TYPE_FILTERS = [
 const CUISINE_FILTERS = [
   { id: 'italian', label: 'Italian', icon: '🇮🇹' },
   { id: 'mexican', label: 'Mexican', icon: '🇲🇽' },
-  { id: 'asian', label: 'Asian', icon: '🍜' },
-  { id: 'american', label: 'American', icon: '🇺🇸' },
-  { id: 'mediterranean', label: 'Mediterranean', icon: '🫒' },
+  { id: 'chinese', label: 'Chinese', icon: '🥢' },
+  { id: 'japanese', label: 'Japanese', icon: '🍱' },
+  { id: 'thai', label: 'Thai', icon: '🌶️' },
   { id: 'indian', label: 'Indian', icon: '🇮🇳' },
+  { id: 'american', label: 'American', icon: '🇺🇸' },
+  { id: 'french', label: 'French', icon: '🇫🇷' },
+  { id: 'greek', label: 'Greek', icon: '🇬🇷' },
+  { id: 'spanish', label: 'Spanish', icon: '🇪🇸' },
+  { id: 'korean', label: 'Korean', icon: '🇰🇷' },
+  { id: 'mediterranean', label: 'Mediterranean', icon: '🫒' },
+  { id: 'middle eastern', label: 'Middle Eastern', icon: '🧆' },
+  { id: 'vietnamese', label: 'Vietnamese', icon: '🍜' },
+  { id: 'caribbean', label: 'Caribbean', icon: '🏝️' },
 ];
 
 // Predefined queries for bulk import
@@ -119,6 +129,10 @@ export const AdminRecipes = () => {
   const [showBulkModal, setShowBulkModal] = useState(false);
   const [bulkImporting, setBulkImporting] = useState(false);
   const [bulkProgress, setBulkProgress] = useState({ current: 0, total: 0 });
+
+  // Ingredient search state
+  const [showIngredientModal, setShowIngredientModal] = useState(false);
+  const [selectedIngredients, setSelectedIngredients] = useState<string[]>([]);
 
   // Load database recipes on mount
   useEffect(() => {
@@ -210,6 +224,53 @@ export const AdminRecipes = () => {
       return [];
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Search recipes by selected ingredients (no title query needed)
+  const searchByIngredients = async () => {
+    if (selectedIngredients.length === 0) {
+      Alert.alert('No Ingredients', 'Please select at least one ingredient first');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Convert ingredient IDs to names
+      const ingredientNames = selectedIngredients
+        .map((id) => {
+          const ingredient = COMMON_INGREDIENTS.find((i) => i.id === id);
+          return ingredient?.name;
+        })
+        .filter(Boolean)
+        .join(',');
+
+      console.log('🔍 Searching by ingredients:', ingredientNames);
+
+      // Use Spoonacular's "Find by Ingredients" endpoint
+      let url = `${SPOONACULAR_BASE_URL}/recipes/findByIngredients?apiKey=${SPOONACULAR_API_KEY}&ingredients=${encodeURIComponent(
+        ingredientNames
+      )}&number=20&ranking=1&ignorePantry=true`;
+
+      console.log('🌐 API Request:', url);
+
+      const response = await fetch(url);
+      const data = await response.json();
+
+      if (Array.isArray(data) && data.length > 0) {
+        setApiRecipes(data);
+        console.log(`✅ Found ${data.length} recipes by ingredients`);
+      } else {
+        console.error('❌ No results:', data);
+        Alert.alert('No Results', 'No recipes found with these ingredients.');
+        setApiRecipes([]);
+      }
+    } catch (error) {
+      console.error('❌ Error searching by ingredients:', error);
+      Alert.alert('Error', 'Failed to search recipes. Check console for details.');
+    } finally {
+      setLoading(false);
+      setShowIngredientModal(false);
     }
   };
 
@@ -639,6 +700,20 @@ export const AdminRecipes = () => {
               </TouchableOpacity>
             </View>
 
+            {/* Search by Ingredients Button */}
+            <TouchableOpacity
+              style={styles.ingredientSearchButton}
+              onPress={() => setShowIngredientModal(true)}
+            >
+              <Ionicons name="restaurant" size={18} color={colors.primary} />
+              <Text style={styles.ingredientSearchText}>Search by Ingredients</Text>
+              {selectedIngredients.length > 0 && (
+                <View style={styles.ingredientBadge}>
+                  <Text style={styles.ingredientBadgeText}>{selectedIngredients.length}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+
             {/* Diet Filters */}
             <View style={styles.filtersSection}>
               <Text style={styles.filtersTitle}>Diet Filters</Text>
@@ -849,6 +924,78 @@ export const AdminRecipes = () => {
                 ))}
               </ScrollView>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Ingredient Selection Modal */}
+      <Modal visible={showIngredientModal} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.bulkModalContent}>
+            <View style={styles.bulkModalHeader}>
+              <Text style={styles.bulkModalTitle}>Select Ingredients</Text>
+              <TouchableOpacity onPress={() => setShowIngredientModal(false)}>
+                <Ionicons name="close" size={28} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.bulkModalContent}>
+              <Text style={styles.ingredientModalSubtitle}>
+                Select {selectedIngredients.length}/30 ingredients
+              </Text>
+
+              <View style={styles.ingredientsGrid}>
+                {COMMON_INGREDIENTS.map((ingredient) => {
+                  const isSelected = selectedIngredients.includes(ingredient.id);
+                  return (
+                    <TouchableOpacity
+                      key={ingredient.id}
+                      style={[
+                        styles.ingredientChip,
+                        isSelected && styles.ingredientChipSelected,
+                      ]}
+                      onPress={() => {
+                        if (isSelected) {
+                          setSelectedIngredients(selectedIngredients.filter((id) => id !== ingredient.id));
+                        } else {
+                          setSelectedIngredients([...selectedIngredients, ingredient.id]);
+                        }
+                      }}
+                    >
+                      <Text style={styles.ingredientIcon}>{ingredient.icon}</Text>
+                      <Text
+                        style={[
+                          styles.ingredientLabel,
+                          isSelected && styles.ingredientLabelSelected,
+                        ]}
+                      >
+                        {ingredient.name}
+                      </Text>
+                      {isSelected && (
+                        <Ionicons
+                          name="checkmark-circle"
+                          size={16}
+                          color={colors.success}
+                          style={styles.ingredientCheck}
+                        />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {selectedIngredients.length > 0 && (
+                <TouchableOpacity
+                  style={styles.ingredientSearchSubmit}
+                  onPress={searchByIngredients}
+                >
+                  <Ionicons name="search" size={20} color="#FFF" />
+                  <Text style={styles.ingredientSearchSubmitText}>
+                    Find Recipes ({selectedIngredients.length} ingredients)
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </ScrollView>
           </View>
         </View>
       </Modal>
@@ -1363,6 +1510,106 @@ const styles = StyleSheet.create({
   progressFill: {
     height: '100%',
     backgroundColor: colors.primary,
+  },
+
+  // Ingredient Search
+  ingredientSearchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.primary + '15',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: 12,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  ingredientSearchText: {
+    color: colors.primary,
+    fontWeight: '700',
+    fontSize: 14,
+    flex: 1,
+  },
+  ingredientBadge: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  ingredientBadgeText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  ingredientModalSubtitle: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    padding: spacing.lg,
+    paddingTop: 0,
+  },
+  ingredientsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    padding: spacing.lg,
+  },
+  ingredientChip: {
+    width: '30%',
+    backgroundColor: colors.backgroundGray,
+    borderRadius: 12,
+    padding: spacing.md,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.border,
+    position: 'relative',
+  },
+  ingredientChipSelected: {
+    backgroundColor: colors.success + '20',
+    borderColor: colors.success,
+  },
+  ingredientIcon: {
+    fontSize: 28,
+    marginBottom: spacing.xs,
+  },
+  ingredientLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+  },
+  ingredientLabelSelected: {
+    color: colors.success,
+    fontWeight: '700',
+  },
+  ingredientCheck: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+  },
+  ingredientSearchSubmit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.primary,
+    marginHorizontal: spacing.lg,
+    marginBottom: spacing.xl,
+    paddingVertical: spacing.lg,
+    borderRadius: 12,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  ingredientSearchSubmitText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: '700',
   },
 
   // Edit/Detail Modal
