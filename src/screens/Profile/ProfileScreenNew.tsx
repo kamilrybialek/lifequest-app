@@ -8,6 +8,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, A
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
 import { useCurrencyStore } from '../../store/currencyStore';
@@ -16,6 +17,7 @@ import { deleteAllUserData } from '../../services/firebaseUserService';
 import { pickImage, uploadProfilePhoto, deleteProfilePhoto } from '../../services/photoUploadService';
 
 export const ProfileScreenNew = () => {
+  const navigation = useNavigation();
   const { user, logout, updateProfile } = useAuthStore();
   const { progress, loadAppData } = useAppStore();
   const { currency, setCurrency } = useCurrencyStore();
@@ -501,6 +503,25 @@ export const ProfileScreenNew = () => {
               </View>
               <Ionicons name="chevron-forward" size={20} color="#CCC" />
             </TouchableOpacity>
+
+            {/* Admin Panel Link - Only for admin users */}
+            {user?.email === 'kamil.rybialek@gmail.com' && (
+              <>
+                <View style={styles.settingDivider} />
+                <TouchableOpacity
+                  style={styles.settingItem}
+                  onPress={() => (navigation as any).navigate('Admin')}
+                >
+                  <View style={styles.settingLeft}>
+                    <View style={[styles.settingIconContainer, { backgroundColor: '#9C27B0' + '20' }]}>
+                      <Ionicons name="shield-checkmark" size={20} color="#9C27B0" />
+                    </View>
+                    <Text style={styles.settingText}>Admin Panel</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#CCC" />
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
 
