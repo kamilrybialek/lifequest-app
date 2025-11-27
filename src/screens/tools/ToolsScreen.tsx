@@ -116,9 +116,9 @@ export const ToolsScreen = ({ navigation }: any) => {
         {/* Tool Sections */}
         <View style={styles.sectionsContainer}>
           {renderToolSection('💰 Finance', FINANCE_TOOLS, '#4A90E2')}
-          {renderToolSection('🧠 Mental Health', MENTAL_TOOLS, '#9C27B0')}
+          {renderToolSection('🥗 Diet', NUTRITION_TOOLS, '#4CAF50')}
           {renderToolSection('💪 Physical', PHYSICAL_TOOLS, '#FF6B6B')}
-          {renderToolSection('🥗 Nutrition', NUTRITION_TOOLS, '#4CAF50')}
+          {renderToolSection('🧠 Mental Health', MENTAL_TOOLS, '#9C27B0')}
         </View>
 
         <View style={{ height: 40 }} />
