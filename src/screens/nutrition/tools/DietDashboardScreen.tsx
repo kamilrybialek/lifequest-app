@@ -16,6 +16,8 @@ import { colors } from '../../../theme/colors';
 import { spacing } from '../../../theme/spacing';
 import { useAuthStore } from '../../../store/authStore';
 import { COMMON_INGREDIENTS } from '../../../data/ingredients';
+import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../../../config/firebase';
 
 // Types
 interface Recipe {
@@ -32,6 +34,20 @@ interface Recipe {
   protein?: number;
   carbs?: number;
   fat?: number;
+  extendedIngredients?: Array<{
+    id: number;
+    name: string;
+    amount: number;
+    unit: string;
+    original: string;
+  }>;
+  instructions?: string;
+  analyzedInstructions?: Array<{
+    steps: Array<{
+      number: number;
+      step: string;
+    }>;
+  }>;
 }
 
 interface MealPlanItem {
@@ -127,6 +143,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
   // Auto meal planner state
   const [showAutoPlanner, setShowAutoPlanner] = useState(false);
   const [plannerLoading, setPlannerLoading] = useState(false);
+  const [plannerStep, setPlannerStep] = useState(1); // 1: preferences intro, 2: configuration
   const [mealsPerDay, setMealsPerDay] = useState(3);
   const [daysToGenerate, setDaysToGenerate] = useState(7);
   const [preferredCuisines, setPreferredCuisines] = useState<string[]>([]);
@@ -275,12 +292,54 @@ export const DietDashboardScreen = ({ navigation }: any) => {
     }
   };
 
+  // Save recipe to Firebase database
+  const saveRecipeToDatabase = async (recipe: Recipe) => {
+    try {
+      // Check if recipe already exists in database
+      const recipesRef = collection(db, 'recipes');
+      const q = query(recipesRef, where('spoonacularId', '==', recipe.id));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        // Recipe doesn't exist, save it
+        const calories = recipe.calories || recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0;
+        const protein = recipe.protein || recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0;
+        const carbs = recipe.carbs || recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0;
+        const fat = recipe.fat || recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0;
+
+        await addDoc(recipesRef, {
+          spoonacularId: recipe.id,
+          title: recipe.title,
+          image: recipe.image,
+          readyInMinutes: recipe.readyInMinutes,
+          servings: recipe.servings,
+          pricePerServing: recipe.pricePerServing,
+          cuisines: recipe.cuisines || [],
+          diets: recipe.diets || [],
+          summary: recipe.summary,
+          calories: Math.round(calories),
+          protein: Math.round(protein),
+          carbs: Math.round(carbs),
+          fat: Math.round(fat),
+          extendedIngredients: recipe.extendedIngredients || [],
+          instructions: recipe.instructions || '',
+          analyzedInstructions: recipe.analyzedInstructions || [],
+          createdAt: new Date().toISOString(),
+        });
+        console.log('✅ Recipe saved to database:', recipe.title);
+      }
+    } catch (error) {
+      console.error('Error saving recipe to database:', error);
+      // Don't show error to user - this is background operation
+    }
+  };
+
   // Get recipe details
   const getRecipeDetails = async (recipeId: number) => {
     setLoading(true);
     try {
       const response = await fetch(
-        `${SPOONACULAR_BASE_URL}/recipes/${recipeId}/information?apiKey=${SPOONACULAR_API_KEY}`
+        `${SPOONACULAR_BASE_URL}/recipes/${recipeId}/information?apiKey=${SPOONACULAR_API_KEY}&includeNutrition=true`
       );
 
       if (!response.ok) {
@@ -288,8 +347,26 @@ export const DietDashboardScreen = ({ navigation }: any) => {
       }
 
       const recipe = await response.json();
-      setSelectedRecipe(recipe);
+
+      // Extract nutrition data
+      const calories = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0;
+      const protein = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0;
+      const carbs = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0;
+      const fat = recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0;
+
+      const recipeWithNutrition = {
+        ...recipe,
+        calories: Math.round(calories),
+        protein: Math.round(protein),
+        carbs: Math.round(carbs),
+        fat: Math.round(fat),
+      };
+
+      setSelectedRecipe(recipeWithNutrition);
       setShowRecipeModal(true);
+
+      // Auto-save recipe to database (background operation)
+      saveRecipeToDatabase(recipeWithNutrition);
     } catch (error) {
       console.error('Error fetching recipe details:', error);
       Alert.alert('Error', 'Failed to load recipe details');
@@ -710,7 +787,10 @@ export const DietDashboardScreen = ({ navigation }: any) => {
     <View style={styles.autoPlannerSection}>
       <TouchableOpacity
         style={styles.autoPlannerButton}
-        onPress={() => setShowAutoPlanner(true)}
+        onPress={() => {
+          setPlannerStep(1); // Reset to first step
+          setShowAutoPlanner(true);
+        }}
         disabled={plannerLoading}
       >
         <View style={styles.autoPlannerContent}>
@@ -730,137 +810,227 @@ export const DietDashboardScreen = ({ navigation }: any) => {
   );
 
   // Render Auto Meal Planner Modal
-  const renderAutoMealPlannerModal = () => (
-    <Modal
-      visible={showAutoPlanner}
-      transparent
-      animationType="slide"
-      onRequestClose={() => setShowAutoPlanner(false)}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.autoPlannerModal}>
-          <ScrollView>
-            <View style={styles.autoPlannerHeader}>
-              <Text style={styles.autoPlannerModalTitle}>✨ Auto Meal Planner</Text>
-              <TouchableOpacity onPress={() => setShowAutoPlanner(false)}>
-                <Ionicons name="close" size={28} color={colors.text} />
-              </TouchableOpacity>
-            </View>
+  const renderAutoMealPlannerModal = () => {
+    const handleCloseModal = () => {
+      setShowAutoPlanner(false);
+      setPlannerStep(1);
+    };
 
-            <Text style={styles.autoPlannerDescription}>
-              Generate a personalized meal plan based on your preferences and available ingredients.
-            </Text>
-
-            {/* Days Selector */}
-            <View style={styles.autoPlannerOption}>
-              <Text style={styles.autoPlannerOptionLabel}>Number of days:</Text>
-              <View style={styles.daysSelector}>
-                {[3, 5, 7].map((days) => (
-                  <TouchableOpacity
-                    key={days}
-                    style={[
-                      styles.daysSelectorButton,
-                      daysToGenerate === days && styles.daysSelectorButtonActive,
-                    ]}
-                    onPress={() => setDaysToGenerate(days)}
-                  >
-                    <Text
-                      style={[
-                        styles.daysSelectorText,
-                        daysToGenerate === days && styles.daysSelectorTextActive,
-                      ]}
-                    >
-                      {days} days
-                    </Text>
-                  </TouchableOpacity>
-                ))}
+    return (
+      <Modal
+        visible={showAutoPlanner}
+        transparent
+        animationType="slide"
+        onRequestClose={handleCloseModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.autoPlannerModal}>
+            <ScrollView>
+              {/* Header */}
+              <View style={styles.autoPlannerHeader}>
+                <Text style={styles.autoPlannerModalTitle}>
+                  {plannerStep === 1 ? '✨ Create Your Meal Plan' : '⚙️ Configure Your Plan'}
+                </Text>
+                <TouchableOpacity onPress={handleCloseModal}>
+                  <Ionicons name="close" size={28} color={colors.text} />
+                </TouchableOpacity>
               </View>
-            </View>
 
-            {/* Meals Per Day Selector */}
-            <View style={styles.autoPlannerOption}>
-              <Text style={styles.autoPlannerOptionLabel}>Meals per day:</Text>
-              <View style={styles.daysSelector}>
-                {[2, 3, 4].map((meals) => (
-                  <TouchableOpacity
-                    key={meals}
-                    style={[
-                      styles.daysSelectorButton,
-                      mealsPerDay === meals && styles.daysSelectorButtonActive,
-                    ]}
-                    onPress={() => setMealsPerDay(meals)}
-                  >
-                    <Text
-                      style={[
-                        styles.daysSelectorText,
-                        mealsPerDay === meals && styles.daysSelectorTextActive,
-                      ]}
-                    >
-                      {meals} meals
+              {/* Step 1: Preferences Introduction */}
+              {plannerStep === 1 && (
+                <>
+                  <View style={styles.plannerIntroSection}>
+                    <View style={styles.plannerIntroIcon}>
+                      <Ionicons name="restaurant" size={48} color={colors.diet} />
+                    </View>
+                    <Text style={styles.plannerIntroTitle}>
+                      Let's create your personalized meal plan!
                     </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
+                    <Text style={styles.plannerIntroDescription}>
+                      I'll help you build a custom diet plan based on your preferences, dietary requirements, and available ingredients.
+                    </Text>
+                  </View>
 
-            {/* Cuisine Preferences */}
-            <View style={styles.autoPlannerOption}>
-              <Text style={styles.autoPlannerOptionLabel}>Preferred cuisines (optional):</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View style={styles.filterChipsRow}>
-                  {CUISINE_FILTERS.slice(0, 8).map((cuisine) => (
+                  {/* Preference Options */}
+                  <View style={styles.preferenceCard}>
+                    <View style={styles.preferenceItem}>
+                      <Ionicons name="calendar" size={24} color={colors.diet} />
+                      <View style={styles.preferenceTextContainer}>
+                        <Text style={styles.preferenceTitle}>Flexible Duration</Text>
+                        <Text style={styles.preferenceDescription}>
+                          Choose 3, 5, or 7 days based on your needs
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.preferenceItem}>
+                      <Ionicons name="nutrition" size={24} color={colors.diet} />
+                      <View style={styles.preferenceTextContainer}>
+                        <Text style={styles.preferenceTitle}>Smart Nutrition</Text>
+                        <Text style={styles.preferenceDescription}>
+                          Tailored to your diet type (Vegan, Keto, etc.)
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.preferenceItem}>
+                      <Ionicons name="globe" size={24} color={colors.diet} />
+                      <View style={styles.preferenceTextContainer}>
+                        <Text style={styles.preferenceTitle}>Cuisine Variety</Text>
+                        <Text style={styles.preferenceDescription}>
+                          Mix and match from Italian, Asian, American & more
+                        </Text>
+                      </View>
+                    </View>
+                    <View style={styles.preferenceItem}>
+                      <Ionicons name="leaf" size={24} color={colors.diet} />
+                      <View style={styles.preferenceTextContainer}>
+                        <Text style={styles.preferenceTitle}>Your Ingredients</Text>
+                        <Text style={styles.preferenceDescription}>
+                          Uses the ingredients you've selected
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Continue Button */}
+                  <TouchableOpacity
+                    style={styles.continueButton}
+                    onPress={() => setPlannerStep(2)}
+                  >
+                    <Text style={styles.continueButtonText}>Continue to Setup</Text>
+                    <Ionicons name="arrow-forward" size={20} color="white" />
+                  </TouchableOpacity>
+                </>
+              )}
+
+              {/* Step 2: Configuration Details */}
+              {plannerStep === 2 && (
+                <>
+                  <Text style={styles.autoPlannerDescription}>
+                    Configure your meal plan preferences below
+                  </Text>
+
+                  {/* Days Selector */}
+                  <View style={styles.autoPlannerOption}>
+                    <Text style={styles.autoPlannerOptionLabel}>Number of days:</Text>
+                    <View style={styles.daysSelector}>
+                      {[3, 5, 7].map((days) => (
+                        <TouchableOpacity
+                          key={days}
+                          style={[
+                            styles.daysSelectorButton,
+                            daysToGenerate === days && styles.daysSelectorButtonActive,
+                          ]}
+                          onPress={() => setDaysToGenerate(days)}
+                        >
+                          <Text
+                            style={[
+                              styles.daysSelectorText,
+                              daysToGenerate === days && styles.daysSelectorTextActive,
+                            ]}
+                          >
+                            {days} days
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Meals Per Day Selector */}
+                  <View style={styles.autoPlannerOption}>
+                    <Text style={styles.autoPlannerOptionLabel}>Meals per day:</Text>
+                    <View style={styles.daysSelector}>
+                      {[2, 3, 4].map((meals) => (
+                        <TouchableOpacity
+                          key={meals}
+                          style={[
+                            styles.daysSelectorButton,
+                            mealsPerDay === meals && styles.daysSelectorButtonActive,
+                          ]}
+                          onPress={() => setMealsPerDay(meals)}
+                        >
+                          <Text
+                            style={[
+                              styles.daysSelectorText,
+                              mealsPerDay === meals && styles.daysSelectorTextActive,
+                            ]}
+                          >
+                            {meals} meals
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Cuisine Preferences */}
+                  <View style={styles.autoPlannerOption}>
+                    <Text style={styles.autoPlannerOptionLabel}>Preferred cuisines (optional):</Text>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      <View style={styles.filterChipsRow}>
+                        {CUISINE_FILTERS.slice(0, 8).map((cuisine) => (
+                          <TouchableOpacity
+                            key={cuisine.id}
+                            style={[
+                              styles.filterChip,
+                              preferredCuisines.includes(cuisine.id) && styles.filterChipSelected,
+                            ]}
+                            onPress={() => {
+                              if (preferredCuisines.includes(cuisine.id)) {
+                                setPreferredCuisines(preferredCuisines.filter((c) => c !== cuisine.id));
+                              } else {
+                                setPreferredCuisines([...preferredCuisines, cuisine.id]);
+                              }
+                            }}
+                          >
+                            <Text style={styles.filterChipIcon}>{cuisine.icon}</Text>
+                            <Text
+                              style={[
+                                styles.filterChipText,
+                                preferredCuisines.includes(cuisine.id) && styles.filterChipTextSelected,
+                              ]}
+                            >
+                              {cuisine.label}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </ScrollView>
+                  </View>
+
+                  {/* Info Box */}
+                  <View style={styles.autoPlannerInfoBox}>
+                    <Ionicons name="information-circle" size={20} color={colors.diet} />
+                    <Text style={styles.autoPlannerInfoText}>
+                      The plan will use your selected ingredients and diet preferences (Vegan, Keto, etc.)
+                    </Text>
+                  </View>
+
+                  {/* Action Buttons */}
+                  <View style={styles.plannerActionButtons}>
                     <TouchableOpacity
-                      key={cuisine.id}
-                      style={[
-                        styles.filterChip,
-                        preferredCuisines.includes(cuisine.id) && styles.filterChipSelected,
-                      ]}
-                      onPress={() => {
-                        if (preferredCuisines.includes(cuisine.id)) {
-                          setPreferredCuisines(preferredCuisines.filter((c) => c !== cuisine.id));
-                        } else {
-                          setPreferredCuisines([...preferredCuisines, cuisine.id]);
-                        }
-                      }}
+                      style={styles.backButton}
+                      onPress={() => setPlannerStep(1)}
                     >
-                      <Text style={styles.filterChipIcon}>{cuisine.icon}</Text>
-                      <Text
-                        style={[
-                          styles.filterChipText,
-                          preferredCuisines.includes(cuisine.id) && styles.filterChipTextSelected,
-                        ]}
-                      >
-                        {cuisine.label}
+                      <Ionicons name="arrow-back" size={18} color={colors.textSecondary} />
+                      <Text style={styles.backButtonText}>Back</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.generatePlanButton}
+                      onPress={generateAutomaticMealPlan}
+                    >
+                      <Ionicons name="sparkles" size={20} color="white" />
+                      <Text style={styles.generatePlanButtonText}>
+                        Generate Plan
                       </Text>
                     </TouchableOpacity>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-
-            {/* Info Box */}
-            <View style={styles.autoPlannerInfoBox}>
-              <Ionicons name="information-circle" size={20} color={colors.diet} />
-              <Text style={styles.autoPlannerInfoText}>
-                The plan will use your selected ingredients and diet preferences (Vegan, Keto, etc.)
-              </Text>
-            </View>
-
-            {/* Generate Button */}
-            <TouchableOpacity
-              style={styles.generatePlanButton}
-              onPress={generateAutomaticMealPlan}
-            >
-              <Ionicons name="sparkles" size={20} color="white" />
-              <Text style={styles.generatePlanButtonText}>
-                Generate {daysToGenerate}-Day Plan
-              </Text>
-            </TouchableOpacity>
-          </ScrollView>
+                  </View>
+                </>
+              )}
+            </ScrollView>
+          </View>
         </View>
-      </View>
-    </Modal>
-  );
+      </Modal>
+    );
+  };
 
   // Render Meal Planner Tab
   const renderMealPlanner = () => (
@@ -1049,48 +1219,125 @@ export const DietDashboardScreen = ({ navigation }: any) => {
   );
 
   // Recipe Modal
-  const renderRecipeModal = () => (
-    <Modal
-      visible={showRecipeModal}
-      transparent
-      animationType="slide"
-      onRequestClose={() => setShowRecipeModal(false)}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <ScrollView>
-            {selectedRecipe && (
-              <>
-                <Image source={{ uri: selectedRecipe.image }} style={styles.modalRecipeImage} />
+  const renderRecipeModal = () => {
+    if (!selectedRecipe) return null;
+
+    const instructions = selectedRecipe.analyzedInstructions?.[0]?.steps || [];
+    const ingredients = selectedRecipe.extendedIngredients || [];
+
+    return (
+      <Modal
+        visible={showRecipeModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowRecipeModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Header Image */}
+              <Image source={{ uri: selectedRecipe.image }} style={styles.modalRecipeImage} />
+
+              {/* Close Button */}
+              <TouchableOpacity
+                style={styles.closeModalButton}
+                onPress={() => setShowRecipeModal(false)}
+              >
+                <Ionicons name="close-circle" size={32} color="white" />
+              </TouchableOpacity>
+
+              <View style={styles.modalContentPadding}>
+                {/* Title */}
                 <Text style={styles.modalRecipeTitle}>{selectedRecipe.title}</Text>
 
+                {/* Quick Info Row */}
                 <View style={styles.modalRecipeInfo}>
                   <View style={styles.modalRecipeInfoItem}>
-                    <Ionicons name="time-outline" size={20} color={colors.textSecondary} />
+                    <Ionicons name="time-outline" size={20} color={colors.diet} />
                     <Text style={styles.modalRecipeInfoText}>{selectedRecipe.readyInMinutes} min</Text>
                   </View>
                   <View style={styles.modalRecipeInfoItem}>
-                    <Ionicons name="people-outline" size={20} color={colors.textSecondary} />
+                    <Ionicons name="people-outline" size={20} color={colors.diet} />
                     <Text style={styles.modalRecipeInfoText}>{selectedRecipe.servings} servings</Text>
                   </View>
-                  <View style={styles.modalRecipeInfoItem}>
-                    <Ionicons name="cash-outline" size={20} color={colors.textSecondary} />
-                    <Text style={styles.modalRecipeInfoText}>
-                      ${((selectedRecipe.pricePerServing || 0) / 100).toFixed(2)}/serving
-                    </Text>
-                  </View>
+                  {selectedRecipe.calories && selectedRecipe.calories > 0 && (
+                    <View style={styles.modalRecipeInfoItem}>
+                      <Ionicons name="flame-outline" size={20} color={colors.diet} />
+                      <Text style={styles.modalRecipeInfoText}>{selectedRecipe.calories} kcal</Text>
+                    </View>
+                  )}
                 </View>
 
-                <Text style={styles.modalRecipeSummary}>
-                  {selectedRecipe.summary?.replace(/<[^>]*>/g, '')}
-                </Text>
+                {/* Nutrition Info */}
+                {selectedRecipe.protein && selectedRecipe.protein > 0 && (
+                  <View style={styles.nutritionCard}>
+                    <Text style={styles.nutritionCardTitle}>📊 Nutrition (per serving)</Text>
+                    <View style={styles.nutritionRow}>
+                      <View style={styles.nutritionItem}>
+                        <Text style={styles.nutritionValue}>{selectedRecipe.protein}g</Text>
+                        <Text style={styles.nutritionLabel}>Protein</Text>
+                      </View>
+                      <View style={styles.nutritionItem}>
+                        <Text style={styles.nutritionValue}>{selectedRecipe.carbs}g</Text>
+                        <Text style={styles.nutritionLabel}>Carbs</Text>
+                      </View>
+                      <View style={styles.nutritionItem}>
+                        <Text style={styles.nutritionValue}>{selectedRecipe.fat}g</Text>
+                        <Text style={styles.nutritionLabel}>Fat</Text>
+                      </View>
+                      <View style={styles.nutritionItem}>
+                        <Text style={styles.nutritionValue}>{selectedRecipe.calories}</Text>
+                        <Text style={styles.nutritionLabel}>Calories</Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
 
+                {/* Ingredients Section */}
+                {ingredients.length > 0 && (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>🥘 Ingredients</Text>
+                    {ingredients.map((ingredient, index) => (
+                      <View key={index} style={styles.ingredientItem}>
+                        <Ionicons name="checkmark-circle-outline" size={20} color={colors.diet} />
+                        <Text style={styles.ingredientText}>{ingredient.original}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {/* Instructions Section */}
+                {instructions.length > 0 && (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>👨‍🍳 Instructions</Text>
+                    {instructions.map((step) => (
+                      <View key={step.number} style={styles.instructionStep}>
+                        <View style={styles.stepNumber}>
+                          <Text style={styles.stepNumberText}>{step.number}</Text>
+                        </View>
+                        <Text style={styles.stepText}>{step.step}</Text>
+                      </View>
+                    ))}
+                  </View>
+                )}
+
+                {/* Summary */}
+                {selectedRecipe.summary && (
+                  <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>ℹ️ About This Recipe</Text>
+                    <Text style={styles.summaryText}>
+                      {selectedRecipe.summary?.replace(/<[^>]*>/g, '')}
+                    </Text>
+                  </View>
+                )}
+
+                {/* Action Buttons */}
                 <View style={styles.modalButtons}>
                   <TouchableOpacity
                     style={[styles.modalButton, styles.modalButtonCancel]}
                     onPress={() => setShowRecipeModal(false)}
                   >
-                    <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+                    <Text style={styles.modalButtonTextCancel}>Close</Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={[styles.modalButton, styles.modalButtonConfirm]}
@@ -1099,16 +1346,17 @@ export const DietDashboardScreen = ({ navigation }: any) => {
                       setShowPortionModal(true);
                     }}
                   >
+                    <Ionicons name="add-circle" size={20} color="white" />
                     <Text style={styles.modalButtonText}>Add to Plan</Text>
                   </TouchableOpacity>
                 </View>
-              </>
-            )}
-          </ScrollView>
+              </View>
+            </ScrollView>
+          </View>
         </View>
-      </View>
-    </Modal>
-  );
+      </Modal>
+    );
+  };
 
   // Portion Selection Modal
   const renderPortionModal = () => (
@@ -1691,9 +1939,12 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     flex: 1,
+    flexDirection: 'row',
     paddingVertical: spacing.md,
     borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
   },
   modalButtonCancel: {
     backgroundColor: '#F5F5F5',
@@ -1710,6 +1961,90 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: colors.text,
+  },
+  closeModalButton: {
+    position: 'absolute',
+    top: 16,
+    right: 16,
+    zIndex: 10,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 16,
+  },
+  modalContentPadding: {
+    padding: spacing.lg,
+  },
+  nutritionCard: {
+    backgroundColor: colors.diet + '10',
+    borderRadius: 12,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  nutritionCardTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: spacing.sm,
+  },
+  nutritionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  nutritionItem: {
+    alignItems: 'center',
+  },
+  nutritionValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.diet,
+  },
+  nutritionLabel: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  section: {
+    marginBottom: spacing.lg,
+  },
+  ingredientItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  ingredientText: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
+  },
+  instructionStep: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginBottom: spacing.md,
+  },
+  stepNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.diet,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepNumberText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: 'white',
+  },
+  stepText: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
+  },
+  summaryText: {
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 22,
   },
   portionModalContent: {
     backgroundColor: 'white',
@@ -2080,6 +2415,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   generatePlanButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -2097,5 +2433,101 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: 'white',
+  },
+  // Multi-step planner styles
+  plannerIntroSection: {
+    alignItems: 'center',
+    paddingVertical: spacing.xl,
+  },
+  plannerIntroIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.diet + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  plannerIntroTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.lg,
+  },
+  plannerIntroDescription: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    paddingHorizontal: spacing.lg,
+  },
+  preferenceCard: {
+    backgroundColor: '#F9F9F9',
+    borderRadius: 16,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    gap: spacing.lg,
+  },
+  preferenceItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.md,
+  },
+  preferenceTextContainer: {
+    flex: 1,
+  },
+  preferenceTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  preferenceDescription: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
+  continueButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.diet,
+    paddingVertical: spacing.md,
+    borderRadius: 12,
+    shadowColor: colors.diet,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  continueButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: 'white',
+  },
+  plannerActionButtons: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.md,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: 12,
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+  },
+  backButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textSecondary,
   },
 });
