@@ -248,6 +248,94 @@ export const DietDashboardScreen = ({ navigation }: any) => {
     };
   };
 
+  // Helper: Filter recipes based on selected filters
+  const filterRecipes = (recipes: Recipe[]): Recipe[] => {
+    return recipes.filter((recipe) => {
+      // 1. Diet filter check
+      if (selectedDietFilters.length > 0) {
+        const title = recipe.title.toLowerCase();
+        const ingredients = recipe.extendedIngredients?.map(i =>
+          (i.name || i.original || '').toLowerCase()
+        ).join(' ') || '';
+        const summary = (recipe.summary || '').toLowerCase();
+        const allText = `${title} ${ingredients} ${summary}`;
+
+        for (const dietFilter of selectedDietFilters) {
+          if (dietFilter === 'vegetarian') {
+            // Exclude meat and seafood
+            const meatKeywords = ['beef', 'pork', 'chicken', 'turkey', 'lamb', 'duck', 'bacon',
+              'sausage', 'ham', 'meat', 'fish', 'salmon', 'tuna', 'shrimp', 'seafood', 'prawn',
+              'crab', 'lobster', 'anchovy', 'sardine'];
+            const hasMeat = meatKeywords.some(keyword => allText.includes(keyword));
+            if (hasMeat) {
+              console.log(`🚫 Filtered out non-vegetarian: ${recipe.title}`);
+              return false;
+            }
+          }
+
+          if (dietFilter === 'vegan') {
+            // Exclude all animal products
+            const animalKeywords = ['beef', 'pork', 'chicken', 'turkey', 'lamb', 'duck', 'bacon',
+              'sausage', 'ham', 'meat', 'fish', 'salmon', 'tuna', 'shrimp', 'seafood', 'prawn',
+              'egg', 'eggs', 'milk', 'cheese', 'butter', 'cream', 'yogurt', 'honey'];
+            const hasAnimal = animalKeywords.some(keyword => allText.includes(keyword));
+            if (hasAnimal) {
+              console.log(`🚫 Filtered out non-vegan: ${recipe.title}`);
+              return false;
+            }
+          }
+
+          if (dietFilter === 'gluten free') {
+            const glutenKeywords = ['wheat', 'flour', 'bread', 'pasta', 'gluten', 'barley', 'rye'];
+            const hasGluten = glutenKeywords.some(keyword => allText.includes(keyword));
+            if (hasGluten) {
+              console.log(`🚫 Filtered out gluten-containing: ${recipe.title}`);
+              return false;
+            }
+          }
+        }
+      }
+
+      // 2. Cuisine filter check
+      if (selectedCuisine) {
+        const recipeCuisines = (recipe.cuisines || []).map(c => c.toLowerCase());
+        const cuisineMatch = recipeCuisines.some(c =>
+          c.includes(selectedCuisine.toLowerCase()) ||
+          selectedCuisine.toLowerCase().includes(c)
+        );
+
+        if (!cuisineMatch) {
+          console.log(`🚫 Filtered out non-${selectedCuisine}: ${recipe.title} (has: ${recipeCuisines.join(', ')})`);
+          return false;
+        }
+      }
+
+      // 3. Ingredient filter check (if using ingredient search)
+      if (selectedIngredients.length > 0) {
+        const recipeIngredients = recipe.extendedIngredients?.map(i =>
+          (i.name || i.original || '').toLowerCase()
+        ) || [];
+
+        const ingredientNames = selectedIngredients
+          .map(id => COMMON_INGREDIENTS.find(i => i.id === id)?.name?.toLowerCase())
+          .filter(Boolean);
+
+        // Recipe should contain at least one of the selected ingredients
+        const hasIngredient = ingredientNames.some(selectedIng =>
+          recipeIngredients.some(recipeIng =>
+            recipeIng.includes(selectedIng) || selectedIng.includes(recipeIng)
+          )
+        );
+
+        if (!hasIngredient) {
+          return false;
+        }
+      }
+
+      return true; // Recipe passes all filters
+    });
+  };
+
   // Search Firebase database for recipes
   const searchFirebaseRecipes = async (searchTerm: string): Promise<Recipe[]> => {
     try {
@@ -404,14 +492,18 @@ export const DietDashboardScreen = ({ navigation }: any) => {
         new Map(allRecipes.map(recipe => [recipe.title.toLowerCase(), recipe])).values()
       );
 
-      // Randomize results to show different recipes each time
-      const shuffledRecipes = uniqueRecipes.sort(() => Math.random() - 0.5);
+      // Apply filters (diet, cuisine)
+      const filteredRecipes = filterRecipes(uniqueRecipes);
+      console.log(`🔍 Filtered from ${uniqueRecipes.length} to ${filteredRecipes.length} recipes`);
 
-      console.log(`✅ Found ${shuffledRecipes.length} unique recipes`);
+      // Randomize results to show different recipes each time
+      const shuffledRecipes = filteredRecipes.sort(() => Math.random() - 0.5);
+
+      console.log(`✅ Found ${shuffledRecipes.length} unique recipes matching filters`);
       setSearchResults(shuffledRecipes);
 
       if (shuffledRecipes.length === 0) {
-        Alert.alert('No Results', 'No recipes found with the selected ingredients. Try different ingredients!');
+        Alert.alert('No Results', 'No recipes found matching your filters. Try adjusting your filters or ingredients!');
       }
     } catch (error) {
       console.error('Error searching recipes by ingredients:', error);
@@ -490,14 +582,18 @@ export const DietDashboardScreen = ({ navigation }: any) => {
         new Map(allRecipes.map(recipe => [recipe.title.toLowerCase(), recipe])).values()
       );
 
-      // Randomize results to show different recipes each time
-      const shuffledRecipes = uniqueRecipes.sort(() => Math.random() - 0.5);
+      // Apply filters (diet, cuisine)
+      const filteredRecipes = filterRecipes(uniqueRecipes);
+      console.log(`🔍 Filtered from ${uniqueRecipes.length} to ${filteredRecipes.length} recipes`);
 
-      console.log(`✅ Found ${shuffledRecipes.length} unique recipes`);
+      // Randomize results to show different recipes each time
+      const shuffledRecipes = filteredRecipes.sort(() => Math.random() - 0.5);
+
+      console.log(`✅ Found ${shuffledRecipes.length} unique recipes matching filters`);
       setSearchResults(shuffledRecipes);
 
       if (shuffledRecipes.length === 0) {
-        Alert.alert('No Results', `No recipes found for "${query}". Try a different search term!`);
+        Alert.alert('No Results', `No recipes found for "${query}" matching your filters. Try adjusting your filters or search term!`);
       }
     } catch (error) {
       console.error('Error searching recipes:', error);
