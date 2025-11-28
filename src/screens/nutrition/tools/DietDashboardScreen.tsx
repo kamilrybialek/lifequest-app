@@ -482,42 +482,82 @@ export const DietDashboardScreen = ({ navigation }: any) => {
     }
   };
 
-  // Search by ingredients - Priority: Firebase → TheMealDB → Spoonacular
+  // Search by ingredients - Priority: Firebase → TheMealDB
   const searchByIngredients = async () => {
-    if (selectedIngredients.length === 0) {
-      Alert.alert('No Ingredients', 'Please select at least one ingredient');
-      return;
-    }
-
     setLoading(true);
     try {
-      const ingredientNames = selectedIngredients
-        .map((id) => COMMON_INGREDIENTS.find((i) => i.id === id)?.name)
-        .filter(Boolean);
-
       let allRecipes: Recipe[] = [];
 
-      // Priority 1: Search Firebase database first
-      console.log('🔍 Searching Firebase database...');
-      for (const ingredient of ingredientNames) {
-        const firebaseRecipes = await searchFirebaseRecipes(ingredient);
-        allRecipes = [...allRecipes, ...firebaseRecipes];
-      }
+      // If no ingredients selected, show random recipes
+      if (selectedIngredients.length === 0) {
+        console.log('🎲 No ingredients selected - fetching random recipes...');
 
-      // Priority 2: TheMealDB (FREE API)
-      console.log('🔍 Searching TheMealDB (FREE)...');
+        // Get random recipes from TheMealDB
+        for (let i = 0; i < 15; i++) {
+          const response = await fetch(`${THEMEALDB_BASE_URL}/random.php`);
+          const data = await response.json();
+          if (data.meals && data.meals[0]) {
+            allRecipes.push(transformMealDBToRecipe(data.meals[0]));
+          }
+        }
 
-      // If filters are selected, use native TheMealDB filtering
-      if (selectedCuisine || selectedDietFilters.length > 0) {
-        const filteredMeals = await searchTheMealDBWithFilters();
-        allRecipes = [...allRecipes, ...filteredMeals];
-      }
+        // Also get from Firebase
+        const recipesRef = collection(db, 'recipes');
+        const querySnapshot = await getDocs(recipesRef);
+        const firebaseRecipes: Recipe[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          firebaseRecipes.push({
+            id: data.spoonacularId || parseInt(doc.id),
+            title: data.title,
+            image: data.image,
+            readyInMinutes: data.readyInMinutes || 0,
+            servings: data.servings || 0,
+            pricePerServing: data.pricePerServing || 0,
+            cuisines: data.cuisines || [],
+            diets: data.diets || [],
+            summary: data.summary || '',
+            calories: data.calories || 0,
+            protein: data.protein || 0,
+            carbs: data.carbs || 0,
+            fat: data.fat || 0,
+            extendedIngredients: data.extendedIngredients || [],
+            instructions: data.instructions || '',
+            analyzedInstructions: data.analyzedInstructions || [],
+          });
+        });
 
-      // Also search by ingredients
-      for (const ingredient of ingredientNames.slice(0, 3)) {
-        const mealDBRecipes = await searchTheMealDBByIngredient(ingredient);
-        allRecipes = [...allRecipes, ...mealDBRecipes];
-        if (allRecipes.length >= 30) break;
+        // Shuffle and take random samples from Firebase
+        const shuffledFirebase = firebaseRecipes.sort(() => Math.random() - 0.5).slice(0, 10);
+        allRecipes = [...allRecipes, ...shuffledFirebase];
+      } else {
+        // Original logic when ingredients are selected
+        const ingredientNames = selectedIngredients
+          .map((id) => COMMON_INGREDIENTS.find((i) => i.id === id)?.name)
+          .filter(Boolean);
+
+        // Priority 1: Search Firebase database first
+        console.log('🔍 Searching Firebase database...');
+        for (const ingredient of ingredientNames) {
+          const firebaseRecipes = await searchFirebaseRecipes(ingredient);
+          allRecipes = [...allRecipes, ...firebaseRecipes];
+        }
+
+        // Priority 2: TheMealDB (FREE API)
+        console.log('🔍 Searching TheMealDB (FREE)...');
+
+        // If filters are selected, use native TheMealDB filtering
+        if (selectedCuisine || selectedDietFilters.length > 0) {
+          const filteredMeals = await searchTheMealDBWithFilters();
+          allRecipes = [...allRecipes, ...filteredMeals];
+        }
+
+        // Also search by ingredients
+        for (const ingredient of ingredientNames.slice(0, 3)) {
+          const mealDBRecipes = await searchTheMealDBByIngredient(ingredient);
+          allRecipes = [...allRecipes, ...mealDBRecipes];
+          if (allRecipes.length >= 30) break;
+        }
       }
 
       // SPOONACULAR DISABLED TEMPORARILY
@@ -1137,87 +1177,171 @@ export const DietDashboardScreen = ({ navigation }: any) => {
       {/* Tab Content */}
       {searchMode === 'ingredients' ? (
         <View style={styles.tabContent}>
-          {/* Simplified Filters - Always Visible */}
-          <View style={styles.simpleFiltersContainer}>
-            <View style={styles.filterRow}>
-              <Text style={styles.filterLabel}>🍽️ Meal Type</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterOptions}>
-                {TYPE_FILTERS.map((filter) => (
-                  <TouchableOpacity
-                    key={filter.id}
-                    style={[
-                      styles.simpleFilterChip,
-                      selectedRecipeType === filter.id && styles.simpleFilterChipActive,
-                    ]}
-                    onPress={() => setSelectedRecipeType(selectedRecipeType === filter.id ? '' : filter.id)}
-                  >
-                    <Text style={styles.simpleFilterIcon}>{filter.icon}</Text>
-                    <Text style={[
-                      styles.simpleFilterText,
-                      selectedRecipeType === filter.id && styles.simpleFilterTextActive,
-                    ]}>
-                      {filter.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
+          {/* Simple Filter Button with Active Filters Display */}
+          <View style={styles.filterButtonContainer}>
+            <TouchableOpacity
+              style={styles.mainFilterButton}
+              onPress={() => setShowFilters(!showFilters)}
+            >
+              <Ionicons name="options-outline" size={22} color={colors.diet} />
+              <Text style={styles.mainFilterButtonText}>Filters</Text>
+              {(selectedDietFilters.length > 0 || selectedCuisine || selectedRecipeType) && (
+                <View style={styles.filterCountBadge2}>
+                  <Text style={styles.filterCountText2}>
+                    {selectedDietFilters.length + (selectedCuisine ? 1 : 0) + (selectedRecipeType ? 1 : 0)}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
 
-            <View style={styles.filterRow}>
-              <Text style={styles.filterLabel}>🌍 Cuisine</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterOptions}>
-                {CUISINE_FILTERS.map((filter) => (
-                  <TouchableOpacity
-                    key={filter.id}
-                    style={[
-                      styles.simpleFilterChip,
-                      selectedCuisine === filter.id && styles.simpleFilterChipActive,
-                    ]}
-                    onPress={() => setSelectedCuisine(selectedCuisine === filter.id ? '' : filter.id)}
-                  >
-                    <Text style={styles.simpleFilterIcon}>{filter.icon}</Text>
-                    <Text style={[
-                      styles.simpleFilterText,
-                      selectedCuisine === filter.id && styles.simpleFilterTextActive,
-                    ]}>
-                      {filter.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-
-            <View style={styles.filterRow}>
-              <Text style={styles.filterLabel}>🥗 Diet</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterOptions}>
-                {DIET_FILTERS.map((filter) => (
-                  <TouchableOpacity
-                    key={filter.id}
-                    style={[
-                      styles.simpleFilterChip,
-                      selectedDietFilters.includes(filter.id) && styles.simpleFilterChipActive,
-                    ]}
-                    onPress={() => toggleDietFilter(filter.id)}
-                  >
-                    <Text style={styles.simpleFilterIcon}>{filter.icon}</Text>
-                    <Text style={[
-                      styles.simpleFilterText,
-                      selectedDietFilters.includes(filter.id) && styles.simpleFilterTextActive,
-                    ]}>
-                      {filter.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-
+            {/* Active Filters Display */}
             {(selectedDietFilters.length > 0 || selectedCuisine || selectedRecipeType) && (
-              <TouchableOpacity style={styles.clearAllButton} onPress={clearFilters}>
-                <Ionicons name="close-circle" size={18} color={colors.error} />
-                <Text style={styles.clearAllText}>Clear all filters</Text>
-              </TouchableOpacity>
+              <View style={styles.activeFiltersRow}>
+                {selectedRecipeType && (
+                  <View style={styles.activeFilterChip}>
+                    <Text style={styles.activeFilterChipText}>
+                      {TYPE_FILTERS.find(f => f.id === selectedRecipeType)?.label}
+                    </Text>
+                    <TouchableOpacity onPress={() => setSelectedRecipeType('')}>
+                      <Ionicons name="close-circle" size={16} color={colors.diet} />
+                    </TouchableOpacity>
+                  </View>
+                )}
+                {selectedCuisine && (
+                  <View style={styles.activeFilterChip}>
+                    <Text style={styles.activeFilterChipText}>
+                      {CUISINE_FILTERS.find(f => f.id === selectedCuisine)?.label}
+                    </Text>
+                    <TouchableOpacity onPress={() => setSelectedCuisine('')}>
+                      <Ionicons name="close-circle" size={16} color={colors.diet} />
+                    </TouchableOpacity>
+                  </View>
+                )}
+                {selectedDietFilters.map((filterId) => (
+                  <View key={filterId} style={styles.activeFilterChip}>
+                    <Text style={styles.activeFilterChipText}>
+                      {DIET_FILTERS.find(f => f.id === filterId)?.label}
+                    </Text>
+                    <TouchableOpacity onPress={() => toggleDietFilter(filterId)}>
+                      <Ionicons name="close-circle" size={16} color={colors.diet} />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+                <TouchableOpacity onPress={clearFilters} style={styles.clearAllChip}>
+                  <Text style={styles.clearAllChipText}>Clear all</Text>
+                </TouchableOpacity>
+              </View>
             )}
           </View>
+
+          {/* Filter Modal/Panel */}
+          <Modal
+            visible={showFilters}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setShowFilters(false)}
+          >
+            <View style={styles.filterModalOverlay}>
+              <View style={styles.filterModalContent}>
+                <View style={styles.filterModalHeader}>
+                  <Text style={styles.filterModalTitle}>Filter Recipes</Text>
+                  <TouchableOpacity onPress={() => setShowFilters(false)}>
+                    <Ionicons name="close" size={28} color={colors.text} />
+                  </TouchableOpacity>
+                </View>
+
+                <ScrollView style={styles.filterModalScroll}>
+                  {/* Meal Type Section */}
+                  <View style={styles.filterSection}>
+                    <Text style={styles.filterSectionTitle}>🍽️ Meal Type</Text>
+                    <View style={styles.filterGrid}>
+                      {TYPE_FILTERS.map((filter) => (
+                        <TouchableOpacity
+                          key={filter.id}
+                          style={[
+                            styles.filterGridItem,
+                            selectedRecipeType === filter.id && styles.filterGridItemActive,
+                          ]}
+                          onPress={() => setSelectedRecipeType(selectedRecipeType === filter.id ? '' : filter.id)}
+                        >
+                          <Text style={styles.filterGridIcon}>{filter.icon}</Text>
+                          <Text style={[
+                            styles.filterGridLabel,
+                            selectedRecipeType === filter.id && styles.filterGridLabelActive,
+                          ]}>
+                            {filter.label}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Cuisine Section */}
+                  <View style={styles.filterSection}>
+                    <Text style={styles.filterSectionTitle}>🌍 Cuisine</Text>
+                    <View style={styles.filterGrid}>
+                      {CUISINE_FILTERS.map((filter) => (
+                        <TouchableOpacity
+                          key={filter.id}
+                          style={[
+                            styles.filterGridItem,
+                            selectedCuisine === filter.id && styles.filterGridItemActive,
+                          ]}
+                          onPress={() => setSelectedCuisine(selectedCuisine === filter.id ? '' : filter.id)}
+                        >
+                          <Text style={styles.filterGridIcon}>{filter.icon}</Text>
+                          <Text style={[
+                            styles.filterGridLabel,
+                            selectedCuisine === filter.id && styles.filterGridLabelActive,
+                          ]}>
+                            {filter.label}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+
+                  {/* Diet Section */}
+                  <View style={styles.filterSection}>
+                    <Text style={styles.filterSectionTitle}>🥗 Diet</Text>
+                    <View style={styles.filterGrid}>
+                      {DIET_FILTERS.map((filter) => (
+                        <TouchableOpacity
+                          key={filter.id}
+                          style={[
+                            styles.filterGridItem,
+                            selectedDietFilters.includes(filter.id) && styles.filterGridItemActive,
+                          ]}
+                          onPress={() => toggleDietFilter(filter.id)}
+                        >
+                          <Text style={styles.filterGridIcon}>{filter.icon}</Text>
+                          <Text style={[
+                            styles.filterGridLabel,
+                            selectedDietFilters.includes(filter.id) && styles.filterGridLabelActive,
+                          ]}>
+                            {filter.label}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                </ScrollView>
+
+                {/* Modal Footer */}
+                <View style={styles.filterModalFooter}>
+                  <TouchableOpacity style={styles.filterClearButton} onPress={clearFilters}>
+                    <Text style={styles.filterClearButtonText}>Clear All</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={styles.filterApplyButton}
+                    onPress={() => setShowFilters(false)}
+                  >
+                    <Text style={styles.filterApplyButtonText}>Apply Filters</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
 
       {/* Ingredient Selection */}
       <View style={styles.ingredientSection}>
@@ -1258,18 +1382,19 @@ export const DietDashboardScreen = ({ navigation }: any) => {
         </ScrollView>
       </View>
 
-      {/* Search Button */}
-      {selectedIngredients.length > 0 && (
-        <TouchableOpacity
-          style={styles.searchByIngredientsButton}
-          onPress={searchByIngredients}
-        >
-          <Ionicons name="search" size={20} color="white" />
-          <Text style={styles.searchByIngredientsText}>
-            Find Recipes ({selectedIngredients.length} ingredients)
-          </Text>
-        </TouchableOpacity>
-      )}
+      {/* Search Button - Always Visible */}
+      <TouchableOpacity
+        style={styles.searchByIngredientsButton}
+        onPress={searchByIngredients}
+        disabled={loading}
+      >
+        <Ionicons name="search" size={20} color="white" />
+        <Text style={styles.searchByIngredientsText}>
+          {selectedIngredients.length > 0
+            ? `Find Recipes (${selectedIngredients.length} ingredients)`
+            : 'Browse Random Recipes'}
+        </Text>
+      </TouchableOpacity>
 
       {/* Text Search - OPTIONAL/SECONDARY */}
       <TouchableOpacity
@@ -3816,5 +3941,192 @@ const styles = StyleSheet.create({
   },
   ingredientSection: {
     marginBottom: spacing.md,
+  },
+  // New Filter Modal Styles
+  filterButtonContainer: {
+    marginBottom: spacing.md,
+  },
+  mainFilterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.diet + '30',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  mainFilterButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.diet,
+  },
+  filterCountBadge2: {
+    backgroundColor: colors.diet,
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+  },
+  filterCountText2: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: 'white',
+  },
+  activeFiltersRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: spacing.sm,
+  },
+  activeFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: colors.diet + '15',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.diet,
+  },
+  activeFilterChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.diet,
+  },
+  clearAllChip: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: '#FFF5F5',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.error + '40',
+  },
+  clearAllChipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.error,
+  },
+  filterModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  filterModalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '85%',
+    paddingTop: spacing.lg,
+  },
+  filterModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  filterModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  filterModalScroll: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+  },
+  filterSection: {
+    marginBottom: spacing.lg,
+  },
+  filterSectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: spacing.sm,
+  },
+  filterGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  filterGridItem: {
+    width: '31%',
+    aspectRatio: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#F8F8F8',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E5E5E5',
+  },
+  filterGridItemActive: {
+    backgroundColor: colors.diet + '15',
+    borderColor: colors.diet,
+  },
+  filterGridIcon: {
+    fontSize: 28,
+  },
+  filterGridLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  filterGridLabelActive: {
+    color: colors.diet,
+    fontWeight: '700',
+  },
+  filterModalFooter: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    padding: spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+  },
+  filterClearButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F5F5F5',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E5E5E5',
+  },
+  filterClearButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  filterApplyButton: {
+    flex: 2,
+    paddingVertical: spacing.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.diet,
+    borderRadius: 12,
+    shadowColor: colors.diet,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  filterApplyButtonText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: 'white',
   },
 });
