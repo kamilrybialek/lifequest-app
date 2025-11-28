@@ -154,6 +154,28 @@ export const DietDashboardScreen = ({ navigation }: any) => {
   const [mealsPerDay, setMealsPerDay] = useState(3);
   const [daysToGenerate, setDaysToGenerate] = useState(7);
   const [preferredCuisines, setPreferredCuisines] = useState<string[]>([]);
+  const [aiPlannerIngredients, setAiPlannerIngredients] = useState<string[]>([]); // New: AI planner ingredients
+
+  // Promo modal state
+  const [showPromoModal, setShowPromoModal] = useState(false);
+
+  // Check if first time visiting and show promo
+  useEffect(() => {
+    const checkFirstVisit = async () => {
+      try {
+        const hasSeenPromo = await AsyncStorage.getItem('hasSeenAIPlannerPromo');
+        if (!hasSeenPromo) {
+          // Show promo after a short delay
+          setTimeout(() => {
+            setShowPromoModal(true);
+          }, 1000);
+        }
+      } catch (error) {
+        console.error('Error checking first visit:', error);
+      }
+    };
+    checkFirstVisit();
+  }, []);
 
   // Calculate total costs
   const totalWeeklyCost = mealPlan.reduce((sum, item) => {
@@ -1140,6 +1162,57 @@ export const DietDashboardScreen = ({ navigation }: any) => {
               </View>
             </View>
 
+            {/* Ingredient Selection for AI */}
+            <View style={styles.aiIngredientSection}>
+              <Text style={styles.aiIngredientTitle}>
+                🥘 Select 5-10 base ingredients:
+              </Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.aiIngredientScroll}
+              >
+                {COMMON_INGREDIENTS.slice(0, 15).map((ingredient) => {
+                  const isSelected = aiPlannerIngredients.includes(ingredient.id);
+                  const canSelect = aiPlannerIngredients.length < 10;
+                  return (
+                    <TouchableOpacity
+                      key={ingredient.id}
+                      style={[
+                        styles.aiIngredientChip,
+                        isSelected && styles.aiIngredientChipSelected,
+                        !canSelect && !isSelected && styles.aiIngredientChipDisabled,
+                      ]}
+                      onPress={() => {
+                        if (isSelected) {
+                          setAiPlannerIngredients(aiPlannerIngredients.filter((id) => id !== ingredient.id));
+                        } else if (canSelect) {
+                          setAiPlannerIngredients([...aiPlannerIngredients, ingredient.id]);
+                        }
+                      }}
+                      disabled={!canSelect && !isSelected}
+                    >
+                      <Text style={styles.aiIngredientIcon}>{ingredient.icon}</Text>
+                      <Text
+                        style={[
+                          styles.aiIngredientLabel,
+                          isSelected && styles.aiIngredientLabelSelected,
+                        ]}
+                      >
+                        {ingredient.name}
+                      </Text>
+                      {isSelected && (
+                        <Ionicons name="checkmark-circle" size={16} color={colors.diet} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+              <Text style={styles.aiIngredientCount}>
+                {aiPlannerIngredients.length}/10 selected
+              </Text>
+            </View>
+
             {/* Quick Stats */}
             <View style={styles.aiPlannerStats}>
               <View style={styles.aiPlannerStat}>
@@ -1152,27 +1225,38 @@ export const DietDashboardScreen = ({ navigation }: any) => {
               </View>
               <View style={styles.aiPlannerStat}>
                 <Ionicons name="leaf" size={18} color={colors.diet} />
-                <Text style={styles.aiPlannerStatText}>Your ingredients</Text>
+                <Text style={styles.aiPlannerStatText}>{aiPlannerIngredients.length} ingredients</Text>
               </View>
             </View>
 
             {/* Generate Button */}
             <TouchableOpacity
-              style={styles.aiGenerateButton}
+              style={[
+                styles.aiGenerateButton,
+                aiPlannerIngredients.length < 5 && styles.aiGenerateButtonDisabled,
+              ]}
               onPress={() => {
-                setPlannerStep(1);
-                setShowAutoPlanner(true);
+                if (aiPlannerIngredients.length >= 5) {
+                  setPlannerStep(1);
+                  setShowAutoPlanner(true);
+                }
               }}
-              disabled={plannerLoading}
+              disabled={plannerLoading || aiPlannerIngredients.length < 5}
             >
               <Ionicons name="flash" size={20} color="white" />
-              <Text style={styles.aiGenerateButtonText}>Create Meal Plan</Text>
-              <Ionicons name="arrow-forward" size={18} color="white" />
+              <Text style={styles.aiGenerateButtonText}>
+                {aiPlannerIngredients.length < 5
+                  ? `Select ${5 - aiPlannerIngredients.length} more ingredients`
+                  : 'Create Meal Plan'}
+              </Text>
+              {aiPlannerIngredients.length >= 5 && (
+                <Ionicons name="arrow-forward" size={18} color="white" />
+              )}
             </TouchableOpacity>
 
             {/* Info */}
             <Text style={styles.aiPlannerInfo}>
-              ✨ AI will suggest recipes based on your dietary preferences, selected ingredients, and favorite cuisines
+              ✨ AI will suggest recipes based on your selected ingredients, dietary preferences, and favorite cuisines
             </Text>
           </View>
         </View>
@@ -1246,6 +1330,94 @@ export const DietDashboardScreen = ({ navigation }: any) => {
       </TouchableOpacity>
     </View>
   );
+
+  // Render Promo Modal (First Time Only)
+  const renderPromoModal = () => {
+    const handleDismiss = async () => {
+      try {
+        await AsyncStorage.setItem('hasSeenAIPlannerPromo', 'true');
+        setShowPromoModal(false);
+      } catch (error) {
+        console.error('Error saving promo state:', error);
+      }
+    };
+
+    const handleTryIt = async () => {
+      try {
+        await AsyncStorage.setItem('hasSeenAIPlannerPromo', 'true');
+        setShowPromoModal(false);
+        setSearchMode('ai'); // Switch to AI tab
+      } catch (error) {
+        console.error('Error saving promo state:', error);
+      }
+    };
+
+    return (
+      <Modal
+        visible={showPromoModal}
+        transparent
+        animationType="fade"
+        onRequestClose={handleDismiss}
+      >
+        <View style={styles.promoOverlay}>
+          <View style={styles.promoModal}>
+            {/* Header with gradient background */}
+            <View style={styles.promoHeader}>
+              <View style={styles.promoIconBig}>
+                <Ionicons name="sparkles" size={48} color="white" />
+              </View>
+            </View>
+
+            {/* Content */}
+            <View style={styles.promoContent}>
+              <Text style={styles.promoTitle}>✨ Introducing AI Meal Planner</Text>
+              <Text style={styles.promoDescription}>
+                Let AI create your perfect weekly meal plan in seconds!
+              </Text>
+
+              {/* Features */}
+              <View style={styles.promoFeatures}>
+                <View style={styles.promoFeature}>
+                  <View style={styles.promoFeatureIcon}>
+                    <Ionicons name="restaurant" size={20} color={colors.diet} />
+                  </View>
+                  <Text style={styles.promoFeatureText}>
+                    Personalized recipes based on your ingredients
+                  </Text>
+                </View>
+                <View style={styles.promoFeature}>
+                  <View style={styles.promoFeatureIcon}>
+                    <Ionicons name="nutrition" size={20} color={colors.diet} />
+                  </View>
+                  <Text style={styles.promoFeatureText}>
+                    Matches your dietary preferences
+                  </Text>
+                </View>
+                <View style={styles.promoFeature}>
+                  <View style={styles.promoFeatureIcon}>
+                    <Ionicons name="calendar" size={20} color={colors.diet} />
+                  </View>
+                  <Text style={styles.promoFeatureText}>
+                    Complete 3-7 day meal plans
+                  </Text>
+                </View>
+              </View>
+
+              {/* Buttons */}
+              <TouchableOpacity style={styles.promoButtonPrimary} onPress={handleTryIt}>
+                <Ionicons name="flash" size={20} color="white" />
+                <Text style={styles.promoButtonPrimaryText}>Try It Now</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity style={styles.promoButtonSecondary} onPress={handleDismiss}>
+                <Text style={styles.promoButtonSecondaryText}>Maybe Later</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
 
   // Render Auto Meal Planner Modal
   const renderAutoMealPlannerModal = () => {
@@ -1473,7 +1645,6 @@ export const DietDashboardScreen = ({ navigation }: any) => {
   // Render Meal Planner Tab
   const renderMealPlanner = () => (
     <ScrollView style={styles.tabContent}>
-      {renderAutoMealPlannerButton()}
       {renderRecipeSearch()}
 
       <View style={styles.plannerSection}>
@@ -1932,6 +2103,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
       {renderRecipeModal()}
       {renderPortionModal()}
       {renderAutoMealPlannerModal()}
+      {renderPromoModal()}
     </View>
   );
 };
@@ -2166,6 +2338,164 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 16,
+  },
+  aiGenerateButtonDisabled: {
+    opacity: 0.5,
+  },
+  // AI Ingredient Selection Styles
+  aiIngredientSection: {
+    marginBottom: spacing.lg,
+  },
+  aiIngredientTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: spacing.sm,
+  },
+  aiIngredientScroll: {
+    paddingRight: spacing.lg,
+    gap: spacing.sm,
+  },
+  aiIngredientChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: '#E5E5E5',
+    marginRight: spacing.sm,
+  },
+  aiIngredientChipSelected: {
+    backgroundColor: colors.diet + '15',
+    borderColor: colors.diet,
+  },
+  aiIngredientChipDisabled: {
+    opacity: 0.4,
+  },
+  aiIngredientIcon: {
+    fontSize: 18,
+  },
+  aiIngredientLabel: {
+    fontSize: 13,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  aiIngredientLabelSelected: {
+    color: colors.diet,
+    fontWeight: '700',
+  },
+  aiIngredientCount: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  // Promo Modal Styles
+  promoOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.lg,
+  },
+  promoModal: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    width: '100%',
+    maxWidth: 400,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  promoHeader: {
+    backgroundColor: colors.diet,
+    paddingVertical: spacing.xl,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  promoIconBig: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  promoContent: {
+    padding: spacing.xl,
+  },
+  promoTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: spacing.sm,
+  },
+  promoDescription: {
+    fontSize: 15,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: spacing.lg,
+  },
+  promoFeatures: {
+    gap: spacing.md,
+    marginBottom: spacing.xl,
+  },
+  promoFeature: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  promoFeatureIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: colors.diet + '15',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  promoFeatureText: {
+    flex: 1,
+    fontSize: 14,
+    color: colors.text,
+    lineHeight: 20,
+  },
+  promoButtonPrimary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.diet,
+    paddingVertical: spacing.md,
+    borderRadius: 12,
+    marginBottom: spacing.sm,
+    shadowColor: colors.diet,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  promoButtonPrimaryText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: 'white',
+  },
+  promoButtonSecondary: {
+    paddingVertical: spacing.sm,
+    alignItems: 'center',
+  },
+  promoButtonSecondaryText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
   },
   searchTitle: {
     fontSize: 16,
