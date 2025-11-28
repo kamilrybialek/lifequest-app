@@ -139,7 +139,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
 
   // Filter state
   const [selectedDietFilters, setSelectedDietFilters] = useState<string[]>([]);
-  const [selectedType, setSelectedType] = useState<string>('');
+  const [selectedMealType, setSelectedMealType] = useState<string>('');
   const [selectedCuisine, setSelectedCuisine] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
 
@@ -196,7 +196,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
   // Clear all filters
   const clearFilters = () => {
     setSelectedDietFilters([]);
-    setSelectedType('');
+    setSelectedMealType('');
     setSelectedCuisine('');
   };
 
@@ -1137,173 +1137,126 @@ export const DietDashboardScreen = ({ navigation }: any) => {
       {/* Tab Content */}
       {searchMode === 'ingredients' ? (
         <View style={styles.tabContent}>
-          {/* Filters Button - Compact */}
-          <View style={styles.compactFilterHeader}>
-            <Text style={styles.tabContentTitle}>Find recipes with your ingredients</Text>
-            <TouchableOpacity
-              style={styles.compactFilterButton}
-              onPress={() => setShowFilters(!showFilters)}
-            >
-              <Ionicons
-                name="options"
-                size={18}
-                color={colors.diet}
-              />
-              <Text style={styles.compactFilterButtonText}>Filters</Text>
-              {(selectedDietFilters.length > 0 || selectedCuisine) && (
-                <View style={styles.compactFilterBadge}>
-                  <Text style={styles.compactFilterBadgeText}>
-                    {selectedDietFilters.length + (selectedCuisine ? 1 : 0)}
-                  </Text>
-                </View>
-              )}
-            </TouchableOpacity>
-          </View>
+          {/* Simplified Filters - Always Visible */}
+          <View style={styles.simpleFiltersContainer}>
+            <View style={styles.filterRow}>
+              <Text style={styles.filterLabel}>🍽️ Meal Type</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterOptions}>
+                {TYPE_FILTERS.map((filter) => (
+                  <TouchableOpacity
+                    key={filter.id}
+                    style={[
+                      styles.simpleFilterChip,
+                      selectedMealType === filter.id && styles.simpleFilterChipActive,
+                    ]}
+                    onPress={() => setSelectedMealType(selectedMealType === filter.id ? '' : filter.id)}
+                  >
+                    <Text style={styles.simpleFilterIcon}>{filter.icon}</Text>
+                    <Text style={[
+                      styles.simpleFilterText,
+                      selectedMealType === filter.id && styles.simpleFilterTextActive,
+                    ]}>
+                      {filter.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
 
-      {/* Filters Section - Redesigned */}
-      {showFilters && (
-        <View style={styles.filtersContainer}>
-          {/* Active Filters Summary */}
-          {(selectedDietFilters.length > 0 || selectedCuisine) && (
-            <View style={styles.activeFiltersHeader}>
-              <View style={styles.activeFiltersBadge}>
-                <Ionicons name="funnel" size={16} color={colors.diet} />
-                <Text style={styles.activeFiltersCount}>
-                  {selectedDietFilters.length + (selectedCuisine ? 1 : 0)} active
-                </Text>
-              </View>
-              <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters}>
+            <View style={styles.filterRow}>
+              <Text style={styles.filterLabel}>🌍 Cuisine</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterOptions}>
+                {CUISINE_FILTERS.map((filter) => (
+                  <TouchableOpacity
+                    key={filter.id}
+                    style={[
+                      styles.simpleFilterChip,
+                      selectedCuisine === filter.id && styles.simpleFilterChipActive,
+                    ]}
+                    onPress={() => setSelectedCuisine(selectedCuisine === filter.id ? '' : filter.id)}
+                  >
+                    <Text style={styles.simpleFilterIcon}>{filter.icon}</Text>
+                    <Text style={[
+                      styles.simpleFilterText,
+                      selectedCuisine === filter.id && styles.simpleFilterTextActive,
+                    ]}>
+                      {filter.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            <View style={styles.filterRow}>
+              <Text style={styles.filterLabel}>🥗 Diet</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterOptions}>
+                {DIET_FILTERS.map((filter) => (
+                  <TouchableOpacity
+                    key={filter.id}
+                    style={[
+                      styles.simpleFilterChip,
+                      selectedDietFilters.includes(filter.id) && styles.simpleFilterChipActive,
+                    ]}
+                    onPress={() => toggleDietFilter(filter.id)}
+                  >
+                    <Text style={styles.simpleFilterIcon}>{filter.icon}</Text>
+                    <Text style={[
+                      styles.simpleFilterText,
+                      selectedDietFilters.includes(filter.id) && styles.simpleFilterTextActive,
+                    ]}>
+                      {filter.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            {(selectedDietFilters.length > 0 || selectedCuisine || selectedMealType) && (
+              <TouchableOpacity style={styles.clearAllButton} onPress={clearFilters}>
                 <Ionicons name="close-circle" size={18} color={colors.error} />
-                <Text style={styles.clearFiltersText}>Clear All</Text>
+                <Text style={styles.clearAllText}>Clear all filters</Text>
               </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Diet Type Filters */}
-          <View style={styles.filterGroup}>
-            <View style={styles.filterGroupHeader}>
-              <Ionicons name="nutrition" size={20} color={colors.diet} />
-              <Text style={styles.filterGroupTitle}>Diet Type</Text>
-              {selectedDietFilters.length > 0 && (
-                <View style={styles.filterCountBadge}>
-                  <Text style={styles.filterCountText}>{selectedDietFilters.length}</Text>
-                </View>
-              )}
-            </View>
-            <View style={styles.filterChipsContainer}>
-              {DIET_FILTERS.map((filter) => (
-                <TouchableOpacity
-                  key={filter.id}
-                  style={[
-                    styles.filterChipNew,
-                    selectedDietFilters.includes(filter.id) && {
-                      backgroundColor: filter.color + '15',
-                      borderColor: filter.color,
-                      borderWidth: 2,
-                    },
-                  ]}
-                  onPress={() => toggleDietFilter(filter.id)}
-                >
-                  <Text style={styles.filterChipIconLarge}>{filter.icon}</Text>
-                  <Text
-                    style={[
-                      styles.filterChipTextNew,
-                      selectedDietFilters.includes(filter.id) && {
-                        color: filter.color,
-                        fontWeight: '700'
-                      },
-                    ]}
-                  >
-                    {filter.label}
-                  </Text>
-                  {selectedDietFilters.includes(filter.id) && (
-                    <Ionicons name="checkmark-circle" size={18} color={filter.color} style={styles.checkIcon} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
+            )}
           </View>
 
-          {/* Cuisine Filters */}
-          <View style={styles.filterGroup}>
-            <View style={styles.filterGroupHeader}>
-              <Ionicons name="globe" size={20} color={colors.diet} />
-              <Text style={styles.filterGroupTitle}>Cuisine</Text>
-              {selectedCuisine && (
-                <View style={styles.filterCountBadge}>
-                  <Text style={styles.filterCountText}>1</Text>
-                </View>
-              )}
-            </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.cuisineScrollContent}
-            >
-              {CUISINE_FILTERS.map((filter) => (
+      {/* Ingredient Selection */}
+      <View style={styles.ingredientSection}>
+        <Text style={styles.ingredientSectionTitle}>🛒 Select Your Ingredients</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.ingredientScroll}
+        >
+          <View style={styles.ingredientsRow}>
+            {COMMON_INGREDIENTS.map((ingredient) => {
+              const isSelected = selectedIngredients.includes(ingredient.id);
+              return (
                 <TouchableOpacity
-                  key={filter.id}
+                  key={ingredient.id}
                   style={[
-                    styles.cuisineChip,
-                    selectedCuisine === filter.id && styles.cuisineChipSelected,
+                    styles.ingredientChip,
+                    isSelected && styles.ingredientChipSelected,
                   ]}
-                  onPress={() => setSelectedCuisine(selectedCuisine === filter.id ? '' : filter.id)}
+                  onPress={() => toggleIngredient(ingredient.id)}
                 >
-                  <Text style={styles.cuisineIcon}>{filter.icon}</Text>
+                  <Text style={styles.ingredientIcon}>{ingredient.icon}</Text>
                   <Text
                     style={[
-                      styles.cuisineLabel,
-                      selectedCuisine === filter.id && styles.cuisineLabelSelected,
+                      styles.ingredientLabel,
+                      isSelected && styles.ingredientLabelSelected,
                     ]}
                   >
-                    {filter.label}
+                    {ingredient.name}
                   </Text>
-                  {selectedCuisine === filter.id && (
+                  {isSelected && (
                     <Ionicons name="checkmark-circle" size={16} color={colors.diet} />
                   )}
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
+              );
+            })}
           </View>
-        </View>
-      )}
-
-      {/* Ingredient Selection - PRIMARY METHOD */}
-      <Text style={styles.ingredientSectionTitle}>Select ingredients you have:</Text>
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.ingredientScroll}
-      >
-        <View style={styles.ingredientsRow}>
-          {COMMON_INGREDIENTS.map((ingredient) => {
-            const isSelected = selectedIngredients.includes(ingredient.id);
-            return (
-              <TouchableOpacity
-                key={ingredient.id}
-                style={[
-                  styles.ingredientChip,
-                  isSelected && styles.ingredientChipSelected,
-                ]}
-                onPress={() => toggleIngredient(ingredient.id)}
-              >
-                <Text style={styles.ingredientIcon}>{ingredient.icon}</Text>
-                <Text
-                  style={[
-                    styles.ingredientLabel,
-                    isSelected && styles.ingredientLabelSelected,
-                  ]}
-                >
-                  {ingredient.name}
-                </Text>
-                {isSelected && (
-                  <Ionicons name="checkmark-circle" size={16} color={colors.diet} />
-                )}
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </ScrollView>
+        </ScrollView>
+      </View>
 
       {/* Search Button */}
       {selectedIngredients.length > 0 && (
@@ -2749,20 +2702,20 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   recipeCard: {
-    width: 160,
+    width: 220,
     marginRight: spacing.md,
     backgroundColor: 'white',
-    borderRadius: 12,
+    borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
   },
   recipeImage: {
     width: '100%',
-    height: 120,
+    height: 160,
     backgroundColor: '#E5E5E5',
   },
   recipeTitle: {
@@ -3793,5 +3746,75 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: colors.textSecondary,
+  },
+  // Simplified Filters Styles
+  simpleFiltersContainer: {
+    backgroundColor: '#FAFAFA',
+    borderRadius: 16,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+    gap: spacing.md,
+  },
+  filterRow: {
+    gap: spacing.sm,
+  },
+  filterLabel: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: spacing.xs,
+  },
+  filterOptions: {
+    flexGrow: 0,
+  },
+  simpleFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    marginRight: 8,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: '#E5E5E5',
+  },
+  simpleFilterChipActive: {
+    backgroundColor: colors.diet + '15',
+    borderColor: colors.diet,
+    borderWidth: 2,
+  },
+  simpleFilterIcon: {
+    fontSize: 16,
+  },
+  simpleFilterText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: colors.textSecondary,
+  },
+  simpleFilterTextActive: {
+    color: colors.diet,
+    fontWeight: '700',
+  },
+  clearAllButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    backgroundColor: '#FFF5F5',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.error + '30',
+    alignSelf: 'center',
+  },
+  clearAllText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.error,
+  },
+  ingredientSection: {
+    marginBottom: spacing.md,
   },
 });
