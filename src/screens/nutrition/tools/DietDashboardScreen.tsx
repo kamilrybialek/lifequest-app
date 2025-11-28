@@ -404,10 +404,13 @@ export const DietDashboardScreen = ({ navigation }: any) => {
         new Map(allRecipes.map(recipe => [recipe.title.toLowerCase(), recipe])).values()
       );
 
-      console.log(`✅ Found ${uniqueRecipes.length} unique recipes`);
-      setSearchResults(uniqueRecipes);
+      // Randomize results to show different recipes each time
+      const shuffledRecipes = uniqueRecipes.sort(() => Math.random() - 0.5);
 
-      if (uniqueRecipes.length === 0) {
+      console.log(`✅ Found ${shuffledRecipes.length} unique recipes`);
+      setSearchResults(shuffledRecipes);
+
+      if (shuffledRecipes.length === 0) {
         Alert.alert('No Results', 'No recipes found with the selected ingredients. Try different ingredients!');
       }
     } catch (error) {
@@ -487,10 +490,13 @@ export const DietDashboardScreen = ({ navigation }: any) => {
         new Map(allRecipes.map(recipe => [recipe.title.toLowerCase(), recipe])).values()
       );
 
-      console.log(`✅ Found ${uniqueRecipes.length} unique recipes`);
-      setSearchResults(uniqueRecipes);
+      // Randomize results to show different recipes each time
+      const shuffledRecipes = uniqueRecipes.sort(() => Math.random() - 0.5);
 
-      if (uniqueRecipes.length === 0) {
+      console.log(`✅ Found ${shuffledRecipes.length} unique recipes`);
+      setSearchResults(shuffledRecipes);
+
+      if (shuffledRecipes.length === 0) {
         Alert.alert('No Results', `No recipes found for "${query}". Try a different search term!`);
       }
     } catch (error) {
@@ -662,41 +668,62 @@ export const DietDashboardScreen = ({ navigation }: any) => {
 
   // Generate shopping list from meal plan
   const generateShoppingList = async (meals: MealPlanItem[]) => {
+    // Common pantry items to exclude from shopping list
+    const PANTRY_ITEMS = [
+      'salt', 'pepper', 'black pepper', 'white pepper',
+      'water', 'ice', 'ice cubes',
+      'oil', 'olive oil', 'vegetable oil', 'canola oil', 'cooking oil',
+      'sugar', 'white sugar', 'brown sugar',
+      'flour', 'all-purpose flour',
+      'baking powder', 'baking soda',
+      'vanilla', 'vanilla extract',
+      'oregano', 'basil', 'thyme', 'rosemary', 'parsley',
+      'cumin', 'paprika', 'chili powder', 'cayenne pepper',
+      'garlic powder', 'onion powder',
+      'cinnamon', 'nutmeg', 'ginger',
+      'bay leaf', 'bay leaves',
+      'red pepper flakes', 'crushed red pepper',
+      'italian seasoning', 'herbs de provence',
+      'seasoning', 'spices', 'spice',
+    ];
+
     // Group ingredients by name
     const ingredientMap = new Map<string, ShoppingListItem>();
 
     for (const meal of meals) {
-      try {
-        const response = await fetch(
-          `${SPOONACULAR_BASE_URL}/recipes/${meal.recipeId}/ingredientWidget.json?apiKey=${SPOONACULAR_API_KEY}`
+      // Use extendedIngredients from recipe data instead of Spoonacular API
+      const ingredients = meal.recipe.extendedIngredients || [];
+
+      ingredients.forEach((ingredient: any) => {
+        const ingredientName = ingredient.name || ingredient.original || '';
+        const key = ingredientName.toLowerCase();
+
+        // Skip pantry items
+        const isPantryItem = PANTRY_ITEMS.some(item =>
+          key.includes(item) || item.includes(key)
         );
+        if (isPantryItem) {
+          console.log(`🚫 Skipping pantry item: ${ingredientName}`);
+          return;
+        }
 
-        if (response.ok) {
-          const data = await response.json();
+        const amount = ingredient.amount || 0;
+        const unit = ingredient.unit || '';
 
-          data.ingredients?.forEach((ingredient: any) => {
-            const key = ingredient.name.toLowerCase();
-            const amountForPortions = (ingredient.amount.metric.value / meal.recipe.servings) * meal.portions;
-
-            if (ingredientMap.has(key)) {
-              const existing = ingredientMap.get(key)!;
-              existing.amount += amountForPortions;
-              existing.estimatedCost += (ingredient.estimatedCost?.value || 0) * meal.portions;
-            } else {
-              ingredientMap.set(key, {
-                id: `ingredient-${key}`,
-                name: ingredient.name,
-                amount: amountForPortions,
-                unit: ingredient.amount.metric.unit,
-                aisle: ingredient.aisle || 'Other',
-                estimatedCost: (ingredient.estimatedCost?.value || 0) * meal.portions,
-              });
-            }
+        if (ingredientMap.has(key)) {
+          const existing = ingredientMap.get(key)!;
+          existing.amount += amount * meal.portions;
+        } else {
+          ingredientMap.set(key, {
+            id: `ingredient-${key}`,
+            name: ingredientName,
+            amount: amount * meal.portions,
+            unit: unit,
+            aisle: 'Groceries',
+            estimatedCost: 0, // Cost calculation not available without Spoonacular
           });
         }
-      } catch (error) {
-        console.error('Error fetching ingredients:', error);
-      }
+      });
     }
 
     setShoppingList(Array.from(ingredientMap.values()));
@@ -1708,25 +1735,39 @@ export const DietDashboardScreen = ({ navigation }: any) => {
                 {mealsForType.length === 0 ? (
                   <Text style={styles.emptyMealText}>No meal planned</Text>
                 ) : (
-                  mealsForType.map((meal) => (
-                    <View key={meal.id} style={styles.mealCard}>
-                      <Image source={{ uri: meal.recipe.image }} style={styles.mealImage} />
-                      <View style={styles.mealInfo}>
-                        <Text style={styles.mealTitle} numberOfLines={1}>
-                          {meal.recipe.title}
-                        </Text>
-                        <Text style={styles.mealMeta}>
-                          {meal.portions} portions • ${((meal.recipe.pricePerServing * meal.portions) / 100).toFixed(2)}
-                        </Text>
-                      </View>
+                  mealsForType.map((meal) => {
+                    const caloriesPerPortion = meal.recipe.calories
+                      ? Math.round(meal.recipe.calories / (meal.recipe.servings || 1))
+                      : 0;
+
+                    return (
                       <TouchableOpacity
-                        style={styles.removeMealButton}
-                        onPress={() => removeMealFromPlan(meal.id)}
+                        key={meal.id}
+                        style={styles.mealCard}
+                        onPress={() => getRecipeDetails(meal.recipeId)}
+                        activeOpacity={0.7}
                       >
-                        <Ionicons name="trash-outline" size={20} color={colors.error} />
+                        <Image source={{ uri: meal.recipe.image }} style={styles.mealImage} />
+                        <View style={styles.mealInfo}>
+                          <Text style={styles.mealTitle} numberOfLines={1}>
+                            {meal.recipe.title}
+                          </Text>
+                          <Text style={styles.mealMeta}>
+                            {meal.portions} portions • {caloriesPerPortion > 0 ? `${caloriesPerPortion} kcal/portion` : 'N/A'}
+                          </Text>
+                        </View>
+                        <TouchableOpacity
+                          style={styles.removeMealButton}
+                          onPress={(e) => {
+                            e.stopPropagation();
+                            removeMealFromPlan(meal.id);
+                          }}
+                        >
+                          <Ionicons name="trash-outline" size={20} color={colors.error} />
+                        </TouchableOpacity>
                       </TouchableOpacity>
-                    </View>
-                  ))
+                    );
+                  })
                 )}
               </View>
             );
