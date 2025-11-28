@@ -113,7 +113,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, activeTab, o
           <Text style={styles.footerTitle}>🎮 Admin Mode</Text>
           <Text style={styles.footerSubtitle}>Full system access</Text>
         </View>
-        <Text style={styles.version}>v2.1.3-admin</Text>
+        <Text style={styles.version}>alpha 0.2.1</Text>
       </View>
     </>
   );
@@ -360,6 +360,5 @@ const styles = StyleSheet.create({
   // Main Content
   main: {
     flex: 1,
-    overflow: 'hidden',
   },
 });

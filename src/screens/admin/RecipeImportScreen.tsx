@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Image,
   Alert,
+  SafeAreaView,
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
@@ -288,13 +289,18 @@ export default function RecipeImportScreen() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>📥 Recipe Import from Spoonacular</Text>
-        <Text style={styles.subtitle}>
-          Fetch popular recipes and save them to your internal database
-        </Text>
-      </View>
+    <View style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={true}
+      >
+        <View style={styles.header}>
+          <Text style={styles.title}>📥 Recipe Import from Spoonacular</Text>
+          <Text style={styles.subtitle}>
+            Fetch popular recipes and save them to your internal database
+          </Text>
+        </View>
 
       {/* Quick Import Presets */}
       <View style={styles.section}>
@@ -443,16 +449,17 @@ export default function RecipeImportScreen() {
         </View>
       )}
 
-      {/* Stats */}
-      {importedCount > 0 && (
-        <View style={styles.statsCard}>
-          <Text style={styles.statsTitle}>📊 Import Statistics</Text>
-          <Text style={styles.statsText}>
-            Total imported this session: {importedCount} recipes
-          </Text>
-        </View>
-      )}
-    </ScrollView>
+        {/* Stats */}
+        {importedCount > 0 && (
+          <View style={styles.statsCard}>
+            <Text style={styles.statsTitle}>📊 Import Statistics</Text>
+            <Text style={styles.statsText}>
+              Total imported this session: {importedCount} recipes
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
@@ -460,6 +467,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F8F8F8',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: spacing.xl,
   },
   header: {
     padding: spacing.lg,
@@ -490,12 +504,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.md,
+    justifyContent: 'space-between',
   },
   presetCard: {
-    width: '47%',
+    width: '48%',
+    minWidth: 140,
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: spacing.lg,
+    padding: spacing.md,
     alignItems: 'center',
     gap: spacing.sm,
     shadowColor: '#000',
@@ -585,40 +601,45 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    minHeight: 100,
   },
   recipeCardSelected: {
     borderWidth: 3,
     borderColor: colors.diet,
   },
   recipeImage: {
-    width: 120,
-    height: 120,
+    width: 100,
+    height: 100,
+    minWidth: 100,
   },
   recipeInfo: {
     flex: 1,
-    padding: spacing.md,
+    padding: spacing.sm,
     justifyContent: 'space-between',
   },
   recipeTitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '600',
     color: colors.text,
     marginBottom: spacing.xs,
+    lineHeight: 18,
   },
   recipeMeta: {
     flexDirection: 'row',
-    gap: spacing.md,
+    gap: spacing.sm,
+    flexWrap: 'wrap',
   },
   metaText: {
-    fontSize: 12,
+    fontSize: 11,
     color: colors.textSecondary,
   },
   macros: {
     flexDirection: 'row',
-    gap: spacing.md,
+    gap: spacing.sm,
+    flexWrap: 'wrap',
   },
   macroText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: colors.diet,
   },
