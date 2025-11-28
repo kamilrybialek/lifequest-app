@@ -248,46 +248,24 @@ export const DietDashboardScreen = ({ navigation }: any) => {
     };
   };
 
-  // Helper: Filter recipes based on selected filters
+  // Helper: Lightweight client-side filtering for edge cases
+  // Note: Most filtering is done by TheMealDB API natively, this is just backup
   const filterRecipes = (recipes: Recipe[]): Recipe[] => {
     return recipes.filter((recipe) => {
-      // 1. Diet filter check
+      // Only apply strict filtering for diets not supported by TheMealDB natively
       if (selectedDietFilters.length > 0) {
         const title = recipe.title.toLowerCase();
-        const ingredients = recipe.extendedIngredients?.map(i =>
-          (i.name || i.original || '').toLowerCase()
-        ).join(' ') || '';
-        const summary = (recipe.summary || '').toLowerCase();
-        const allText = `${title} ${ingredients} ${summary}`;
 
         for (const dietFilter of selectedDietFilters) {
-          if (dietFilter === 'vegetarian') {
-            // Exclude meat and seafood
-            const meatKeywords = ['beef', 'pork', 'chicken', 'turkey', 'lamb', 'duck', 'bacon',
-              'sausage', 'ham', 'meat', 'fish', 'salmon', 'tuna', 'shrimp', 'seafood', 'prawn',
-              'crab', 'lobster', 'anchovy', 'sardine'];
-            const hasMeat = meatKeywords.some(keyword => allText.includes(keyword));
-            if (hasMeat) {
-              console.log(`🚫 Filtered out non-vegetarian: ${recipe.title}`);
-              return false;
-            }
+          // TheMealDB handles Vegetarian and Vegan natively, so skip strict filtering for those
+          if (dietFilter === 'vegetarian' || dietFilter === 'vegan') {
+            continue;
           }
 
-          if (dietFilter === 'vegan') {
-            // Exclude all animal products
-            const animalKeywords = ['beef', 'pork', 'chicken', 'turkey', 'lamb', 'duck', 'bacon',
-              'sausage', 'ham', 'meat', 'fish', 'salmon', 'tuna', 'shrimp', 'seafood', 'prawn',
-              'egg', 'eggs', 'milk', 'cheese', 'butter', 'cream', 'yogurt', 'honey'];
-            const hasAnimal = animalKeywords.some(keyword => allText.includes(keyword));
-            if (hasAnimal) {
-              console.log(`🚫 Filtered out non-vegan: ${recipe.title}`);
-              return false;
-            }
-          }
-
+          // Only filter for diets NOT supported by TheMealDB (gluten free, keto, etc.)
           if (dietFilter === 'gluten free') {
-            const glutenKeywords = ['wheat', 'flour', 'bread', 'pasta', 'gluten', 'barley', 'rye'];
-            const hasGluten = glutenKeywords.some(keyword => allText.includes(keyword));
+            const glutenKeywords = ['wheat', 'bread', 'pasta'];
+            const hasGluten = glutenKeywords.some(keyword => title.includes(keyword));
             if (hasGluten) {
               console.log(`🚫 Filtered out gluten-containing: ${recipe.title}`);
               return false;
@@ -296,43 +274,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
         }
       }
 
-      // 2. Cuisine filter check
-      if (selectedCuisine) {
-        const recipeCuisines = (recipe.cuisines || []).map(c => c.toLowerCase());
-        const cuisineMatch = recipeCuisines.some(c =>
-          c.includes(selectedCuisine.toLowerCase()) ||
-          selectedCuisine.toLowerCase().includes(c)
-        );
-
-        if (!cuisineMatch) {
-          console.log(`🚫 Filtered out non-${selectedCuisine}: ${recipe.title} (has: ${recipeCuisines.join(', ')})`);
-          return false;
-        }
-      }
-
-      // 3. Ingredient filter check (if using ingredient search)
-      if (selectedIngredients.length > 0) {
-        const recipeIngredients = recipe.extendedIngredients?.map(i =>
-          (i.name || i.original || '').toLowerCase()
-        ) || [];
-
-        const ingredientNames = selectedIngredients
-          .map(id => COMMON_INGREDIENTS.find(i => i.id === id)?.name?.toLowerCase())
-          .filter(Boolean);
-
-        // Recipe should contain at least one of the selected ingredients
-        const hasIngredient = ingredientNames.some(selectedIng =>
-          recipeIngredients.some(recipeIng =>
-            recipeIng.includes(selectedIng) || selectedIng.includes(recipeIng)
-          )
-        );
-
-        if (!hasIngredient) {
-          return false;
-        }
-      }
-
-      return true; // Recipe passes all filters
+      return true; // Recipe passes lightweight filters
     });
   };
 
@@ -387,6 +329,122 @@ export const DietDashboardScreen = ({ navigation }: any) => {
       return [];
     } catch (error) {
       console.error('Error searching TheMealDB:', error);
+      return [];
+    }
+  };
+
+  // Search TheMealDB using NATIVE filters (area, category)
+  const searchTheMealDBWithFilters = async (): Promise<Recipe[]> => {
+    try {
+      let allRecipes: Recipe[] = [];
+
+      // Map our filter IDs to TheMealDB format
+      const dietToCategoryMap: { [key: string]: string } = {
+        'vegetarian': 'Vegetarian',
+        'vegan': 'Vegan',
+      };
+
+      const cuisineToAreaMap: { [key: string]: string } = {
+        'american': 'American',
+        'british': 'British',
+        'canadian': 'Canadian',
+        'chinese': 'Chinese',
+        'croatian': 'Croatian',
+        'dutch': 'Dutch',
+        'egyptian': 'Egyptian',
+        'french': 'French',
+        'greek': 'Greek',
+        'indian': 'Indian',
+        'irish': 'Irish',
+        'italian': 'Italian',
+        'jamaican': 'Jamaican',
+        'japanese': 'Japanese',
+        'kenyan': 'Kenyan',
+        'malaysian': 'Malaysian',
+        'mexican': 'Mexican',
+        'moroccan': 'Moroccan',
+        'polish': 'Polish',
+        'portuguese': 'Portuguese',
+        'russian': 'Russian',
+        'spanish': 'Spanish',
+        'thai': 'Thai',
+        'tunisian': 'Tunisian',
+        'turkish': 'Turkish',
+        'vietnamese': 'Vietnamese',
+      };
+
+      // Priority 1: Filter by cuisine (area) if selected
+      if (selectedCuisine && cuisineToAreaMap[selectedCuisine]) {
+        const area = cuisineToAreaMap[selectedCuisine];
+        console.log(`🔍 TheMealDB: Filtering by area=${area}`);
+        const response = await fetch(`${THEMEALDB_BASE_URL}/filter.php?a=${area}`);
+        const data = await response.json();
+
+        if (data.meals && data.meals.length > 0) {
+          // Fetch full details for each meal
+          const detailedMeals = await Promise.all(
+            data.meals.slice(0, 20).map(async (meal: any) => {
+              const detailResponse = await fetch(`${THEMEALDB_BASE_URL}/lookup.php?i=${meal.idMeal}`);
+              const detailData = await detailResponse.json();
+              return detailData.meals?.[0] ? transformMealDBToRecipe(detailData.meals[0]) : null;
+            })
+          );
+          allRecipes = detailedMeals.filter((meal): meal is Recipe => meal !== null);
+          console.log(`✅ Found ${allRecipes.length} ${area} recipes`);
+        }
+      }
+
+      // Priority 2: Filter by diet category if selected
+      if (selectedDietFilters.length > 0) {
+        for (const dietFilter of selectedDietFilters) {
+          if (dietToCategoryMap[dietFilter]) {
+            const category = dietToCategoryMap[dietFilter];
+            console.log(`🔍 TheMealDB: Filtering by category=${category}`);
+            const response = await fetch(`${THEMEALDB_BASE_URL}/filter.php?c=${category}`);
+            const data = await response.json();
+
+            if (data.meals && data.meals.length > 0) {
+              // Fetch full details for each meal
+              const detailedMeals = await Promise.all(
+                data.meals.slice(0, 20).map(async (meal: any) => {
+                  const detailResponse = await fetch(`${THEMEALDB_BASE_URL}/lookup.php?i=${meal.idMeal}`);
+                  const detailData = await detailResponse.json();
+                  return detailData.meals?.[0] ? transformMealDBToRecipe(detailData.meals[0]) : null;
+                })
+              );
+              const categoryRecipes = detailedMeals.filter((meal): meal is Recipe => meal !== null);
+
+              // If we already have recipes from cuisine filter, find intersection
+              if (allRecipes.length > 0) {
+                const recipeIds = new Set(allRecipes.map(r => r.id));
+                const intersectionRecipes = categoryRecipes.filter(r => recipeIds.has(r.id));
+                console.log(`✅ Found ${intersectionRecipes.length} recipes matching both ${selectedCuisine} and ${category}`);
+                allRecipes = intersectionRecipes;
+              } else {
+                allRecipes = categoryRecipes;
+                console.log(`✅ Found ${allRecipes.length} ${category} recipes`);
+              }
+            }
+          }
+        }
+      }
+
+      // If no filters, or no results yet, get random meals
+      if (allRecipes.length === 0 && !selectedCuisine && selectedDietFilters.length === 0) {
+        console.log('🔍 TheMealDB: No filters, getting random meals');
+        // Get multiple random meals
+        for (let i = 0; i < 10; i++) {
+          const response = await fetch(`${THEMEALDB_BASE_URL}/random.php`);
+          const data = await response.json();
+          if (data.meals && data.meals[0]) {
+            allRecipes.push(transformMealDBToRecipe(data.meals[0]));
+          }
+        }
+      }
+
+      return allRecipes;
+    } catch (error) {
+      console.error('Error searching TheMealDB with filters:', error);
       return [];
     }
   };
@@ -448,10 +506,18 @@ export const DietDashboardScreen = ({ navigation }: any) => {
 
       // Priority 2: TheMealDB (FREE API)
       console.log('🔍 Searching TheMealDB (FREE)...');
+
+      // If filters are selected, use native TheMealDB filtering
+      if (selectedCuisine || selectedDietFilters.length > 0) {
+        const filteredMeals = await searchTheMealDBWithFilters();
+        allRecipes = [...allRecipes, ...filteredMeals];
+      }
+
+      // Also search by ingredients
       for (const ingredient of ingredientNames.slice(0, 3)) {
         const mealDBRecipes = await searchTheMealDBByIngredient(ingredient);
         allRecipes = [...allRecipes, ...mealDBRecipes];
-        if (allRecipes.length >= 20) break;
+        if (allRecipes.length >= 30) break;
       }
 
       // SPOONACULAR DISABLED TEMPORARILY
@@ -528,6 +594,14 @@ export const DietDashboardScreen = ({ navigation }: any) => {
 
       // Priority 2: TheMealDB (FREE API)
       console.log('🔍 Searching TheMealDB (FREE)...');
+
+      // If filters are selected, use native TheMealDB filtering first
+      if (selectedCuisine || selectedDietFilters.length > 0) {
+        const filteredMeals = await searchTheMealDBWithFilters();
+        allRecipes = [...allRecipes, ...filteredMeals];
+      }
+
+      // Also search by text query
       const mealDBRecipes = await searchTheMealDB(query);
       allRecipes = [...allRecipes, ...mealDBRecipes];
 
