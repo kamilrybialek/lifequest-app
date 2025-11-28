@@ -4,6 +4,7 @@ import { AdminLayout } from './AdminLayout';
 import { AdminDashboard } from './AdminDashboard';
 import { AdminUsers } from './AdminUsers';
 import { AdminRecipes } from './AdminRecipes';
+import RecipeImportScreen from './RecipeImportScreen';
 import { AdminLessons } from './AdminLessons';
 import { AdminAnalytics } from './AdminAnalytics';
 import { AdminSettings } from './AdminSettings';
@@ -19,6 +20,8 @@ export const AdminScreen = () => {
         return <AdminUsers />;
       case 'recipes':
         return <AdminRecipes />;
+      case 'import':
+        return <RecipeImportScreen />;
       case 'lessons':
         return <AdminLessons />;
       case 'analytics':
