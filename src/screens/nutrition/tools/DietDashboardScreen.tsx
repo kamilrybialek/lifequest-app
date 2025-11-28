@@ -560,10 +560,8 @@ export const DietDashboardScreen = ({ navigation }: any) => {
         }
       }
 
-      // SPOONACULAR DISABLED TEMPORARILY
-      /*
       // Priority 3: If still not enough, fallback to Spoonacular (PAID - use sparingly)
-      if (allRecipes.length < 5) {
+      if (allRecipes.length < 5 && selectedIngredients.length > 0) {
         console.log('⚠️ Using Spoonacular API (PAID) as fallback...');
         const ingredientNamesStr = ingredientNames.join(',');
         let url = `${SPOONACULAR_BASE_URL}/recipes/findByIngredients?apiKey=${SPOONACULAR_API_KEY}&ingredients=${encodeURIComponent(
@@ -591,7 +589,6 @@ export const DietDashboardScreen = ({ navigation }: any) => {
           allRecipes = [...allRecipes, ...spoonacularRecipes];
         }
       }
-      */
 
       // Remove duplicates based on title
       const uniqueRecipes = Array.from(
@@ -645,8 +642,6 @@ export const DietDashboardScreen = ({ navigation }: any) => {
       const mealDBRecipes = await searchTheMealDB(query);
       allRecipes = [...allRecipes, ...mealDBRecipes];
 
-      // SPOONACULAR DISABLED TEMPORARILY
-      /*
       // Priority 3: If still not enough, fallback to Spoonacular (PAID - use sparingly)
       if (allRecipes.length < 5) {
         console.log('⚠️ Using Spoonacular API (PAID) as fallback...');
@@ -660,8 +655,8 @@ export const DietDashboardScreen = ({ navigation }: any) => {
         }
 
         // Add type filter
-        if (selectedType) {
-          url += `&type=${encodeURIComponent(selectedType)}`;
+        if (selectedRecipeType) {
+          url += `&type=${encodeURIComponent(selectedRecipeType)}`;
         }
 
         // Add cuisine filter
@@ -689,7 +684,6 @@ export const DietDashboardScreen = ({ navigation }: any) => {
           allRecipes = [...allRecipes, ...recipesWithNutrition];
         }
       }
-      */
 
       // Remove duplicates based on title
       const uniqueRecipes = Array.from(
@@ -809,8 +803,6 @@ export const DietDashboardScreen = ({ navigation }: any) => {
         }
       }
 
-      // SPOONACULAR DISABLED TEMPORARILY
-      /*
       // Priority 3: Fallback to Spoonacular (PAID)
       if (!recipe) {
         console.log('⚠️ Using Spoonacular API (PAID) as fallback...');
@@ -839,7 +831,6 @@ export const DietDashboardScreen = ({ navigation }: any) => {
         };
         console.log('✅ Found in Spoonacular');
       }
-      */
 
       setSelectedRecipe(recipe);
       setShowRecipeModal(true);
@@ -1035,8 +1026,6 @@ export const DietDashboardScreen = ({ navigation }: any) => {
             }
           }
 
-          // SPOONACULAR DISABLED TEMPORARILY
-          /*
           // Priority 3: Fallback to Spoonacular (PAID - use sparingly)
           if (!recipe) {
             console.log('⚠️ Using Spoonacular API (PAID) for meal plan...');
@@ -1087,7 +1076,6 @@ export const DietDashboardScreen = ({ navigation }: any) => {
               console.log('✅ Using Spoonacular recipe for meal plan');
             }
           }
-          */
 
           // Add recipe to meal plan if found
           if (recipe) {
