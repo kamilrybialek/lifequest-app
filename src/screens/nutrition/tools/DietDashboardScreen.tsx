@@ -139,7 +139,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
 
   // Filter state
   const [selectedDietFilters, setSelectedDietFilters] = useState<string[]>([]);
-  const [selectedMealType, setSelectedMealType] = useState<string>('');
+  const [selectedRecipeType, setSelectedRecipeType] = useState<string>('');
   const [selectedCuisine, setSelectedCuisine] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
 
@@ -196,7 +196,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
   // Clear all filters
   const clearFilters = () => {
     setSelectedDietFilters([]);
-    setSelectedMealType('');
+    setSelectedRecipeType('');
     setSelectedCuisine('');
   };
 
@@ -1147,14 +1147,14 @@ export const DietDashboardScreen = ({ navigation }: any) => {
                     key={filter.id}
                     style={[
                       styles.simpleFilterChip,
-                      selectedMealType === filter.id && styles.simpleFilterChipActive,
+                      selectedRecipeType === filter.id && styles.simpleFilterChipActive,
                     ]}
-                    onPress={() => setSelectedMealType(selectedMealType === filter.id ? '' : filter.id)}
+                    onPress={() => setSelectedRecipeType(selectedRecipeType === filter.id ? '' : filter.id)}
                   >
                     <Text style={styles.simpleFilterIcon}>{filter.icon}</Text>
                     <Text style={[
                       styles.simpleFilterText,
-                      selectedMealType === filter.id && styles.simpleFilterTextActive,
+                      selectedRecipeType === filter.id && styles.simpleFilterTextActive,
                     ]}>
                       {filter.label}
                     </Text>
@@ -1211,7 +1211,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
               </ScrollView>
             </View>
 
-            {(selectedDietFilters.length > 0 || selectedCuisine || selectedMealType) && (
+            {(selectedDietFilters.length > 0 || selectedCuisine || selectedRecipeType) && (
               <TouchableOpacity style={styles.clearAllButton} onPress={clearFilters}>
                 <Ionicons name="close-circle" size={18} color={colors.error} />
                 <Text style={styles.clearAllText}>Clear all filters</Text>
