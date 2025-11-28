@@ -358,16 +358,16 @@ export const DietDashboardScreen = ({ navigation }: any) => {
         allRecipes = [...allRecipes, ...firebaseRecipes];
       }
 
-      // Priority 2: If not enough results, try TheMealDB (FREE API)
-      if (allRecipes.length < 5) {
-        console.log('🔍 Searching TheMealDB (FREE)...');
-        for (const ingredient of ingredientNames.slice(0, 3)) {
-          const mealDBRecipes = await searchTheMealDBByIngredient(ingredient);
-          allRecipes = [...allRecipes, ...mealDBRecipes];
-          if (allRecipes.length >= 15) break;
-        }
+      // Priority 2: TheMealDB (FREE API)
+      console.log('🔍 Searching TheMealDB (FREE)...');
+      for (const ingredient of ingredientNames.slice(0, 3)) {
+        const mealDBRecipes = await searchTheMealDBByIngredient(ingredient);
+        allRecipes = [...allRecipes, ...mealDBRecipes];
+        if (allRecipes.length >= 20) break;
       }
 
+      // SPOONACULAR DISABLED TEMPORARILY
+      /*
       // Priority 3: If still not enough, fallback to Spoonacular (PAID - use sparingly)
       if (allRecipes.length < 5) {
         console.log('⚠️ Using Spoonacular API (PAID) as fallback...');
@@ -397,6 +397,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
           allRecipes = [...allRecipes, ...spoonacularRecipes];
         }
       }
+      */
 
       // Remove duplicates based on title
       const uniqueRecipes = Array.from(
@@ -430,13 +431,13 @@ export const DietDashboardScreen = ({ navigation }: any) => {
       const firebaseRecipes = await searchFirebaseRecipes(query);
       allRecipes = [...firebaseRecipes];
 
-      // Priority 2: If not enough results, try TheMealDB (FREE API)
-      if (allRecipes.length < 5) {
-        console.log('🔍 Searching TheMealDB (FREE)...');
-        const mealDBRecipes = await searchTheMealDB(query);
-        allRecipes = [...allRecipes, ...mealDBRecipes];
-      }
+      // Priority 2: TheMealDB (FREE API)
+      console.log('🔍 Searching TheMealDB (FREE)...');
+      const mealDBRecipes = await searchTheMealDB(query);
+      allRecipes = [...allRecipes, ...mealDBRecipes];
 
+      // SPOONACULAR DISABLED TEMPORARILY
+      /*
       // Priority 3: If still not enough, fallback to Spoonacular (PAID - use sparingly)
       if (allRecipes.length < 5) {
         console.log('⚠️ Using Spoonacular API (PAID) as fallback...');
@@ -479,6 +480,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
           allRecipes = [...allRecipes, ...recipesWithNutrition];
         }
       }
+      */
 
       // Remove duplicates based on title
       const uniqueRecipes = Array.from(
@@ -587,10 +589,12 @@ export const DietDashboardScreen = ({ navigation }: any) => {
             console.log('✅ Found in TheMealDB');
           }
         } catch (error) {
-          console.log('TheMealDB lookup failed, trying Spoonacular...');
+          console.log('TheMealDB lookup failed');
         }
       }
 
+      // SPOONACULAR DISABLED TEMPORARILY
+      /*
       // Priority 3: Fallback to Spoonacular (PAID)
       if (!recipe) {
         console.log('⚠️ Using Spoonacular API (PAID) as fallback...');
@@ -619,6 +623,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
         };
         console.log('✅ Found in Spoonacular');
       }
+      */
 
       setSelectedRecipe(recipe);
       setShowRecipeModal(true);
@@ -789,10 +794,12 @@ export const DietDashboardScreen = ({ navigation }: any) => {
                 }
               }
             } catch (error) {
-              console.log('TheMealDB failed, trying Spoonacular...');
+              console.log('TheMealDB failed');
             }
           }
 
+          // SPOONACULAR DISABLED TEMPORARILY
+          /*
           // Priority 3: Fallback to Spoonacular (PAID - use sparingly)
           if (!recipe) {
             console.log('⚠️ Using Spoonacular API (PAID) for meal plan...');
@@ -843,6 +850,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
               console.log('✅ Using Spoonacular recipe for meal plan');
             }
           }
+          */
 
           // Add recipe to meal plan if found
           if (recipe) {
