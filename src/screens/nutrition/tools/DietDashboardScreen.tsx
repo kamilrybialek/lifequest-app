@@ -124,6 +124,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
 
   // State
   const [activeTab, setActiveTab] = useState<'planner' | 'shopping' | 'costs'>('planner');
+  const [searchMode, setSearchMode] = useState<'ingredients' | 'ai'>('ingredients'); // New: search mode tabs
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Recipe[]>([]);
   const [mealPlan, setMealPlan] = useState<MealPlanItem[]>([]);
@@ -856,34 +857,81 @@ export const DietDashboardScreen = ({ navigation }: any) => {
     }
   };
 
-  // Render Recipe Search
+  // Render Recipe Search - REDESIGNED
   const renderRecipeSearch = () => (
     <View style={styles.searchSection}>
-      <View style={styles.searchHeader}>
-        <Text style={styles.searchTitle}>🥘 What's in your fridge?</Text>
-        <View style={styles.headerButtons}>
-          <TouchableOpacity
-            style={styles.filterToggleButton}
-            onPress={() => setShowFilters(!showFilters)}
+      {/* Mode Tabs - Clean & Modern */}
+      <View style={styles.modeTabsContainer}>
+        <TouchableOpacity
+          style={[
+            styles.modeTab,
+            searchMode === 'ingredients' && styles.modeTabActive,
+          ]}
+          onPress={() => setSearchMode('ingredients')}
+        >
+          <Ionicons
+            name="basket"
+            size={20}
+            color={searchMode === 'ingredients' ? colors.diet : colors.textSecondary}
+          />
+          <Text
+            style={[
+              styles.modeTabText,
+              searchMode === 'ingredients' && styles.modeTabTextActive,
+            ]}
           >
-            <Ionicons
-              name={showFilters ? "chevron-up" : "filter"}
-              size={20}
-              color={colors.diet}
-            />
-            <Text style={styles.filterToggleText}>
-              {showFilters ? 'Hide' : 'Filters'}
-            </Text>
-            {(selectedDietFilters.length > 0 || selectedType || selectedCuisine) && (
-              <View style={styles.filterBadge}>
-                <Text style={styles.filterBadgeText}>
-                  {selectedDietFilters.length + (selectedType ? 1 : 0) + (selectedCuisine ? 1 : 0)}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-        </View>
+            Ingredient Search
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.modeTab,
+            searchMode === 'ai' && styles.modeTabActive,
+          ]}
+          onPress={() => setSearchMode('ai')}
+        >
+          <Ionicons
+            name="sparkles"
+            size={20}
+            color={searchMode === 'ai' ? colors.diet : colors.textSecondary}
+          />
+          <Text
+            style={[
+              styles.modeTabText,
+              searchMode === 'ai' && styles.modeTabTextActive,
+            ]}
+          >
+            AI Meal Planner
+          </Text>
+        </TouchableOpacity>
       </View>
+
+      {/* Tab Content */}
+      {searchMode === 'ingredients' ? (
+        <View style={styles.tabContent}>
+          {/* Filters Button - Compact */}
+          <View style={styles.compactFilterHeader}>
+            <Text style={styles.tabContentTitle}>Find recipes with your ingredients</Text>
+            <TouchableOpacity
+              style={styles.compactFilterButton}
+              onPress={() => setShowFilters(!showFilters)}
+            >
+              <Ionicons
+                name="options"
+                size={18}
+                color={colors.diet}
+              />
+              <Text style={styles.compactFilterButtonText}>Filters</Text>
+              {(selectedDietFilters.length > 0 || selectedCuisine) && (
+                <View style={styles.compactFilterBadge}>
+                  <Text style={styles.compactFilterBadgeText}>
+                    {selectedDietFilters.length + (selectedCuisine ? 1 : 0)}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
 
       {/* Filters Section - Redesigned */}
       {showFilters && (
@@ -1058,21 +1106,75 @@ export const DietDashboardScreen = ({ navigation }: any) => {
         </Text>
       </TouchableOpacity>
 
-      {showTextSearch && (
-        <View style={styles.searchBar}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search recipes (e.g., chicken, pasta, vegan...)"
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            onSubmitEditing={() => searchRecipes(searchQuery)}
-          />
-          <TouchableOpacity
-            style={styles.searchButton}
-            onPress={() => searchRecipes(searchQuery)}
-          >
-            <Ionicons name="search" size={20} color="white" />
-          </TouchableOpacity>
+          {showTextSearch && (
+            <View style={styles.searchBar}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search recipes (e.g., chicken, pasta, vegan...)"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                onSubmitEditing={() => searchRecipes(searchQuery)}
+              />
+              <TouchableOpacity
+                style={styles.searchButton}
+                onPress={() => searchRecipes(searchQuery)}
+              >
+                <Ionicons name="search" size={20} color="white" />
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      ) : (
+        /* AI Meal Planner Tab */
+        <View style={styles.tabContent}>
+          <View style={styles.aiPlannerCard}>
+            <View style={styles.aiPlannerHeader}>
+              <View style={styles.aiPlannerIconContainer}>
+                <Ionicons name="sparkles" size={32} color="white" />
+              </View>
+              <View style={styles.aiPlannerTextContainer}>
+                <Text style={styles.aiPlannerCardTitle}>Auto Generate Meal Plan</Text>
+                <Text style={styles.aiPlannerCardDescription}>
+                  Let AI create a personalized weekly plan based on your preferences
+                </Text>
+              </View>
+            </View>
+
+            {/* Quick Stats */}
+            <View style={styles.aiPlannerStats}>
+              <View style={styles.aiPlannerStat}>
+                <Ionicons name="calendar" size={18} color={colors.diet} />
+                <Text style={styles.aiPlannerStatText}>3-7 days</Text>
+              </View>
+              <View style={styles.aiPlannerStat}>
+                <Ionicons name="nutrition" size={18} color={colors.diet} />
+                <Text style={styles.aiPlannerStatText}>Your diet type</Text>
+              </View>
+              <View style={styles.aiPlannerStat}>
+                <Ionicons name="leaf" size={18} color={colors.diet} />
+                <Text style={styles.aiPlannerStatText}>Your ingredients</Text>
+              </View>
+            </View>
+
+            {/* Generate Button */}
+            <TouchableOpacity
+              style={styles.aiGenerateButton}
+              onPress={() => {
+                setPlannerStep(1);
+                setShowAutoPlanner(true);
+              }}
+              disabled={plannerLoading}
+            >
+              <Ionicons name="flash" size={20} color="white" />
+              <Text style={styles.aiGenerateButtonText}>Create Meal Plan</Text>
+              <Ionicons name="arrow-forward" size={18} color="white" />
+            </TouchableOpacity>
+
+            {/* Info */}
+            <Text style={styles.aiPlannerInfo}>
+              ✨ AI will suggest recipes based on your dietary preferences, selected ingredients, and favorite cuisines
+            </Text>
+          </View>
         </View>
       )}
 
@@ -1895,9 +1997,175 @@ const styles = StyleSheet.create({
   },
   searchSection: {
     backgroundColor: 'white',
-    padding: spacing.lg,
     borderBottomWidth: 1,
     borderBottomColor: '#E5E5E5',
+  },
+  // New tabbed interface styles
+  modeTabsContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: 4,
+    margin: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  modeTab: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingVertical: spacing.sm,
+    borderRadius: 10,
+  },
+  modeTabActive: {
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  modeTabText: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors.textSecondary,
+  },
+  modeTabTextActive: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.diet,
+  },
+  tabContent: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
+  },
+  compactFilterHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  tabContentTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+    flex: 1,
+  },
+  compactFilterButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    backgroundColor: colors.diet + '10',
+    borderRadius: 8,
+  },
+  compactFilterButtonText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.diet,
+  },
+  compactFilterBadge: {
+    backgroundColor: colors.diet,
+    borderRadius: 10,
+    width: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: spacing.xs,
+  },
+  compactFilterBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'white',
+  },
+  // AI Planner Card Styles
+  aiPlannerCard: {
+    backgroundColor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    borderRadius: 16,
+    padding: spacing.lg,
+    shadowColor: '#667eea',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  aiPlannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
+  aiPlannerIconContainer: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.diet,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: colors.diet,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  aiPlannerTextContainer: {
+    flex: 1,
+  },
+  aiPlannerCardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 4,
+  },
+  aiPlannerCardDescription: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    lineHeight: 18,
+  },
+  aiPlannerStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: spacing.lg,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 12,
+    padding: spacing.md,
+  },
+  aiPlannerStat: {
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  aiPlannerStatText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  aiGenerateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.diet,
+    paddingVertical: spacing.md,
+    borderRadius: 12,
+    marginBottom: spacing.md,
+    shadowColor: colors.diet,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  aiGenerateButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: 'white',
+  },
+  aiPlannerInfo: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 16,
   },
   searchTitle: {
     fontSize: 16,
