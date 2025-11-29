@@ -1171,171 +1171,150 @@ export const DietDashboardScreen = ({ navigation }: any) => {
       {/* Tab Content */}
       {searchMode === 'ingredients' ? (
         <View style={styles.tabContent}>
-          {/* Simple Filter Button with Active Filters Display */}
-          <View style={styles.filterButtonContainer}>
-            <TouchableOpacity
-              style={styles.mainFilterButton}
-              onPress={() => setShowFilters(!showFilters)}
+          {/* Sticky Horizontal Filter Bar */}
+          <View style={styles.stickyFilterBar}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.filterBarContent}
             >
-              <Ionicons name="options-outline" size={22} color={colors.diet} />
-              <Text style={styles.mainFilterButtonText}>Filters</Text>
-              {(selectedDietFilters.length > 0 || selectedCuisine || selectedRecipeType) && (
-                <View style={styles.filterCountBadge2}>
-                  <Text style={styles.filterCountText2}>
-                    {selectedDietFilters.length + (selectedCuisine ? 1 : 0) + (selectedRecipeType ? 1 : 0)}
+              {/* Add Filter Button */}
+              <TouchableOpacity
+                style={styles.addFilterButton}
+                onPress={() => setShowFilters(!showFilters)}
+              >
+                <Ionicons name="add-circle-outline" size={20} color={colors.diet} />
+                <Text style={styles.addFilterText}>Add Filter</Text>
+              </TouchableOpacity>
+
+              {/* Active Type Filter */}
+              {selectedRecipeType && (
+                <View style={styles.activeFilterChipSticky}>
+                  <Text style={styles.filterChipLabel}>
+                    {TYPE_FILTERS.find(f => f.id === selectedRecipeType)?.icon} {TYPE_FILTERS.find(f => f.id === selectedRecipeType)?.label}
                   </Text>
+                  <TouchableOpacity onPress={() => setSelectedRecipeType('')}>
+                    <Ionicons name="close-circle" size={18} color={colors.diet} />
+                  </TouchableOpacity>
                 </View>
               )}
-            </TouchableOpacity>
 
-            {/* Active Filters Display */}
-            {(selectedDietFilters.length > 0 || selectedCuisine || selectedRecipeType) && (
-              <View style={styles.activeFiltersRow}>
-                {selectedRecipeType && (
-                  <View style={styles.activeFilterChip}>
-                    <Text style={styles.activeFilterChipText}>
-                      {TYPE_FILTERS.find(f => f.id === selectedRecipeType)?.label}
-                    </Text>
-                    <TouchableOpacity onPress={() => setSelectedRecipeType('')}>
-                      <Ionicons name="close-circle" size={16} color={colors.diet} />
-                    </TouchableOpacity>
-                  </View>
-                )}
-                {selectedCuisine && (
-                  <View style={styles.activeFilterChip}>
-                    <Text style={styles.activeFilterChipText}>
-                      {CUISINE_FILTERS.find(f => f.id === selectedCuisine)?.label}
-                    </Text>
-                    <TouchableOpacity onPress={() => setSelectedCuisine('')}>
-                      <Ionicons name="close-circle" size={16} color={colors.diet} />
-                    </TouchableOpacity>
-                  </View>
-                )}
-                {selectedDietFilters.map((filterId) => (
-                  <View key={filterId} style={styles.activeFilterChip}>
-                    <Text style={styles.activeFilterChipText}>
-                      {DIET_FILTERS.find(f => f.id === filterId)?.label}
-                    </Text>
-                    <TouchableOpacity onPress={() => toggleDietFilter(filterId)}>
-                      <Ionicons name="close-circle" size={16} color={colors.diet} />
-                    </TouchableOpacity>
-                  </View>
-                ))}
-                <TouchableOpacity onPress={clearFilters} style={styles.clearAllChip}>
-                  <Text style={styles.clearAllChipText}>Clear all</Text>
+              {/* Active Cuisine Filter */}
+              {selectedCuisine && (
+                <View style={styles.activeFilterChipSticky}>
+                  <Text style={styles.filterChipLabel}>
+                    {CUISINE_FILTERS.find(f => f.id === selectedCuisine)?.icon} {CUISINE_FILTERS.find(f => f.id === selectedCuisine)?.label}
+                  </Text>
+                  <TouchableOpacity onPress={() => setSelectedCuisine('')}>
+                    <Ionicons name="close-circle" size={18} color={colors.diet} />
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Active Diet Filters */}
+              {selectedDietFilters.map((filterId) => (
+                <View key={filterId} style={styles.activeFilterChipSticky}>
+                  <Text style={styles.filterChipLabel}>
+                    {DIET_FILTERS.find(f => f.id === filterId)?.icon} {DIET_FILTERS.find(f => f.id === filterId)?.label}
+                  </Text>
+                  <TouchableOpacity onPress={() => toggleDietFilter(filterId)}>
+                    <Ionicons name="close-circle" size={18} color={colors.diet} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+
+              {/* Clear All if filters active */}
+              {(selectedDietFilters.length > 0 || selectedCuisine || selectedRecipeType) && (
+                <TouchableOpacity style={styles.clearAllButtonSticky} onPress={clearFilters}>
+                  <Text style={styles.clearAllTextSticky}>Clear All</Text>
                 </TouchableOpacity>
+              )}
+            </ScrollView>
+
+            {/* Expandable Filter Panel */}
+            {showFilters && (
+              <View style={styles.expandedFiltersPanel}>
+                {/* Type Filters */}
+                <View style={styles.filterRowCompact}>
+                  <Text style={styles.filterLabel}>Type:</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterOptionsScroll}>
+                    {TYPE_FILTERS.map((filter) => (
+                      <TouchableOpacity
+                        key={filter.id}
+                        style={[
+                          styles.filterOption,
+                          selectedRecipeType === filter.id && styles.filterOptionActive,
+                        ]}
+                        onPress={() => {
+                          setSelectedRecipeType(selectedRecipeType === filter.id ? '' : filter.id);
+                        }}
+                      >
+                        <Text style={styles.filterOptionIcon}>{filter.icon}</Text>
+                        <Text style={[
+                          styles.filterOptionText,
+                          selectedRecipeType === filter.id && styles.filterOptionTextActive,
+                        ]}>
+                          {filter.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                {/* Cuisine Filters */}
+                <View style={styles.filterRowCompact}>
+                  <Text style={styles.filterLabel}>Cuisine:</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterOptionsScroll}>
+                    {CUISINE_FILTERS.slice(0, 12).map((filter) => (
+                      <TouchableOpacity
+                        key={filter.id}
+                        style={[
+                          styles.filterOption,
+                          selectedCuisine === filter.id && styles.filterOptionActive,
+                        ]}
+                        onPress={() => {
+                          setSelectedCuisine(selectedCuisine === filter.id ? '' : filter.id);
+                        }}
+                      >
+                        <Text style={styles.filterOptionIcon}>{filter.icon}</Text>
+                        <Text style={[
+                          styles.filterOptionText,
+                          selectedCuisine === filter.id && styles.filterOptionTextActive,
+                        ]}>
+                          {filter.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                {/* Diet Filters */}
+                <View style={styles.filterRowCompact}>
+                  <Text style={styles.filterLabel}>Diet:</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterOptionsScroll}>
+                    {DIET_FILTERS.map((filter) => (
+                      <TouchableOpacity
+                        key={filter.id}
+                        style={[
+                          styles.filterOption,
+                          selectedDietFilters.includes(filter.id) && styles.filterOptionActive,
+                        ]}
+                        onPress={() => toggleDietFilter(filter.id)}
+                      >
+                        <Text style={styles.filterOptionIcon}>{filter.icon}</Text>
+                        <Text style={[
+                          styles.filterOptionText,
+                          selectedDietFilters.includes(filter.id) && styles.filterOptionTextActive,
+                        ]}>
+                          {filter.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
               </View>
             )}
           </View>
-
-          {/* Filter Modal/Panel */}
-          <Modal
-            visible={showFilters}
-            animationType="slide"
-            transparent={true}
-            onRequestClose={() => setShowFilters(false)}
-          >
-            <View style={styles.filterModalOverlay}>
-              <View style={styles.filterModalContent}>
-                <View style={styles.filterModalHeader}>
-                  <Text style={styles.filterModalTitle}>Filter Recipes</Text>
-                  <TouchableOpacity onPress={() => setShowFilters(false)}>
-                    <Ionicons name="close" size={28} color={colors.text} />
-                  </TouchableOpacity>
-                </View>
-
-                <ScrollView style={styles.filterModalScroll}>
-                  {/* Meal Type Section */}
-                  <View style={styles.filterSection}>
-                    <Text style={styles.filterSectionTitle}>🍽️ Meal Type</Text>
-                    <View style={styles.filterGrid}>
-                      {TYPE_FILTERS.map((filter) => (
-                        <TouchableOpacity
-                          key={filter.id}
-                          style={[
-                            styles.filterGridItem,
-                            selectedRecipeType === filter.id && styles.filterGridItemActive,
-                          ]}
-                          onPress={() => setSelectedRecipeType(selectedRecipeType === filter.id ? '' : filter.id)}
-                        >
-                          <Text style={styles.filterGridIcon}>{filter.icon}</Text>
-                          <Text style={[
-                            styles.filterGridLabel,
-                            selectedRecipeType === filter.id && styles.filterGridLabelActive,
-                          ]}>
-                            {filter.label}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-
-                  {/* Cuisine Section */}
-                  <View style={styles.filterSection}>
-                    <Text style={styles.filterSectionTitle}>🌍 Cuisine</Text>
-                    <View style={styles.filterGrid}>
-                      {CUISINE_FILTERS.map((filter) => (
-                        <TouchableOpacity
-                          key={filter.id}
-                          style={[
-                            styles.filterGridItem,
-                            selectedCuisine === filter.id && styles.filterGridItemActive,
-                          ]}
-                          onPress={() => setSelectedCuisine(selectedCuisine === filter.id ? '' : filter.id)}
-                        >
-                          <Text style={styles.filterGridIcon}>{filter.icon}</Text>
-                          <Text style={[
-                            styles.filterGridLabel,
-                            selectedCuisine === filter.id && styles.filterGridLabelActive,
-                          ]}>
-                            {filter.label}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-
-                  {/* Diet Section */}
-                  <View style={styles.filterSection}>
-                    <Text style={styles.filterSectionTitle}>🥗 Diet</Text>
-                    <View style={styles.filterGrid}>
-                      {DIET_FILTERS.map((filter) => (
-                        <TouchableOpacity
-                          key={filter.id}
-                          style={[
-                            styles.filterGridItem,
-                            selectedDietFilters.includes(filter.id) && styles.filterGridItemActive,
-                          ]}
-                          onPress={() => toggleDietFilter(filter.id)}
-                        >
-                          <Text style={styles.filterGridIcon}>{filter.icon}</Text>
-                          <Text style={[
-                            styles.filterGridLabel,
-                            selectedDietFilters.includes(filter.id) && styles.filterGridLabelActive,
-                          ]}>
-                            {filter.label}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-                </ScrollView>
-
-                {/* Modal Footer */}
-                <View style={styles.filterModalFooter}>
-                  <TouchableOpacity style={styles.filterClearButton} onPress={clearFilters}>
-                    <Text style={styles.filterClearButtonText}>Clear All</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.filterApplyButton}
-                    onPress={() => setShowFilters(false)}
-                  >
-                    <Text style={styles.filterApplyButtonText}>Apply Filters</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Modal>
 
       {/* Ingredient Selection */}
       <View style={styles.ingredientSection}>
@@ -3958,52 +3937,35 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   // New Filter Modal Styles
-  filterButtonContainer: {
-    marginBottom: spacing.md,
+  // Sticky Horizontal Filter Bar Styles
+  stickyFilterBar: {
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E5E5',
+    paddingVertical: spacing.sm,
   },
-  mainFilterButton: {
+  filterBarContent: {
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+    alignItems: 'center',
+  },
+  addFilterButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
-    backgroundColor: 'white',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: colors.diet + '30',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
+    gap: spacing.xs,
+    paddingVertical: 6,
+    paddingHorizontal: spacing.md,
+    backgroundColor: '#F8F8F8',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.diet + '40',
   },
-  mainFilterButtonText: {
-    fontSize: 16,
+  addFilterText: {
+    fontSize: 13,
     fontWeight: '600',
     color: colors.diet,
   },
-  filterCountBadge2: {
-    backgroundColor: colors.diet,
-    borderRadius: 12,
-    minWidth: 24,
-    height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 6,
-  },
-  filterCountText2: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: 'white',
-  },
-  activeFiltersRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginTop: spacing.sm,
-  },
-  activeFilterChip: {
+  activeFilterChipSticky: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -4014,134 +3976,70 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.diet,
   },
-  activeFilterChipText: {
+  filterChipLabel: {
     fontSize: 13,
     fontWeight: '600',
     color: colors.diet,
   },
-  clearAllChip: {
+  clearAllButtonSticky: {
     paddingVertical: 6,
     paddingHorizontal: 12,
-    backgroundColor: '#FFF5F5',
+    backgroundColor: '#FEE',
     borderRadius: 20,
     borderWidth: 1,
     borderColor: colors.error + '40',
   },
-  clearAllChipText: {
+  clearAllTextSticky: {
     fontSize: 13,
     fontWeight: '600',
     color: colors.error,
   },
-  filterModalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  filterModalContent: {
-    backgroundColor: 'white',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    maxHeight: '85%',
-    paddingTop: spacing.lg,
-  },
-  filterModalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  filterModalTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.text,
-  },
-  filterModalScroll: {
-    paddingHorizontal: spacing.lg,
+  expandedFiltersPanel: {
+    backgroundColor: '#F9F9F9',
     paddingVertical: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: '#E5E5E5',
   },
-  filterSection: {
-    marginBottom: spacing.lg,
-  },
-  filterSectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
+  filterRowCompact: {
+    paddingHorizontal: spacing.md,
     marginBottom: spacing.sm,
   },
-  filterGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  filterGridItem: {
-    width: '31%',
-    aspectRatio: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#F8F8F8',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#E5E5E5',
-  },
-  filterGridItemActive: {
-    backgroundColor: colors.diet + '15',
-    borderColor: colors.diet,
-  },
-  filterGridIcon: {
-    fontSize: 28,
-  },
-  filterGridLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    textAlign: 'center',
-  },
-  filterGridLabelActive: {
-    color: colors.diet,
+  filterLabel: {
+    fontSize: 13,
     fontWeight: '700',
+    color: colors.text,
+    marginBottom: 6,
   },
-  filterModalFooter: {
+  filterOptionsScroll: {
+    flexGrow: 0,
+  },
+  filterOption: {
     flexDirection: 'row',
-    gap: spacing.md,
-    padding: spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
-  },
-  filterClearButton: {
-    flex: 1,
-    paddingVertical: spacing.md,
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F5F5F5',
-    borderRadius: 12,
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginRight: spacing.sm,
+    backgroundColor: 'white',
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: '#E5E5E5',
   },
-  filterClearButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
+  filterOptionActive: {
+    backgroundColor: colors.diet + '15',
+    borderColor: colors.diet,
+  },
+  filterOptionIcon: {
+    fontSize: 16,
+  },
+  filterOptionText: {
+    fontSize: 12,
+    fontWeight: '500',
     color: colors.textSecondary,
   },
-  filterApplyButton: {
-    flex: 2,
-    paddingVertical: spacing.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.diet,
-    borderRadius: 12,
-    shadowColor: colors.diet,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  filterApplyButtonText: {
-    fontSize: 15,
+  filterOptionTextActive: {
     fontWeight: '700',
-    color: 'white',
+    color: colors.diet,
   },
 });
+
