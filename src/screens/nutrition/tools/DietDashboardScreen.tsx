@@ -9,6 +9,7 @@ import {
   Image,
   Alert,
   Modal,
+  Dimensions,
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
@@ -71,6 +72,11 @@ interface ShoppingListItem {
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
+
+// Responsive design
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const IS_WEB = SCREEN_WIDTH > 768;
+const MAX_CONTENT_WIDTH = 1200;
 
 // API configuration - Priority: Firebase → TheMealDB → Spoonacular
 const SPOONACULAR_API_KEY = '8b6cd47792ff4057ad699f9b0523d9df';
@@ -2322,8 +2328,9 @@ export const DietDashboardScreen = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
+      <View style={styles.contentWrapper}>
+        {/* Header */}
+        <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
@@ -2401,6 +2408,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
       {renderPortionModal()}
       {renderAutoMealPlannerModal()}
       {renderPromoModal()}
+      </View>
     </View>
   );
 };
@@ -2409,6 +2417,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
+    alignItems: 'center',
+  },
+  contentWrapper: {
+    flex: 1,
+    width: '100%',
+    maxWidth: IS_WEB ? MAX_CONTENT_WIDTH : '100%',
+    backgroundColor: 'white',
   },
   header: {
     flexDirection: 'row',
