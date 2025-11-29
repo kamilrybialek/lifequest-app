@@ -1915,7 +1915,11 @@ export const DietDashboardScreen = ({ navigation }: any) => {
 
   // Render Meal Planner Tab
   const renderMealPlanner = () => (
-    <ScrollView style={styles.tabContent}>
+    <ScrollView
+      style={styles.tabContent}
+      contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl }}
+      showsVerticalScrollIndicator={true}
+    >
       {renderRecipeSearch()}
 
       <View style={styles.plannerSection}>
@@ -2015,7 +2019,11 @@ export const DietDashboardScreen = ({ navigation }: any) => {
 
   // Render Shopping List Tab
   const renderShoppingList = () => (
-    <ScrollView style={styles.tabContent}>
+    <ScrollView
+      style={styles.tabContent}
+      contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl }}
+      showsVerticalScrollIndicator={true}
+    >
       <View style={styles.shoppingSection}>
         <Text style={styles.sectionTitle}>🛒 Shopping List</Text>
         <Text style={styles.sectionSubtitle}>
@@ -2059,7 +2067,11 @@ export const DietDashboardScreen = ({ navigation }: any) => {
 
   // Render Cost Estimates Tab
   const renderCostEstimates = () => (
-    <ScrollView style={styles.tabContent}>
+    <ScrollView
+      style={styles.tabContent}
+      contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl }}
+      showsVerticalScrollIndicator={true}
+    >
       <View style={styles.costsSection}>
         <Text style={styles.sectionTitle}>💰 Cost Estimates</Text>
 
