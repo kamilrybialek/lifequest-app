@@ -1124,6 +1124,8 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     return (
       <ScrollView
         style={styles.tabContent}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl }}
+        showsVerticalScrollIndicator={true}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
         {/* Stats Grid - Card Style */}
@@ -1271,7 +1273,11 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     const remaining = totalIncome - totalAllocated;
 
     return (
-      <ScrollView style={styles.tabContent}>
+      <ScrollView
+        style={styles.tabContent}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl }}
+        showsVerticalScrollIndicator={true}
+      >
         {/* Monthly Income - Auto-calculated from Income tab */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>💵 Monthly Income</Text>
@@ -1458,7 +1464,11 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
 
   const renderExpensesTab = () => {
     return (
-      <ScrollView style={styles.tabContent}>
+      <ScrollView
+        style={styles.tabContent}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl }}
+        showsVerticalScrollIndicator={true}
+      >
         {/* Add Expense Form */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Add Expense</Text>
@@ -1549,7 +1559,11 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
 
   const renderIncomeTab = () => {
     return (
-      <ScrollView style={styles.tabContent}>
+      <ScrollView
+        style={styles.tabContent}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl }}
+        showsVerticalScrollIndicator={true}
+      >
         {/* Add Income Form */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Add Income</Text>
@@ -1720,7 +1734,11 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     const totalMinimumPayment = debts.reduce((sum, d) => sum + d.minimum_payment, 0);
 
     return (
-      <ScrollView style={styles.tabContent}>
+      <ScrollView
+        style={styles.tabContent}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl }}
+        showsVerticalScrollIndicator={true}
+      >
         {/* Debt Summary */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Debt Summary</Text>
@@ -1927,7 +1945,11 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     const totalTarget = savingsGoals.reduce((sum, g) => sum + g.target_amount, 0);
 
     return (
-      <ScrollView style={styles.tabContent}>
+      <ScrollView
+        style={styles.tabContent}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl }}
+        showsVerticalScrollIndicator={true}
+      >
         {/* Emergency Fund */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Emergency Fund</Text>
@@ -2024,7 +2046,11 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
 
   const renderSubscriptionsTab = () => {
     return (
-      <ScrollView style={styles.tabContent}>
+      <ScrollView
+        style={styles.tabContent}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl }}
+        showsVerticalScrollIndicator={true}
+      >
         {/* Monthly Total */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Monthly Total</Text>
@@ -2076,7 +2102,11 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     const liabilities = totalDebt;
 
     return (
-      <ScrollView style={styles.tabContent}>
+      <ScrollView
+        style={styles.tabContent}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl }}
+        showsVerticalScrollIndicator={true}
+      >
         {/* Net Worth Summary */}
         <LinearGradient
           colors={netWorth >= 0 ? ['#58CC02', '#46A302'] : ['#FF4B4B', '#CC0000']}
