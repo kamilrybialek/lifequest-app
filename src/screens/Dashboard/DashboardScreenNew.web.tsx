@@ -37,7 +37,7 @@ interface QuickAction {
 
 const QUICK_ACTIONS: QuickAction[] = [
   { id: '1', title: 'Finance', icon: '💰', color: ['#4A90E2', '#4A90E2'], description: 'Track finances', screen: 'FinanceDashboard' },
-  { id: '2', title: 'Diet Planner', icon: '🍽️', color: ['#FA7D09', '#FA7D09'], description: 'Weekly meal planning', screen: 'DietPlanner' },
+  { id: '2', title: 'Diet Mastery', icon: '🥗', color: ['#4CAF50', '#66BB6A'], description: 'Meal planning & recipes', screen: 'DietDashboardScreen' },
   { id: '3', title: 'Physical', icon: '💪', color: ['#FF6B6B', '#FF8787'], description: 'Physical health', screen: 'WorkoutTrackerScreen' },
   { id: '4', title: 'Mental', icon: '🧠', color: ['#9C27B0', '#BA68C8'], description: 'Mental wellness', screen: 'MeditationTimer' },
 ];
