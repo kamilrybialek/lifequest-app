@@ -124,7 +124,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
   const { user } = useAuthStore();
 
   // State
-  const [activeTab, setActiveTab] = useState<'recipe' | 'week' | 'shopping' | 'costs'>('recipe');
+  const [activeTab, setActiveTab] = useState<'recipe' | 'week' | 'shopping'>('recipe');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Recipe[]>([]);
   const [mealPlan, setMealPlan] = useState<MealPlanItem[]>([]);
@@ -157,12 +157,24 @@ export const DietDashboardScreen = ({ navigation }: any) => {
   const [includeMealTypes, setIncludeMealTypes] = useState<string[]>(['breakfast', 'lunch', 'dinner']);
   const [maxCookingTime, setMaxCookingTime] = useState(60);
 
-  // Calculate total costs
-  const totalWeeklyCost = mealPlan.reduce((sum, item) => {
-    return sum + (item.recipe.pricePerServing * item.portions);
+  // Calculate total calories and nutrition
+  const totalWeeklyCalories = mealPlan.reduce((sum, item) => {
+    return sum + ((item.recipe.nutrition?.calories || 0) * item.portions);
   }, 0);
 
-  const shoppingListCost = shoppingList.reduce((sum, item) => sum + item.estimatedCost, 0);
+  const totalDailyCalories = totalWeeklyCalories / 7;
+
+  const totalWeeklyProtein = mealPlan.reduce((sum, item) => {
+    return sum + ((item.recipe.nutrition?.protein || 0) * item.portions);
+  }, 0);
+
+  const totalWeeklyCarbs = mealPlan.reduce((sum, item) => {
+    return sum + ((item.recipe.nutrition?.carbs || 0) * item.portions);
+  }, 0);
+
+  const totalWeeklyFat = mealPlan.reduce((sum, item) => {
+    return sum + ((item.recipe.nutrition?.fat || 0) * item.portions);
+  }, 0);
 
   // Toggle ingredient
   const toggleIngredient = (ingredientId: string) => {
@@ -818,12 +830,14 @@ export const DietDashboardScreen = ({ navigation }: any) => {
                     </Text>
                     <View style={styles.recipeMetaRow}>
                       <View style={styles.recipeMeta}>
-                        <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
-                        <Text style={styles.recipeMetaText}>{recipe.readyInMinutes}min</Text>
+                        <Ionicons name="flame-outline" size={14} color={colors.diet} />
+                        <Text style={styles.recipeMetaText}>
+                          {recipe.nutrition?.calories ? Math.round(recipe.nutrition.calories) : '~200'} cal
+                        </Text>
                       </View>
                       <View style={styles.recipeMeta}>
-                        <Ionicons name="people-outline" size={14} color={colors.textSecondary} />
-                        <Text style={styles.recipeMetaText}>{recipe.servings}</Text>
+                        <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
+                        <Text style={styles.recipeMetaText}>{recipe.readyInMinutes}min</Text>
                       </View>
                     </View>
                   </View>
@@ -870,20 +884,20 @@ export const DietDashboardScreen = ({ navigation }: any) => {
               </View>
               <View style={styles.weekSummaryStats}>
                 <View style={styles.weekSummaryStat}>
-                  <Text style={styles.weekSummaryStatValue}>{mealPlan.length}</Text>
-                  <Text style={styles.weekSummaryStatLabel}>Meals</Text>
+                  <Text style={styles.weekSummaryStatValue}>{Math.round(totalDailyCalories)}</Text>
+                  <Text style={styles.weekSummaryStatLabel}>Cal/Day</Text>
                 </View>
                 <View style={styles.weekSummaryStatDivider} />
                 <View style={styles.weekSummaryStat}>
                   <Text style={styles.weekSummaryStatValue}>
-                    ${(totalWeeklyCost / 100).toFixed(0)}
+                    {Math.round(totalWeeklyProtein / 7)}g
                   </Text>
-                  <Text style={styles.weekSummaryStatLabel}>Est. Cost</Text>
+                  <Text style={styles.weekSummaryStatLabel}>Protein/Day</Text>
                 </View>
                 <View style={styles.weekSummaryStatDivider} />
                 <View style={styles.weekSummaryStat}>
-                  <Text style={styles.weekSummaryStatValue}>{DAYS.filter(d => mealPlan.some(m => m.day === d)).length}</Text>
-                  <Text style={styles.weekSummaryStatLabel}>Days</Text>
+                  <Text style={styles.weekSummaryStatValue}>{mealPlan.length}</Text>
+                  <Text style={styles.weekSummaryStatLabel}>Meals</Text>
                 </View>
               </View>
             </View>
@@ -972,12 +986,14 @@ export const DietDashboardScreen = ({ navigation }: any) => {
                           </Text>
                           <View style={styles.weekMealCardMeta}>
                             <View style={styles.weekMealCardMetaItem}>
-                              <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
-                              <Text style={styles.weekMealCardMetaText}>{meal.recipe.readyInMinutes}min</Text>
+                              <Ionicons name="flame-outline" size={14} color={colors.diet} />
+                              <Text style={styles.weekMealCardMetaText}>
+                                {meal.recipe.nutrition?.calories ? Math.round(meal.recipe.nutrition.calories * meal.portions) : '~'+(meal.portions*200)} cal
+                              </Text>
                             </View>
                             <View style={styles.weekMealCardMetaItem}>
-                              <Ionicons name="people-outline" size={14} color={colors.textSecondary} />
-                              <Text style={styles.weekMealCardMetaText}>{meal.portions}</Text>
+                              <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
+                              <Text style={styles.weekMealCardMetaText}>{meal.recipe.readyInMinutes}min</Text>
                             </View>
                           </View>
                         </View>
@@ -997,6 +1013,40 @@ export const DietDashboardScreen = ({ navigation }: any) => {
                   </View>
                 );
               })}
+            </View>
+
+            {/* Meal Prep Suggestions */}
+            <View style={styles.mealPrepCard}>
+              <View style={styles.mealPrepHeader}>
+                <Ionicons name="restaurant" size={24} color={colors.diet} />
+                <Text style={styles.mealPrepTitle}>Meal Prep Tips</Text>
+              </View>
+              <View style={styles.mealPrepTips}>
+                <View style={styles.mealPrepTip}>
+                  <Ionicons name="checkmark-circle" size={18} color={colors.diet} />
+                  <Text style={styles.mealPrepTipText}>
+                    Cook larger portions to save time and money - most recipes can be doubled
+                  </Text>
+                </View>
+                <View style={styles.mealPrepTip}>
+                  <Ionicons name="checkmark-circle" size={18} color={colors.diet} />
+                  <Text style={styles.mealPrepTipText}>
+                    Prepare {Math.min(mealPlan.filter(m => m.day === 'Mon' || m.day === 'Tue').length * 2, 8)} portions on Sunday for Mon-Tue
+                  </Text>
+                </View>
+                <View style={styles.mealPrepTip}>
+                  <Ionicons name="checkmark-circle" size={18} color={colors.diet} />
+                  <Text style={styles.mealPrepTipText}>
+                    Store meals in airtight containers - most dishes last 3-4 days refrigerated
+                  </Text>
+                </View>
+                <View style={styles.mealPrepTip}>
+                  <Ionicons name="checkmark-circle" size={18} color={colors.diet} />
+                  <Text style={styles.mealPrepTipText}>
+                    Batch cooking can reduce your weekly cooking time by 60%
+                  </Text>
+                </View>
+              </View>
             </View>
           </>
         ) : (
@@ -1055,68 +1105,6 @@ export const DietDashboardScreen = ({ navigation }: any) => {
             <Text style={styles.emptyStateTitle}>No Shopping List Yet</Text>
             <Text style={styles.emptyStateText}>
               Add meals to your weekly plan to generate a shopping list
-            </Text>
-          </View>
-        )}
-      </View>
-    </ScrollView>
-  );
-
-  // Render cost estimates tab
-  const renderCostEstimates = () => (
-    <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-      <View style={styles.content}>
-        {mealPlan.length > 0 ? (
-          <>
-            <View style={styles.costCard}>
-              <View style={styles.costCardHeader}>
-                <Ionicons name="cash" size={24} color={colors.finance} />
-                <Text style={styles.costCardTitle}>Weekly Cost Estimate</Text>
-              </View>
-              <View style={styles.costCardBody}>
-                <Text style={styles.costCardAmount}>${(totalWeeklyCost / 100).toFixed(2)}</Text>
-                <Text style={styles.costCardLabel}>for {mealPlan.length} meals</Text>
-              </View>
-              <View style={styles.costCardFooter}>
-                <View style={styles.costCardStat}>
-                  <Text style={styles.costCardStatLabel}>Per Meal</Text>
-                  <Text style={styles.costCardStatValue}>
-                    ${(totalWeeklyCost / mealPlan.length / 100).toFixed(2)}
-                  </Text>
-                </View>
-                <View style={styles.costCardDivider} />
-                <View style={styles.costCardStat}>
-                  <Text style={styles.costCardStatLabel}>Per Day</Text>
-                  <Text style={styles.costCardStatValue}>
-                    ${(totalWeeklyCost / 7 / 100).toFixed(2)}
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            <View style={styles.costBreakdownSection}>
-              <Text style={styles.costBreakdownTitle}>Cost by Meal</Text>
-              {mealPlan.map((meal) => (
-                <View key={meal.id} style={styles.costBreakdownItem}>
-                  <View style={styles.costBreakdownItemLeft}>
-                    <Text style={styles.costBreakdownItemDay}>{meal.day}</Text>
-                    <Text style={styles.costBreakdownItemName} numberOfLines={1}>
-                      {meal.recipe.title}
-                    </Text>
-                  </View>
-                  <Text style={styles.costBreakdownItemCost}>
-                    ${((meal.recipe.pricePerServing * meal.portions) / 100).toFixed(2)}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </>
-        ) : (
-          <View style={styles.emptyState}>
-            <Ionicons name="cash-outline" size={64} color={colors.textLight} />
-            <Text style={styles.emptyStateTitle}>No Cost Data Yet</Text>
-            <Text style={styles.emptyStateText}>
-              Add meals to your weekly plan to see cost estimates
             </Text>
           </View>
         )}
@@ -1594,32 +1582,12 @@ export const DietDashboardScreen = ({ navigation }: any) => {
             Shopping
           </Text>
         </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.tab, activeTab === 'costs' && styles.tabActive]}
-          onPress={() => setActiveTab('costs')}
-        >
-          <Ionicons
-            name="cash"
-            size={20}
-            color={activeTab === 'costs' ? colors.diet : colors.textSecondary}
-          />
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === 'costs' && styles.tabTextActive,
-            ]}
-          >
-            Costs
-          </Text>
-        </TouchableOpacity>
       </View>
 
       {/* Content */}
       {activeTab === 'recipe' && renderRecipeSearch()}
       {activeTab === 'week' && renderWeeklyView()}
       {activeTab === 'shopping' && renderShoppingList()}
-      {activeTab === 'costs' && renderCostEstimates()}
 
       {/* Modals */}
       {renderRecipeModal()}
@@ -2115,100 +2083,6 @@ const styles = StyleSheet.create({
     ...typography.caption,
     fontSize: 13,
     color: colors.textSecondary,
-  },
-  costCard: {
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    padding: spacing.lg,
-    marginBottom: spacing.md,
-    ...shadows.small,
-  },
-  costCardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  costCardTitle: {
-    ...typography.h4,
-    color: colors.text,
-  },
-  costCardBody: {
-    alignItems: 'center',
-    paddingVertical: spacing.lg,
-  },
-  costCardAmount: {
-    fontSize: 48,
-    fontWeight: '800',
-    color: colors.finance,
-  },
-  costCardLabel: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginTop: spacing.xs,
-  },
-  costCardFooter: {
-    flexDirection: 'row',
-    paddingTop: spacing.md,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  costCardStat: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  costCardStatLabel: {
-    ...typography.caption,
-    fontSize: 12,
-    color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  costCardStatValue: {
-    ...typography.bodyBold,
-    fontSize: 18,
-    color: colors.text,
-  },
-  costCardDivider: {
-    width: 1,
-    backgroundColor: colors.border,
-  },
-  costBreakdownSection: {
-    marginBottom: spacing.md,
-  },
-  costBreakdownTitle: {
-    ...typography.h4,
-    color: colors.text,
-    marginBottom: spacing.md,
-  },
-  costBreakdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.background,
-    borderRadius: 12,
-    padding: spacing.md,
-    marginBottom: spacing.sm,
-    ...shadows.small,
-  },
-  costBreakdownItemLeft: {
-    flex: 1,
-    marginRight: spacing.md,
-  },
-  costBreakdownItemDay: {
-    ...typography.caption,
-    fontSize: 12,
-    color: colors.diet,
-    marginBottom: 2,
-  },
-  costBreakdownItemName: {
-    ...typography.body,
-    fontSize: 14,
-    color: colors.text,
-  },
-  costBreakdownItemCost: {
-    ...typography.bodyBold,
-    fontSize: 16,
-    color: colors.finance,
   },
   modalContainer: {
     flex: 1,
@@ -2882,5 +2756,41 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     marginTop: spacing.md,
+  },
+  // Meal Prep Styles
+  mealPrepCard: {
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: spacing.lg,
+    marginTop: spacing.lg,
+    borderWidth: 2,
+    borderColor: colors.diet + '30',
+    ...shadows.small,
+  },
+  mealPrepHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  mealPrepTitle: {
+    ...typography.h3,
+    fontSize: 18,
+    color: colors.text,
+  },
+  mealPrepTips: {
+    gap: spacing.md,
+  },
+  mealPrepTip: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    alignItems: 'flex-start',
+  },
+  mealPrepTipText: {
+    ...typography.body,
+    fontSize: 14,
+    color: colors.textSecondary,
+    flex: 1,
+    lineHeight: 20,
   },
 });
