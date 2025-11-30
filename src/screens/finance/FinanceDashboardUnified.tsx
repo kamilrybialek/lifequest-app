@@ -32,6 +32,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { useAuthStore } from '../../store/authStore';
+import { useCurrencyStore } from '../../store/currencyStore';
+import { getCurrency } from '../../constants/currencies';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   getFinancialOverview,
@@ -59,6 +61,7 @@ import {
   getBudgetForMonth,
   updateBudgetCategorySpent,
 } from '../../services/firebaseFinanceService';
+import { authPersistenceReady } from '../../config/firebase';
 
 const { width, height } = Dimensions.get('window');
 
@@ -141,6 +144,8 @@ const INCOME_CATEGORIES = [
 export const FinanceDashboardUnified = ({ navigation }: any) => {
   const { user } = useAuthStore();
   const isDemoUser = user?.id === 'demo-user-local';
+  const { currency, formatAmount } = useCurrencyStore();
+  const currencyData = getCurrency(currency);
 
   // Tab state
   const [activeTab, setActiveTab] = useState<Tab>('overview');
@@ -175,11 +180,22 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
   const [incomeSource, setIncomeSource] = useState('');
   const [incomeCategory, setIncomeCategory] = useState('salary');
   const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringDay, setRecurringDay] = useState(1); // Day of month for recurring income
+  const [isAddingIncome, setIsAddingIncome] = useState(false);
+  const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null);
+  const [showEditIncomeModal, setShowEditIncomeModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [incomeToDelete, setIncomeToDelete] = useState<any>(null);
 
   // Debt data
   const [debts, setDebts] = useState<any[]>([]);
   const [debtStrategy, setDebtStrategy] = useState<'snowball' | 'avalanche' | 'optimal'>('snowball');
   const [showAddDebt, setShowAddDebt] = useState(false);
+  const [debtName, setDebtName] = useState('');
+  const [debtType, setDebtType] = useState('credit_card');
+  const [debtAmount, setDebtAmount] = useState('');
+  const [debtInterestRate, setDebtInterestRate] = useState('');
+  const [debtMinPayment, setDebtMinPayment] = useState('');
 
   // Savings data
   const [savingsGoals, setSavingsGoals] = useState<any[]>([]);
@@ -190,13 +206,296 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [totalSubscriptions, setTotalSubscriptions] = useState(0);
 
+  // Net Worth Calculator data
+  const [showNetWorthCalculator, setShowNetWorthCalculator] = useState(false);
+  const [cashSavings, setCashSavings] = useState('');
+  const [checkingBalance, setCheckingBalance] = useState('');
+  const [investments, setInvestments] = useState('');
+  const [retirement, setRetirement] = useState('');
+  const [homeValue, setHomeValue] = useState('');
+  const [vehicleValue, setVehicleValue] = useState('');
+  const [otherAssets, setOtherAssets] = useState('');
+  const [mortgage, setMortgage] = useState('');
+  const [autoLoans, setAutoLoans] = useState('');
+  const [studentLoans, setStudentLoans] = useState('');
+  const [creditCards, setCreditCards] = useState('');
+  const [personalLoans, setPersonalLoans] = useState('');
+  const [otherDebts, setOtherDebts] = useState('');
+
   useEffect(() => {
     loadAllData();
   }, [activeTab]);
 
+  // Load saved net worth data after debts are loaded (to integrate with debt tracker)
+  useEffect(() => {
+    if (debts !== undefined) {
+      loadSavedNetWorth();
+    }
+  }, [debts]);
+
+  // Reload net worth data when calculator is opened (to show fresh debt tracker data)
+  useEffect(() => {
+    if (showNetWorthCalculator && debts !== undefined) {
+      loadSavedNetWorth();
+    }
+  }, [showNetWorthCalculator]);
+
+  // Import onboarding data on first launch
+  useEffect(() => {
+    if (user?.id) {
+      importOnboardingDataIfNeeded();
+    }
+  }, [user?.id]);
+
   // ============================================
   // DATA LOADING
   // ============================================
+
+  // Helper function to retry Firestore operations with exponential backoff
+  const retryFirestoreOperation = async <T,>(
+    operation: () => Promise<T>,
+    operationName: string,
+    maxRetries: number = 3
+  ): Promise<T> => {
+    let lastError: any;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const result = await operation();
+        if (attempt > 0) {
+          console.log(`✅ ${operationName} succeeded on attempt ${attempt + 1}`);
+        }
+        return result;
+      } catch (error: any) {
+        lastError = error;
+        const isLastAttempt = attempt === maxRetries;
+
+        console.log(`⚠️ ${operationName} failed on attempt ${attempt + 1}/${maxRetries + 1}:`, {
+          code: error?.code,
+          message: error?.message
+        });
+
+        if (error?.code === 'failed-precondition' && !isLastAttempt) {
+          const delay = Math.pow(2, attempt) * 500; // 500ms, 1s, 2s, 4s
+          console.log(`⏳ Retrying ${operationName} in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          // Continue to next attempt
+        } else if (isLastAttempt) {
+          console.error(`❌ ${operationName} failed after ${maxRetries + 1} attempts`);
+          throw error;
+        } else {
+          // Not a failed-precondition error, don't retry
+          console.error(`❌ ${operationName} failed with non-retryable error:`, error?.code);
+          throw error;
+        }
+      }
+    }
+
+    // This should never be reached, but throw last error just in case
+    throw lastError;
+  };
+
+  const loadFirebaseData = async () => {
+    if (!user?.id) return;
+
+    try {
+      // CRITICAL: Wait for Firebase Auth persistence before any Firestore reads
+      await authPersistenceReady;
+      console.log('✅ Auth ready, loading Firebase data...');
+
+      const currentMonth = new Date().toISOString().slice(0, 7);
+
+      // Wrap all Firestore operations with retry logic
+      const overview = await retryFirestoreOperation(
+        () => getFinancialOverview(user.id),
+        'getFinancialOverview'
+      );
+
+      const monthlySummary = await retryFirestoreOperation(
+        () => getMonthlyFinancialSummary(user.id, currentMonth),
+        'getMonthlyFinancialSummary'
+      );
+
+      setMonthlyIncome(monthlySummary.totalIncome || 0);
+      setMonthlyExpenses(monthlySummary.totalExpenses || 0);
+      setSavingsRate(monthlySummary.savingsRate || 0);
+
+      // Load expenses
+      const expensesData = await retryFirestoreOperation(
+        () => getExpenses(user.id, { startDate: currentMonth + '-01', endDate: currentMonth + '-31' }),
+        'getExpenses'
+      );
+      setExpenses(expensesData);
+      setRecentExpenses(expensesData.slice(0, 5));
+
+      // Load income
+      const incomeData = await retryFirestoreOperation(
+        () => getIncome(user.id, {}),
+        'getIncome'
+      );
+      setIncomeList(incomeData);
+      console.log('📊 Loaded income data:', incomeData.length, 'entries');
+
+      // Load debts and calculate total from actual debt entries (source of truth)
+      const debtsData = await retryFirestoreOperation(
+        () => getDebts(user.id, 'active'),
+        'getDebts'
+      );
+      setDebts(debtsData);
+      const calculatedTotalDebt = debtsData.reduce((sum: number, d: any) => sum + (d.remaining_amount || 0), 0);
+      setTotalDebt(calculatedTotalDebt);
+
+      // Load savings goals and calculate total from actual savings entries (source of truth)
+      const goalsData = await retryFirestoreOperation(
+        () => getSavingsGoals(user.id),
+        'getSavingsGoals'
+      );
+      setSavingsGoals(goalsData);
+      const calculatedTotalSavings = goalsData.reduce((sum: number, g: any) => sum + (g.current_amount || 0), 0);
+      setTotalSavings(calculatedTotalSavings);
+
+      // Calculate net worth from actual financial data (savings - debts)
+      const calculatedNetWorth = calculatedTotalSavings - calculatedTotalDebt;
+      setNetWorth(calculatedNetWorth);
+      console.log('💰 Calculated net worth from real data:', {
+        totalSavings: calculatedTotalSavings,
+        totalDebt: calculatedTotalDebt,
+        netWorth: calculatedNetWorth
+      });
+
+      // Load subscriptions
+      const subsData = await retryFirestoreOperation(
+        () => getSubscriptions(user.id, true),
+        'getSubscriptions'
+      );
+      setSubscriptions(subsData);
+
+      const totalSubs = await retryFirestoreOperation(
+        () => getTotalMonthlySubscriptions(user.id),
+        'getTotalMonthlySubscriptions'
+      );
+      setTotalSubscriptions(totalSubs);
+
+      // Load budget
+      const budget = await retryFirestoreOperation(
+        () => getBudgetForMonth(user.id, currentMonth),
+        'getBudgetForMonth'
+      );
+      if (budget) {
+        setBudgetIncome(budget.total_income.toString());
+        const updatedCategories = DEFAULT_CATEGORIES.map((defaultCat) => {
+          const existingCat = budget.categories.find((c: any) => c.name === defaultCat.name);
+          return existingCat
+            ? { ...defaultCat, allocatedAmount: existingCat.budgeted, spent: existingCat.spent || 0 }
+            : defaultCat;
+        });
+        setBudgetCategories(updatedCategories);
+      }
+
+      console.log('✅ All Firebase data loaded successfully');
+    } catch (error) {
+      console.error('❌ Error loading Firebase data:', error);
+    }
+  };
+
+  const importOnboardingDataIfNeeded = async () => {
+    if (!user?.id || isDemoUser) return;
+
+    try {
+      // CRITICAL: Wait for Firebase Auth persistence to be ready before any Firestore operations
+      console.log('🔐 Waiting for Firebase Auth persistence...');
+      await authPersistenceReady;
+      console.log('✅ Firebase Auth persistence ready');
+
+      // Check if onboarding data has been imported
+      const importedFlag = await AsyncStorage.getItem(`onboardingDataImported_${user.id}`);
+      if (importedFlag === 'true') return;
+
+      // Load onboarding data
+      const onboardingDataStr = await AsyncStorage.getItem('onboardingData');
+      if (!onboardingDataStr) {
+        await AsyncStorage.setItem(`onboardingDataImported_${user.id}`, 'true');
+        return;
+      }
+
+      const onboardingData = JSON.parse(onboardingDataStr);
+
+      // Import monthly income if available
+      if (onboardingData.monthlyIncome && onboardingData.monthlyIncome > 0) {
+        try {
+          console.log('💰 Importing income from onboarding:', onboardingData.monthlyIncome);
+          const incomeData: any = {
+            amount: onboardingData.monthlyIncome,
+            source: 'Monthly Income (from onboarding)',
+            category: 'salary',
+            date: new Date().toISOString().split('T')[0],
+            is_recurring: true,
+            recurring_frequency: 'monthly',
+          };
+
+          const docId = await addIncome(user.id, incomeData);
+          console.log('✅ Income imported from onboarding with ID:', docId);
+        } catch (error: any) {
+          console.error('❌ Error importing income:', error);
+          console.error('Error details:', {
+            message: error?.message,
+            code: error?.code,
+            userId: user.id,
+            amount: onboardingData.monthlyIncome,
+          });
+        }
+      }
+
+      // Import debt if available
+      if (onboardingData.estimatedDebt && onboardingData.estimatedDebt > 0) {
+        // Show dialog to ask for debt details
+        Alert.alert(
+          'Import Debt from Onboarding',
+          `You indicated you have ${formatAmount(onboardingData.estimatedDebt)} in debt. Would you like to add detailed debt information now?`,
+          [
+            {
+              text: 'Later',
+              style: 'cancel',
+              onPress: async () => {
+                try {
+                  // Add as single debt entry
+                  await addDebt({
+                    user_id: user.id,
+                    name: 'Total Debt (from onboarding)',
+                    type: 'other',
+                    original_amount: onboardingData.estimatedDebt,
+                    remaining_amount: onboardingData.estimatedDebt,
+                    interest_rate: 0,
+                    minimum_payment: 0,
+                    due_date: new Date().getDate().toString(),
+                    status: 'active',
+                  });
+                  await loadFirebaseData();
+                } catch (error) {
+                  console.error('Error importing debt:', error);
+                }
+              },
+            },
+            {
+              text: 'Add Details',
+              onPress: () => {
+                setActiveTab('debt');
+                setShowAddDebt(true);
+              },
+            },
+          ]
+        );
+      }
+
+      // Mark as imported (with user ID to prevent issues with multiple users)
+      await AsyncStorage.setItem(`onboardingDataImported_${user.id}`, 'true');
+
+      // Reload data after import
+      await loadFirebaseData();
+    } catch (error) {
+      console.error('Error importing onboarding data:', error);
+    }
+  };
 
   const loadAllData = async () => {
     if (!user?.id) return;
@@ -209,62 +508,6 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
       }
     } catch (error) {
       console.error('Error loading financial data:', error);
-    }
-  };
-
-  const loadFirebaseData = async () => {
-    if (!user?.id) return;
-
-    try {
-      // Load overview
-      const overview = await getFinancialOverview(user.id);
-      const currentMonth = new Date().toISOString().slice(0, 7);
-      const monthlySummary = await getMonthlyFinancialSummary(user.id, currentMonth);
-
-      setNetWorth(overview.profile?.net_worth || 0);
-      setMonthlyIncome(monthlySummary.totalIncome || 0);
-      setMonthlyExpenses(monthlySummary.totalExpenses || 0);
-      setTotalDebt(overview.totalDebt || 0);
-      setTotalSavings(overview.totalSavings || 0);
-      setSavingsRate(monthlySummary.savingsRate || 0);
-
-      // Load expenses
-      const expensesData = await getExpenses(user.id, { startDate: currentMonth + '-01', endDate: currentMonth + '-31' });
-      setExpenses(expensesData);
-      setRecentExpenses(expensesData.slice(0, 5));
-
-      // Load income
-      const incomeData = await getIncome(user.id, {});
-      setIncomeList(incomeData);
-
-      // Load debts
-      const debtsData = await getDebts(user.id, 'active');
-      setDebts(debtsData);
-
-      // Load savings goals
-      const goalsData = await getSavingsGoals(user.id);
-      setSavingsGoals(goalsData);
-
-      // Load subscriptions
-      const subsData = await getSubscriptions(user.id, true);
-      setSubscriptions(subsData);
-      const totalSubs = await getTotalMonthlySubscriptions(user.id);
-      setTotalSubscriptions(totalSubs);
-
-      // Load budget
-      const budget = await getBudgetForMonth(user.id, currentMonth);
-      if (budget) {
-        setBudgetIncome(budget.total_income.toString());
-        const updatedCategories = DEFAULT_CATEGORIES.map((defaultCat) => {
-          const existingCat = budget.categories.find((c: any) => c.name === defaultCat.name);
-          return existingCat
-            ? { ...defaultCat, allocatedAmount: existingCat.budgeted, spent: existingCat.spent || 0 }
-            : defaultCat;
-        });
-        setBudgetCategories(updatedCategories);
-      }
-    } catch (error) {
-      console.error('Error loading Firebase data:', error);
     }
   };
 
@@ -325,7 +568,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
   // ============================================
 
   const handleAddExpense = async () => {
-    if (!user?.id) return;
+    console.log('🔧 handleAddExpense called', { userId: user?.id, amount: expenseAmount, category: expenseCategory, isDemoUser });
 
     const amount = parseFloat(expenseAmount);
     if (!amount || !expenseCategory) {
@@ -334,6 +577,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     }
 
     try {
+      console.log('💰 Adding expense:', { amount, category: expenseCategory, isDemoUser, hasUserId: !!user?.id });
       const today = new Date().toISOString().split('T')[0];
       const expenseData = {
         amount,
@@ -344,10 +588,11 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
         tags: [],
       };
 
-      if (isDemoUser) {
+      // Work in demo mode if no user ID (handles both demo users and unauthenticated state)
+      if (isDemoUser || !user?.id) {
         const newExpense = {
           id: Date.now().toString(),
-          user_id: user.id,
+          user_id: user?.id || 'demo-user-local',
           ...expenseData,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -375,29 +620,45 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
   // ============================================
 
   const handleAddIncome = async () => {
-    if (!user?.id) return;
-
-    const amount = parseFloat(incomeAmount);
-    if (!amount || !incomeSource) {
-      Alert.alert('Missing Info', 'Please enter amount and source');
+    // Prevent double-submit
+    if (isAddingIncome) {
+      console.log('⚠️ Already adding income, ignoring duplicate call');
       return;
     }
 
+    console.log('🔧 handleAddIncome called', { userId: user?.id, amount: incomeAmount, source: incomeSource, isDemoUser });
+
+    const amount = parseFloat(incomeAmount);
+    if (!amount) {
+      Alert.alert('Missing Info', 'Please enter amount');
+      return;
+    }
+
+    setIsAddingIncome(true);
     try {
+      const sourceName = incomeSource.trim() || 'Bez nazwy';
+      console.log('💵 Adding income:', { amount, source: sourceName, isDemoUser, hasUserId: !!user?.id });
       const today = new Date().toISOString().split('T')[0];
-      const incomeData = {
+      const incomeData: any = {
         amount,
-        source: incomeSource,
-        category: incomeCategory as any,
+        source: sourceName,
+        category: incomeCategory,
         date: today,
         is_recurring: isRecurring,
-        recurring_frequency: isRecurring ? ('monthly' as any) : undefined,
       };
 
-      if (isDemoUser) {
+      // Add recurring fields if it's recurring
+      if (isRecurring) {
+        incomeData.recurring_frequency = 'monthly';
+        incomeData.recurring_day = recurringDay; // Day of month when income recurs
+      }
+
+      // Work in demo mode if no user ID (handles both demo users and unauthenticated state)
+      if (isDemoUser || !user?.id) {
+        console.log('📝 Saving to AsyncStorage (demo mode)');
         const newIncome = {
           id: Date.now().toString(),
-          user_id: user.id,
+          user_id: user?.id || 'demo-user-local',
           ...incomeData,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
@@ -405,8 +666,20 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
         const updated = [newIncome, ...incomeList];
         await AsyncStorage.setItem('income', JSON.stringify(updated));
         setIncomeList(updated);
+        console.log('✅ Income saved to AsyncStorage');
       } else {
-        await addIncome(user.id, incomeData);
+        // CRITICAL: Wait for Firebase Auth persistence before Firestore operations
+        console.log('🔐 Waiting for Firebase Auth persistence...');
+        await authPersistenceReady;
+        console.log('✅ Firebase Auth ready, saving to Firebase with userId:', user.id);
+
+        const docId = await addIncome(user.id, incomeData);
+        console.log('✅ Income saved to Firebase with ID:', docId);
+
+        // Small delay to let Firestore propagate the write before reading
+        console.log('⏳ Waiting 500ms before reloading data...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+
         await loadFirebaseData();
       }
 
@@ -414,9 +687,169 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
       setIncomeSource('');
       setIsRecurring(false);
       Alert.alert('Success!', 'Income added');
+    } catch (error: any) {
+      console.error('❌ Error adding income:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        code: error?.code,
+        stack: error?.stack,
+      });
+      Alert.alert('Error', `Failed to add income: ${error?.message || 'Unknown error'}`);
+    } finally {
+      setIsAddingIncome(false);
+    }
+  };
+
+  const handleDeleteIncome = async () => {
+    if (!incomeToDelete) return;
+
+    try {
+      if (isDemoUser || !user?.id) {
+        // Delete from AsyncStorage
+        const updated = incomeList.filter(income => income.id !== incomeToDelete.id);
+        await AsyncStorage.setItem('income', JSON.stringify(updated));
+        setIncomeList(updated);
+      } else {
+        // Delete from Firebase
+        await deleteIncome(incomeToDelete.id);
+        await loadFirebaseData();
+      }
+      setShowDeleteConfirm(false);
+      setIncomeToDelete(null);
+    } catch (error: any) {
+      console.error('Error deleting income:', error);
+      alert('Failed to delete income');
+    }
+  };
+
+  const handleStartEditIncome = (income: any) => {
+    setEditingIncomeId(income.id);
+    setIncomeAmount(income.amount.toString());
+    setIncomeSource(income.source === 'Bez nazwy' ? '' : income.source);
+    setIncomeCategory(income.category || 'salary');
+    setIsRecurring(income.is_recurring || false);
+    setRecurringDay(income.recurring_day || 1);
+    setShowEditIncomeModal(true);
+  };
+
+  const handleUpdateIncome = async () => {
+    if (!editingIncomeId) return;
+
+    const amount = parseFloat(incomeAmount);
+    if (!amount) {
+      Alert.alert('Missing Info', 'Please enter amount');
+      return;
+    }
+
+    setIsAddingIncome(true);
+    try {
+      const sourceName = incomeSource.trim() || 'Bez nazwy';
+      const incomeData: any = {
+        amount,
+        source: sourceName,
+        category: incomeCategory,
+        is_recurring: isRecurring,
+      };
+
+      if (isRecurring) {
+        incomeData.recurring_frequency = 'monthly';
+        incomeData.recurring_day = recurringDay;
+      }
+
+      if (isDemoUser || !user?.id) {
+        // Update in AsyncStorage
+        const updated = incomeList.map(income =>
+          income.id === editingIncomeId
+            ? { ...income, ...incomeData, updated_at: new Date().toISOString() }
+            : income
+        );
+        await AsyncStorage.setItem('income', JSON.stringify(updated));
+        setIncomeList(updated);
+      } else {
+        // Update in Firebase
+        await authPersistenceReady;
+        const { updateDoc, doc } = await import('firebase/firestore');
+        const { db } = await import('../../config/firebase');
+        const incomeRef = doc(db, 'income', editingIncomeId);
+        await updateDoc(incomeRef, {
+          ...incomeData,
+          updated_at: new Date(),
+        });
+        await loadFirebaseData();
+      }
+
+      // Reset form and close modal
+      setEditingIncomeId(null);
+      setIncomeAmount('');
+      setIncomeSource('');
+      setIsRecurring(false);
+      setRecurringDay(1);
+      setShowEditIncomeModal(false);
+    } catch (error: any) {
+      console.error('Error updating income:', error);
+      alert('Failed to update income');
+    } finally {
+      setIsAddingIncome(false);
+    }
+  };
+
+  const handleCancelEditIncome = () => {
+    setEditingIncomeId(null);
+    setIncomeAmount('');
+    setIncomeSource('');
+    setIsRecurring(false);
+    setRecurringDay(1);
+    setShowEditIncomeModal(false);
+  };
+
+  const handleAddDebt = async () => {
+    const amount = parseFloat(debtAmount);
+    const interestRate = parseFloat(debtInterestRate) || 0;
+    const minPayment = parseFloat(debtMinPayment) || 0;
+
+    if (!amount || !debtName) {
+      Alert.alert('Missing Info', 'Please enter debt name and total amount');
+      return;
+    }
+
+    try {
+      const debtData = {
+        user_id: user?.id || 'demo-user-local',
+        name: debtName,
+        type: debtType as any,
+        original_amount: amount,
+        remaining_amount: amount,
+        interest_rate: interestRate,
+        minimum_payment: minPayment,
+        due_date: new Date().getDate().toString(),
+        status: 'active' as any,
+      };
+
+      if (isDemoUser || !user?.id) {
+        const newDebt = {
+          id: Date.now().toString(),
+          ...debtData,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+        const updated = [...debts, newDebt];
+        await AsyncStorage.setItem('debts', JSON.stringify(updated));
+        setDebts(updated);
+      } else {
+        await addDebt(debtData);
+        await loadFirebaseData();
+      }
+
+      // Clear form
+      setDebtName('');
+      setDebtAmount('');
+      setDebtInterestRate('');
+      setDebtMinPayment('');
+      setShowAddDebt(false);
+      Alert.alert('Success!', 'Debt added');
     } catch (error) {
-      console.error('Error adding income:', error);
-      Alert.alert('Error', 'Failed to add income');
+      console.error('Error adding debt:', error);
+      Alert.alert('Error', 'Failed to add debt');
     }
   };
 
@@ -426,10 +859,13 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
 
   const applyBudgetTemplate = (templateKey: string) => {
     const template = BUDGET_TEMPLATES[templateKey as keyof typeof BUDGET_TEMPLATES];
-    const income = parseFloat(budgetIncome) || 0;
+    // Calculate total income from recurring income entries
+    const income = incomeList
+      .filter(inc => inc.is_recurring)
+      .reduce((sum, inc) => sum + (inc.amount || 0), 0);
 
     if (income === 0) {
-      Alert.alert('No Income', 'Please enter your monthly income first.');
+      Alert.alert('No Income', 'Please add your income in the Income tab first.');
       return;
     }
 
@@ -444,15 +880,20 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
   };
 
   const handleSaveBudget = async () => {
-    if (!user?.id) return;
+    // Calculate total income from recurring income entries
+    const income = incomeList
+      .filter(inc => inc.is_recurring)
+      .reduce((sum, inc) => sum + (inc.amount || 0), 0);
 
-    const income = parseFloat(budgetIncome);
+    console.log('🔧 handleSaveBudget called', { userId: user?.id, income, isDemoUser });
+
     if (!income || income <= 0) {
-      Alert.alert('Invalid Income', 'Please enter your monthly income.');
+      Alert.alert('Invalid Income', 'Please add your income in the Income tab first.');
       return;
     }
 
     try {
+      console.log('📊 Saving budget:', { income, categories: budgetCategories.length, isDemoUser, hasUserId: !!user?.id });
       const currentMonth = new Date().toISOString().slice(0, 7);
       const budgetData = {
         month: currentMonth,
@@ -465,14 +906,213 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
           color: cat.color,
         })),
       };
-      await createBudget(user.id, budgetData);
-      Alert.alert('Success! 🎉', 'Your budget has been saved.');
-      await loadFirebaseData();
+
+      // Work in demo mode if no user ID (handles both demo users and unauthenticated state)
+      if (isDemoUser || !user?.id) {
+        await AsyncStorage.setItem('budget', JSON.stringify(budgetData));
+        Alert.alert('Success! 🎉', 'Your budget has been saved (demo mode).');
+      } else {
+        await createBudget(user.id, budgetData);
+        Alert.alert('Success! 🎉', 'Your budget has been saved.');
+        await loadFirebaseData();
+      }
     } catch (error) {
       console.error('Error saving budget:', error);
       Alert.alert('Error', 'Failed to save budget.');
     }
   };
+
+  // ============================================
+  // NET WORTH CALCULATOR
+  // ============================================
+
+  const parseValue = (val: string): number => {
+    const parsed = parseFloat(val) || 0;
+    return Math.max(0, parsed);
+  };
+
+  const calculateNetWorthFromInputs = () => {
+    const totalAssets =
+      parseValue(cashSavings) +
+      parseValue(checkingBalance) +
+      parseValue(investments) +
+      parseValue(retirement) +
+      parseValue(homeValue) +
+      parseValue(vehicleValue) +
+      parseValue(otherAssets);
+
+    const totalLiabilities =
+      parseValue(mortgage) +
+      parseValue(autoLoans) +
+      parseValue(studentLoans) +
+      parseValue(creditCards) +
+      parseValue(personalLoans) +
+      parseValue(otherDebts);
+
+    const calculatedNetWorth = totalAssets - totalLiabilities;
+
+    return { totalAssets, totalLiabilities, calculatedNetWorth };
+  };
+
+  const loadSavedNetWorth = async () => {
+    try {
+      console.log('📂 Loading net worth data - integrating with debt tracker and savings');
+
+      // STEP 1: Load liabilities from DEBT TRACKER (source of truth for debts)
+      let calculatedLiabilities = {
+        mortgage: 0,
+        autoLoans: 0,
+        studentLoans: 0,
+        creditCards: 0,
+        personalLoans: 0,
+        otherDebts: 0,
+      };
+
+      // Load debts from debt tracker
+      if (debts && debts.length > 0) {
+        console.log('💳 Integrating', debts.length, 'debts from Debt Tracker');
+        debts.forEach((debt: any) => {
+          const amount = debt.remaining_amount || 0;
+          const type = debt.type?.toLowerCase() || '';
+
+          if (type.includes('mortgage') || type.includes('home')) {
+            calculatedLiabilities.mortgage += amount;
+          } else if (type.includes('car') || type.includes('auto') || type.includes('vehicle')) {
+            calculatedLiabilities.autoLoans += amount;
+          } else if (type.includes('student') || type.includes('education')) {
+            calculatedLiabilities.studentLoans += amount;
+          } else if (type.includes('credit') || type.includes('card')) {
+            calculatedLiabilities.creditCards += amount;
+          } else if (type.includes('personal')) {
+            calculatedLiabilities.personalLoans += amount;
+          } else {
+            calculatedLiabilities.otherDebts += amount;
+          }
+        });
+
+        // Populate liability fields from debt tracker
+        setMortgage(calculatedLiabilities.mortgage > 0 ? String(calculatedLiabilities.mortgage) : '');
+        setAutoLoans(calculatedLiabilities.autoLoans > 0 ? String(calculatedLiabilities.autoLoans) : '');
+        setStudentLoans(calculatedLiabilities.studentLoans > 0 ? String(calculatedLiabilities.studentLoans) : '');
+        setCreditCards(calculatedLiabilities.creditCards > 0 ? String(calculatedLiabilities.creditCards) : '');
+        setPersonalLoans(calculatedLiabilities.personalLoans > 0 ? String(calculatedLiabilities.personalLoans) : '');
+        setOtherDebts(calculatedLiabilities.otherDebts > 0 ? String(calculatedLiabilities.otherDebts) : '');
+      }
+
+      // STEP 2: Load assets from saved calculator data or savings tracker
+      const saved = await AsyncStorage.getItem('netWorth');
+      if (saved) {
+        const data = JSON.parse(saved);
+        console.log('💰 Loading saved asset data from calculator');
+
+        // Populate asset fields with saved values (no asset tracker exists yet)
+        setCashSavings(String(data.cashSavings || ''));
+        setCheckingBalance(String(data.checkingBalance || ''));
+        setInvestments(String(data.investments || ''));
+        setRetirement(String(data.retirement || ''));
+        setHomeValue(String(data.homeValue || ''));
+        setVehicleValue(String(data.vehicleValue || ''));
+        setOtherAssets(String(data.otherAssets || ''));
+
+        // If no debts in debt tracker, use saved liability values
+        if (!debts || debts.length === 0) {
+          setMortgage(String(data.mortgage || ''));
+          setAutoLoans(String(data.autoLoans || ''));
+          setStudentLoans(String(data.studentLoans || ''));
+          setCreditCards(String(data.creditCards || ''));
+          setPersonalLoans(String(data.personalLoans || ''));
+          setOtherDebts(String(data.otherDebts || ''));
+        }
+      }
+
+      // STEP 3: Calculate and update net worth from real data
+      const { totalAssets, totalLiabilities, calculatedNetWorth } = calculateNetWorthFromInputs();
+      setNetWorth(calculatedNetWorth);
+      setTotalDebt(totalLiabilities);
+
+      console.log('✅ Net worth integrated:', { totalAssets, totalLiabilities, calculatedNetWorth });
+    } catch (error) {
+      console.error('Error loading saved net worth:', error);
+    }
+  };
+
+  const handleSaveNetWorth = async () => {
+    console.log('🔧 handleSaveNetWorth called', { userId: user?.id, isDemoUser });
+
+    try {
+      const { totalAssets, totalLiabilities, calculatedNetWorth } = calculateNetWorthFromInputs();
+
+      console.log('💰 Calculated net worth:', { totalAssets, totalLiabilities, calculatedNetWorth, isDemoUser, hasUserId: !!user?.id });
+
+      // Update the displayed net worth
+      setNetWorth(calculatedNetWorth);
+      setTotalDebt(totalLiabilities);
+
+      const netWorthData = {
+        cashSavings: parseValue(cashSavings),
+        checkingBalance: parseValue(checkingBalance),
+        investments: parseValue(investments),
+        retirement: parseValue(retirement),
+        homeValue: parseValue(homeValue),
+        vehicleValue: parseValue(vehicleValue),
+        otherAssets: parseValue(otherAssets),
+        mortgage: parseValue(mortgage),
+        autoLoans: parseValue(autoLoans),
+        studentLoans: parseValue(studentLoans),
+        creditCards: parseValue(creditCards),
+        personalLoans: parseValue(personalLoans),
+        otherDebts: parseValue(otherDebts),
+        calculatedNetWorth,
+        totalAssets,
+        totalLiabilities,
+      };
+
+      // Always save to AsyncStorage for persistence (works for both demo and regular users)
+      await AsyncStorage.setItem('netWorth', JSON.stringify(netWorthData));
+
+      Alert.alert(
+        'Net Worth Calculated! 📊',
+        `Your net worth is ${formatAmount(calculatedNetWorth)}.\n\n${
+          calculatedNetWorth >= 0
+            ? "Great job! You're in positive territory."
+            : "Don't worry - this is your starting point. You'll improve from here!"
+        }`,
+        [{ text: 'OK' }]
+      );
+
+      // Don't close the calculator - keep values visible
+      // setShowNetWorthCalculator(false);
+    } catch (error) {
+      console.error('Error saving net worth:', error);
+      Alert.alert('Error', 'Failed to save net worth. Please try again.');
+    }
+  };
+
+  const renderCalculatorInput = (
+    label: string,
+    value: string,
+    setValue: (val: string) => void,
+    icon: string,
+    iconColor: string
+  ) => (
+    <View style={styles.calculatorInputRow}>
+      <View style={styles.calculatorInputLabel}>
+        <Ionicons name={icon as any} size={18} color={iconColor} />
+        <Text style={styles.calculatorInputLabelText}>{label}</Text>
+      </View>
+      <View style={styles.calculatorInputContainer}>
+        <Text style={styles.dollarSign}>$</Text>
+        <TextInput
+          style={styles.calculatorInput}
+          value={value}
+          onChangeText={setValue}
+          keyboardType="numeric"
+          placeholder="0"
+          placeholderTextColor={colors.textSecondary}
+        />
+      </View>
+    </View>
+  );
 
   // ============================================
   // RENDER: OVERVIEW TAB
@@ -484,34 +1124,48 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     return (
       <ScrollView
         style={styles.tabContent}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl }}
+        showsVerticalScrollIndicator={true}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* Stats Bar - overlapping style */}
-        <View style={styles.statsBarOverview}>
-          <View style={styles.statItem}>
-            <Ionicons name="arrow-down" size={20} color="#58CC02" />
-            <Text style={styles.statValueSmall}>${monthlyIncome.toFixed(0)}</Text>
-            <Text style={styles.statLabelSmall}>Income</Text>
+        {/* Stats Grid - Card Style */}
+        <View style={styles.statsGridContainer}>
+          {/* Income Card */}
+          <View style={[styles.statCardLarge, { backgroundColor: '#58CC02' }]}>
+            <View style={styles.statCardIconContainer}>
+              <Ionicons name="arrow-down" size={28} color="white" />
+            </View>
+            <Text style={styles.statCardLabel}>Income</Text>
+            <Text style={styles.statCardValue}>{formatAmount(monthlyIncome)}</Text>
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Ionicons name="arrow-up" size={20} color="#FF4B4B" />
-            <Text style={styles.statValueSmall}>${monthlyExpenses.toFixed(0)}</Text>
-            <Text style={styles.statLabelSmall}>Expenses</Text>
+
+          {/* Expenses Card */}
+          <View style={[styles.statCardLarge, { backgroundColor: '#FF4B4B' }]}>
+            <View style={styles.statCardIconContainer}>
+              <Ionicons name="arrow-up" size={28} color="white" />
+            </View>
+            <Text style={styles.statCardLabel}>Expenses</Text>
+            <Text style={styles.statCardValue}>{formatAmount(monthlyExpenses)}</Text>
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Ionicons name={cashFlow >= 0 ? 'checkmark-circle' : 'close-circle'} size={20} color={cashFlow >= 0 ? '#58CC02' : '#FF4B4B'} />
-            <Text style={[styles.statValueSmall, { color: cashFlow >= 0 ? '#58CC02' : '#FF4B4B' }]}>
-              {cashFlow >= 0 ? '+' : ''}${Math.abs(cashFlow).toFixed(0)}
+
+          {/* Cash Flow Card */}
+          <View style={[styles.statCardLarge, { backgroundColor: cashFlow >= 0 ? '#58CC02' : '#FF4B4B' }]}>
+            <View style={styles.statCardIconContainer}>
+              <Ionicons name={cashFlow >= 0 ? 'checkmark-circle' : 'close-circle'} size={28} color="white" />
+            </View>
+            <Text style={styles.statCardLabel}>Cash Flow</Text>
+            <Text style={styles.statCardValue}>
+              {cashFlow >= 0 ? '+' : ''}{formatAmount(Math.abs(cashFlow))}
             </Text>
-            <Text style={styles.statLabelSmall}>Cash Flow</Text>
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Ionicons name="wallet" size={20} color="#00CD9C" />
-            <Text style={styles.statValueSmall}>{savingsRate.toFixed(0)}%</Text>
-            <Text style={styles.statLabelSmall}>Savings</Text>
+
+          {/* Savings Rate Card */}
+          <View style={[styles.statCardLarge, { backgroundColor: '#00CD9C' }]}>
+            <View style={styles.statCardIconContainer}>
+              <Ionicons name="wallet" size={28} color="white" />
+            </View>
+            <Text style={styles.statCardLabel}>Savings Rate</Text>
+            <Text style={styles.statCardValue}>{savingsRate.toFixed(0)}%</Text>
           </View>
         </View>
 
@@ -523,16 +1177,16 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
             </View>
             <View style={styles.netWorthInfo}>
               <Text style={styles.netWorthLabelNew}>Net Worth</Text>
-              <Text style={styles.netWorthAmountNew}>${netWorth.toFixed(2)}</Text>
+              <Text style={styles.netWorthAmountNew}>{formatAmount(netWorth)}</Text>
               <View style={styles.netWorthDetailsNew}>
                 <View style={styles.netWorthDetailItemNew}>
                   <Text style={styles.netWorthDetailLabel}>Assets</Text>
-                  <Text style={styles.netWorthDetailValue}>${(netWorth + totalDebt).toFixed(0)}</Text>
+                  <Text style={styles.netWorthDetailValue}>{formatAmount(netWorth + totalDebt)}</Text>
                 </View>
                 <View style={styles.netWorthDetailDivider} />
                 <View style={styles.netWorthDetailItemNew}>
                   <Text style={styles.netWorthDetailLabel}>Debt</Text>
-                  <Text style={styles.netWorthDetailValue}>${totalDebt.toFixed(0)}</Text>
+                  <Text style={styles.netWorthDetailValue}>{formatAmount(totalDebt)}</Text>
                 </View>
               </View>
             </View>
@@ -552,7 +1206,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
                   <Text style={styles.transactionCategory}>{expense.category}</Text>
                   <Text style={styles.transactionDate}>{expense.date}</Text>
                 </View>
-                <Text style={styles.transactionAmount}>-${expense.amount.toFixed(2)}</Text>
+                <Text style={styles.transactionAmount}>-{formatAmount(expense.amount)}</Text>
               </View>
             ))}
           </View>
@@ -610,33 +1264,63 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
   // ============================================
 
   const renderBudgetTab = () => {
+    // Calculate total income from recurring income entries
+    const totalIncome = incomeList
+      .filter(income => income.is_recurring)
+      .reduce((sum, income) => sum + (income.amount || 0), 0);
+
     const totalAllocated = budgetCategories.reduce((sum, cat) => sum + cat.allocatedAmount, 0);
-    const remaining = (parseFloat(budgetIncome) || 0) - totalAllocated;
+    const remaining = totalIncome - totalAllocated;
 
     return (
-      <ScrollView style={styles.tabContent}>
-        {/* Monthly Income */}
+      <ScrollView
+        style={styles.tabContent}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl }}
+        showsVerticalScrollIndicator={true}
+      >
+        {/* Monthly Income - Auto-calculated from Income tab */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>💵 Monthly Income</Text>
-          <View style={styles.inputContainer}>
-            <Text style={styles.dollarSign}>$</Text>
-            <TextInput
-              style={styles.input}
-              value={budgetIncome}
-              onChangeText={setBudgetIncome}
-              keyboardType="decimal-pad"
-              placeholder="0.00"
-              placeholderTextColor={colors.textSecondary}
-            />
-          </View>
 
-          <TouchableOpacity
-            style={styles.templateButton}
-            onPress={() => setShowBudgetTemplates(true)}
-          >
-            <Ionicons name="grid" size={20} color={colors.primary} />
-            <Text style={styles.templateButtonText}>Use Budget Template</Text>
-          </TouchableOpacity>
+          {totalIncome > 0 ? (
+            <View style={styles.incomeDisplayCard}>
+              <View style={styles.incomeDisplayRow}>
+                <Text style={styles.incomeDisplayLabel}>Total Recurring Income:</Text>
+                <Text style={styles.incomeDisplayAmount}>{formatAmount(totalIncome)}</Text>
+              </View>
+              <View style={styles.incomeHintContainer}>
+                <Ionicons name="information-circle-outline" size={16} color={colors.primary} />
+                <Text style={styles.incomeHint}>
+                  Income calculated from recurring entries in Income tab
+                </Text>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.emptyIncomeCard}>
+              <Ionicons name="cash-outline" size={48} color={colors.textSecondary} />
+              <Text style={styles.emptyIncomeTitle}>No Income Added</Text>
+              <Text style={styles.emptyIncomeText}>
+                Add your income sources in the Income tab to start budgeting
+              </Text>
+              <TouchableOpacity
+                style={styles.goToIncomeButton}
+                onPress={() => setActiveTab('income')}
+              >
+                <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+                <Text style={styles.goToIncomeButtonText}>Go to Income</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {totalIncome > 0 && (
+            <TouchableOpacity
+              style={styles.templateButton}
+              onPress={() => setShowBudgetTemplates(true)}
+            >
+              <Ionicons name="grid" size={20} color={colors.primary} />
+              <Text style={styles.templateButtonText}>Use Budget Template</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Budget Categories */}
@@ -654,13 +1338,13 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
                     <View style={styles.categoryTextContainer}>
                       <Text style={styles.categoryName}>{category.name}</Text>
                       <Text style={styles.categorySpent}>
-                        ${category.spent.toFixed(0)} of ${category.allocatedAmount.toFixed(0)}
+                        {formatAmount(category.spent)} of {formatAmount(category.allocatedAmount)}
                       </Text>
                     </View>
                   </View>
 
                   <View style={styles.categoryInputContainer}>
-                    <Text style={styles.dollarSign}>$</Text>
+                    <Text style={styles.dollarSign}>{currencyData?.symbol || '$'}</Text>
                     <TextInput
                       style={styles.categoryInput}
                       value={category.allocatedAmount > 0 ? category.allocatedAmount.toString() : ''}
@@ -701,11 +1385,11 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
         <View style={styles.summaryCard}>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Total Income:</Text>
-            <Text style={styles.summaryValue}>${(parseFloat(budgetIncome) || 0).toFixed(2)}</Text>
+            <Text style={styles.summaryValue}>{formatAmount(totalIncome)}</Text>
           </View>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Total Allocated:</Text>
-            <Text style={styles.summaryValue}>${totalAllocated.toFixed(2)}</Text>
+            <Text style={styles.summaryValue}>{formatAmount(totalAllocated)}</Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.summaryRow}>
@@ -717,7 +1401,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
                 remaining === 0 && styles.balancedValue,
               ]}
             >
-              ${Math.abs(remaining).toFixed(2)}
+              {formatAmount(Math.abs(remaining))}
               {remaining < 0 && ' over'}
             </Text>
           </View>
@@ -780,13 +1464,17 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
 
   const renderExpensesTab = () => {
     return (
-      <ScrollView style={styles.tabContent}>
+      <ScrollView
+        style={styles.tabContent}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl }}
+        showsVerticalScrollIndicator={true}
+      >
         {/* Add Expense Form */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Add Expense</Text>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.dollarSign}>$</Text>
+            <Text style={styles.dollarSign}>{currencyData?.symbol || '$'}</Text>
             <TextInput
               style={styles.input}
               value={expenseAmount}
@@ -854,7 +1542,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
                   <Text style={styles.expenseDescription}>{expense.description || 'No description'}</Text>
                   <Text style={styles.expenseDate}>{expense.date}</Text>
                 </View>
-                <Text style={styles.expenseAmount}>${expense.amount.toFixed(2)}</Text>
+                <Text style={styles.expenseAmount}>{formatAmount(expense.amount)}</Text>
               </View>
             ))
           )}
@@ -871,13 +1559,17 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
 
   const renderIncomeTab = () => {
     return (
-      <ScrollView style={styles.tabContent}>
+      <ScrollView
+        style={styles.tabContent}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl }}
+        showsVerticalScrollIndicator={true}
+      >
         {/* Add Income Form */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Add Income</Text>
 
           <View style={styles.inputContainer}>
-            <Text style={styles.dollarSign}>$</Text>
+            <Text style={styles.dollarSign}>{currencyData?.symbol || '$'}</Text>
             <TextInput
               style={styles.input}
               value={incomeAmount}
@@ -932,9 +1624,47 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
             <Text style={styles.recurringText}>Recurring Monthly Income</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={[styles.addButton, { backgroundColor: '#58CC02' }]} onPress={handleAddIncome}>
-            <Ionicons name="add-circle" size={24} color="#FFFFFF" />
-            <Text style={styles.addButtonText}>Add Income</Text>
+          {isRecurring && (
+            <View style={styles.dayPickerContainer}>
+              <Text style={styles.dayPickerLabel}>Day of month:</Text>
+              <View style={styles.dayPickerButtons}>
+                {[1, 5, 10, 15, 20, 25].map(day => (
+                  <TouchableOpacity
+                    key={day}
+                    style={[
+                      styles.dayButton,
+                      recurringDay === day && styles.dayButtonActive
+                    ]}
+                    onPress={() => setRecurringDay(day)}
+                  >
+                    <Text style={[
+                      styles.dayButtonText,
+                      recurringDay === day && styles.dayButtonTextActive
+                    ]}>
+                      {day}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          <TouchableOpacity
+            style={[
+              styles.addButton,
+              { backgroundColor: isAddingIncome ? '#cccccc' : '#58CC02' }
+            ]}
+            onPress={handleAddIncome}
+            disabled={isAddingIncome}
+          >
+            <Ionicons
+              name={isAddingIncome ? "hourglass-outline" : "add-circle"}
+              size={24}
+              color="#FFFFFF"
+            />
+            <Text style={styles.addButtonText}>
+              {isAddingIncome ? 'Adding...' : 'Add Income'}
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -948,16 +1678,43 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
             </View>
           ) : (
             incomeList.map((income, index) => (
-              <View key={index} style={styles.incomeCard}>
+              <View key={income.id || index} style={styles.incomeCard}>
                 <View style={[styles.incomeIcon, { backgroundColor: colors.success + '20' }]}>
                   <Ionicons name="cash" size={24} color={colors.success} />
                 </View>
                 <View style={styles.incomeInfo}>
-                  <Text style={styles.incomeName}>{income.source}</Text>
-                  <Text style={styles.incomeCategory}>{income.category}</Text>
+                  <Text style={[
+                    styles.incomeName,
+                    income.source === 'Bez nazwy' && { fontStyle: 'italic', color: colors.textSecondary }
+                  ]}>
+                    {income.source}
+                  </Text>
+                  <Text style={styles.incomeCategory}>
+                    {income.category}
+                    {income.is_recurring && ` • Every ${income.recurring_day || 1}th`}
+                  </Text>
                   <Text style={styles.incomeDate}>{income.date}</Text>
                 </View>
-                <Text style={styles.incomeAmount}>+${income.amount.toFixed(2)}</Text>
+                <View style={styles.incomeActions}>
+                  <Text style={styles.incomeAmount}>+{formatAmount(income.amount)}</Text>
+                  <View style={styles.incomeButtons}>
+                    <TouchableOpacity
+                      onPress={() => handleStartEditIncome(income)}
+                      style={styles.iconButton}
+                    >
+                      <Ionicons name="create-outline" size={20} color={colors.primary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setIncomeToDelete(income);
+                        setShowDeleteConfirm(true);
+                      }}
+                      style={styles.iconButton}
+                    >
+                      <Ionicons name="trash-outline" size={20} color={colors.error} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
             ))
           )}
@@ -977,7 +1734,11 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     const totalMinimumPayment = debts.reduce((sum, d) => sum + d.minimum_payment, 0);
 
     return (
-      <ScrollView style={styles.tabContent}>
+      <ScrollView
+        style={styles.tabContent}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl }}
+        showsVerticalScrollIndicator={true}
+      >
         {/* Debt Summary */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Debt Summary</Text>
@@ -986,13 +1747,13 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
             <View style={styles.debtSummaryCard}>
               <Ionicons name="alert-circle" size={24} color={colors.error} />
               <Text style={styles.debtSummaryLabel}>Total Debt</Text>
-              <Text style={styles.debtSummaryValue}>${totalDebtAmount.toFixed(0)}</Text>
+              <Text style={styles.debtSummaryValue}>{formatAmount(totalDebtAmount)}</Text>
             </View>
 
             <View style={styles.debtSummaryCard}>
               <Ionicons name="calendar" size={24} color={colors.primary} />
               <Text style={styles.debtSummaryLabel}>Monthly Min</Text>
-              <Text style={styles.debtSummaryValue}>${totalMinimumPayment.toFixed(0)}</Text>
+              <Text style={styles.debtSummaryValue}>{formatAmount(totalMinimumPayment)}</Text>
             </View>
           </View>
 
@@ -1025,7 +1786,12 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
 
         {/* Debts List */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Your Debts</Text>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Your Debts</Text>
+            <TouchableOpacity onPress={() => setShowAddDebt(true)}>
+              <Ionicons name="add-circle" size={28} color={colors.error} />
+            </TouchableOpacity>
+          </View>
           {debts.length === 0 ? (
             <View style={styles.emptyState}>
               <Ionicons name="checkmark-circle" size={64} color={colors.success} />
@@ -1043,7 +1809,7 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
                       <Text style={styles.debtType}>{debt.type}</Text>
                     </View>
                     <View>
-                      <Text style={styles.debtAmount}>${debt.remaining_amount.toFixed(0)}</Text>
+                      <Text style={styles.debtAmount}>{formatAmount(debt.remaining_amount)}</Text>
                       <Text style={styles.debtInterest}>{debt.interest_rate}% APR</Text>
                     </View>
                   </View>
@@ -1061,13 +1827,109 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
                   </View>
 
                   <Text style={styles.debtMinimum}>
-                    Min payment: ${debt.minimum_payment.toFixed(0)}/mo
+                    Min payment: {formatAmount(debt.minimum_payment)}/mo
                   </Text>
                 </View>
               );
             })
           )}
         </View>
+
+        {/* Add Debt Modal */}
+        <Modal visible={showAddDebt} transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Add Debt</Text>
+                <TouchableOpacity onPress={() => setShowAddDebt(false)}>
+                  <Ionicons name="close" size={28} color={colors.text} />
+                </TouchableOpacity>
+              </View>
+
+              <ScrollView>
+                <Text style={styles.inputLabel}>Debt Name *</Text>
+                <TextInput
+                  style={styles.descriptionInput}
+                  value={debtName}
+                  onChangeText={setDebtName}
+                  placeholder="e.g., Credit Card, Student Loan"
+                  placeholderTextColor={colors.textSecondary}
+                />
+
+                <Text style={styles.inputLabel}>Debt Type</Text>
+                <View style={styles.categorySelector}>
+                  {[
+                    { id: 'credit_card', label: 'Credit Card', icon: '💳' },
+                    { id: 'student_loan', label: 'Student Loan', icon: '🎓' },
+                    { id: 'mortgage', label: 'Mortgage', icon: '🏠' },
+                    { id: 'personal_loan', label: 'Personal Loan', icon: '💰' },
+                    { id: 'other', label: 'Other', icon: '📋' },
+                  ].map((type) => (
+                    <TouchableOpacity
+                      key={type.id}
+                      style={[
+                        styles.categoryChip,
+                        debtType === type.id && styles.categoryChipSelected,
+                      ]}
+                      onPress={() => setDebtType(type.id)}
+                    >
+                      <Text style={styles.categoryChipIcon}>{type.icon}</Text>
+                      <Text
+                        style={[
+                          styles.categoryChipText,
+                          debtType === type.id && styles.categoryChipTextSelected,
+                        ]}
+                      >
+                        {type.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <Text style={styles.inputLabel}>Total Amount *</Text>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.dollarSign}>{currencyData?.symbol || '$'}</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={debtAmount}
+                    onChangeText={setDebtAmount}
+                    keyboardType="decimal-pad"
+                    placeholder="Enter total debt amount"
+                    placeholderTextColor={colors.textSecondary}
+                  />
+                </View>
+
+                <Text style={styles.inputLabel}>Interest Rate (APR %)</Text>
+                <TextInput
+                  style={styles.descriptionInput}
+                  value={debtInterestRate}
+                  onChangeText={setDebtInterestRate}
+                  keyboardType="decimal-pad"
+                  placeholder="e.g., 18.5"
+                  placeholderTextColor={colors.textSecondary}
+                />
+
+                <Text style={styles.inputLabel}>Minimum Monthly Payment</Text>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.dollarSign}>{currencyData?.symbol || '$'}</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={debtMinPayment}
+                    onChangeText={setDebtMinPayment}
+                    keyboardType="decimal-pad"
+                    placeholder="Enter minimum payment"
+                    placeholderTextColor={colors.textSecondary}
+                  />
+                </View>
+
+                <TouchableOpacity style={[styles.addButton, { backgroundColor: colors.error, marginTop: spacing.lg }]} onPress={handleAddDebt}>
+                  <Ionicons name="add-circle" size={24} color="#FFFFFF" />
+                  <Text style={styles.addButtonText}>Add Debt</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
 
         <View style={styles.bottomSpacer} />
       </ScrollView>
@@ -1083,7 +1945,11 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     const totalTarget = savingsGoals.reduce((sum, g) => sum + g.target_amount, 0);
 
     return (
-      <ScrollView style={styles.tabContent}>
+      <ScrollView
+        style={styles.tabContent}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl }}
+        showsVerticalScrollIndicator={true}
+      >
         {/* Emergency Fund */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Emergency Fund</Text>
@@ -1180,7 +2046,11 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
 
   const renderSubscriptionsTab = () => {
     return (
-      <ScrollView style={styles.tabContent}>
+      <ScrollView
+        style={styles.tabContent}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl }}
+        showsVerticalScrollIndicator={true}
+      >
         {/* Monthly Total */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Monthly Total</Text>
@@ -1232,7 +2102,11 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
     const liabilities = totalDebt;
 
     return (
-      <ScrollView style={styles.tabContent}>
+      <ScrollView
+        style={styles.tabContent}
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: spacing.xl }}
+        showsVerticalScrollIndicator={true}
+      >
         {/* Net Worth Summary */}
         <LinearGradient
           colors={netWorth >= 0 ? ['#58CC02', '#46A302'] : ['#FF4B4B', '#CC0000']}
@@ -1281,6 +2155,121 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
           <Text style={styles.netWorthNote}>
             💡 Pay down debts to increase your net worth over time
           </Text>
+        </View>
+
+        {/* Net Worth Calculator - Collapsible */}
+        <View style={styles.calculatorSection}>
+          <TouchableOpacity
+            style={styles.calculatorHeader}
+            onPress={() => setShowNetWorthCalculator(!showNetWorthCalculator)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.calculatorHeaderLeft}>
+              <Ionicons name="calculator" size={24} color={colors.finance} />
+              <Text style={styles.calculatorHeaderTitle}>Net Worth Calculator</Text>
+            </View>
+            <Ionicons
+              name={showNetWorthCalculator ? 'chevron-up' : 'chevron-down'}
+              size={24}
+              color={colors.textSecondary}
+            />
+          </TouchableOpacity>
+
+          {showNetWorthCalculator && (
+            <View style={styles.calculatorContent}>
+              {/* Assets Section */}
+              <View style={styles.calculatorSubsection}>
+                <View style={styles.calculatorSubsectionHeader}>
+                  <Ionicons name="trending-up" size={20} color={colors.success} />
+                  <Text style={styles.calculatorSubsectionTitle}>Assets (What You Own)</Text>
+                </View>
+
+                {renderCalculatorInput('Cash Savings', cashSavings, setCashSavings, 'cash', colors.success)}
+                {renderCalculatorInput('Checking Account', checkingBalance, setCheckingBalance, 'card', colors.success)}
+                {renderCalculatorInput('Investments', investments, setInvestments, 'stats-chart', colors.success)}
+                {renderCalculatorInput('Retirement Accounts', retirement, setRetirement, 'time', colors.success)}
+                {renderCalculatorInput('Home Value', homeValue, setHomeValue, 'home', colors.success)}
+                {renderCalculatorInput('Vehicle Value', vehicleValue, setVehicleValue, 'car', colors.success)}
+                {renderCalculatorInput('Other Assets', otherAssets, setOtherAssets, 'ellipsis-horizontal', colors.success)}
+
+                <View style={styles.calculatorTotalRow}>
+                  <Text style={styles.calculatorTotalLabel}>Total Assets:</Text>
+                  <Text style={[styles.calculatorTotalValue, { color: colors.success }]}>
+                    ${calculateNetWorthFromInputs().totalAssets.toLocaleString()}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Liabilities Section */}
+              <View style={styles.calculatorSubsection}>
+                <View style={styles.calculatorSubsectionHeader}>
+                  <Ionicons name="trending-down" size={20} color={colors.error} />
+                  <Text style={styles.calculatorSubsectionTitle}>Liabilities (What You Owe)</Text>
+                </View>
+
+                {renderCalculatorInput('Mortgage', mortgage, setMortgage, 'home-outline', colors.error)}
+                {renderCalculatorInput('Auto Loans', autoLoans, setAutoLoans, 'car-outline', colors.error)}
+                {renderCalculatorInput('Student Loans', studentLoans, setStudentLoans, 'school-outline', colors.error)}
+                {renderCalculatorInput('Credit Cards', creditCards, setCreditCards, 'card-outline', colors.error)}
+                {renderCalculatorInput('Personal Loans', personalLoans, setPersonalLoans, 'people-outline', colors.error)}
+                {renderCalculatorInput('Other Debts', otherDebts, setOtherDebts, 'ellipsis-horizontal-outline', colors.error)}
+
+                <View style={styles.calculatorTotalRow}>
+                  <Text style={styles.calculatorTotalLabel}>Total Liabilities:</Text>
+                  <Text style={[styles.calculatorTotalValue, { color: colors.error }]}>
+                    ${calculateNetWorthFromInputs().totalLiabilities.toLocaleString()}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Net Worth Summary */}
+              <LinearGradient
+                colors={
+                  calculateNetWorthFromInputs().calculatedNetWorth >= 0
+                    ? [colors.success, '#46A302']
+                    : [colors.error, '#CC0000']
+                }
+                style={styles.calculatorSummaryCard}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Text style={styles.calculatorSummaryLabel}>Your Net Worth</Text>
+                <Text style={styles.calculatorSummaryValue}>
+                  ${calculateNetWorthFromInputs().calculatedNetWorth.toLocaleString()}
+                </Text>
+                <Text style={styles.calculatorSummarySubtext}>
+                  {calculateNetWorthFromInputs().calculatedNetWorth >= 0
+                    ? '✅ Positive Net Worth'
+                    : '⚠️ Negative - Your Starting Point'}
+                </Text>
+              </LinearGradient>
+
+              {/* Info Card */}
+              <View style={styles.calculatorInfoCard}>
+                <Ionicons name="information-circle" size={20} color={colors.finance} />
+                <Text style={styles.calculatorInfoText}>
+                  Net worth = Assets − Liabilities. Track it monthly to see your financial progress!
+                </Text>
+              </View>
+
+              {/* Save Button */}
+              <TouchableOpacity
+                style={styles.calculatorSaveButton}
+                onPress={handleSaveNetWorth}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={[colors.finance, '#E68A00']}
+                  style={styles.calculatorSaveButtonGradient}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                >
+                  <Text style={styles.calculatorSaveButtonText}>Calculate & Save Net Worth</Text>
+                  <Ionicons name="checkmark-circle" size={22} color="#FFF" />
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         <View style={styles.bottomSpacer} />
@@ -1469,6 +2458,125 @@ export const FinanceDashboardUnified = ({ navigation }: any) => {
 
       {/* Tab Content */}
       {renderTabContent()}
+
+      {/* Edit Income Modal */}
+      <Modal
+        visible={showEditIncomeModal}
+        transparent
+        animationType="fade"
+        onRequestClose={handleCancelEditIncome}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Edit Income</Text>
+
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Amount"
+              keyboardType="numeric"
+              value={incomeAmount}
+              onChangeText={setIncomeAmount}
+            />
+
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Source (optional)"
+              value={incomeSource}
+              onChangeText={setIncomeSource}
+            />
+
+            <TouchableOpacity
+              style={styles.modalCheckbox}
+              onPress={() => setIsRecurring(!isRecurring)}
+            >
+              <Ionicons
+                name={isRecurring ? 'checkbox' : 'square-outline'}
+                size={24}
+                color={colors.primary}
+              />
+              <Text style={styles.modalCheckboxText}>Recurring Monthly</Text>
+            </TouchableOpacity>
+
+            {isRecurring && (
+              <View style={styles.modalDayPicker}>
+                <Text style={styles.modalLabel}>Day of month:</Text>
+                <View style={styles.dayPickerButtons}>
+                  {[1, 5, 10, 15, 20, 25].map(day => (
+                    <TouchableOpacity
+                      key={day}
+                      style={[
+                        styles.dayButton,
+                        recurringDay === day && styles.dayButtonActive
+                      ]}
+                      onPress={() => setRecurringDay(day)}
+                    >
+                      <Text style={[
+                        styles.dayButtonText,
+                        recurringDay === day && styles.dayButtonTextActive
+                      ]}>
+                        {day}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={handleCancelEditIncome}
+              >
+                <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonConfirm]}
+                onPress={handleUpdateIncome}
+                disabled={isAddingIncome}
+              >
+                <Text style={styles.modalButtonText}>
+                  {isAddingIncome ? 'Saving...' : 'Update'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Delete Confirmation Modal */}
+      <Modal
+        visible={showDeleteConfirm}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowDeleteConfirm(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Ionicons name="trash" size={48} color={colors.error} style={{ marginBottom: 16 }} />
+            <Text style={styles.modalTitle}>Delete Income?</Text>
+            <Text style={styles.modalMessage}>
+              Are you sure you want to delete "{incomeToDelete?.source}"?
+            </Text>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonCancel]}
+                onPress={() => {
+                  setShowDeleteConfirm(false);
+                  setIncomeToDelete(null);
+                }}
+              >
+                <Text style={styles.modalButtonTextCancel}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonDelete]}
+                onPress={handleDeleteIncome}
+              >
+                <Text style={styles.modalButtonText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -1549,40 +2657,45 @@ const styles = StyleSheet.create({
   },
 
   // Stats Bar Overview - Duolingo Style
-  statsBarOverview: {
+  // Stats Grid - Card Style (like Net Worth)
+  statsGridContainer: {
     flexDirection: 'row',
-    backgroundColor: 'white',
+    flexWrap: 'wrap',
     marginHorizontal: 20,
     marginTop: 20,
+    gap: 12,
+  },
+  statCardLarge: {
+    flex: 1,
+    minWidth: '47%',
     borderRadius: 16,
-    padding: 12,
-    justifyContent: 'space-around',
-    alignItems: 'center',
+    padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
     elevation: 5,
-  },
-  statItem: {
     alignItems: 'center',
-    flex: 1,
   },
-  statValueSmall: {
-    fontSize: 16,
+  statCardIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  statCardLabel: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.9)',
+    marginBottom: 4,
+    fontWeight: '500',
+  },
+  statCardValue: {
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginTop: 4,
-  },
-  statLabelSmall: {
-    fontSize: 11,
-    color: '#666',
-    textAlign: 'center',
-  },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: '#E5E5E5',
+    color: 'white',
   },
 
   // Net Worth Card - Duolingo Style
@@ -1876,6 +2989,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.text,
     paddingVertical: spacing.md,
+    textAlign: 'left',
   },
   descriptionInput: {
     backgroundColor: colors.backgroundGray,
@@ -1884,6 +2998,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: colors.text,
     marginBottom: spacing.md,
+  },
+  inputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: spacing.xs,
+    marginTop: spacing.sm,
   },
 
   // Category Selector
@@ -2081,6 +3202,74 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: colors.primary,
+  },
+  incomeDisplayCard: {
+    backgroundColor: colors.backgroundGray,
+    borderRadius: 12,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  incomeDisplayRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  incomeDisplayLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  incomeDisplayAmount: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: colors.success,
+  },
+  incomeHintContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  incomeHint: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  emptyIncomeCard: {
+    backgroundColor: colors.backgroundGray,
+    borderRadius: 12,
+    padding: spacing.xl,
+    alignItems: 'center',
+    marginBottom: spacing.md,
+  },
+  emptyIncomeTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: colors.text,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+  },
+  emptyIncomeText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginBottom: spacing.lg,
+  },
+  goToIncomeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.success,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: 12,
+    gap: spacing.xs,
+  },
+  goToIncomeButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
   },
   addButton: {
     flexDirection: 'row',
@@ -2550,7 +3739,313 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
+  // Net Worth Calculator Styles
+  calculatorSection: {
+    backgroundColor: colors.background,
+    marginHorizontal: 20,
+    marginVertical: 16,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  calculatorHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: colors.background,
+  },
+  calculatorHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  calculatorHeaderTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  calculatorContent: {
+    padding: 16,
+    paddingTop: 0,
+  },
+  calculatorSubsection: {
+    marginBottom: 20,
+  },
+  calculatorSubsectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  calculatorSubsectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  calculatorInputRow: {
+    marginBottom: 10,
+  },
+  calculatorInputLabel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  calculatorInputLabelText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  calculatorInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.backgroundGray,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  calculatorInput: {
+    flex: 1,
+    height: 40,
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  calculatorTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 2,
+    borderTopColor: colors.border,
+  },
+  calculatorTotalLabel: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  calculatorTotalValue: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  calculatorSummaryCard: {
+    marginTop: 8,
+    marginBottom: 16,
+    padding: 20,
+    borderRadius: 16,
+    alignItems: 'center',
+  },
+  calculatorSummaryLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.9)',
+    marginBottom: 8,
+  },
+  calculatorSummaryValue: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  calculatorSummarySubtext: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  calculatorInfoCard: {
+    flexDirection: 'row',
+    backgroundColor: colors.backgroundGray,
+    padding: 12,
+    borderRadius: 10,
+    gap: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  calculatorInfoText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.textSecondary,
+  },
+  calculatorSaveButton: {
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  calculatorSaveButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
+    gap: 8,
+  },
+  calculatorSaveButtonText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+
   bottomSpacer: {
     height: spacing.xl * 2,
+  },
+
+  // Day Picker for Recurring Income
+  dayPickerContainer: {
+    marginBottom: spacing.md,
+  },
+  dayPickerLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  dayPickerButtons: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  dayButton: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.background,
+  },
+  dayButtonActive: {
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
+  },
+  dayButtonText: {
+    fontSize: 14,
+    color: colors.text,
+    fontWeight: '500',
+  },
+  dayButtonTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+
+  // Button Row
+  buttonRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+
+  // Income Actions
+  incomeActions: {
+    alignItems: 'flex-end',
+  },
+  incomeButtons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
+  },
+  iconButton: {
+    padding: spacing.xs,
+  },
+
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: spacing.xl,
+    width: '90%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: spacing.md,
+    textAlign: 'center',
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+    textAlign: 'center',
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: spacing.md,
+    fontSize: 16,
+    marginBottom: spacing.md,
+    backgroundColor: colors.background,
+  },
+  modalCheckbox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  modalCheckboxText: {
+    fontSize: 16,
+    color: colors.text,
+  },
+  modalLabel: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    marginBottom: spacing.xs,
+  },
+  modalDayPicker: {
+    marginBottom: spacing.md,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    marginTop: spacing.md,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalButtonCancel: {
+    backgroundColor: colors.backgroundGray,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  modalButtonConfirm: {
+    backgroundColor: colors.success,
+  },
+  modalButtonDelete: {
+    backgroundColor: colors.error,
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  modalButtonTextCancel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
   },
 });

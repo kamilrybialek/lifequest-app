@@ -3,20 +3,38 @@
  * Matching Journey and Tasks screen design language
  */
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView,  TouchableOpacity, RefreshControl, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, Alert, Modal, TextInput, FlatList, Image, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
+import { useCurrencyStore } from '../../store/currencyStore';
+import { CURRENCIES } from '../../constants/currencies';
+import { deleteAllUserData } from '../../services/firebaseUserService';
+import { pickImage, uploadProfilePhoto, deleteProfilePhoto } from '../../services/photoUploadService';
 
 export const ProfileScreenNew = () => {
-  const { user, logout } = useAuthStore();
+  const navigation = useNavigation();
+  const { user, logout, updateProfile } = useAuthStore();
   const { progress, loadAppData } = useAppStore();
+  const { currency, setCurrency } = useCurrencyStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [showCurrencyModal, setShowCurrencyModal] = useState(false);
+  const [currencySearch, setCurrencySearch] = useState('');
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const firstName = user?.firstName || user?.email?.split('@')[0] || 'Champion';
+
+  useEffect(() => {
+    // Load profile photo from user data
+    if (user?.photoURL) {
+      setProfilePhoto(user.photoURL);
+    }
+  }, [user?.photoURL]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -51,35 +69,136 @@ export const ProfileScreenNew = () => {
     // TODO: Implement settings navigation
   };
 
-  const handleResetDatabase = async () => {
+  const handleUploadPhoto = async () => {
+    if (!user?.id) {
+      Alert.alert('Error', 'User not logged in');
+      return;
+    }
+
+    try {
+      setUploadingPhoto(true);
+
+      // Pick image
+      const imageUri = await pickImage();
+      if (!imageUri) {
+        setUploadingPhoto(false);
+        return;
+      }
+
+      // Upload to Firebase
+      const downloadURL = await uploadProfilePhoto(user.id, imageUri);
+
+      // Update local state
+      setProfilePhoto(downloadURL);
+
+      // Update auth store (if you have photoURL in user object)
+      if (updateProfile) {
+        await updateProfile({ photoURL: downloadURL });
+      }
+
+      Alert.alert('✅ Success', 'Profile photo updated successfully!');
+    } catch (error: any) {
+      console.error('Error uploading photo:', error);
+      Alert.alert(
+        '❌ Upload Failed',
+        error.message || 'Failed to upload photo. Please try again.'
+      );
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleDeletePhoto = async () => {
+    if (!user?.id || !profilePhoto) {
+      return;
+    }
+
     Alert.alert(
-      '⚠️ RESET DATABASE',
-      'This will delete ALL your data including:\n' +
-      '- Onboarding data\n' +
-      '- Tasks and progress\n' +
-      '- Achievements and streaks\n' +
-      '- User authentication\n\n' +
-      'This action CANNOT be undone!\n\n' +
+      'Delete Photo?',
+      'Are you sure you want to remove your profile photo?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setUploadingPhoto(true);
+              await deleteProfilePhoto(user.id);
+              setProfilePhoto(null);
+
+              // Update auth store
+              if (updateProfile) {
+                await updateProfile({ photoURL: null });
+              }
+
+              Alert.alert('✅ Deleted', 'Profile photo removed successfully');
+            } catch (error) {
+              console.error('❌ Error deleting photo:', error);
+              Alert.alert('Error', 'Failed to delete photo. Please try again.');
+            } finally {
+              setUploadingPhoto(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleRemoveUserAccount = async () => {
+    Alert.alert(
+      '🗑️ REMOVE USER ACCOUNT',
+      'This will completely remove your account and ALL data:\n\n' +
+      '• All progress and XP\n' +
+      '• Tasks and achievements\n' +
+      '• Streaks and statistics\n' +
+      '• Finance, Mental, Physical, Nutrition data\n' +
+      '• Onboarding information\n\n' +
+      'You will need to complete onboarding again.\n\n' +
+      '⚠️ This action CANNOT be undone!\n\n' +
       'Are you absolutely sure?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Reset',
+          text: 'Remove Account',
           style: 'destructive',
           onPress: async () => {
             try {
-              console.log('Resetting database...');
+              if (!user?.id) {
+                Alert.alert('Error', 'User not found');
+                return;
+              }
+
+              console.log('Removing user account...');
+
+              // 1. Delete all Firestore data
+              await deleteAllUserData(user.id);
+
+              // 2. Clear AsyncStorage (local data)
               await AsyncStorage.clear();
-              console.log('Database cleared');
+
+              console.log('Account data removed successfully');
 
               Alert.alert(
-                '✅ Success',
-                'Database has been reset successfully!\n\nPlease restart the app.',
-                [{ text: 'OK', onPress: () => logout() }]
+                '✅ Account Removed',
+                'Your account and all data have been removed.\n\nYou can now create a new account or login again.',
+                [
+                  {
+                    text: 'OK',
+                    onPress: () => {
+                      // 3. Logout (will redirect to login/onboarding)
+                      logout();
+                    }
+                  }
+                ]
               );
             } catch (error) {
-              console.error('Error resetting database:', error);
-              Alert.alert('❌ Error', 'Failed to reset database. Please try again.');
+              console.error('Error removing account:', error);
+              Alert.alert(
+                '❌ Error',
+                'Failed to remove account. Please try again or contact support.',
+                [{ text: 'OK' }]
+              );
             }
           }
         }
@@ -112,6 +231,49 @@ export const ProfileScreenNew = () => {
           <TouchableOpacity onPress={handleLogout} style={styles.headerLogout}>
             <Ionicons name="log-out-outline" size={20} color="rgba(255,255,255,0.9)" />
           </TouchableOpacity>
+        </View>
+
+        {/* Profile Photo Section */}
+        <View style={styles.photoSection}>
+          <View style={styles.photoContainer}>
+            {uploadingPhoto ? (
+              <View style={styles.photoPlaceholder}>
+                <ActivityIndicator size="large" color="#4A90E2" />
+                <Text style={styles.uploadingText}>Uploading...</Text>
+              </View>
+            ) : profilePhoto ? (
+              <Image source={{ uri: profilePhoto }} style={styles.profilePhoto} />
+            ) : (
+              <View style={styles.photoPlaceholder}>
+                <Ionicons name="person" size={60} color="#CCC" />
+              </View>
+            )}
+
+            {/* Photo Actions */}
+            <View style={styles.photoActions}>
+              <TouchableOpacity
+                style={styles.photoButton}
+                onPress={handleUploadPhoto}
+                disabled={uploadingPhoto}
+              >
+                <Ionicons name="camera" size={20} color="white" />
+              </TouchableOpacity>
+
+              {profilePhoto && !uploadingPhoto && (
+                <TouchableOpacity
+                  style={[styles.photoButton, styles.deleteButton]}
+                  onPress={handleDeletePhoto}
+                >
+                  <Ionicons name="trash" size={20} color="white" />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+
+          <View style={styles.photoInfo}>
+            <Text style={styles.photoTitle}>{firstName}</Text>
+            <Text style={styles.photoSubtitle}>Level {progress.level} • {progress.totalPoints} XP</Text>
+          </View>
         </View>
 
         {/* Stats Bar - overlapping header */}
@@ -266,6 +428,26 @@ export const ProfileScreenNew = () => {
 
             <TouchableOpacity
               style={styles.settingItem}
+              onPress={() => setShowCurrencyModal(true)}
+            >
+              <View style={styles.settingLeft}>
+                <View style={[styles.settingIconContainer, { backgroundColor: '#4CAF50' + '20' }]}>
+                  <Ionicons name="cash-outline" size={20} color="#4CAF50" />
+                </View>
+                <View>
+                  <Text style={styles.settingText}>Currency</Text>
+                  <Text style={styles.settingSubtext}>
+                    {CURRENCIES.find(c => c.code === currency)?.name || 'USD'} ({currency})
+                  </Text>
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#CCC" />
+            </TouchableOpacity>
+
+            <View style={styles.settingDivider} />
+
+            <TouchableOpacity
+              style={styles.settingItem}
               onPress={() => handleSettingPress('account')}
             >
               <View style={styles.settingLeft}>
@@ -321,6 +503,25 @@ export const ProfileScreenNew = () => {
               </View>
               <Ionicons name="chevron-forward" size={20} color="#CCC" />
             </TouchableOpacity>
+
+            {/* Admin Panel Link - Only for admin users */}
+            {user?.email === 'kamil.rybialek@gmail.com' && (
+              <>
+                <View style={styles.settingDivider} />
+                <TouchableOpacity
+                  style={styles.settingItem}
+                  onPress={() => (navigation as any).navigate('Admin')}
+                >
+                  <View style={styles.settingLeft}>
+                    <View style={[styles.settingIconContainer, { backgroundColor: '#9C27B0' + '20' }]}>
+                      <Ionicons name="shield-checkmark" size={20} color="#9C27B0" />
+                    </View>
+                    <Text style={styles.settingText}>Admin Panel</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color="#CCC" />
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
 
@@ -330,13 +531,13 @@ export const ProfileScreenNew = () => {
           <View style={styles.settingsCard}>
             <TouchableOpacity
               style={styles.settingItem}
-              onPress={handleResetDatabase}
+              onPress={handleRemoveUserAccount}
             >
               <View style={styles.settingLeft}>
                 <View style={[styles.settingIconContainer, { backgroundColor: '#FF4B4B' + '20' }]}>
-                  <Ionicons name="trash-outline" size={20} color="#FF4B4B" />
+                  <Ionicons name="trash-bin-outline" size={20} color="#FF4B4B" />
                 </View>
-                <Text style={[styles.settingText, { color: '#FF4B4B' }]}>Reset Database</Text>
+                <Text style={[styles.settingText, { color: '#FF4B4B', fontWeight: '600' }]}>Remove User Account</Text>
               </View>
               <Ionicons name="warning-outline" size={20} color="#FF4B4B" />
             </TouchableOpacity>
@@ -372,6 +573,73 @@ export const ProfileScreenNew = () => {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Currency Selection Modal */}
+      <Modal
+        visible={showCurrencyModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowCurrencyModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Currency 💱</Text>
+              <TouchableOpacity onPress={() => setShowCurrencyModal(false)}>
+                <Ionicons name="close" size={28} color="#1A1A1A" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Search Input */}
+            <TextInput
+              style={styles.modalSearch}
+              placeholder="Search currency..."
+              value={currencySearch}
+              onChangeText={setCurrencySearch}
+              placeholderTextColor="#999"
+            />
+
+            {/* Currency List */}
+            <FlatList
+              data={CURRENCIES.filter(
+                (c) =>
+                  c.name.toLowerCase().includes(currencySearch.toLowerCase()) ||
+                  c.code.toLowerCase().includes(currencySearch.toLowerCase())
+              )}
+              keyExtractor={(item) => item.code}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={[
+                    styles.currencyOption,
+                    currency === item.code && styles.currencyOptionSelected,
+                  ]}
+                  onPress={async () => {
+                    await setCurrency(item.code);
+                    setShowCurrencyModal(false);
+                    setCurrencySearch('');
+                    Alert.alert(
+                      'Currency Updated! 💱',
+                      `All amounts will now be displayed in ${item.name} (${item.code})`,
+                      [{ text: 'OK' }]
+                    );
+                  }}
+                >
+                  <Text style={styles.currencyOptionFlag}>{item.flag}</Text>
+                  <View style={styles.currencyOptionInfo}>
+                    <Text style={styles.currencyOptionCode}>{item.code}</Text>
+                    <Text style={styles.currencyOptionName}>{item.name}</Text>
+                    <Text style={styles.currencyOptionSymbol}>Symbol: {item.symbol}</Text>
+                  </View>
+                  {currency === item.code && (
+                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                  )}
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -412,6 +680,86 @@ const styles = StyleSheet.create({
   headerLogout: {
     padding: 8,
     marginTop: 8,
+  },
+  // Profile Photo Section
+  photoSection: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    marginTop: -40,
+  },
+  photoContainer: {
+    position: 'relative',
+    marginBottom: 12,
+  },
+  profilePhoto: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    borderWidth: 4,
+    borderColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  photoPlaceholder: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: '#F5F8FA',
+    borderWidth: 4,
+    borderColor: 'white',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  uploadingText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 8,
+  },
+  photoActions: {
+    position: 'absolute',
+    bottom: 0,
+    right: -5,
+    flexDirection: 'row',
+    gap: 8,
+  },
+  photoButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#4A90E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  deleteButton: {
+    backgroundColor: '#FF4B4B',
+  },
+  photoInfo: {
+    alignItems: 'center',
+  },
+  photoTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  photoSubtitle: {
+    fontSize: 14,
+    color: '#666',
   },
   // Stats Bar - overlapping header
   statsBar: {
@@ -671,10 +1019,91 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#1A1A1A',
   },
+  settingSubtext: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 2,
+  },
   settingDivider: {
     height: 1,
     backgroundColor: '#F3F4F6',
     marginLeft: 68,
+  },
+  // Currency Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '80%',
+    paddingBottom: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+  },
+  modalSearch: {
+    backgroundColor: '#F5F8FA',
+    marginHorizontal: 20,
+    marginTop: 16,
+    marginBottom: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    fontSize: 16,
+    color: '#1A1A1A',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  currencyOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    marginHorizontal: 20,
+    marginVertical: 4,
+    borderRadius: 12,
+    backgroundColor: '#F5F8FA',
+    gap: 12,
+  },
+  currencyOptionSelected: {
+    backgroundColor: '#E8F5E9',
+    borderWidth: 2,
+    borderColor: '#4CAF50',
+  },
+  currencyOptionFlag: {
+    fontSize: 32,
+  },
+  currencyOptionInfo: {
+    flex: 1,
+  },
+  currencyOptionCode: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    marginBottom: 2,
+  },
+  currencyOptionName: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666',
+    marginBottom: 2,
+  },
+  currencyOptionSymbol: {
+    fontSize: 12,
+    color: '#999',
   },
   // Motivation Card
   motivationSection: {

@@ -45,13 +45,13 @@ const PATHS: PathCard[] = [
     completed: 0,
   },
   {
-    pillar: 'mental',
-    title: 'Mental Mastery',
-    subtitle: 'Build Unbreakable Focus',
-    icon: 'bulb',
-    emoji: '🧠',
-    color: '#9C27B0',
-    lessons: 35,
+    pillar: 'diet',
+    title: 'Diet Mastery',
+    subtitle: 'Smart Eating, Smart Spending',
+    icon: 'restaurant',
+    emoji: '🍽️',
+    color: '#4CAF50',
+    lessons: 30,
     completed: 0,
   },
   {
@@ -65,13 +65,13 @@ const PATHS: PathCard[] = [
     completed: 0,
   },
   {
-    pillar: 'nutrition',
-    title: 'Nutrition Mastery',
-    subtitle: 'Fuel Like a Champion',
-    icon: 'restaurant',
-    emoji: '🥗',
-    color: '#4CAF50',
-    lessons: 30,
+    pillar: 'mental',
+    title: 'Mental Mastery',
+    subtitle: 'Build Unbreakable Focus',
+    icon: 'bulb',
+    emoji: '🧠',
+    color: '#9C27B0',
+    lessons: 35,
     completed: 0,
   },
 ];
@@ -84,9 +84,9 @@ export const JourneyScreen = ({ navigation }: any) => {
   const handlePathPress = (pillar: Pillar) => {
     const screenMap = {
       finance: 'FinancePathNew',
-      mental: 'MentalHealthPath',
+      diet: 'NutritionPath', // Changed to NutritionPath for lessons
       physical: 'PhysicalHealthPath',
-      nutrition: 'NutritionPath',
+      mental: 'MentalHealthPath',
     };
     navigation.navigate(screenMap[pillar]);
   };

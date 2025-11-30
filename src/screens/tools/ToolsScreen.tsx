@@ -42,9 +42,7 @@ const PHYSICAL_TOOLS: Tool[] = [
 ];
 
 const NUTRITION_TOOLS: Tool[] = [
-  { name: 'Meal Logger', icon: '🍽️', screen: 'MealLoggerScreen', description: 'Track meals & macros' },
-  { name: 'Water Tracker', icon: '💧', screen: 'WaterTrackerScreen', description: 'Hydration goals' },
-  { name: 'Calorie Calculator', icon: '🔢', screen: 'CalorieCalculatorScreen', description: 'BMR & TDEE' },
+  { name: 'Diet Mastery', icon: '🥗', screen: 'DietDashboardScreen', description: 'Complete nutrition control center', enhanced: true },
 ];
 
 export const ToolsScreen = ({ navigation }: any) => {
@@ -98,13 +96,13 @@ export const ToolsScreen = ({ navigation }: any) => {
         <View style={styles.statsBar}>
           <View style={styles.statItem}>
             <Ionicons name="construct" size={20} color="#4A90E2" />
-            <Text style={styles.statValue}>12</Text>
+            <Text style={styles.statValue}>10</Text>
             <Text style={styles.statLabel}>Tools</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Ionicons name="star" size={20} color="#FFD700" />
-            <Text style={styles.statValue}>2</Text>
+            <Text style={styles.statValue}>3</Text>
             <Text style={styles.statLabel}>Enhanced</Text>
           </View>
           <View style={styles.statDivider} />
@@ -118,9 +116,9 @@ export const ToolsScreen = ({ navigation }: any) => {
         {/* Tool Sections */}
         <View style={styles.sectionsContainer}>
           {renderToolSection('💰 Finance', FINANCE_TOOLS, '#4A90E2')}
-          {renderToolSection('🧠 Mental Health', MENTAL_TOOLS, '#9C27B0')}
+          {renderToolSection('🥗 Diet', NUTRITION_TOOLS, '#4CAF50')}
           {renderToolSection('💪 Physical', PHYSICAL_TOOLS, '#FF6B6B')}
-          {renderToolSection('🥗 Nutrition', NUTRITION_TOOLS, '#4CAF50')}
+          {renderToolSection('🧠 Mental Health', MENTAL_TOOLS, '#9C27B0')}
         </View>
 
         <View style={{ height: 40 }} />

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Animated, ViewStyle } from 'react-native';
 import { Text } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -27,14 +27,14 @@ export const LessonBubble: React.FC<LessonBubbleProps> = ({
   onPress,
   position = 'center',
 }) => {
-  const getPositionStyle = () => {
+  const getPositionStyle = (): ViewStyle => {
     switch (position) {
       case 'left':
-        return { alignSelf: 'flex-start', marginLeft: '10%' };
+        return { alignSelf: 'flex-start' as const, marginLeft: '10%' as const };
       case 'right':
-        return { alignSelf: 'flex-end', marginRight: '10%' };
+        return { alignSelf: 'flex-end' as const, marginRight: '10%' as const };
       default:
-        return { alignSelf: 'center' };
+        return { alignSelf: 'center' as const };
     }
   };
 

@@ -657,4 +657,21 @@ Once deployed to Vercel/Netlify:
 
 ---
 
+## 📚 Important Documentation
+
+### For Developers
+
+- **[DEPRECATED_SCREENS.md](./DEPRECATED_SCREENS.md)** - ⛔ **CRITICAL:** List of 47 deprecated/unused screen files that should NOT be used without explicit permission. Always check this before using any screen file!
+
+### Architecture & Design Docs
+
+Check the root directory for additional documentation files:
+- `JOURNEYS_TOOLS_REDESIGN.md` - Journey and tools architecture
+- `FINANCE_MANAGER_REDESIGN.md` - Finance manager redesign notes
+- `REDESIGN_PLAN.md` - Overall redesign plan
+- `ADMIN_MODE.md` - Admin mode documentation
+- `NEXT_STEPS_RECOMMENDATIONS.md` - Future development recommendations
+
+---
+
 Built with ❤️ using React Native & Expo

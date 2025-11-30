@@ -27,18 +27,35 @@ service cloud.firestore {
       return request.auth.uid == request.resource.data.user_id;
     }
 
+    // Check if user is an admin (by email)
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.email == 'kamil.rybialek@gmail.com';
+    }
+
     // ============================================
     // USER & PROFILE COLLECTIONS
     // ============================================
 
-    // Users collection - users can only read/write their own data
+    // Users collection - users can only read/write their own data, admins can read all
     match /users/{userId} {
+      // Regular users can read/write their own data
       allow read, write: if isAuthenticated() && isOwner(userId);
+
+      // Admins can read all users and update their access levels
+      allow read: if isAdmin();
+      allow update: if isAdmin();
     }
 
     // User stats - users can only access their own stats
     match /user_stats/{userId} {
       allow read, write: if isAuthenticated() && isOwner(userId);
+    }
+
+    // Streaks - users can only access their own
+    match /streaks/{streakId} {
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
     }
 
     // ============================================
@@ -182,8 +199,20 @@ service cloud.firestore {
     }
 
     // ============================================
-    // HEALTH & WELLNESS COLLECTIONS (Future)
+    // HEALTH & WELLNESS COLLECTIONS
     // ============================================
+
+    // Health metrics - users can only access their own
+    match /health_metrics/{userId} {
+      allow read, write: if isAuthenticated() && isOwner(userId);
+    }
+
+    // Weekly health quizzes - users can only access their own
+    match /weekly_health_quizzes/{quizId} {
+      allow read: if isAuthenticated() && isDocumentOwner();
+      allow create: if isAuthenticated() && isNewDocumentOwner();
+      allow update, delete: if isAuthenticated() && isDocumentOwner();
+    }
 
     // Mental health data - users can only access their own
     match /mental_health_data/{entryId} {
@@ -204,6 +233,12 @@ service cloud.firestore {
       allow read: if isAuthenticated() && isDocumentOwner();
       allow create: if isAuthenticated() && isNewDocumentOwner();
       allow update, delete: if isAuthenticated() && isDocumentOwner();
+    }
+
+    // Recipes - read-only for all authenticated users, admins can write
+    match /recipes/{recipeId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
     }
 
     // ============================================

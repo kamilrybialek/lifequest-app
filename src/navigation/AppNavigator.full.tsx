@@ -48,12 +48,13 @@ import { ExerciseLoggerScreen } from '../screens/physical/tools/ExerciseLoggerSc
 import { NutritionPath } from '../screens/nutrition/NutritionPath';
 import { NutritionLessonIntro } from '../screens/nutrition/NutritionLessonIntro';
 import { NutritionLessonContent } from '../screens/nutrition/NutritionLessonContent';
+import { DietDashboardScreen } from '../screens/nutrition/tools/DietDashboardScreen';
 import { MealLoggerScreen } from '../screens/nutrition/tools/MealLoggerScreen';
 import { WaterTrackerScreen } from '../screens/nutrition/tools/WaterTrackerScreen';
 import { CalorieCalculatorScreen } from '../screens/nutrition/tools/CalorieCalculatorScreen';
 
 // Admin
-import { AdminScreen } from '../screens/AdminScreen';
+import { AdminGuard } from '../screens/admin/AdminGuard';
 
 // Achievements
 import { AchievementsScreen } from '../screens/AchievementsScreen';
@@ -90,8 +91,21 @@ export const AppNavigator = () => {
     return null; // Or a loading screen
   }
 
+  // Web linking configuration
+  const linking = {
+    prefixes: ['http://localhost:8081', 'https://lifequest-app.web.app'],
+    config: {
+      screens: {
+        Login: 'login',
+        Onboarding: 'onboarding',
+        MainTabs: '',
+        Admin: 'admin',
+      },
+    },
+  };
+
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!isAuthenticated ? (
           <Stack.Screen name="Login" component={LoginScreen} />
@@ -251,6 +265,11 @@ export const AppNavigator = () => {
               options={{ headerShown: false }}
             />
             <Stack.Screen
+              name="DietDashboardScreen"
+              component={DietDashboardScreen}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
               name="MealLogger"
               component={MealLoggerScreen}
               options={{ headerShown: false }}
@@ -352,6 +371,13 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="Streaks"
               component={StreaksScreen}
+              options={{ headerShown: false }}
+            />
+
+            {/* Admin Panel */}
+            <Stack.Screen
+              name="Admin"
+              component={AdminGuard}
               options={{ headerShown: false }}
             />
           </>

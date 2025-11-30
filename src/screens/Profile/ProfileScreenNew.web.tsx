@@ -3,19 +3,44 @@
  * Matching Journey and Tasks screen design language
  */
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, RefreshControl } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, RefreshControl, Image, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
+import { deleteAllUserData } from '../../services/firebaseUserService';
+import { uploadProfilePhoto, deleteProfilePhoto, getProfilePhotoURL, pickImage } from '../../services/photoUploadService';
 
 export const ProfileScreenNew = () => {
   const { user, logout } = useAuthStore();
   const { progress, loadAppData } = useAppStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoLoading, setPhotoLoading] = useState(false);
+  const [photoError, setPhotoError] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<string>(''); // "compressing", "uploading", ""
+  const [showPhotoMenu, setShowPhotoMenu] = useState(false);
 
   const firstName = user?.firstName || user?.email?.split('@')[0] || 'Champion';
+
+  useEffect(() => {
+    const loadPhoto = async () => {
+      if (user?.id) {
+        try {
+          const photoURL = await getProfilePhotoURL(user.id);
+          console.log('📸 Loaded photo URL:', photoURL ? 'exists' : 'none');
+          setProfilePhoto(photoURL);
+          setPhotoError(false);
+        } catch (error) {
+          console.error('❌ Error loading photo:', error);
+          setPhotoError(true);
+        }
+      }
+    };
+    loadPhoto();
+  }, [user?.id]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -27,12 +52,94 @@ export const ProfileScreenNew = () => {
     setRefreshing(false);
   };
 
-  const handleLogout = () => {
-    const confirmed = window.confirm('Are you sure you want to logout?');
-    if (confirmed) {
-      console.log('Logging out...');
-      logout();
+  const handleUploadPhoto = async () => {
+    if (!user?.id) {
+      console.error('❌ No user ID');
+      return;
     }
+
+    try {
+      // Step 1: Pick image (no loading state yet - just file picker)
+      console.log('📂 Opening file picker...');
+      const imageUri = await pickImage();
+
+      if (!imageUri) {
+        console.log('❌ No image selected');
+        return;
+      }
+
+      console.log('📸 Image selected');
+
+      // Step 2: Show loading state
+      setUploadingPhoto(true);
+      setPhotoError(false);
+      setUploadStatus('compressing');
+
+      // Step 3: Upload photo (compress + save to Firestore)
+      console.log('🔄 Uploading photo...');
+      const photoDataUrl = await uploadProfilePhoto(user.id, imageUri);
+      console.log('✅ Photo uploaded successfully');
+
+      // Step 4: Update UI
+      setProfilePhoto(photoDataUrl);
+      setPhotoLoading(true); // Will be set to false when Image onLoad fires
+      // Success - no alert needed
+
+    } catch (error) {
+      console.error('❌ Error uploading photo:', error);
+      setPhotoError(true);
+      // Error logged to console, no user-facing alert
+    } finally {
+      setUploadingPhoto(false);
+      setUploadStatus('');
+    }
+  };
+
+  const handleDeletePhoto = async () => {
+    if (!user?.id || !profilePhoto) {
+      return;
+    }
+
+    // Just delete without confirmation
+    try {
+      setUploadingPhoto(true);
+      await deleteProfilePhoto(user.id);
+      setProfilePhoto(null);
+      // Success - no alert needed
+    } catch (error) {
+      console.error('❌ Error deleting photo:', error);
+      // Error logged to console, no user-facing alert
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handlePhotoClick = () => {
+    if (uploadingPhoto) return;
+
+    if (profilePhoto) {
+      // Show edit menu
+      setShowPhotoMenu(!showPhotoMenu);
+    } else {
+      // No photo yet, just upload
+      handleUploadPhoto();
+    }
+  };
+
+  const handleChangePhoto = () => {
+    setShowPhotoMenu(false);
+    handleUploadPhoto();
+  };
+
+  const handleRemovePhoto = () => {
+    setShowPhotoMenu(false);
+    handleDeletePhoto();
+  };
+
+  const handleLogout = () => {
+    // Just logout without confirmation
+    console.log('Logging out...');
+    logout();
   };
 
   const handleSettingPress = (setting: string) => {
@@ -40,33 +147,53 @@ export const ProfileScreenNew = () => {
     // TODO: Implement settings navigation
   };
 
-  const handleResetDatabase = async () => {
+  const handleRemoveUserAccount = async () => {
     const confirmed = window.confirm(
-      '⚠️ RESET DATABASE\n\n' +
-      'This will delete ALL your data including:\n' +
-      '- Onboarding data\n' +
-      '- Tasks and progress\n' +
-      '- Achievements and streaks\n' +
-      '- User authentication\n\n' +
-      'This action CANNOT be undone!\n\n' +
+      '🗑️ REMOVE USER ACCOUNT\n\n' +
+      'This will completely remove your account and ALL data:\n\n' +
+      '• All progress and XP\n' +
+      '• Tasks and achievements\n' +
+      '• Streaks and statistics\n' +
+      '• Finance, Mental, Physical, Nutrition data\n' +
+      '• Onboarding information\n\n' +
+      'You will need to complete onboarding again.\n\n' +
+      '⚠️ This action CANNOT be undone!\n\n' +
       'Are you absolutely sure?'
     );
 
     if (confirmed) {
       try {
-        console.log('Resetting database...');
+        if (!user?.id) {
+          window.alert('Error: User not found');
+          return;
+        }
+
+        console.log('Removing user account...');
+
+        // 1. Delete all Firestore data
+        await deleteAllUserData(user.id);
+
+        // 2. Clear AsyncStorage (local data)
         await AsyncStorage.clear();
-        console.log('Database cleared, reloading...');
+
+        console.log('Account data removed successfully');
 
         // Show success message
-        window.alert('✅ Database has been reset successfully!\n\nThe app will now reload.');
+        window.alert(
+          '✅ Account Removed\n\n' +
+          'Your account and all data have been removed.\n\n' +
+          'You can now create a new account or login again.'
+        );
 
-        // Logout and reload
+        // 3. Logout and reload (will redirect to login/onboarding)
         await logout();
         window.location.reload();
       } catch (error) {
-        console.error('Error resetting database:', error);
-        window.alert('❌ Error: Failed to reset database. Please try again.');
+        console.error('Error removing account:', error);
+        window.alert(
+          '❌ Error\n\n' +
+          'Failed to remove account. Please try again or contact support.'
+        );
       }
     }
   };
@@ -86,19 +213,102 @@ export const ProfileScreenNew = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Header - Duolingo Style */}
-        <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <Text style={styles.headerEmoji}>👤</Text>
-            <Text style={styles.headerTitle}>Profile</Text>
-            <Text style={styles.headerSubtitle}>Keep growing, {firstName}!</Text>
-          </View>
-          <TouchableOpacity onPress={handleLogout} style={styles.headerLogout}>
-            <Ionicons name="log-out-outline" size={20} color="rgba(255,255,255,0.9)" />
+        {/* Profile Photo Section with Header */}
+        <View style={styles.photoSection}>
+          {/* Logout button in corner */}
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutButtonTop}>
+            <Ionicons name="log-out-outline" size={24} color="#666" />
           </TouchableOpacity>
+
+          <View style={styles.photoWrapper}>
+            <TouchableOpacity
+              style={styles.photoContainer}
+              onPress={handlePhotoClick}
+              disabled={uploadingPhoto}
+              activeOpacity={0.7}
+            >
+              {uploadingPhoto ? (
+                <View style={styles.photoPlaceholder}>
+                  <ActivityIndicator size="large" color="#4A90E2" />
+                  <Text style={styles.uploadingText}>
+                    {uploadStatus === 'compressing' ? 'Compressing...' : 'Uploading...'}
+                  </Text>
+                </View>
+              ) : profilePhoto && !photoError ? (
+                <Image
+                  key={profilePhoto}
+                  source={{ uri: profilePhoto }}
+                  style={styles.profilePhoto}
+                  resizeMode="cover"
+                  onError={(error) => {
+                    console.error('❌ Image load error:', error);
+                    setPhotoError(true);
+                  }}
+                />
+              ) : (
+                <View style={styles.photoPlaceholder}>
+                  <Ionicons name="person" size={50} color="#CCC" />
+                  {photoError && (
+                    <Text style={styles.errorText}>Tap to retry</Text>
+                  )}
+                  {!photoError && !profilePhoto && (
+                    <Text style={styles.uploadHint}>Tap to add photo</Text>
+                  )}
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Edit Icon - only show when photo exists */}
+            {profilePhoto && !uploadingPhoto && (
+              <TouchableOpacity
+                style={styles.editIconButton}
+                onPress={handlePhotoClick}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="pencil" size={16} color="white" />
+              </TouchableOpacity>
+            )}
+
+            {/* Dropdown Menu with Overlay */}
+            {showPhotoMenu && profilePhoto && (
+              <>
+                <TouchableOpacity
+                  style={styles.photoMenuOverlay}
+                  onPress={() => setShowPhotoMenu(false)}
+                  activeOpacity={1}
+                />
+                <View style={styles.photoMenu}>
+                  <TouchableOpacity
+                    style={styles.photoMenuItem}
+                    onPress={handleChangePhoto}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="camera" size={20} color="#4A90E2" />
+                    <Text style={styles.photoMenuText}>Change Photo</Text>
+                  </TouchableOpacity>
+
+                  <View style={styles.photoMenuDivider} />
+
+                  <TouchableOpacity
+                    style={styles.photoMenuItem}
+                    onPress={handleRemovePhoto}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="trash" size={20} color="#FF4B4B" />
+                    <Text style={[styles.photoMenuText, { color: '#FF4B4B' }]}>Delete Photo</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+
+          <View style={styles.photoInfo}>
+            <Text style={styles.photoTitle}>{firstName}</Text>
+            <Text style={styles.photoSubtitle}>Level {progress.level} • {progress.totalPoints} XP</Text>
+          </View>
         </View>
 
-        {/* Stats Bar - overlapping header */}
+        {/* Stats Bar */}
         <View style={styles.statsBar}>
           <View style={styles.statItem}>
             <Ionicons name="star" size={20} color="#FFD700" />
@@ -150,83 +360,6 @@ export const ProfileScreenNew = () => {
               </View>
             </View>
           </TouchableOpacity>
-        </View>
-
-        {/* Achievements Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>🏆 Achievements</Text>
-            <Text style={styles.sectionSubtitle}>{unlockedAchievements.length} of {totalAchievements}</Text>
-          </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.achievementsScroll}>
-            {progress.achievements.slice(0, 5).map((achievement) => (
-              <TouchableOpacity
-                key={achievement.id}
-                style={[
-                  styles.achievementCard,
-                  { backgroundColor: achievement.unlocked ? '#4CAF50' : '#E5E5E5' }
-                ]}
-                activeOpacity={0.8}
-              >
-                <View style={styles.achievementIconContainer}>
-                  <Text style={styles.achievementIcon}>{achievement.icon}</Text>
-                </View>
-                <Text style={[styles.achievementName, !achievement.unlocked && styles.achievementNameLocked]}>
-                  {achievement.name}
-                </Text>
-                {achievement.unlocked && (
-                  <View style={styles.achievementUnlocked}>
-                    <Ionicons name="checkmark-circle" size={20} color="white" />
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Pillar Streaks - Colorful Cards */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔥 Pillar Streaks</Text>
-          {progress.streaks.map((streak) => {
-            const pillarColors: Record<string, string> = {
-              finance: '#4A90E2',
-              mental: '#4A90E2',
-              physical: '#FF6B6B',
-              nutrition: '#4CAF50',
-            };
-            const pillarIcons: Record<string, string> = {
-              finance: '💰',
-              mental: '🧠',
-              physical: '💪',
-              nutrition: '🥗',
-            };
-            return (
-              <TouchableOpacity
-                key={streak.pillar}
-                style={[styles.streakCard, { backgroundColor: pillarColors[streak.pillar] }]}
-                activeOpacity={0.8}
-              >
-                <View style={styles.streakCardContent}>
-                  <View style={styles.streakIconContainer}>
-                    <Text style={styles.streakEmoji}>{pillarIcons[streak.pillar]}</Text>
-                  </View>
-                  <View style={styles.streakInfo}>
-                    <Text style={styles.streakPillar}>
-                      {streak.pillar.charAt(0).toUpperCase() + streak.pillar.slice(1)}
-                    </Text>
-                    <View style={styles.streakMeta}>
-                      <View style={styles.streakBadge}>
-                        <Ionicons name="flame" size={12} color="white" />
-                        <Text style={styles.streakBadgeText}>{streak.current} days</Text>
-                      </View>
-                      <Text style={styles.streakLongest}>Best: {streak.longest}</Text>
-                    </View>
-                  </View>
-                  <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.8)" />
-                </View>
-              </TouchableOpacity>
-            );
-          })}
         </View>
 
         {/* Settings */}
@@ -314,13 +447,13 @@ export const ProfileScreenNew = () => {
           <View style={styles.settingsCard}>
             <TouchableOpacity
               style={styles.settingItem}
-              onPress={handleResetDatabase}
+              onPress={handleRemoveUserAccount}
             >
               <View style={styles.settingLeft}>
                 <View style={[styles.settingIconContainer, { backgroundColor: '#FF4B4B' + '20' }]}>
-                  <Ionicons name="trash-outline" size={20} color="#FF4B4B" />
+                  <Ionicons name="trash-bin-outline" size={20} color="#FF4B4B" />
                 </View>
-                <Text style={[styles.settingText, { color: '#FF4B4B' }]}>Reset Database</Text>
+                <Text style={[styles.settingText, { color: '#FF4B4B', fontWeight: '600' }]}>Remove User Account</Text>
               </View>
               <Ionicons name="warning-outline" size={20} color="#FF4B4B" />
             </TouchableOpacity>
@@ -397,12 +530,145 @@ const styles = StyleSheet.create({
     padding: 8,
     marginTop: 8,
   },
-  // Stats Bar - overlapping header
+  // Profile Photo Section
+  photoSection: {
+    alignItems: 'center',
+    paddingVertical: 30,
+    paddingTop: 50,
+    position: 'relative',
+  },
+  logoutButtonTop: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    padding: 8,
+    zIndex: 10,
+  },
+  photoWrapper: {
+    position: 'relative',
+    marginBottom: 12,
+    zIndex: 100,
+  },
+  photoContainer: {
+    position: 'relative',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    overflow: 'hidden',
+    borderWidth: 4,
+    borderColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  profilePhoto: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 60,
+  },
+  editIconButton: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#4A90E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  photoMenuOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 9998,
+  },
+  photoMenu: {
+    position: 'absolute',
+    top: 130,
+    left: '50%',
+    transform: [{ translateX: -80 }],
+    width: 160,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 10,
+    overflow: 'hidden',
+    zIndex: 9999,
+  },
+  photoMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 10,
+  },
+  photoMenuDivider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+  },
+  photoMenuText: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '500',
+  },
+  photoPlaceholder: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 60,
+    backgroundColor: '#F5F8FA',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  uploadingText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 8,
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#FF4B4B',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  uploadHint: {
+    fontSize: 11,
+    color: '#999',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  photoInfo: {
+    alignItems: 'center',
+  },
+  photoTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  photoSubtitle: {
+    fontSize: 14,
+    color: '#666',
+  },
+  // Stats Bar
   statsBar: {
     flexDirection: 'row',
     backgroundColor: 'white',
     marginHorizontal: 20,
-    marginTop: -20,
+    marginTop: 10,
     borderRadius: 16,
     padding: 12,
     justifyContent: 'space-around',

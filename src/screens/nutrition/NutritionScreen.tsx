@@ -591,4 +591,27 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#1565C0',
   },
+  dietPlannerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  dietPlannerTitleContainer: {
+    flex: 1,
+  },
+  dietPlannerTitle: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
+  openPlannerButton: {
+    marginLeft: 12,
+  },
+  dietPlannerFeatures: {
+    gap: 8,
+  },
+  featureItem: {
+    fontSize: 14,
+    color: '#666',
+  },
 });

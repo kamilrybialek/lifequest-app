@@ -174,7 +174,7 @@ export const PhysicalLessonDuolingo = ({ route, navigation }: any) => {
       setSelectedChoice(null);
       setShowFeedback(false);
     } else {
-      navigation.goBack();
+      navigation.navigate('MainTabs', { screen: 'Physical' });
     }
   };
 
