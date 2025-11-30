@@ -185,6 +185,30 @@ export const DietDashboardScreen = ({ navigation }: any) => {
     return sum + ((item.recipe.nutrition?.fat || 0) * item.portions);
   }, 0);
 
+  // Load initial recipes on component mount
+  useEffect(() => {
+    const loadInitialRecipes = async () => {
+      setLoading(true);
+      try {
+        const randomRecipes: Recipe[] = [];
+        for (let i = 0; i < 5; i++) {
+          const response = await fetch(`${THEMEALDB_BASE_URL}/random.php`);
+          const data = await response.json();
+          if (data.meals) {
+            randomRecipes.push(transformMealDBToRecipe(data.meals[0]));
+          }
+        }
+        setSearchResults(randomRecipes);
+      } catch (error) {
+        console.error('Failed to load initial recipes:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInitialRecipes();
+  }, []); // Empty dependency array = run once on mount
+
   // Toggle ingredient
   const toggleIngredient = (ingredientId: string) => {
     if (selectedIngredients.includes(ingredientId)) {
