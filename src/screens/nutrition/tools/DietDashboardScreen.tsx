@@ -10,7 +10,9 @@ import {
   Alert,
   Modal,
   Dimensions,
+  Platform,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Text } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../../theme/colors';
@@ -77,7 +79,6 @@ const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
 // Responsive design
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const IS_WEB = SCREEN_WIDTH > 768;
-const MAX_CONTENT_WIDTH = 1200;
 
 // API configuration - Priority: Firebase → TheMealDB → Spoonacular
 const SPOONACULAR_API_KEY = '8b6cd47792ff4057ad699f9b0523d9df';
@@ -1574,35 +1575,56 @@ export const DietDashboardScreen = ({ navigation }: any) => {
       {/* Recipe Results */}
       {searchResults.length > 0 && (
         <>
-          <Text style={styles.resultsTitle}>
-            Found {searchResults.length} recipes
-          </Text>
+          <View style={styles.resultsHeader}>
+            <Text style={styles.resultsTitle}>
+              🍳 {searchResults.length} Delicious Recipes
+            </Text>
+            <Text style={styles.resultsSubtitle}>Tap to view details</Text>
+          </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.recipeScroll}>
             {searchResults.map((recipe) => (
               <TouchableOpacity
                 key={recipe.id}
                 style={styles.recipeCard}
                 onPress={() => getRecipeDetails(recipe.id)}
+                activeOpacity={0.9}
               >
-                <Image source={{ uri: recipe.image }} style={styles.recipeImage} />
-                <Text style={styles.recipeTitle} numberOfLines={2}>{recipe.title}</Text>
-                <View style={styles.recipeInfo}>
-                  {recipe.calories && recipe.calories > 0 && (
-                    <View style={styles.caloriesBadge}>
-                      <Text style={styles.caloriesText}>🔥 {recipe.calories} kcal</Text>
+                <View style={styles.recipeImageContainer}>
+                  <Image source={{ uri: recipe.image }} style={styles.recipeImage} />
+                  {recipe.readyInMinutes > 0 && (
+                    <View style={styles.timeBadge}>
+                      <Ionicons name="time" size={12} color="#FFFFFF" />
+                      <Text style={styles.timeBadgeText}>{recipe.readyInMinutes}m</Text>
                     </View>
                   )}
-                  {recipe.readyInMinutes > 0 && (
-                    <Text style={styles.recipeInfoText}>⏱ {recipe.readyInMinutes}m</Text>
+                </View>
+                <View style={styles.recipeCardContent}>
+                  <Text style={styles.recipeTitle} numberOfLines={2}>{recipe.title}</Text>
+
+                  {recipe.calories && recipe.calories > 0 && (
+                    <View style={styles.caloriesBadgeNew}>
+                      <Ionicons name="flame" size={14} color={colors.diet} />
+                      <Text style={styles.caloriesTextNew}>{recipe.calories} kcal</Text>
+                    </View>
+                  )}
+
+                  {recipe.protein && recipe.protein > 0 && (
+                    <View style={styles.macrosRowNew}>
+                      <View style={styles.macroItemNew}>
+                        <Text style={styles.macroLabelNew}>P</Text>
+                        <Text style={styles.macroValueNew}>{recipe.protein}g</Text>
+                      </View>
+                      <View style={styles.macroItemNew}>
+                        <Text style={styles.macroLabelNew}>C</Text>
+                        <Text style={styles.macroValueNew}>{recipe.carbs}g</Text>
+                      </View>
+                      <View style={styles.macroItemNew}>
+                        <Text style={styles.macroLabelNew}>F</Text>
+                        <Text style={styles.macroValueNew}>{recipe.fat}g</Text>
+                      </View>
+                    </View>
                   )}
                 </View>
-                {recipe.protein && recipe.protein > 0 && (
-                  <View style={styles.macrosRow}>
-                    <Text style={styles.macroText}>P: {recipe.protein}g</Text>
-                    <Text style={styles.macroText}>C: {recipe.carbs}g</Text>
-                    <Text style={styles.macroText}>F: {recipe.fat}g</Text>
-                  </View>
-                )}
               </TouchableOpacity>
             ))}
           </ScrollView>
@@ -2359,14 +2381,27 @@ export const DietDashboardScreen = ({ navigation }: any) => {
   return (
     <View style={styles.container}>
       <View style={styles.contentWrapper}>
-        {/* Header */}
-        <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>🍽️ Diet Dashboard</Text>
-        <View style={styles.headerRight} />
-      </View>
+        {/* Header with Gradient */}
+        <LinearGradient
+          colors={['#CE82FF', '#A855F7']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.headerGradient}
+        >
+          <View style={styles.header}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+              <Ionicons name="arrow-back" size={24} color="#FFF" />
+            </TouchableOpacity>
+            <View style={styles.headerContent}>
+              <Text style={styles.headerEmoji}>🍽️</Text>
+              <View>
+                <Text style={styles.headerTitle}>Meal Planner</Text>
+                <Text style={styles.headerSubtitle}>Plan, Shop, Cook</Text>
+              </View>
+            </View>
+            <View style={styles.headerRight} />
+          </View>
+        </LinearGradient>
 
       {/* Tab Bar */}
       <View style={styles.tabBar}>
@@ -2376,8 +2411,8 @@ export const DietDashboardScreen = ({ navigation }: any) => {
         >
           <Ionicons
             name="calendar"
-            size={20}
-            color={activeTab === 'planner' ? colors.diet : colors.textSecondary}
+            size={18}
+            color={activeTab === 'planner' ? '#FFFFFF' : colors.textSecondary}
           />
           <Text
             style={[
@@ -2385,7 +2420,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
               activeTab === 'planner' && styles.tabTextActive,
             ]}
           >
-            Meal Planner
+            Planner
           </Text>
         </TouchableOpacity>
 
@@ -2395,8 +2430,8 @@ export const DietDashboardScreen = ({ navigation }: any) => {
         >
           <Ionicons
             name="cart"
-            size={20}
-            color={activeTab === 'shopping' ? colors.diet : colors.textSecondary}
+            size={18}
+            color={activeTab === 'shopping' ? '#FFFFFF' : colors.textSecondary}
           />
           <Text
             style={[
@@ -2404,7 +2439,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
               activeTab === 'shopping' && styles.tabTextActive,
             ]}
           >
-            Shopping List
+            Shopping
           </Text>
         </TouchableOpacity>
 
@@ -2414,8 +2449,8 @@ export const DietDashboardScreen = ({ navigation }: any) => {
         >
           <Ionicons
             name="cash"
-            size={20}
-            color={activeTab === 'costs' ? colors.diet : colors.textSecondary}
+            size={18}
+            color={activeTab === 'costs' ? '#FFFFFF' : colors.textSecondary}
           />
           <Text
             style={[
@@ -2447,42 +2482,55 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
-    alignItems: 'center',
   },
   contentWrapper: {
     flex: 1,
     width: '100%',
-    maxWidth: IS_WEB ? MAX_CONTENT_WIDTH : '100%',
     backgroundColor: 'white',
+  },
+  headerGradient: {
+    paddingTop: Platform.OS === 'ios' ? 50 : spacing.lg,
+    paddingBottom: spacing.xl,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.md,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
   },
   backButton: {
     padding: spacing.sm,
   },
+  headerContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginLeft: spacing.sm,
+  },
+  headerEmoji: {
+    fontSize: 48,
+  },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: '700',
-    color: colors.text,
+    color: '#FFFFFF',
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: 2,
   },
   headerRight: {
     width: 40,
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E5E5',
-    paddingHorizontal: spacing.md,
+    backgroundColor: '#F7F7F7',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
   },
   tab: {
     flex: 1,
@@ -2490,21 +2538,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
     gap: spacing.xs,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    borderRadius: 12,
+    backgroundColor: 'transparent',
   },
   tabActive: {
-    borderBottomColor: colors.diet,
+    backgroundColor: colors.diet,
+    shadowColor: colors.diet,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   tabText: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.textSecondary,
-    fontWeight: '500',
+    fontWeight: '600',
   },
   tabTextActive: {
-    color: colors.diet,
-    fontWeight: '600',
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
   tabContent: {
     flex: 1,
@@ -2868,32 +2922,113 @@ const styles = StyleSheet.create({
   loader: {
     marginVertical: spacing.xl,
   },
+  resultsHeader: {
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  resultsTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: colors.text,
+  },
+  resultsSubtitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
   recipeScroll: {
     marginTop: spacing.sm,
+    paddingHorizontal: spacing.lg,
   },
   recipeCard: {
-    width: 220,
+    width: 240,
     marginRight: spacing.md,
     backgroundColor: 'white',
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowColor: colors.diet,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  recipeImageContainer: {
+    position: 'relative',
+    width: '100%',
+    height: 180,
+    backgroundColor: '#F0F0F0',
   },
   recipeImage: {
     width: '100%',
-    height: 160,
-    backgroundColor: '#E5E5E5',
+    height: '100%',
+  },
+  timeBadge: {
+    position: 'absolute',
+    top: spacing.sm,
+    right: spacing.sm,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderRadius: 12,
+    gap: 4,
+  },
+  timeBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  recipeCardContent: {
+    padding: spacing.md,
   },
   recipeTitle: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 15,
+    fontWeight: '700',
     color: colors.text,
-    padding: spacing.sm,
-    minHeight: 40,
+    lineHeight: 20,
+    marginBottom: spacing.sm,
+  },
+  caloriesBadgeNew: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(206, 130, 255, 0.1)',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 4,
+    alignSelf: 'flex-start',
+    marginBottom: spacing.sm,
+  },
+  caloriesTextNew: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.diet,
+  },
+  macrosRowNew: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  macroItemNew: {
+    flex: 1,
+    backgroundColor: '#F7F7F7',
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  macroLabelNew: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    marginBottom: 2,
+  },
+  macroValueNew: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.text,
   },
   recipeInfo: {
     flexDirection: 'row',
