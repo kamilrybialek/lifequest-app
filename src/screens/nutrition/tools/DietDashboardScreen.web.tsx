@@ -88,6 +88,15 @@ const SPOONACULAR_API_KEY = '8b6cd47792ff4057ad699f9b0523d9df';
 const SPOONACULAR_BASE_URL = 'https://api.spoonacular.com';
 const THEMEALDB_BASE_URL = 'https://www.themealdb.com/api/json/v1/1';
 
+// Edamam Recipe API
+const EDAMAM_APP_ID = 'f6f7c0a1'; // Free tier: 10 req/min
+const EDAMAM_APP_KEY = '2b7c3f4e5d6a7b8c9d0e1f2a3b4c5d6e'; // Example key
+const EDAMAM_BASE_URL = 'https://api.edamam.com/api/recipes/v2';
+
+// Tasty API (RapidAPI)
+const TASTY_API_KEY = 'your_rapidapi_key_here'; // Get from https://rapidapi.com/apidojo/api/tasty
+const TASTY_BASE_URL = 'https://tasty.p.rapidapi.com';
+
 // Filter configurations
 const DIET_FILTERS = [
   { id: 'vegetarian', label: 'Vegetarian', icon: '🥬', color: colors.success },
@@ -245,6 +254,84 @@ export const DietDashboardScreen = ({ navigation }: any) => {
       extendedIngredients: ingredients,
       instructions: instructions,
       analyzedInstructions: steps.length > 0 ? [{ steps }] : [],
+    };
+  };
+
+  // Helper: Transform Edamam recipe to Recipe format
+  const transformEdamamToRecipe = (hit: any): Recipe => {
+    const recipe = hit.recipe;
+    const ingredients = recipe.ingredients.map((ing: any, index: number) => ({
+      id: index + 1,
+      name: ing.food,
+      amount: ing.quantity || 0,
+      unit: ing.measure || '',
+      original: ing.text,
+    }));
+
+    return {
+      id: parseInt(recipe.uri.split('_')[1].substring(0, 8), 36), // Generate numeric ID from URI
+      title: recipe.label,
+      image: recipe.image,
+      readyInMinutes: recipe.totalTime || 30,
+      servings: recipe.yield || 4,
+      pricePerServing: 250,
+      cuisines: recipe.cuisineType || [],
+      diets: recipe.dietLabels || [],
+      summary: recipe.label,
+      calories: Math.round(recipe.calories / recipe.yield) || 0,
+      protein: Math.round(recipe.totalNutrients?.PROCNT?.quantity / recipe.yield) || 0,
+      carbs: Math.round(recipe.totalNutrients?.CHOCDF?.quantity / recipe.yield) || 0,
+      fat: Math.round(recipe.totalNutrients?.FAT?.quantity / recipe.yield) || 0,
+      nutrition: {
+        calories: Math.round(recipe.calories / recipe.yield) || 0,
+        protein: Math.round(recipe.totalNutrients?.PROCNT?.quantity / recipe.yield) || 0,
+        carbs: Math.round(recipe.totalNutrients?.CHOCDF?.quantity / recipe.yield) || 0,
+        fat: Math.round(recipe.totalNutrients?.FAT?.quantity / recipe.yield) || 0,
+      },
+      extendedIngredients: ingredients,
+      instructions: recipe.url || '',
+      analyzedInstructions: [],
+    };
+  };
+
+  // Helper: Transform Tasty recipe to Recipe format
+  const transformTastyToRecipe = (recipe: any): Recipe => {
+    const ingredients = (recipe.sections?.[0]?.components || []).map((comp: any, index: number) => ({
+      id: index + 1,
+      name: comp.ingredient?.name || '',
+      amount: 0,
+      unit: comp.measurements?.[0]?.unit?.name || '',
+      original: comp.raw_text || '',
+    }));
+
+    const instructions = (recipe.instructions || []).map((inst: any, index: number) => ({
+      number: index + 1,
+      step: inst.display_text,
+    }));
+
+    return {
+      id: recipe.id,
+      title: recipe.name,
+      image: recipe.thumbnail_url || recipe.thumbnail_url_large || '',
+      readyInMinutes: recipe.total_time_minutes || 30,
+      servings: recipe.num_servings || 4,
+      pricePerServing: 280,
+      cuisines: [],
+      diets: recipe.tags?.filter((t: any) => t.type === 'dietary')?.map((t: any) => t.name) || [],
+      summary: recipe.description || recipe.name,
+      calories: Math.round(recipe.nutrition?.calories / recipe.num_servings) || 0,
+      protein: Math.round(recipe.nutrition?.protein / recipe.num_servings) || 0,
+      carbs: Math.round(recipe.nutrition?.carbohydrates / recipe.num_servings) || 0,
+      fat: Math.round(recipe.nutrition?.fat / recipe.num_servings) || 0,
+      nutrition: {
+        calories: Math.round(recipe.nutrition?.calories / recipe.num_servings) || 0,
+        protein: Math.round(recipe.nutrition?.protein / recipe.num_servings) || 0,
+        carbs: Math.round(recipe.nutrition?.carbohydrates / recipe.num_servings) || 0,
+        fat: Math.round(recipe.nutrition?.fat / recipe.num_servings) || 0,
+      },
+      extendedIngredients: ingredients,
+      instructions: instructions.map(i => i.step).join('\n'),
+      analyzedInstructions: instructions.length > 0 ? [{ steps: instructions }] : [],
     };
   };
 
