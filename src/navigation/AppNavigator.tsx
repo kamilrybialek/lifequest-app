@@ -165,11 +165,6 @@ export const AppNavigator = () => {
             <Stack.Screen name="RecipeList" component={RecipeListScreen} />
             <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
 
-            {/* Diet Planner screens */}
-            <Stack.Screen name="DietPlanner" component={DietPlannerScreen} />
-            <Stack.Screen name="RecipeList" component={RecipeListScreen} />
-            <Stack.Screen name="RecipeDetail" component={RecipeDetailScreen} />
-
             {/* Finance tool screens - ENHANCED */}
             <Stack.Screen name="FinanceDashboard" component={FinanceDashboardUnified} />
             <Stack.Screen name="EmergencyFundScreen" component={EmergencyFundScreen} />
