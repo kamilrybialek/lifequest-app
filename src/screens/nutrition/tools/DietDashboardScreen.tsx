@@ -1572,63 +1572,56 @@ export const DietDashboardScreen = ({ navigation }: any) => {
 
       {loading && <ActivityIndicator size="large" color={colors.diet} style={styles.loader} />}
 
-      {/* Recipe Results */}
+      {/* Recipe Results - Grid Layout */}
       {searchResults.length > 0 && (
-        <>
+        <View style={styles.recipesSection}>
           <View style={styles.resultsHeader}>
             <Text style={styles.resultsTitle}>
-              🍳 {searchResults.length} Delicious Recipes
+              {searchResults.length} Recipes Found
             </Text>
-            <Text style={styles.resultsSubtitle}>Tap to view details</Text>
           </View>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.recipeScroll}>
+
+          <View style={styles.recipesGrid}>
             {searchResults.map((recipe) => (
               <TouchableOpacity
                 key={recipe.id}
-                style={styles.recipeCard}
+                style={styles.recipeCardGrid}
                 onPress={() => getRecipeDetails(recipe.id)}
-                activeOpacity={0.9}
+                activeOpacity={0.95}
               >
-                <View style={styles.recipeImageContainer}>
-                  <Image source={{ uri: recipe.image }} style={styles.recipeImage} />
+                <View style={styles.recipeImageContainerGrid}>
+                  <Image source={{ uri: recipe.image }} style={styles.recipeImageGrid} />
                   {recipe.readyInMinutes > 0 && (
-                    <View style={styles.timeBadge}>
-                      <Ionicons name="time" size={12} color="#FFFFFF" />
-                      <Text style={styles.timeBadgeText}>{recipe.readyInMinutes}m</Text>
+                    <View style={styles.timeBadgeGrid}>
+                      <Ionicons name="time-outline" size={10} color="#FFFFFF" />
+                      <Text style={styles.timeBadgeText}>{recipe.readyInMinutes}min</Text>
+                    </View>
+                  )}
+                  {recipe.calories && recipe.calories > 0 && (
+                    <View style={styles.calorieBadgeGrid}>
+                      <Ionicons name="flame" size={10} color="#FFF" />
+                      <Text style={styles.calorieTextGrid}>{recipe.calories}</Text>
                     </View>
                   )}
                 </View>
-                <View style={styles.recipeCardContent}>
-                  <Text style={styles.recipeTitle} numberOfLines={2}>{recipe.title}</Text>
 
-                  {recipe.calories && recipe.calories > 0 && (
-                    <View style={styles.caloriesBadgeNew}>
-                      <Ionicons name="flame" size={14} color={colors.diet} />
-                      <Text style={styles.caloriesTextNew}>{recipe.calories} kcal</Text>
-                    </View>
-                  )}
+                <View style={styles.recipeCardContentGrid}>
+                  <Text style={styles.recipeTitleGrid} numberOfLines={2}>{recipe.title}</Text>
 
                   {recipe.protein && recipe.protein > 0 && (
-                    <View style={styles.macrosRowNew}>
-                      <View style={styles.macroItemNew}>
-                        <Text style={styles.macroLabelNew}>P</Text>
-                        <Text style={styles.macroValueNew}>{recipe.protein}g</Text>
-                      </View>
-                      <View style={styles.macroItemNew}>
-                        <Text style={styles.macroLabelNew}>C</Text>
-                        <Text style={styles.macroValueNew}>{recipe.carbs}g</Text>
-                      </View>
-                      <View style={styles.macroItemNew}>
-                        <Text style={styles.macroLabelNew}>F</Text>
-                        <Text style={styles.macroValueNew}>{recipe.fat}g</Text>
-                      </View>
+                    <View style={styles.macrosRowGrid}>
+                      <Text style={styles.macroTextGrid}>P: {recipe.protein}g</Text>
+                      <Text style={styles.macroDivider}>•</Text>
+                      <Text style={styles.macroTextGrid}>C: {recipe.carbs}g</Text>
+                      <Text style={styles.macroDivider}>•</Text>
+                      <Text style={styles.macroTextGrid}>F: {recipe.fat}g</Text>
                     </View>
                   )}
                 </View>
               </TouchableOpacity>
             ))}
-          </ScrollView>
-        </>
+          </View>
+        </View>
       )}
     </View>
   );
@@ -2381,27 +2374,14 @@ export const DietDashboardScreen = ({ navigation }: any) => {
   return (
     <View style={styles.container}>
       <View style={styles.contentWrapper}>
-        {/* Header with Gradient */}
-        <LinearGradient
-          colors={['#CE82FF', '#A855F7']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.headerGradient}
-        >
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color="#FFF" />
-            </TouchableOpacity>
-            <View style={styles.headerContent}>
-              <Text style={styles.headerEmoji}>🍽️</Text>
-              <View>
-                <Text style={styles.headerTitle}>Meal Planner</Text>
-                <Text style={styles.headerSubtitle}>Plan, Shop, Cook</Text>
-              </View>
-            </View>
-            <View style={styles.headerRight} />
-          </View>
-        </LinearGradient>
+        {/* Clean Header */}
+        <View style={styles.headerClean}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonClean}>
+            <Ionicons name="arrow-back" size={24} color={colors.text} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitleClean}>Meal Planner</Text>
+          <View style={styles.headerRight} />
+        </View>
 
       {/* Tab Bar */}
       <View style={styles.tabBar}>
@@ -2410,9 +2390,9 @@ export const DietDashboardScreen = ({ navigation }: any) => {
           onPress={() => setActiveTab('planner')}
         >
           <Ionicons
-            name="calendar"
-            size={18}
-            color={activeTab === 'planner' ? '#FFFFFF' : colors.textSecondary}
+            name="calendar-outline"
+            size={20}
+            color={activeTab === 'planner' ? colors.diet : colors.textSecondary}
           />
           <Text
             style={[
@@ -2429,9 +2409,9 @@ export const DietDashboardScreen = ({ navigation }: any) => {
           onPress={() => setActiveTab('shopping')}
         >
           <Ionicons
-            name="cart"
-            size={18}
-            color={activeTab === 'shopping' ? '#FFFFFF' : colors.textSecondary}
+            name="cart-outline"
+            size={20}
+            color={activeTab === 'shopping' ? colors.diet : colors.textSecondary}
           />
           <Text
             style={[
@@ -2448,9 +2428,9 @@ export const DietDashboardScreen = ({ navigation }: any) => {
           onPress={() => setActiveTab('costs')}
         >
           <Ionicons
-            name="cash"
-            size={18}
-            color={activeTab === 'costs' ? '#FFFFFF' : colors.textSecondary}
+            name="cash-outline"
+            size={20}
+            color={activeTab === 'costs' ? colors.diet : colors.textSecondary}
           />
           <Text
             style={[
@@ -2486,51 +2466,41 @@ const styles = StyleSheet.create({
   contentWrapper: {
     flex: 1,
     width: '100%',
-    backgroundColor: 'white',
+    backgroundColor: '#FAFAFA',
   },
-  headerGradient: {
-    paddingTop: Platform.OS === 'ios' ? 50 : spacing.lg,
-    paddingBottom: spacing.xl,
-  },
-  header: {
+  // Clean Header Styles
+  headerClean: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
+    paddingTop: Platform.OS === 'ios' ? 50 : spacing.lg,
+    paddingBottom: spacing.md,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
-  backButton: {
+  backButtonClean: {
     padding: spacing.sm,
+    marginLeft: -spacing.sm,
   },
-  headerContent: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    marginLeft: spacing.sm,
-  },
-  headerEmoji: {
-    fontSize: 48,
-  },
-  headerTitle: {
-    fontSize: 24,
+  headerTitleClean: {
+    fontSize: 20,
     fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginTop: 2,
+    color: colors.text,
+    flex: 1,
+    textAlign: 'center',
+    marginRight: 40, // Balance out back button
   },
   headerRight: {
     width: 40,
   },
+  // Minimal Tab Bar
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#F7F7F7',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    gap: spacing.sm,
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
   tab: {
     flex: 1,
@@ -2538,26 +2508,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
     gap: spacing.xs,
-    borderRadius: 12,
-    backgroundColor: 'transparent',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
   tabActive: {
-    backgroundColor: colors.diet,
-    shadowColor: colors.diet,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    borderBottomColor: colors.diet,
   },
   tabText: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.textSecondary,
     fontWeight: '600',
   },
   tabTextActive: {
-    color: '#FFFFFF',
+    color: colors.diet,
     fontWeight: '700',
   },
   tabContent: {
@@ -2922,113 +2886,110 @@ const styles = StyleSheet.create({
   loader: {
     marginVertical: spacing.xl,
   },
+  // Grid Layout Styles
+  recipesSection: {
+    flex: 1,
+    backgroundColor: '#FAFAFA',
+  },
   resultsHeader: {
     paddingHorizontal: spacing.lg,
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
+    backgroundColor: 'white',
   },
   resultsTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '700',
     color: colors.text,
   },
-  resultsSubtitle: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: colors.textSecondary,
-    marginTop: 4,
+  recipesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    padding: spacing.sm,
+    paddingTop: spacing.md,
   },
-  recipeScroll: {
-    marginTop: spacing.sm,
-    paddingHorizontal: spacing.lg,
-  },
-  recipeCard: {
-    width: 240,
-    marginRight: spacing.md,
+  recipeCardGrid: {
+    width: IS_WEB ? (SCREEN_WIDTH - 48) / 3 - 16 : (SCREEN_WIDTH - 32) / 2 - 12,
+    marginBottom: spacing.md,
+    marginHorizontal: spacing.xs,
     backgroundColor: 'white',
-    borderRadius: 20,
+    borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: colors.diet,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  recipeImageContainer: {
+  recipeImageContainerGrid: {
     position: 'relative',
     width: '100%',
-    height: 180,
+    aspectRatio: 1.2,
     backgroundColor: '#F0F0F0',
   },
-  recipeImage: {
+  recipeImageGrid: {
     width: '100%',
     height: '100%',
+    resizeMode: 'cover',
   },
-  timeBadge: {
+  timeBadgeGrid: {
     position: 'absolute',
-    top: spacing.sm,
-    right: spacing.sm,
+    bottom: spacing.sm,
+    left: spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
-    borderRadius: 12,
-    gap: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    gap: 3,
   },
   timeBadgeText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     color: '#FFFFFF',
   },
-  recipeCardContent: {
-    padding: spacing.md,
-  },
-  recipeTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: colors.text,
-    lineHeight: 20,
-    marginBottom: spacing.sm,
-  },
-  caloriesBadgeNew: {
+  calorieBadgeGrid: {
+    position: 'absolute',
+    bottom: spacing.sm,
+    right: spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(206, 130, 255, 0.1)',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 6,
+    backgroundColor: colors.diet,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 8,
-    gap: 4,
-    alignSelf: 'flex-start',
-    marginBottom: spacing.sm,
+    gap: 3,
   },
-  caloriesTextNew: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.diet,
-  },
-  macrosRowNew: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  macroItemNew: {
-    flex: 1,
-    backgroundColor: '#F7F7F7',
-    paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.sm,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  macroLabelNew: {
+  calorieTextGrid: {
     fontSize: 10,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    marginBottom: 2,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
-  macroValueNew: {
+  recipeCardContentGrid: {
+    padding: spacing.sm,
+  },
+  recipeTitleGrid: {
     fontSize: 13,
     fontWeight: '700',
     color: colors.text,
+    lineHeight: 18,
+    marginBottom: spacing.xs,
+  },
+  macrosRowGrid: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 4,
+  },
+  macroTextGrid: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  macroDivider: {
+    fontSize: 10,
+    color: colors.border,
   },
   recipeInfo: {
     flexDirection: 'row',
