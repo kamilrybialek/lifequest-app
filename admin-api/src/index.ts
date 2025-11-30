@@ -593,6 +593,132 @@ app.delete('/api/admin/recipes/:id', adminAuth, (req, res) => {
   }
 });
 
+// Delete ALL recipes (database cleanup)
+app.delete('/api/admin/recipes', adminAuth, (req, res) => {
+  try {
+    // Get count before deletion
+    const countBefore = db.prepare('SELECT COUNT(*) as count FROM custom_recipes').get() as { count: number };
+
+    // Delete all recipes
+    const result = db.prepare('DELETE FROM custom_recipes').run();
+
+    // Reset auto-increment counter
+    db.prepare('DELETE FROM sqlite_sequence WHERE name = ?').run('custom_recipes');
+
+    // Log activity
+    db.prepare(`
+      INSERT INTO admin_activity_logs (admin_id, action, details, created_at)
+      VALUES (?, ?, ?, ?)
+    `).run(
+      (req as any).admin.id,
+      'recipes_bulk_deleted',
+      JSON.stringify({ count: countBefore.count }),
+      new Date().toISOString()
+    );
+
+    console.log(`🗑️  Deleted ${countBefore.count} recipes from database`);
+
+    res.json({
+      success: true,
+      deletedCount: countBefore.count,
+      message: `Successfully deleted ${countBefore.count} recipes`
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Bulk import recipes
+app.post('/api/admin/recipes/bulk', adminAuth, (req, res) => {
+  try {
+    const { recipes } = req.body;
+
+    if (!Array.isArray(recipes) || recipes.length === 0) {
+      return res.status(400).json({ error: 'Recipes array is required' });
+    }
+
+    const imported: number[] = [];
+    const errors: any[] = [];
+
+    // Use transaction for better performance
+    const insertRecipe = db.prepare(`
+      INSERT INTO custom_recipes (
+        title, image, ready_in_minutes, servings,
+        cuisines, diets, dish_type, category, difficulty, summary,
+        calories, protein, carbs, fat,
+        ingredients, instructions, source,
+        created_at, updated_at, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const insertMany = db.transaction((recipesToInsert: any[]) => {
+      for (const recipe of recipesToInsert) {
+        try {
+          const recipeTitle = recipe.title || recipe.name;
+
+          if (!recipeTitle) {
+            errors.push({ recipe, error: 'Missing title' });
+            continue;
+          }
+
+          const result = insertRecipe.run(
+            recipeTitle,
+            recipe.image || '',
+            recipe.readyInMinutes || recipe.ready_in_minutes || 30,
+            recipe.servings || 4,
+            typeof recipe.cuisines === 'string' ? recipe.cuisines : JSON.stringify(recipe.cuisines || recipe.cuisine_type || []),
+            typeof recipe.diets === 'string' ? recipe.diets : JSON.stringify(recipe.diets || []),
+            recipe.dish_type || recipe.dishType || null,
+            recipe.category || null,
+            recipe.difficulty || 'medium',
+            recipe.summary || recipe.description || '',
+            recipe.calories || 0,
+            recipe.protein || 0,
+            recipe.carbs || 0,
+            recipe.fat || 0,
+            typeof recipe.ingredients === 'string' ? recipe.ingredients : JSON.stringify(recipe.ingredients || recipe.extendedIngredients || []),
+            recipe.instructions || '',
+            recipe.source || 'bulk_import',
+            new Date().toISOString(),
+            new Date().toISOString(),
+            (req as any).admin.id
+          );
+
+          imported.push(result.lastInsertRowid as number);
+        } catch (err: any) {
+          errors.push({ recipe: recipe.title || 'Unknown', error: err.message });
+        }
+      }
+    });
+
+    // Execute transaction
+    insertMany(recipes);
+
+    // Log activity
+    db.prepare(`
+      INSERT INTO admin_activity_logs (admin_id, action, details, created_at)
+      VALUES (?, ?, ?, ?)
+    `).run(
+      (req as any).admin.id,
+      'recipes_bulk_imported',
+      JSON.stringify({ importedCount: imported.length, errorCount: errors.length }),
+      new Date().toISOString()
+    );
+
+    console.log(`📥 Bulk imported ${imported.length} recipes (${errors.length} errors)`);
+
+    res.json({
+      success: true,
+      importedCount: imported.length,
+      errorCount: errors.length,
+      importedIds: imported,
+      errors: errors.slice(0, 10) // Only return first 10 errors to avoid huge response
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Initialize custom_recipes table if not exists
 db.exec(`
   CREATE TABLE IF NOT EXISTS custom_recipes (

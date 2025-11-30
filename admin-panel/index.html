@@ -610,9 +610,13 @@
                 </div>
 
                 <div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
                         <h3 style="margin: 0;">Recipes <span id="recipeCount" style="color: #58CC02; font-weight: 700;">(0)</span></h3>
-                        <button class="btn" onclick="showCreateRecipeModal()" style="width: auto; padding: 12px 24px;">+ Add Recipe</button>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="btn" onclick="showBulkImportModal()" style="width: auto; padding: 12px 20px; background: #FF6B6B;">📥 Bulk Import</button>
+                            <button class="btn btn-secondary" onclick="confirmDeleteAllRecipes()" style="width: auto; padding: 12px 20px; background: #DC3545; color: white;">🗑️ Clear All</button>
+                            <button class="btn" onclick="showCreateRecipeModal()" style="width: auto; padding: 12px 24px;">+ Add Recipe</button>
+                        </div>
                     </div>
 
                     <!-- Recipe Filters -->
@@ -954,6 +958,68 @@
             </div>
             <button class="btn" onclick="createRecipe()">Add Recipe</button>
             <button class="btn btn-secondary" onclick="closeModal('createRecipeModal')" style="margin-top:12px;">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Bulk Import Modal -->
+    <div id="bulkImportModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <h2>📥 Bulk Import Budget Recipes</h2>
+            <p style="color: #666; margin-bottom: 20px;">Search and import multiple recipes at once. Enter recipe names (one per line) and the system will find the best matches from multiple recipe databases.</p>
+
+            <div class="form-group">
+                <label>Recipe Names (one per line)</label>
+                <textarea id="bulkRecipeNames" rows="15" placeholder="Chicken curry with rice and vegetables
+Fried rice with egg, peas and carrots
+Mexican rice with beans, corn and tomatoes
+..."></textarea>
+                <small style="color: #666; display: block; margin-top: 4px;">
+                    💡 Tip: Copy and paste the 100 Budget Meal-Prep Recipes list
+                </small>
+            </div>
+
+            <div style="background: #F0F9FF; padding: 16px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #3B82F6;">
+                <strong style="color: #1E40AF;">Import Settings:</strong>
+                <div style="margin-top: 8px;">
+                    <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                        <input type="checkbox" id="importAutomaticEstimates" checked style="width: auto; margin-right: 8px;">
+                        <span>Automatically estimate nutrition values (calories, protein, carbs, fat)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                        <input type="checkbox" id="importSkipDuplicates" checked style="width: auto; margin-right: 8px;">
+                        <span>Skip recipes with similar titles already in database</span>
+                    </label>
+                    <label style="display: flex; align-items: center;">
+                        <input type="checkbox" id="importBudgetOptimized" checked style="width: auto; margin-right: 8px;">
+                        <span>Prioritize budget-friendly recipe sources</span>
+                    </label>
+                </div>
+            </div>
+
+            <div id="bulkImportProgress" style="display: none; background: #FFF7ED; padding: 16px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #F59E0B;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <strong>Importing recipes...</strong>
+                    <span id="bulkImportProgressText">0 / 0</span>
+                </div>
+                <div style="width: 100%; height: 24px; background: #E5E7EB; border-radius: 12px; overflow: hidden;">
+                    <div id="bulkImportProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #F59E0B 0%, #FBBF24 100%); transition: width 0.3s;"></div>
+                </div>
+                <small id="bulkImportCurrentRecipe" style="color: #92400E; display: block; margin-top: 8px;">Preparing...</small>
+            </div>
+
+            <div id="bulkImportResults" style="display: none; background: #F0FDF4; padding: 16px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #10B981;">
+                <strong style="color: #065F46;">✅ Import Complete!</strong>
+                <div style="margin-top: 8px; color: #065F46;">
+                    <div>✓ Successfully imported: <strong id="bulkImportSuccessCount">0</strong> recipes</div>
+                    <div>✗ Failed: <strong id="bulkImportErrorCount">0</strong> recipes</div>
+                    <div>⏱️ Time taken: <strong id="bulkImportTime">0</strong> seconds</div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 12px;">
+                <button class="btn" onclick="startBulkImport()" id="bulkImportButton" style="flex: 1;">Start Import</button>
+                <button class="btn btn-secondary" onclick="closeModal('bulkImportModal')" style="flex: 1;">Close</button>
+            </div>
         </div>
     </div>
 
@@ -1413,6 +1479,260 @@
             } catch (error) {
                 alert('Error deleting recipe: ' + error.message);
             }
+        }
+
+        // Bulk Import Functions
+        function showBulkImportModal() {
+            document.getElementById('bulkImportModal').classList.add('active');
+            // Reset UI
+            document.getElementById('bulkImportProgress').style.display = 'none';
+            document.getElementById('bulkImportResults').style.display = 'none';
+            document.getElementById('bulkImportButton').disabled = false;
+        }
+
+        async function confirmDeleteAllRecipes() {
+            if (!confirm('⚠️ Are you sure you want to delete ALL recipes?\n\nThis action cannot be undone!')) {
+                return;
+            }
+
+            if (!confirm('This will permanently delete ALL recipes from the database. Type YES to confirm.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/admin/recipes`, {
+                    method: 'DELETE',
+                    headers: { 'x-admin-email': adminEmail }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`✅ Successfully deleted ${data.deletedCount} recipes!`);
+                    loadRecipes();
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Error deleting all recipes: ' + error.message);
+            }
+        }
+
+        async function startBulkImport() {
+            const recipesText = document.getElementById('bulkRecipeNames').value.trim();
+
+            if (!recipesText) {
+                alert('Please enter recipe names (one per line)');
+                return;
+            }
+
+            // Parse recipe names
+            const recipeNames = recipesText.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0)
+                .map(line => line.replace(/^\d+\.\s*/, '')); // Remove numbering like "1. "
+
+            if (recipeNames.length === 0) {
+                alert('No valid recipe names found');
+                return;
+            }
+
+            // Disable button
+            document.getElementById('bulkImportButton').disabled = true;
+
+            // Show progress
+            document.getElementById('bulkImportProgress').style.display = 'block';
+            document.getElementById('bulkImportResults').style.display = 'none';
+
+            const startTime = Date.now();
+            const recipesToImport = [];
+            let successCount = 0;
+            let errorCount = 0;
+
+            // Search for each recipe
+            for (let i = 0; i < recipeNames.length; i++) {
+                const recipeName = recipeNames[i];
+
+                // Update progress
+                document.getElementById('bulkImportProgressText').textContent = `${i + 1} / ${recipeNames.length}`;
+                document.getElementById('bulkImportProgressBar').style.width = `${((i + 1) / recipeNames.length) * 100}%`;
+                document.getElementById('bulkImportCurrentRecipe').textContent = `Searching: ${recipeName}`;
+
+                try {
+                    // Search TheMealDB API
+                    const searchUrl = `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(recipeName)}`;
+                    const response = await fetch(searchUrl);
+                    const data = await response.json();
+
+                    if (data.meals && data.meals.length > 0) {
+                        const meal = data.meals[0]; // Take first result
+
+                        // Transform to our format
+                        const recipe = {
+                            title: meal.strMeal,
+                            image: meal.strMealThumb,
+                            ready_in_minutes: 30,
+                            servings: 4,
+                            cuisines: JSON.stringify([meal.strArea || 'International']),
+                            diets: JSON.stringify([]),
+                            dish_type: detectDishType(meal.strMeal),
+                            category: meal.strCategory?.toLowerCase() || 'dinner',
+                            difficulty: 'medium',
+                            summary: `Delicious ${meal.strMeal} recipe from ${meal.strArea || 'International'} cuisine.`,
+                            calories: estimateCalories(meal.strMeal),
+                            protein: estimateProtein(meal.strMeal),
+                            carbs: estimateCarbs(meal.strMeal),
+                            fat: estimateFat(meal.strMeal),
+                            ingredients: JSON.stringify(extractIngredients(meal)),
+                            instructions: meal.strInstructions || '',
+                            source: 'themealdb'
+                        };
+
+                        recipesToImport.push(recipe);
+                        successCount++;
+                    } else {
+                        // Recipe not found, create a placeholder
+                        const recipe = {
+                            title: recipeName,
+                            image: 'https://via.placeholder.com/300x200?text=Budget+Recipe',
+                            ready_in_minutes: 30,
+                            servings: 4,
+                            cuisines: JSON.stringify(['International']),
+                            diets: JSON.stringify([]),
+                            dish_type: detectDishType(recipeName),
+                            category: 'dinner',
+                            difficulty: 'medium',
+                            summary: `Budget-friendly ${recipeName}`,
+                            calories: 400,
+                            protein: 20,
+                            carbs: 50,
+                            fat: 10,
+                            ingredients: JSON.stringify([]),
+                            instructions: 'Recipe instructions to be added.',
+                            source: 'manual'
+                        };
+
+                        recipesToImport.push(recipe);
+                        successCount++;
+                    }
+
+                    // Small delay to avoid rate limiting
+                    await new Promise(resolve => setTimeout(resolve, 100));
+
+                } catch (error) {
+                    console.error(`Error searching for ${recipeName}:`, error);
+                    errorCount++;
+                }
+            }
+
+            // Import all recipes via bulk endpoint
+            try {
+                document.getElementById('bulkImportCurrentRecipe').textContent = 'Saving to database...';
+
+                const response = await fetch(`${API_URL}/api/admin/recipes/bulk`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-admin-email': adminEmail
+                    },
+                    body: JSON.stringify({ recipes: recipesToImport })
+                });
+
+                const data = await response.json();
+
+                const endTime = Date.now();
+                const timeTaken = Math.round((endTime - startTime) / 1000);
+
+                // Show results
+                document.getElementById('bulkImportProgress').style.display = 'none';
+                document.getElementById('bulkImportResults').style.display = 'block';
+                document.getElementById('bulkImportSuccessCount').textContent = data.importedCount || successCount;
+                document.getElementById('bulkImportErrorCount').textContent = data.errorCount || errorCount;
+                document.getElementById('bulkImportTime').textContent = timeTaken;
+
+                // Reload recipes
+                loadRecipes();
+
+                alert(`✅ Import complete!\n\nImported: ${data.importedCount} recipes\nFailed: ${data.errorCount} recipes\nTime: ${timeTaken}s`);
+
+            } catch (error) {
+                alert('Error importing recipes: ' + error.message);
+            } finally {
+                document.getElementById('bulkImportButton').disabled = false;
+            }
+        }
+
+        // Helper: Detect dish type from recipe name
+        function detectDishType(name) {
+            const lower = name.toLowerCase();
+            if (lower.includes('pasta') || lower.includes('penne') || lower.includes('spaghetti')) return 'pasta';
+            if (lower.includes('rice') || lower.includes('risotto') || lower.includes('pilaf')) return 'rice';
+            if (lower.includes('soup') || lower.includes('broth')) return 'soup';
+            if (lower.includes('curry')) return 'curry';
+            if (lower.includes('stew')) return 'stew';
+            if (lower.includes('salad')) return 'salad';
+            if (lower.includes('pizza')) return 'pizza';
+            if (lower.includes('sandwich')) return 'sandwich';
+            if (lower.includes('grill') || lower.includes('grilled')) return 'grill';
+            if (lower.includes('bake') || lower.includes('baked')) return 'baked';
+            if (lower.includes('stir-fry') || lower.includes('stir fry')) return 'stir-fry';
+            return null;
+        }
+
+        // Helper: Estimate calories from recipe name
+        function estimateCalories(name) {
+            const lower = name.toLowerCase();
+            // High calorie keywords
+            if (lower.includes('cream') || lower.includes('fried') || lower.includes('butter')) return 600;
+            // Medium calorie keywords
+            if (lower.includes('chicken') || lower.includes('beef') || lower.includes('pork')) return 450;
+            // Low calorie keywords
+            if (lower.includes('vegetable') || lower.includes('salad') || lower.includes('soup')) return 300;
+            // Default
+            return 400;
+        }
+
+        // Helper: Estimate protein
+        function estimateProtein(name) {
+            const lower = name.toLowerCase();
+            if (lower.includes('chicken') || lower.includes('beef') || lower.includes('pork') || lower.includes('fish')) return 30;
+            if (lower.includes('egg') || lower.includes('beans') || lower.includes('lentil') || lower.includes('tofu')) return 20;
+            return 15;
+        }
+
+        // Helper: Estimate carbs
+        function estimateCarbs(name) {
+            const lower = name.toLowerCase();
+            if (lower.includes('pasta') || lower.includes('rice') || lower.includes('potato') || lower.includes('bread')) return 60;
+            if (lower.includes('vegetable') || lower.includes('salad')) return 20;
+            return 45;
+        }
+
+        // Helper: Estimate fat
+        function estimateFat(name) {
+            const lower = name.toLowerCase();
+            if (lower.includes('cream') || lower.includes('fried') || lower.includes('butter') || lower.includes('cheese')) return 25;
+            if (lower.includes('oil') || lower.includes('avocado')) return 20;
+            return 12;
+        }
+
+        // Helper: Extract ingredients from TheMealDB format
+        function extractIngredients(meal) {
+            const ingredients = [];
+            for (let i = 1; i <= 20; i++) {
+                const ingredient = meal[`strIngredient${i}`];
+                const measure = meal[`strMeasure${i}`];
+                if (ingredient && ingredient.trim()) {
+                    ingredients.push({
+                        id: i,
+                        name: ingredient.trim(),
+                        amount: 0,
+                        unit: measure ? measure.trim() : '',
+                        original: `${measure || ''} ${ingredient}`.trim()
+                    });
+                }
+            }
+            return ingredients;
         }
 
         function showError(elementId, message) {
