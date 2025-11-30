@@ -256,7 +256,234 @@
             color: #D32F2F;
             margin-top: 12px;
         }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .container {
+                padding: 12px;
+            }
+
+            .header {
+                padding: 16px;
+                margin-bottom: 16px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .header p {
+                font-size: 12px;
+            }
+
+            /* Stats Grid - 2 columns on mobile */
+            .stats {
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+                margin-bottom: 16px;
+            }
+
+            .stat-card {
+                padding: 16px;
+            }
+
+            .stat-card h3 {
+                font-size: 12px;
+            }
+
+            .stat-card .value {
+                font-size: 24px;
+            }
+
+            /* Tabs - Scrollable on mobile */
+            .tabs {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none; /* Firefox */
+                -ms-overflow-style: none; /* IE/Edge */
+                margin-bottom: 16px;
+                gap: 8px;
+                padding-bottom: 8px;
+            }
+
+            .tabs::-webkit-scrollbar {
+                display: none; /* Chrome/Safari */
+            }
+
+            .tab {
+                white-space: nowrap;
+                font-size: 13px;
+                padding: 10px 16px;
+                flex-shrink: 0;
+            }
+
+            /* Recipe Filters - Stack vertically on mobile */
+            .recipe-filters-grid {
+                grid-template-columns: 1fr !important;
+                gap: 8px !important;
+                padding: 12px !important;
+            }
+
+            /* Tables - Horizontal scroll on mobile */
+            table {
+                display: block;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                white-space: nowrap;
+                font-size: 13px;
+            }
+
+            table thead {
+                display: table-header-group;
+            }
+
+            table tbody {
+                display: table-row-group;
+            }
+
+            table th,
+            table td {
+                padding: 10px;
+                font-size: 12px;
+            }
+
+            /* Buttons */
+            .btn {
+                font-size: 14px;
+                padding: 12px;
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            /* Modal - Full screen on mobile */
+            .modal-content {
+                width: 95%;
+                max-width: none;
+                padding: 20px;
+                max-height: 90vh;
+                overflow-y: auto;
+                border-radius: 12px;
+            }
+
+            .modal-content h2 {
+                font-size: 20px;
+                margin-bottom: 16px;
+            }
+
+            /* Form inputs - Better touch targets */
+            .form-group input,
+            .form-group select,
+            .form-group textarea {
+                font-size: 16px !important; /* Prevents zoom on iOS */
+                padding: 12px !important;
+                touch-action: manipulation;
+            }
+
+            /* Login container */
+            .login-container {
+                margin: 50px auto;
+                padding: 24px;
+                width: 90%;
+            }
+
+            .login-container h2 {
+                font-size: 22px;
+            }
+
+            /* Content sections */
+            .content-section {
+                overflow-x: hidden;
+            }
+
+            .content-section h2 {
+                font-size: 20px;
+                margin-bottom: 16px;
+            }
+
+            .content-section h3 {
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            /* Extra small devices */
+            .header h1 {
+                font-size: 18px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-card .value {
+                font-size: 20px;
+            }
+
+            .tab {
+                font-size: 12px;
+                padding: 8px 12px;
+            }
+
+            table th,
+            table td {
+                padding: 8px;
+                font-size: 11px;
+            }
+        }
+
+        /* PWA Install prompt */
+        .install-prompt {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #58CC02;
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            max-width: 90%;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        .install-prompt button {
+            background: white;
+            color: #58CC02;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .install-prompt .close-install {
+            background: transparent;
+            color: white;
+            padding: 4px 8px;
+        }
     </style>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#58CC02">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="LifeQuest Admin">
+    <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
     <!-- Login Screen -->
@@ -389,7 +616,7 @@
                     </div>
 
                     <!-- Recipe Filters -->
-                    <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 16px; display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px;">
+                    <div class="recipe-filters-grid" style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 16px; display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px;">
                         <div>
                             <label style="display: block; margin-bottom: 4px; font-size: 13px; font-weight: 600;">Search</label>
                             <input type="text" id="recipeSearchInput" placeholder="Search recipes..." onkeyup="filterRecipes()" style="width: 100%; padding: 10px; border: 2px solid #E5E5E5; border-radius: 6px; font-size: 14px;">
@@ -1201,6 +1428,66 @@
                 document.getElementById('emailInput').value = saved;
             }
         };
+
+        // PWA Install Logic
+        let deferredPrompt;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+
+            // Show install prompt after user is logged in
+            setTimeout(() => {
+                if (!localStorage.getItem('pwa-installed')) {
+                    const installPrompt = document.getElementById('installPrompt');
+                    if (installPrompt) {
+                        installPrompt.style.display = 'flex';
+                    }
+                }
+            }, 2000);
+        });
+
+        function installPWA() {
+            const installPrompt = document.getElementById('installPrompt');
+            if (installPrompt) {
+                installPrompt.style.display = 'none';
+            }
+
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('PWA installed');
+                        localStorage.setItem('pwa-installed', 'true');
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        }
+
+        function closeInstallPrompt() {
+            const installPrompt = document.getElementById('installPrompt');
+            if (installPrompt) {
+                installPrompt.style.display = 'none';
+            }
+            localStorage.setItem('pwa-dismissed', 'true');
+        }
+
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('✅ Service Worker registered', reg))
+                    .catch(err => console.log('❌ Service Worker registration failed', err));
+            });
+        }
     </script>
+
+    <!-- PWA Install Prompt -->
+    <div id="installPrompt" class="install-prompt">
+        <span>📱 Install LifeQuest Admin for quick access</span>
+        <button onclick="installPWA()">Install</button>
+        <button class="close-install" onclick="closeInstallPrompt()">✕</button>
+    </div>
 </body>
 </html>
