@@ -383,14 +383,69 @@
                 </div>
 
                 <div>
-                    <h3 style="margin-bottom: 12px;">Recipes</h3>
-                    <button class="btn" onclick="showCreateRecipeModal()">+ Add Recipe</button>
-                    <br><br>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 style="margin: 0;">Recipes <span id="recipeCount" style="color: #58CC02; font-weight: 700;">(0)</span></h3>
+                        <button class="btn" onclick="showCreateRecipeModal()" style="width: auto; padding: 12px 24px;">+ Add Recipe</button>
+                    </div>
+
+                    <!-- Recipe Filters -->
+                    <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 16px; display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 4px; font-size: 13px; font-weight: 600;">Search</label>
+                            <input type="text" id="recipeSearchInput" placeholder="Search recipes..." onkeyup="filterRecipes()" style="width: 100%; padding: 10px; border: 2px solid #E5E5E5; border-radius: 6px; font-size: 14px;">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 4px; font-size: 13px; font-weight: 600;">Dish Type</label>
+                            <select id="recipeDishTypeFilter" onchange="filterRecipes()" style="width: 100%; padding: 10px; border: 2px solid #E5E5E5; border-radius: 6px; font-size: 14px;">
+                                <option value="">All Types</option>
+                                <option value="pasta">🍝 Pasta</option>
+                                <option value="rice">🍚 Rice</option>
+                                <option value="soup">🍲 Soup</option>
+                                <option value="salad">🥗 Salad</option>
+                                <option value="pizza">🍕 Pizza</option>
+                                <option value="sandwich">🥪 Sandwich</option>
+                                <option value="curry">🍛 Curry</option>
+                                <option value="stir-fry">🥘 Stir Fry</option>
+                                <option value="grill">🍗 Grilled</option>
+                                <option value="baked">🥧 Baked</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 4px; font-size: 13px; font-weight: 600;">Category</label>
+                            <select id="recipeCategoryFilter" onchange="filterRecipes()" style="width: 100%; padding: 10px; border: 2px solid #E5E5E5; border-radius: 6px; font-size: 14px;">
+                                <option value="">All Categories</option>
+                                <option value="breakfast">Breakfast</option>
+                                <option value="lunch">Lunch</option>
+                                <option value="dinner">Dinner</option>
+                                <option value="snack">Snack</option>
+                                <option value="dessert">Dessert</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 4px; font-size: 13px; font-weight: 600;">Cuisine</label>
+                            <select id="recipeCuisineFilter" onchange="filterRecipes()" style="width: 100%; padding: 10px; border: 2px solid #E5E5E5; border-radius: 6px; font-size: 14px;">
+                                <option value="">All Cuisines</option>
+                                <option value="italian">🇮🇹 Italian</option>
+                                <option value="chinese">🇨🇳 Chinese</option>
+                                <option value="mexican">🇲🇽 Mexican</option>
+                                <option value="indian">🇮🇳 Indian</option>
+                                <option value="thai">🇹🇭 Thai</option>
+                                <option value="japanese">🇯🇵 Japanese</option>
+                                <option value="american">🇺🇸 American</option>
+                                <option value="french">🇫🇷 French</option>
+                                <option value="greek">🇬🇷 Greek</option>
+                                <option value="polish">🇵🇱 Polish</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <table>
                         <thead>
                             <tr>
                                 <th>Name</th>
                                 <th>Category</th>
+                                <th>Cuisine</th>
+                                <th>Dish Type</th>
                                 <th>Servings</th>
                                 <th>Difficulty</th>
                                 <th>Prep Time</th>
@@ -400,7 +455,7 @@
                             </tr>
                         </thead>
                         <tbody id="recipesTableBody">
-                            <tr><td colspan="8" style="text-align:center">Loading...</td></tr>
+                            <tr><td colspan="10" style="text-align:center">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -618,6 +673,22 @@
                     <option value="dinner">Dinner</option>
                     <option value="snack">Snack</option>
                     <option value="dessert">Dessert</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Dish Type</label>
+                <select id="recipeDishType" style="width:100%; padding:12px; border:2px solid #E5E5E5; border-radius:8px;">
+                    <option value="">Select type...</option>
+                    <option value="pasta">🍝 Pasta</option>
+                    <option value="rice">🍚 Rice</option>
+                    <option value="soup">🍲 Soup</option>
+                    <option value="salad">🥗 Salad</option>
+                    <option value="pizza">🍕 Pizza</option>
+                    <option value="sandwich">🥪 Sandwich</option>
+                    <option value="curry">🍛 Curry</option>
+                    <option value="stir-fry">🥘 Stir Fry</option>
+                    <option value="grill">🍗 Grilled</option>
+                    <option value="baked">🥧 Baked</option>
                 </select>
             </div>
             <div class="form-group">
@@ -896,6 +967,9 @@
             }
         }
 
+        // Global variable to store all recipes for filtering
+        let allRecipes = [];
+
         async function loadRecipes() {
             try {
                 const response = await fetch(`${API_URL}/api/admin/recipes`, {
@@ -903,22 +977,80 @@
                 });
                 const data = await response.json();
 
-                const tbody = document.getElementById('recipesTableBody');
-                tbody.innerHTML = data.recipes.map(r => `
-                    <tr>
-                        <td><strong>${r.name}</strong></td>
-                        <td><span class="badge badge-info">${r.category || 'N/A'}</span></td>
-                        <td>${r.servings}</td>
-                        <td><span class="badge badge-${r.difficulty === 'easy' ? 'success' : r.difficulty === 'medium' ? 'warning' : 'info'}">${r.difficulty || 'N/A'}</span></td>
-                        <td>${r.prep_time_minutes || 0}m</td>
-                        <td>${r.total_calories || 0} cal</td>
-                        <td>${r.is_public ? '<span class="badge badge-success">Public</span>' : '<span class="badge badge-warning">Private</span>'}</td>
-                        <td><button onclick="deleteRecipe(${r.id})" style="color:red;border:none;background:none;cursor:pointer;">Delete</button></td>
-                    </tr>
-                `).join('');
+                allRecipes = data.recipes || [];
+
+                // Update recipe count
+                document.getElementById('recipeCount').textContent = `(${allRecipes.length})`;
+
+                // Render all recipes initially
+                renderRecipes(allRecipes);
             } catch (error) {
                 console.error('Error loading recipes:', error);
+                document.getElementById('recipesTableBody').innerHTML = '<tr><td colspan="10" style="text-align:center;color:red;">Error loading recipes</td></tr>';
             }
+        }
+
+        function renderRecipes(recipes) {
+            const tbody = document.getElementById('recipesTableBody');
+
+            if (recipes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">No recipes found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = recipes.map(r => `
+                <tr>
+                    <td><strong>${r.title || r.name}</strong></td>
+                    <td><span class="badge badge-info">${r.category || 'N/A'}</span></td>
+                    <td>${r.cuisine_type || r.cuisines || '-'}</td>
+                    <td>${r.dish_type || '-'}</td>
+                    <td>${r.servings}</td>
+                    <td><span class="badge badge-${r.difficulty === 'easy' ? 'success' : r.difficulty === 'medium' ? 'warning' : 'info'}">${r.difficulty || 'N/A'}</span></td>
+                    <td>${r.prep_time_minutes || r.ready_in_minutes || 0}m</td>
+                    <td>${r.total_calories || r.calories || 0} cal</td>
+                    <td>${r.is_public ? '<span class="badge badge-success">Public</span>' : '<span class="badge badge-warning">Private</span>'}</td>
+                    <td><button onclick="deleteRecipe(${r.id})" style="color:red;border:none;background:none;cursor:pointer;font-weight:600;">🗑️ Delete</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function filterRecipes() {
+            const searchTerm = document.getElementById('recipeSearchInput').value.toLowerCase();
+            const dishType = document.getElementById('recipeDishTypeFilter').value.toLowerCase();
+            const category = document.getElementById('recipeCategoryFilter').value.toLowerCase();
+            const cuisine = document.getElementById('recipeCuisineFilter').value.toLowerCase();
+
+            const filtered = allRecipes.filter(recipe => {
+                const name = (recipe.title || recipe.name || '').toLowerCase();
+                const desc = (recipe.description || recipe.summary || '').toLowerCase();
+                const recipeDishType = (recipe.dish_type || '').toLowerCase();
+                const recipeCategory = (recipe.category || '').toLowerCase();
+                const recipeCuisine = (recipe.cuisine_type || recipe.cuisines || '').toLowerCase();
+
+                // Check search term
+                if (searchTerm && !name.includes(searchTerm) && !desc.includes(searchTerm)) {
+                    return false;
+                }
+
+                // Check dish type
+                if (dishType && !recipeDishType.includes(dishType)) {
+                    return false;
+                }
+
+                // Check category
+                if (category && !recipeCategory.includes(category)) {
+                    return false;
+                }
+
+                // Check cuisine
+                if (cuisine && !recipeCuisine.includes(cuisine)) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            renderRecipes(filtered);
         }
 
         function showCreateFoodModal() {
@@ -970,13 +1102,23 @@
         }
 
         async function createRecipe() {
+            const name = document.getElementById('recipeName').value.trim();
+            if (!name) {
+                alert('Please enter a recipe name');
+                return;
+            }
+
             const data = {
-                name: document.getElementById('recipeName').value,
+                name: name,
+                title: name, // Also send as title for compatibility
                 description: document.getElementById('recipeDescription').value || null,
                 category: document.getElementById('recipeCategory').value,
+                dish_type: document.getElementById('recipeDishType').value || null,
                 cuisine_type: document.getElementById('recipeCuisine').value || null,
+                cuisines: document.getElementById('recipeCuisine').value || null,
                 servings: parseInt(document.getElementById('recipeServings').value),
                 prep_time_minutes: parseInt(document.getElementById('recipePrepTime').value) || null,
+                ready_in_minutes: parseInt(document.getElementById('recipePrepTime').value) || null,
                 cook_time_minutes: parseInt(document.getElementById('recipeCookTime').value) || null,
                 difficulty: document.getElementById('recipeDifficulty').value,
                 instructions: document.getElementById('recipeInstructions').value || null,
@@ -985,7 +1127,7 @@
             };
 
             try {
-                await fetch(`${API_URL}/api/admin/recipes`, {
+                const response = await fetch(`${API_URL}/api/admin/recipes`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -994,15 +1136,23 @@
                     body: JSON.stringify(data)
                 });
 
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to create recipe');
+                }
+
                 closeModal('createRecipeModal');
                 loadRecipes();
 
                 // Clear form
                 document.getElementById('recipeName').value = '';
                 document.getElementById('recipeDescription').value = '';
+                document.getElementById('recipeDishType').value = '';
                 document.getElementById('recipeCuisine').value = '';
                 document.getElementById('recipeInstructions').value = '';
                 document.getElementById('recipePublic').checked = false;
+
+                alert('Recipe created successfully!');
             } catch (error) {
                 alert('Error creating recipe: ' + error.message);
             }
