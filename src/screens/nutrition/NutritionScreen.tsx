@@ -3,9 +3,11 @@ import { View, StyleSheet, ScrollView } from 'react-native';
 import { Text, Card, Title, Button, Chip, TextInput, ProgressBar } from 'react-native-paper';
 import { useAppStore } from '../../store/appStore';
 import { useAuthStore } from '../../store/authStore';
+import { useNavigation } from '@react-navigation/native';
 import { calculateBMR, calculateTDEE, calculateCalorieGoal } from '../../utils/healthCalculations';
 
 export const NutritionScreen = () => {
+  const navigation = useNavigation();
   const { nutritionData, updateNutritionData, physicalHealthData } = useAppStore();
   const { user } = useAuthStore();
   const [firstMealTime, setFirstMealTime] = useState('');
@@ -84,6 +86,34 @@ export const NutritionScreen = () => {
         <Title style={styles.title}>🥗 Nutrition</Title>
         <Text style={styles.subtitle}>Fuel your body optimally</Text>
       </View>
+
+      {/* Diet Planner Card */}
+      <Card style={styles.card} onPress={() => (navigation as any).navigate('DietPlanner')}>
+        <Card.Content>
+          <View style={styles.dietPlannerHeader}>
+            <View style={styles.dietPlannerTitleContainer}>
+              <Title style={styles.dietPlannerTitle}>🍽️ Diet Planner</Title>
+              <Text style={styles.description}>
+                Plan your weekly meals and track recipes
+              </Text>
+            </View>
+            <Button
+              mode="contained"
+              onPress={() => (navigation as any).navigate('DietPlanner')}
+              style={styles.openPlannerButton}
+              buttonColor="#4CAF50"
+            >
+              Open
+            </Button>
+          </View>
+          <View style={styles.dietPlannerFeatures}>
+            <Text style={styles.featureItem}>• 📅 Weekly meal planning</Text>
+            <Text style={styles.featureItem}>• 🍳 Recipe database with filters</Text>
+            <Text style={styles.featureItem}>• 📊 Daily nutrition summary</Text>
+            <Text style={styles.featureItem}>• ➕ Easy meal scheduling</Text>
+          </View>
+        </Card.Content>
+      </Card>
 
       {/* Calorie Tracker */}
       <Card style={styles.card}>
@@ -494,6 +524,29 @@ const styles = StyleSheet.create({
   checklistText: {
     fontSize: 14,
     color: '#333',
+  },
+  dietPlannerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 16,
+  },
+  dietPlannerTitleContainer: {
+    flex: 1,
+  },
+  dietPlannerTitle: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
+  openPlannerButton: {
+    marginLeft: 12,
+  },
+  dietPlannerFeatures: {
+    gap: 8,
+  },
+  featureItem: {
+    fontSize: 14,
+    color: '#666',
   },
   calorieStats: {
     flexDirection: 'row',
