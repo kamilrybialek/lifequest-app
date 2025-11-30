@@ -134,6 +134,10 @@ const CUISINE_FILTERS = [
 export const DietDashboardScreen = ({ navigation }: any) => {
   const { user } = useAuthStore();
 
+  // Week calendar state
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [weekDates, setWeekDates] = useState<Date[]>([]);
+
   // State
   const [activeTab, setActiveTab] = useState<'planner' | 'shopping' | 'costs'>('planner');
   const [searchQuery, setSearchQuery] = useState('');
@@ -164,6 +168,40 @@ export const DietDashboardScreen = ({ navigation }: any) => {
   const [mealsPerDay, setMealsPerDay] = useState(3);
   const [daysToGenerate, setDaysToGenerate] = useState(7);
   const [preferredCuisines, setPreferredCuisines] = useState<string[]>([]);
+
+  // Calendar helper functions
+  const getWeekDates = () => {
+    const curr = new Date();
+    const first = curr.getDate() - curr.getDay() + 1; // Start from Monday
+    const dates = [];
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(curr);
+      date.setDate(first + i);
+      dates.push(date);
+    }
+    return dates;
+  };
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
+  const isToday = (date: Date) => {
+    const today = new Date();
+    return date.toDateString() === today.toDateString();
+  };
+
+  const isSelected = (date: Date) => {
+    return date.toDateString() === selectedDate.toDateString();
+  };
+
+  const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  // Initialize week dates
+  useEffect(() => {
+    const dates = getWeekDates();
+    setWeekDates(dates);
+  }, []);
 
   // Calculate total costs
   const totalWeeklyCost = mealPlan.reduce((sum, item) => {
@@ -1200,6 +1238,94 @@ export const DietDashboardScreen = ({ navigation }: any) => {
         </TouchableOpacity>
       </View>
 
+      {/* Week Calendar - Always Visible */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.weekCalendar}
+        contentContainerStyle={styles.weekCalendarContent}
+      >
+        {weekDates.map((date, index) => {
+          const selected = isSelected(date);
+          const today = isToday(date);
+
+          return (
+            <TouchableOpacity
+              key={index}
+              onPress={() => setSelectedDate(date)}
+              style={[
+                styles.dayButton,
+                selected && styles.dayButtonSelected,
+                today && !selected && styles.dayButtonToday,
+              ]}
+            >
+              <Text style={[
+                styles.dayLabel,
+                selected && styles.dayLabelSelected,
+              ]}>
+                {daysOfWeek[index]}
+              </Text>
+              <Text style={[
+                styles.dayDate,
+                selected && styles.dayDateSelected,
+              ]}>
+                {formatDate(date)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* Quick Filters - Horizontal Scrollable */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.quickFilters}
+        contentContainerStyle={styles.quickFiltersContent}
+      >
+        <Text style={styles.quickFiltersLabel}>Quick Filters:</Text>
+
+        {/* Cuisine Filters */}
+        {CUISINE_FILTERS.slice(0, 8).map((filter) => (
+          <TouchableOpacity
+            key={filter.id}
+            style={[
+              styles.quickFilterChip,
+              selectedCuisine === filter.id && styles.quickFilterChipActive,
+            ]}
+            onPress={() => setSelectedCuisine(selectedCuisine === filter.id ? '' : filter.id)}
+          >
+            <Text style={styles.quickFilterIcon}>{filter.icon}</Text>
+            <Text style={[
+              styles.quickFilterText,
+              selectedCuisine === filter.id && styles.quickFilterTextActive,
+            ]}>
+              {filter.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+
+        {/* Diet Type Filters */}
+        {DIET_FILTERS.map((filter) => (
+          <TouchableOpacity
+            key={filter.id}
+            style={[
+              styles.quickFilterChip,
+              selectedDietFilters.includes(filter.id) && styles.quickFilterChipActive,
+            ]}
+            onPress={() => toggleDietFilter(filter.id)}
+          >
+            <Text style={styles.quickFilterIcon}>{filter.icon}</Text>
+            <Text style={[
+              styles.quickFilterText,
+              selectedDietFilters.includes(filter.id) && styles.quickFilterTextActive,
+            ]}>
+              {filter.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
       {/* Content */}
       {activeTab === 'planner' && renderMealPlanner()}
       {activeTab === 'shopping' && renderShoppingList()}
@@ -2026,6 +2152,94 @@ const styles = StyleSheet.create({
   portionModalAddButtonText: {
     ...typography.bodyBold,
     fontSize: 16,
+    color: 'white',
+  },
+  // Week Calendar Styles
+  weekCalendar: {
+    backgroundColor: ENHANCED_COLORS.card,
+    borderBottomWidth: 1,
+    borderBottomColor: ENHANCED_COLORS.border,
+    paddingVertical: spacing.sm,
+  },
+  weekCalendarContent: {
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+  },
+  dayButton: {
+    width: 72,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    borderRadius: 12,
+    backgroundColor: ENHANCED_COLORS.background,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dayButtonSelected: {
+    backgroundColor: ENHANCED_COLORS.primary,
+  },
+  dayButtonToday: {
+    borderWidth: 2,
+    borderColor: ENHANCED_COLORS.primary,
+  },
+  dayLabel: {
+    ...typography.caption,
+    fontSize: 12,
+    color: ENHANCED_COLORS.mutedForeground,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  dayLabelSelected: {
+    color: 'white',
+  },
+  dayDate: {
+    ...typography.body,
+    fontSize: 14,
+    color: ENHANCED_COLORS.foreground,
+    fontWeight: 'bold',
+  },
+  dayDateSelected: {
+    color: 'white',
+  },
+  // Quick Filters Styles
+  quickFilters: {
+    backgroundColor: ENHANCED_COLORS.card,
+    borderBottomWidth: 1,
+    borderBottomColor: ENHANCED_COLORS.border,
+    paddingVertical: spacing.sm,
+  },
+  quickFiltersContent: {
+    paddingHorizontal: spacing.md,
+    gap: spacing.sm,
+    alignItems: 'center',
+  },
+  quickFiltersLabel: {
+    ...typography.bodyBold,
+    fontSize: 14,
+    color: ENHANCED_COLORS.mutedForeground,
+    marginRight: spacing.xs,
+  },
+  quickFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 20,
+    backgroundColor: ENHANCED_COLORS.background,
+    gap: 6,
+  },
+  quickFilterChipActive: {
+    backgroundColor: ENHANCED_COLORS.primary,
+  },
+  quickFilterIcon: {
+    fontSize: 16,
+  },
+  quickFilterText: {
+    ...typography.body,
+    fontSize: 13,
+    color: ENHANCED_COLORS.foreground,
+    fontWeight: '600',
+  },
+  quickFilterTextActive: {
     color: 'white',
   },
 });
