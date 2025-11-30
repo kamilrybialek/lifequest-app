@@ -52,11 +52,6 @@ import { DietPlannerScreen } from '../screens/nutrition/DietPlannerScreen';
 import { RecipeListScreen } from '../screens/nutrition/RecipeListScreen';
 import { RecipeDetailScreen } from '../screens/nutrition/RecipeDetailScreen';
 
-// Diet Planner screens
-import { DietPlannerScreen } from '../screens/nutrition/DietPlannerScreen';
-import { RecipeListScreen } from '../screens/nutrition/RecipeListScreen';
-import { RecipeDetailScreen } from '../screens/nutrition/RecipeDetailScreen';
-
 // Finance tool screens - ENHANCED VERSIONS
 import { FinanceDashboardUnified } from '../screens/finance/FinanceDashboardUnified';
 import { EmergencyFundScreen } from '../screens/finance/EmergencyFundScreen';
