@@ -1,75 +1,31 @@
-const CACHE_NAME = 'lifequest-admin-v3'; // ✅ MOBILE RESPONSIVE FIX
-const urlsToCache = [
-  './manifest.json'
-];
+const CACHE_NAME = 'lifequest-admin-v4-force-update'; // ✅ FORCE UPDATE
+const urlsToCache = [];  // NO CACHING - force fresh fetch
 
-// Install event - cache essential files
+// Install event - skip caching, just activate
 self.addEventListener('install', (event) => {
-  console.log('Service Worker: Installing v3 with mobile responsive fixes...');
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Service Worker: Caching static assets');
-        return cache.addAll(urlsToCache);
-      })
-  );
-  // Force waiting SW to become active immediately
+  console.log('🔥 Service Worker v4: FORCE UPDATE - No caching, always fresh!');
+  // Skip waiting immediately
   self.skipWaiting();
 });
 
-// Fetch event - NETWORK FIRST for HTML, cache first for assets
+// Fetch event - ALWAYS NETWORK, NO CACHE
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-
-  // For HTML files (index.html), always try network first
-  if (event.request.method === 'GET' &&
-      (url.pathname.endsWith('.html') || url.pathname.endsWith('/'))) {
-
-    event.respondWith(
-      // Try network first
-      fetch(event.request)
-        .then((response) => {
-          // Clone and cache the new version
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-          console.log('Service Worker: Serving fresh HTML from network');
-          return response;
-        })
-        .catch(() => {
-          // Fallback to cache if offline
-          console.log('Service Worker: Network failed, serving cached HTML');
-          return caches.match(event.request);
-        })
-    );
-  }
-  // For other assets (CSS, JS, images), use cache first
-  else {
-    event.respondWith(
-      caches.match(event.request)
-        .then((response) => {
-          if (response) {
-            return response;
-          }
-
-          const fetchRequest = event.request.clone();
-
-          return fetch(fetchRequest).then((response) => {
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-
-            return response;
-          });
-        })
-    );
-  }
+  // Always fetch from network, never use cache
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        console.log('✅ Serving fresh from network:', event.request.url);
+        return response;
+      })
+      .catch((error) => {
+        console.error('❌ Network fetch failed:', error);
+        // Return a basic error response instead of cached version
+        return new Response('Network error, please check connection', {
+          status: 503,
+          statusText: 'Service Unavailable'
+        });
+      })
+  );
 });
 
 // Activate event - clean up old caches
