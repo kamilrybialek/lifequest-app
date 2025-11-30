@@ -1,11 +1,11 @@
-const CACHE_NAME = 'lifequest-admin-v2'; // ✅ UPDATED VERSION
+const CACHE_NAME = 'lifequest-admin-v3'; // ✅ MOBILE RESPONSIVE FIX
 const urlsToCache = [
   './manifest.json'
 ];
 
 // Install event - cache essential files
 self.addEventListener('install', (event) => {
-  console.log('Service Worker: Installing v2 with new features...');
+  console.log('Service Worker: Installing v3 with mobile responsive fixes...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
