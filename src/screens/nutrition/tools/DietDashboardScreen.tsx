@@ -17,6 +17,7 @@ import { colors } from '../../../theme/colors';
 import { spacing } from '../../../theme/spacing';
 import { useAuthStore } from '../../../store/authStore';
 import { COMMON_INGREDIENTS } from '../../../data/ingredients';
+import { DISH_TYPE_FILTERS, matchesDishTypeFilter } from '../../../data/recipeFilters';
 import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
 
@@ -147,6 +148,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
   const [selectedDietFilters, setSelectedDietFilters] = useState<string[]>([]);
   const [selectedRecipeType, setSelectedRecipeType] = useState<string>('');
   const [selectedCuisine, setSelectedCuisine] = useState<string>('');
+  const [selectedDishType, setSelectedDishType] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
 
   // Ingredient search state
@@ -204,6 +206,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
     setSelectedDietFilters([]);
     setSelectedRecipeType('');
     setSelectedCuisine('');
+    setSelectedDishType('');
   };
 
   // Helper: Transform TheMealDB meal to Recipe format
@@ -277,6 +280,15 @@ export const DietDashboardScreen = ({ navigation }: any) => {
               return false;
             }
           }
+        }
+      }
+
+      // Filter by dish type (keyword matching)
+      if (selectedDishType) {
+        const matches = matchesDishTypeFilter(recipe.title, recipe.extendedIngredients, selectedDishType);
+        if (!matches) {
+          console.log(`🚫 Filtered out by dish type: ${recipe.title}`);
+          return false;
         }
       }
 
@@ -1223,8 +1235,20 @@ export const DietDashboardScreen = ({ navigation }: any) => {
                 </View>
               ))}
 
+              {/* Active Dish Type Filter */}
+              {selectedDishType && (
+                <View style={styles.activeFilterChipSticky}>
+                  <Text style={styles.filterChipLabel}>
+                    {DISH_TYPE_FILTERS.find(f => f.id === selectedDishType)?.icon} {DISH_TYPE_FILTERS.find(f => f.id === selectedDishType)?.label}
+                  </Text>
+                  <TouchableOpacity onPress={() => setSelectedDishType('')}>
+                    <Ionicons name="close-circle" size={18} color={colors.diet} />
+                  </TouchableOpacity>
+                </View>
+              )}
+
               {/* Clear All if filters active */}
-              {(selectedDietFilters.length > 0 || selectedCuisine || selectedRecipeType) && (
+              {(selectedDietFilters.length > 0 || selectedCuisine || selectedRecipeType || selectedDishType) && (
                 <TouchableOpacity style={styles.clearAllButtonSticky} onPress={clearFilters}>
                   <Text style={styles.clearAllTextSticky}>Clear All</Text>
                 </TouchableOpacity>
@@ -1305,6 +1329,33 @@ export const DietDashboardScreen = ({ navigation }: any) => {
                         <Text style={[
                           styles.filterOptionText,
                           selectedDietFilters.includes(filter.id) && styles.filterOptionTextActive,
+                        ]}>
+                          {filter.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+
+                {/* Dish Type Filters */}
+                <View style={styles.filterRowCompact}>
+                  <Text style={styles.filterLabel}>Dish:</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterOptionsScroll}>
+                    {DISH_TYPE_FILTERS.map((filter) => (
+                      <TouchableOpacity
+                        key={filter.id}
+                        style={[
+                          styles.filterOption,
+                          selectedDishType === filter.id && styles.filterOptionActive,
+                        ]}
+                        onPress={() => {
+                          setSelectedDishType(selectedDishType === filter.id ? '' : filter.id);
+                        }}
+                      >
+                        <Text style={styles.filterOptionIcon}>{filter.icon}</Text>
+                        <Text style={[
+                          styles.filterOptionText,
+                          selectedDishType === filter.id && styles.filterOptionTextActive,
                         ]}>
                           {filter.label}
                         </Text>

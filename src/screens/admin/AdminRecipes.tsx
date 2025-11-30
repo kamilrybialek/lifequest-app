@@ -18,6 +18,7 @@ import { spacing } from '../../theme/spacing';
 import { collection, addDoc, getDocs, query, limit, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import { COMMON_INGREDIENTS } from '../../data/ingredients';
+import { DISH_TYPE_FILTERS, matchesDishTypeFilter } from '../../data/recipeFilters';
 
 const SPOONACULAR_API_KEY = '8b6cd47792ff4057ad699f9b0523d9df';
 const SPOONACULAR_BASE_URL = 'https://api.spoonacular.com';
@@ -111,12 +112,15 @@ export const AdminRecipes = () => {
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [selectedType, setSelectedType] = useState<string>('');
   const [selectedCuisine, setSelectedCuisine] = useState<string>('');
+  const [selectedDishType, setSelectedDishType] = useState<string>(''); // NEW: Dish type filter
   const [maxPrice, setMaxPrice] = useState<string>('');
   const [maxReadyTime, setMaxReadyTime] = useState<string>('');
 
   // Database state
   const [dbRecipes, setDbRecipes] = useState<Recipe[]>([]);
   const [loadingDb, setLoadingDb] = useState(false);
+  const [dbSearchQuery, setDbSearchQuery] = useState('');
+  const [dbSelectedDishType, setDbSelectedDishType] = useState<string>('');
 
   // Modal state
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
@@ -166,6 +170,28 @@ export const AdminRecipes = () => {
     } finally {
       setLoadingDb(false);
     }
+  };
+
+  // Filter database recipes by search query and dish type
+  const getFilteredDbRecipes = () => {
+    let filtered = [...dbRecipes];
+
+    // Filter by search query (title matching)
+    if (dbSearchQuery.trim()) {
+      const searchLower = dbSearchQuery.toLowerCase();
+      filtered = filtered.filter((recipe) =>
+        recipe.title.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Filter by dish type (keyword matching)
+    if (dbSelectedDishType) {
+      filtered = filtered.filter((recipe) =>
+        matchesDishTypeFilter(recipe.title, recipe.extendedIngredients, dbSelectedDishType)
+      );
+    }
+
+    return filtered;
   };
 
   // Search recipes from Spoonacular API
@@ -804,6 +830,36 @@ export const AdminRecipes = () => {
               </View>
             </View>
 
+            {/* Dish Type Filters */}
+            <View style={styles.filtersSection}>
+              <Text style={styles.filtersTitle}>Dish Type</Text>
+              <View style={styles.filtersContainer}>
+                {DISH_TYPE_FILTERS.map((dishType) => (
+                  <TouchableOpacity
+                    key={dishType.id}
+                    style={[
+                      styles.filterChip,
+                      selectedDishType === dishType.id && {
+                        backgroundColor: colors.diet,
+                        borderColor: colors.diet,
+                      },
+                    ]}
+                    onPress={() => setSelectedDishType(selectedDishType === dishType.id ? '' : dishType.id)}
+                  >
+                    <Text style={styles.filterEmoji}>{dishType.icon}</Text>
+                    <Text
+                      style={[
+                        styles.filterText,
+                        selectedDishType === dishType.id && { color: '#FFF', fontWeight: '700' },
+                      ]}
+                    >
+                      {dishType.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
             {/* Additional Filters */}
             <View style={styles.additionalFilters}>
               <View style={styles.filterInput}>
@@ -855,26 +911,101 @@ export const AdminRecipes = () => {
 
       {/* Database Tab */}
       {activeTab === 'database' && (
-        <ScrollView style={styles.results}>
-          {loadingDb ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={styles.loadingText}>Loading database recipes...</Text>
+        <>
+          {/* Database Search & Filter Section */}
+          <View style={styles.searchSection}>
+            <View style={styles.searchBar}>
+              <Ionicons name="search" size={20} color={colors.textSecondary} />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search database recipes..."
+                value={dbSearchQuery}
+                onChangeText={setDbSearchQuery}
+              />
+              {dbSearchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setDbSearchQuery('')}>
+                  <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
+                </TouchableOpacity>
+              )}
             </View>
-          ) : dbRecipes.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyEmoji}>📚</Text>
-              <Text style={styles.emptyTitle}>No recipes in database</Text>
-              <Text style={styles.emptySubtitle}>
-                Use 'Search API' tab or 'Bulk Import' to add recipes
-              </Text>
+
+            {/* Dish Type Filters for Database */}
+            <View style={styles.filtersSection}>
+              <Text style={styles.filtersTitle}>Filter by Dish Type</Text>
+              <View style={styles.filtersContainer}>
+                {DISH_TYPE_FILTERS.map((dishType) => (
+                  <TouchableOpacity
+                    key={dishType.id}
+                    style={[
+                      styles.filterChip,
+                      dbSelectedDishType === dishType.id && {
+                        backgroundColor: colors.diet,
+                        borderColor: colors.diet,
+                      },
+                    ]}
+                    onPress={() => setDbSelectedDishType(dbSelectedDishType === dishType.id ? '' : dishType.id)}
+                  >
+                    <Text style={styles.filterEmoji}>{dishType.icon}</Text>
+                    <Text
+                      style={[
+                        styles.filterText,
+                        dbSelectedDishType === dishType.id && { color: '#FFF', fontWeight: '700' },
+                      ]}
+                    >
+                      {dishType.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
-          ) : (
-            <View style={styles.recipesGrid}>
-              {dbRecipes.map((recipe) => renderRecipeCard(recipe, true))}
-            </View>
-          )}
-        </ScrollView>
+
+            {/* Active Filters Summary */}
+            {(dbSearchQuery || dbSelectedDishType) && (
+              <View style={styles.activeFiltersSummary}>
+                <Text style={styles.activeFiltersText}>
+                  {getFilteredDbRecipes().length} of {dbRecipes.length} recipes
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setDbSearchQuery('');
+                    setDbSelectedDishType('');
+                  }}
+                >
+                  <Text style={styles.clearFiltersText}>Clear all</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+
+          <ScrollView style={styles.results}>
+            {loadingDb ? (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={styles.loadingText}>Loading database recipes...</Text>
+              </View>
+            ) : dbRecipes.length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyEmoji}>📚</Text>
+                <Text style={styles.emptyTitle}>No recipes in database</Text>
+                <Text style={styles.emptySubtitle}>
+                  Use 'Search API' tab or 'Bulk Import' to add recipes
+                </Text>
+              </View>
+            ) : getFilteredDbRecipes().length === 0 ? (
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyEmoji}>🔍</Text>
+                <Text style={styles.emptyTitle}>No matching recipes</Text>
+                <Text style={styles.emptySubtitle}>
+                  Try adjusting your filters or search query
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.recipesGrid}>
+                {getFilteredDbRecipes().map((recipe) => renderRecipeCard(recipe, true))}
+              </View>
+            )}
+          </ScrollView>
+        </>
       )}
 
       {/* Bulk Import Modal */}
@@ -1334,6 +1465,27 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     fontSize: 14,
     color: colors.text,
+  },
+  activeFiltersSummary: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.backgroundGray,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.sm,
+    borderRadius: 8,
+  },
+  activeFiltersText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  clearFiltersText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: colors.primary,
   },
   results: {
     flex: 1,
