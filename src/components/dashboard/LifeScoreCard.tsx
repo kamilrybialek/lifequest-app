@@ -78,9 +78,9 @@ export const LifeScoreCard: React.FC<LifeScoreCardProps> = ({ userId, onSurveyPr
       setBmi(Math.round(calculatedBMI * 10) / 10);
 
       // 2. Net Worth (Assets - Debts)
-      const monthlyIncome = financialProfile?.monthlyIncome || combinedData.monthlyIncome || 0;
-      const monthlyExpenses = financialProfile?.monthlyExpenses || combinedData.monthlyExpenses || 0;
-      const estimatedDebt = financialProfile?.estimatedDebt || combinedData.estimatedDebt || 0;
+      const monthlyIncome = financialProfile?.monthly_income || combinedData.monthlyIncome || 0;
+      const monthlyExpenses = financialProfile?.monthly_expenses || combinedData.monthlyExpenses || 0;
+      const estimatedDebt = combinedData.estimatedDebt || 0;
 
       // Simple net worth calculation: (Monthly savings * 12) - Debt
       const monthlySavings = monthlyIncome - monthlyExpenses;
