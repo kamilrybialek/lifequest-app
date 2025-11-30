@@ -97,6 +97,13 @@ const EDAMAM_BASE_URL = 'https://api.edamam.com/api/recipes/v2';
 const TASTY_API_KEY = 'your_rapidapi_key_here'; // Get from https://rapidapi.com/apidojo/api/tasty
 const TASTY_BASE_URL = 'https://tasty.p.rapidapi.com';
 
+// Recipe Puppy API (100% Free, no key required)
+const RECIPE_PUPPY_BASE_URL = 'http://www.recipepuppy.com/api';
+
+// Forkify API (Free tier: 50 req/day)
+const FORKIFY_API_KEY = 'your_forkify_key_here'; // Get from https://forkify-api.herokuapp.com/v2
+const FORKIFY_BASE_URL = 'https://forkify-api.herokuapp.com/api/v2';
+
 // Filter configurations
 const DIET_FILTERS = [
   { id: 'vegetarian', label: 'Vegetarian', icon: '🥬', color: colors.success },
@@ -185,20 +192,45 @@ export const DietDashboardScreen = ({ navigation }: any) => {
     return sum + ((item.recipe.nutrition?.fat || 0) * item.portions);
   }, 0);
 
-  // Load initial recipes on component mount
+  // Load initial recipes on component mount - from multiple APIs
   useEffect(() => {
     const loadInitialRecipes = async () => {
       setLoading(true);
       try {
-        const randomRecipes: Recipe[] = [];
-        for (let i = 0; i < 5; i++) {
-          const response = await fetch(`${THEMEALDB_BASE_URL}/random.php`);
-          const data = await response.json();
-          if (data.meals) {
-            randomRecipes.push(transformMealDBToRecipe(data.meals[0]));
-          }
-        }
-        setSearchResults(randomRecipes);
+        // Query multiple APIs in parallel for diverse initial recipes
+        const apiPromises = [
+          // 3 random recipes from TheMealDB
+          ...Array(3).fill(null).map(() =>
+            fetch(`${THEMEALDB_BASE_URL}/random.php`)
+              .then(res => res.json())
+              .then(data => data.meals ? transformMealDBToRecipe(data.meals[0]) : null)
+              .catch(err => { console.error('TheMealDB error:', err); return null; })
+          ),
+
+          // 5 recipes from Recipe Puppy (random query)
+          fetch(`${RECIPE_PUPPY_BASE_URL}/?q=pasta`)
+            .then(res => res.json())
+            .then(data => data.results ? data.results.slice(0, 5).map(transformRecipePuppyToRecipe) : [])
+            .catch(err => { console.error('Recipe Puppy error:', err); return []; }),
+
+          // 2 random recipes from different query
+          fetch(`${RECIPE_PUPPY_BASE_URL}/?q=chicken`)
+            .then(res => res.json())
+            .then(data => data.results ? data.results.slice(0, 2).map(transformRecipePuppyToRecipe) : [])
+            .catch(err => { console.error('Recipe Puppy error:', err); return []; }),
+        ];
+
+        const allResults = await Promise.all(apiPromises);
+        const allRecipes = allResults.flat().filter(Boolean);
+
+        // Remove duplicates and take first 10
+        const uniqueRecipes = Array.from(
+          new Map(allRecipes.map(recipe => [recipe.title.toLowerCase(), recipe])).values()
+        ).slice(0, 10);
+
+        console.log(`📊 Loaded ${uniqueRecipes.length} initial recipes from multiple APIs`);
+
+        setSearchResults(uniqueRecipes);
       } catch (error) {
         console.error('Failed to load initial recipes:', error);
       } finally {
@@ -359,6 +391,125 @@ export const DietDashboardScreen = ({ navigation }: any) => {
     };
   };
 
+  // Helper: Transform Recipe Puppy recipe to Recipe format
+  const transformRecipePuppyToRecipe = (recipe: any): Recipe => {
+    const ingredients = (recipe.ingredients || '').split(',').map((ing: string, index: number) => ({
+      id: index + 1,
+      name: ing.trim(),
+      amount: 0,
+      unit: '',
+      original: ing.trim(),
+    }));
+
+    return {
+      id: Math.abs(hashString(recipe.title + recipe.href)), // Generate numeric ID from title
+      title: recipe.title,
+      image: recipe.thumbnail || 'https://via.placeholder.com/300x200?text=No+Image',
+      readyInMinutes: 30,
+      servings: 4,
+      pricePerServing: 250,
+      cuisines: [],
+      diets: [],
+      summary: recipe.title,
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+      nutrition: {
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+      },
+      extendedIngredients: ingredients,
+      instructions: recipe.href || '',
+      analyzedInstructions: [],
+    };
+  };
+
+  // Helper: Transform Spoonacular recipe to Recipe format
+  const transformSpoonacularToRecipe = (recipe: any): Recipe => {
+    const ingredients = (recipe.extendedIngredients || []).map((ing: any) => ({
+      id: ing.id,
+      name: ing.name,
+      amount: ing.amount || 0,
+      unit: ing.unit || '',
+      original: ing.original || ing.name,
+    }));
+
+    return {
+      id: recipe.id,
+      title: recipe.title,
+      image: recipe.image || '',
+      readyInMinutes: recipe.readyInMinutes || 30,
+      servings: recipe.servings || 4,
+      pricePerServing: recipe.pricePerServing || 250,
+      cuisines: recipe.cuisines || [],
+      diets: recipe.diets || [],
+      summary: recipe.summary || recipe.title,
+      calories: Math.round(recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0),
+      protein: Math.round(recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0),
+      carbs: Math.round(recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0),
+      fat: Math.round(recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0),
+      nutrition: {
+        calories: Math.round(recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Calories')?.amount || 0),
+        protein: Math.round(recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Protein')?.amount || 0),
+        carbs: Math.round(recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Carbohydrates')?.amount || 0),
+        fat: Math.round(recipe.nutrition?.nutrients?.find((n: any) => n.name === 'Fat')?.amount || 0),
+      },
+      extendedIngredients: ingredients,
+      instructions: recipe.instructions || '',
+      analyzedInstructions: recipe.analyzedInstructions || [],
+    };
+  };
+
+  // Helper: Transform Forkify recipe to Recipe format
+  const transformForkifyToRecipe = (recipe: any): Recipe => {
+    const ingredients = (recipe.ingredients || []).map((ing: any, index: number) => ({
+      id: index + 1,
+      name: ing.description || ing,
+      amount: ing.quantity || 0,
+      unit: ing.unit || '',
+      original: ing.description || ing,
+    }));
+
+    return {
+      id: Math.abs(hashString(recipe.id)), // Convert string ID to number
+      title: recipe.title,
+      image: recipe.image_url || recipe.image || '',
+      readyInMinutes: recipe.cooking_time || 30,
+      servings: recipe.servings || 4,
+      pricePerServing: 250,
+      cuisines: [],
+      diets: [],
+      summary: recipe.title,
+      calories: 0,
+      protein: 0,
+      carbs: 0,
+      fat: 0,
+      nutrition: {
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+      },
+      extendedIngredients: ingredients,
+      instructions: recipe.source_url || '',
+      analyzedInstructions: [],
+    };
+  };
+
+  // Helper: Simple hash function to convert string to number
+  const hashString = (str: string): number => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash;
+  };
+
   // Filter recipes
   const filterRecipes = (recipes: Recipe[]): Recipe[] => {
     return recipes.filter((recipe) => {
@@ -391,7 +542,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
     });
   };
 
-  // Search recipes by ingredients
+  // Search recipes by ingredients - queries multiple APIs in parallel
   const searchByIngredients = async () => {
     setLoading(true);
     try {
@@ -404,54 +555,78 @@ export const DietDashboardScreen = ({ navigation }: any) => {
 
         console.log('🔍 Searching by ingredients:', ingredientNames);
 
-        // Try TheMealDB first
-        const searchPromises = ingredientNames.map(async (ingredient) => {
-          try {
-            const response = await fetch(`${THEMEALDB_BASE_URL}/filter.php?i=${ingredient}`);
-            const data = await response.json();
-            if (data.meals) {
-              const detailedMeals = await Promise.all(
-                data.meals.slice(0, 5).map(async (meal: any) => {
-                  const detailResponse = await fetch(`${THEMEALDB_BASE_URL}/lookup.php?i=${meal.idMeal}`);
-                  const detailData = await detailResponse.json();
-                  return detailData.meals ? transformMealDBToRecipe(detailData.meals[0]) : null;
-                })
-              );
-              return detailedMeals.filter(Boolean);
-            }
-            return [];
-          } catch (error) {
-            console.error('TheMealDB search error:', error);
-            return [];
-          }
-        });
+        const ingredientQuery = ingredientNames.join(',');
 
-        const allResults = await Promise.all(searchPromises);
+        // Query multiple APIs in parallel
+        const apiPromises = [
+          // 1. TheMealDB - search by main ingredient
+          ...ingredientNames.slice(0, 2).map(ingredient =>
+            fetch(`${THEMEALDB_BASE_URL}/filter.php?i=${ingredient}`)
+              .then(res => res.json())
+              .then(async data => {
+                if (data.meals) {
+                  const detailedMeals = await Promise.all(
+                    data.meals.slice(0, 3).map(async (meal: any) => {
+                      const detailResponse = await fetch(`${THEMEALDB_BASE_URL}/lookup.php?i=${meal.idMeal}`);
+                      const detailData = await detailResponse.json();
+                      return detailData.meals ? transformMealDBToRecipe(detailData.meals[0]) : null;
+                    })
+                  );
+                  return detailedMeals.filter(Boolean);
+                }
+                return [];
+              })
+              .catch(err => { console.error('TheMealDB error:', err); return []; })
+          ),
+
+          // 2. Recipe Puppy - supports ingredient search
+          fetch(`${RECIPE_PUPPY_BASE_URL}/?i=${encodeURIComponent(ingredientQuery)}`)
+            .then(res => res.json())
+            .then(data => data.results ? data.results.slice(0, 10).map(transformRecipePuppyToRecipe) : [])
+            .catch(err => { console.error('Recipe Puppy error:', err); return []; }),
+
+          // 3. Spoonacular - findByIngredients endpoint
+          SPOONACULAR_API_KEY && SPOONACULAR_API_KEY !== '8b6cd47792ff4057ad699f9b0523d9df'
+            ? fetch(`${SPOONACULAR_BASE_URL}/recipes/findByIngredients?ingredients=${encodeURIComponent(ingredientQuery)}&number=10&apiKey=${SPOONACULAR_API_KEY}`)
+                .then(res => res.json())
+                .then(data => Array.isArray(data) ? data.map(transformSpoonacularToRecipe) : [])
+                .catch(err => { console.error('Spoonacular error:', err); return []; })
+            : Promise.resolve([]),
+        ];
+
+        const allResults = await Promise.all(apiPromises);
         recipes = allResults.flat();
       } else {
-        // Random recipes
-        try {
-          const randomRecipes: Recipe[] = [];
-          for (let i = 0; i < 10; i++) {
-            const response = await fetch(`${THEMEALDB_BASE_URL}/random.php`);
-            const data = await response.json();
-            if (data.meals) {
-              randomRecipes.push(transformMealDBToRecipe(data.meals[0]));
-            }
-          }
-          recipes = randomRecipes;
-        } catch (error) {
-          console.error('Random recipes error:', error);
-        }
+        // Random recipes from multiple APIs
+        const apiPromises = [
+          // TheMealDB random recipes (5)
+          ...Array(5).fill(null).map(() =>
+            fetch(`${THEMEALDB_BASE_URL}/random.php`)
+              .then(res => res.json())
+              .then(data => data.meals ? transformMealDBToRecipe(data.meals[0]) : null)
+              .catch(err => { console.error('TheMealDB random error:', err); return null; })
+          ),
+
+          // Recipe Puppy random (get first 5 from a random query)
+          fetch(`${RECIPE_PUPPY_BASE_URL}/?q=chicken`)
+            .then(res => res.json())
+            .then(data => data.results ? data.results.slice(0, 5).map(transformRecipePuppyToRecipe) : [])
+            .catch(err => { console.error('Recipe Puppy error:', err); return []; }),
+        ];
+
+        const allResults = await Promise.all(apiPromises);
+        recipes = allResults.flat().filter(Boolean);
       }
 
       // Apply filters
       const filteredRecipes = filterRecipes(recipes);
 
-      // Remove duplicates
+      // Remove duplicates by title
       const uniqueRecipes = Array.from(
-        new Map(filteredRecipes.map(recipe => [recipe.id, recipe])).values()
+        new Map(filteredRecipes.map(recipe => [recipe.title.toLowerCase(), recipe])).values()
       );
+
+      console.log(`📊 Found ${uniqueRecipes.length} unique recipes by ingredients`);
 
       setSearchResults(uniqueRecipes);
     } catch (error) {
@@ -462,7 +637,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
     }
   };
 
-  // Search recipes by text
+  // Search recipes by text - queries multiple APIs in parallel
   const searchRecipes = async (query: string) => {
     if (!query.trim()) {
       searchByIngredients();
@@ -471,21 +646,53 @@ export const DietDashboardScreen = ({ navigation }: any) => {
 
     setLoading(true);
     try {
-      let recipes: Recipe[] = [];
+      // Query all APIs in parallel for better performance
+      const apiPromises = [
+        // 1. TheMealDB (always free)
+        fetch(`${THEMEALDB_BASE_URL}/search.php?s=${query}`)
+          .then(res => res.json())
+          .then(data => data.meals ? data.meals.map(transformMealDBToRecipe) : [])
+          .catch(err => { console.error('TheMealDB error:', err); return []; }),
 
-      // Try TheMealDB first
-      try {
-        const response = await fetch(`${THEMEALDB_BASE_URL}/search.php?s=${query}`);
-        const data = await response.json();
-        if (data.meals) {
-          recipes = data.meals.map(transformMealDBToRecipe);
-        }
-      } catch (error) {
-        console.error('TheMealDB search error:', error);
-      }
+        // 2. Recipe Puppy (100% free, no key)
+        fetch(`${RECIPE_PUPPY_BASE_URL}/?q=${encodeURIComponent(query)}`)
+          .then(res => res.json())
+          .then(data => data.results ? data.results.map(transformRecipePuppyToRecipe) : [])
+          .catch(err => { console.error('Recipe Puppy error:', err); return []; }),
+
+        // 3. Spoonacular (if API key is valid)
+        SPOONACULAR_API_KEY && SPOONACULAR_API_KEY !== '8b6cd47792ff4057ad699f9b0523d9df'
+          ? fetch(`${SPOONACULAR_BASE_URL}/recipes/complexSearch?query=${encodeURIComponent(query)}&number=10&addRecipeInformation=true&fillIngredients=true&apiKey=${SPOONACULAR_API_KEY}`)
+              .then(res => res.json())
+              .then(data => data.results ? data.results.map(transformSpoonacularToRecipe) : [])
+              .catch(err => { console.error('Spoonacular error:', err); return []; })
+          : Promise.resolve([]),
+
+        // 4. Edamam (if API key is valid)
+        EDAMAM_APP_ID && EDAMAM_APP_KEY && EDAMAM_APP_KEY !== '2b7c3f4e5d6a7b8c9d0e1f2a3b4c5d6e'
+          ? fetch(`${EDAMAM_BASE_URL}?type=public&q=${encodeURIComponent(query)}&app_id=${EDAMAM_APP_ID}&app_key=${EDAMAM_APP_KEY}`)
+              .then(res => res.json())
+              .then(data => data.hits ? data.hits.map(transformEdamamToRecipe) : [])
+              .catch(err => { console.error('Edamam error:', err); return []; })
+          : Promise.resolve([]),
+      ];
+
+      // Wait for all APIs to respond
+      const apiResults = await Promise.all(apiPromises);
+
+      // Combine all results
+      const allRecipes = apiResults.flat();
+
+      // Remove duplicates by title (case-insensitive)
+      const uniqueRecipes = Array.from(
+        new Map(allRecipes.map(recipe => [recipe.title.toLowerCase(), recipe])).values()
+      );
 
       // Apply filters
-      const filteredRecipes = filterRecipes(recipes);
+      const filteredRecipes = filterRecipes(uniqueRecipes);
+
+      console.log(`📊 Found ${filteredRecipes.length} unique recipes from ${apiResults.filter(r => r.length > 0).length} APIs`);
+
       setSearchResults(filteredRecipes);
     } catch (error) {
       console.error('Search error:', error);
