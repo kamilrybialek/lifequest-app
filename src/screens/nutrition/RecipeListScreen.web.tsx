@@ -1,10 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Text, Card, Chip, Searchbar } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { Text } from 'react-native-paper';
 import { useAuthStore } from '../../store/authStore';
 import { getRecipes } from '../../database/nutrition.web';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { colors } from '../../theme/colors';
+import { Search, Clock, Users, Flame } from 'lucide-react-native';
+
+const LOVABLE_COLORS = {
+  primary: '#FA7D09',
+  primaryLight: 'rgba(250, 125, 9, 0.05)',
+  background: '#ECF2F7',
+  card: '#F5F8FA',
+  foreground: '#1A202C',
+  mutedForeground: '#718096',
+  border: '#CBD5E0',
+};
 
 interface Recipe {
   id: number;
@@ -22,11 +32,11 @@ interface Recipe {
 }
 
 const categories = [
-  { id: 'all', label: 'All', icon: '🍽️' },
-  { id: 'breakfast', label: 'Breakfast', icon: '🍳' },
-  { id: 'lunch', label: 'Lunch', icon: '🥗' },
-  { id: 'dinner', label: 'Dinner', icon: '🍲' },
-  { id: 'snack', label: 'Snack', icon: '🍎' },
+  { id: 'all', label: 'All' },
+  { id: 'breakfast', label: 'Breakfast' },
+  { id: 'lunch', label: 'Lunch' },
+  { id: 'dinner', label: 'Dinner' },
+  { id: 'snack', label: 'Snack' },
 ];
 
 export const RecipeListScreen = () => {
@@ -64,12 +74,10 @@ export const RecipeListScreen = () => {
   const filterRecipes = () => {
     let filtered = recipes;
 
-    // Filter by category
     if (selectedCategory !== 'all') {
       filtered = filtered.filter((recipe) => recipe.category === selectedCategory);
     }
 
-    // Filter by search query
     if (searchQuery) {
       filtered = filtered.filter((recipe) =>
         recipe.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -90,23 +98,29 @@ export const RecipeListScreen = () => {
         onPress={() => handleRecipePress(recipe)}
         style={styles.recipeCardWrapper}
       >
-        <Card style={styles.recipeCard}>
-          {recipe.photo_url && (
-            <Card.Cover source={{ uri: recipe.photo_url }} style={styles.recipeImage} />
-          )}
-          {!recipe.photo_url && (
-            <View style={styles.recipePlaceholder}>
-              <Text style={styles.recipePlaceholderIcon}>🍽️</Text>
-            </View>
-          )}
+        <View style={styles.recipeCard}>
+          {/* Image */}
+          <View style={styles.recipeImageContainer}>
+            {recipe.photo_url ? (
+              <View style={styles.recipeImage}>
+                <Text style={styles.recipeImagePlaceholder}>🍽️</Text>
+              </View>
+            ) : (
+              <View style={styles.recipeImagePlaceholder}>
+                <Text style={styles.recipeImageEmoji}>🍽️</Text>
+              </View>
+            )}
 
-          {recipe.category && (
-            <View style={styles.categoryBadge}>
-              <Text style={styles.categoryBadgeText}>{recipe.category}</Text>
-            </View>
-          )}
+            {/* Category Badge */}
+            {recipe.category && (
+              <View style={styles.categoryBadge}>
+                <Text style={styles.categoryBadgeText}>{recipe.category}</Text>
+              </View>
+            )}
+          </View>
 
-          <Card.Content style={styles.recipeContent}>
+          {/* Content */}
+          <View style={styles.recipeContent}>
             <Text style={styles.recipeName} numberOfLines={1}>
               {recipe.name}
             </Text>
@@ -114,45 +128,52 @@ export const RecipeListScreen = () => {
               {recipe.description || 'No description'}
             </Text>
 
+            {/* Stats */}
             <View style={styles.recipeStats}>
               <View style={styles.recipeStat}>
-                <Text style={styles.recipeStatIcon}>🔥</Text>
+                <Flame color={LOVABLE_COLORS.primary} size={14} />
                 <Text style={styles.recipeStatValue}>{Math.round(recipe.total_calories)}</Text>
                 <Text style={styles.recipeStatLabel}>kcal</Text>
               </View>
 
               <View style={styles.recipeStat}>
-                <Text style={styles.recipeStatIcon}>⏱️</Text>
-                <Text style={styles.recipeStatValue}>{recipe.prep_time_minutes || 0}</Text>
-                <Text style={styles.recipeStatLabel}>min</Text>
+                <Clock color={LOVABLE_COLORS.mutedForeground} size={14} />
+                <Text style={styles.recipeStatMuted}>{recipe.prep_time_minutes || 0} min</Text>
               </View>
 
               <View style={styles.recipeStat}>
-                <Text style={styles.recipeStatIcon}>👥</Text>
-                <Text style={styles.recipeStatValue}>{recipe.servings || 1}</Text>
+                <Users color={LOVABLE_COLORS.mutedForeground} size={14} />
+                <Text style={styles.recipeStatMuted}>{recipe.servings || 1}</Text>
               </View>
             </View>
-          </Card.Content>
-        </Card>
+          </View>
+        </View>
       </TouchableOpacity>
     );
   };
 
   return (
     <View style={styles.container}>
-      <ScrollView>
+      <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
           <Text style={styles.title}>Recipes</Text>
 
           {/* Search */}
-          <Searchbar
-            placeholder="Search for recipes..."
-            onChangeText={setSearchQuery}
-            value={searchQuery}
-            style={styles.searchBar}
-            iconColor={colors.nutrition}
-          />
+          <View style={styles.searchContainer}>
+            <Search
+              color={LOVABLE_COLORS.mutedForeground}
+              size={20}
+              style={styles.searchIcon}
+            />
+            <TextInput
+              placeholder="Search for recipes..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              style={styles.searchInput}
+              placeholderTextColor={LOVABLE_COLORS.mutedForeground}
+            />
+          </View>
         </View>
 
         <View style={styles.content}>
@@ -163,25 +184,29 @@ export const RecipeListScreen = () => {
             style={styles.categoriesContainer}
             contentContainerStyle={styles.categoriesContent}
           >
-            {categories.map((category) => (
-              <Chip
-                key={category.id}
-                selected={selectedCategory === category.id}
-                onPress={() => setSelectedCategory(category.id)}
-                style={[
-                  styles.categoryChip,
-                  selectedCategory === category.id && styles.categoryChipSelected,
-                ]}
-                textStyle={[
-                  styles.categoryChipText,
-                  selectedCategory === category.id && styles.categoryChipTextSelected,
-                ]}
-                mode={selectedCategory === category.id ? 'flat' : 'outlined'}
-                selectedColor={selectedCategory === category.id ? '#fff' : colors.nutrition}
-              >
-                {category.icon} {category.label}
-              </Chip>
-            ))}
+            {categories.map((category) => {
+              const isSelected = selectedCategory === category.id;
+
+              return (
+                <TouchableOpacity
+                  key={category.id}
+                  onPress={() => setSelectedCategory(category.id)}
+                  style={[
+                    styles.categoryChip,
+                    isSelected && styles.categoryChipSelected,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.categoryChipText,
+                      isSelected && styles.categoryChipTextSelected,
+                    ]}
+                  >
+                    {category.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </ScrollView>
 
           {/* Results Header */}
@@ -198,8 +223,8 @@ export const RecipeListScreen = () => {
 
           {/* Recipe Grid */}
           {loading ? (
-            <View style={styles.loadingContainer}>
-              <Text style={styles.loadingText}>Loading recipes...</Text>
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>Loading recipes...</Text>
             </View>
           ) : filteredRecipes.length === 0 ? (
             <View style={styles.emptyContainer}>
@@ -225,45 +250,67 @@ export const RecipeListScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    maxWidth: 480,
+    backgroundColor: LOVABLE_COLORS.background,
+    maxWidth: 448,
     marginHorizontal: 'auto' as any,
     width: '100%',
   },
   header: {
-    backgroundColor: '#fff',
+    backgroundColor: LOVABLE_COLORS.primaryLight,
     paddingHorizontal: 16,
     paddingTop: 24,
     paddingBottom: 16,
   },
   title: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: 'bold',
     marginBottom: 16,
-    color: '#333',
+    color: LOVABLE_COLORS.foreground,
   },
-  searchBar: {
-    backgroundColor: '#f9f9f9',
-    elevation: 0,
+  searchContainer: {
+    position: 'relative',
+  },
+  searchIcon: {
+    position: 'absolute',
+    left: 12,
+    top: 12,
+    zIndex: 1,
+  },
+  searchInput: {
+    backgroundColor: LOVABLE_COLORS.card,
+    borderRadius: 8,
+    paddingLeft: 44,
+    paddingRight: 16,
+    paddingVertical: 12,
+    fontSize: 14,
+    color: LOVABLE_COLORS.foreground,
+    outlineStyle: 'none' as any,
   },
   content: {
     paddingHorizontal: 16,
   },
   categoriesContainer: {
-    marginVertical: 16,
+    marginVertical: 24,
   },
   categoriesContent: {
     gap: 8,
   },
   categoryChip: {
-    backgroundColor: '#f9f9f9',
-    borderColor: '#e0e0e0',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: LOVABLE_COLORS.card,
+    borderWidth: 1,
+    borderColor: LOVABLE_COLORS.border,
   },
   categoryChipSelected: {
-    backgroundColor: colors.nutrition,
+    backgroundColor: LOVABLE_COLORS.primary,
+    borderColor: LOVABLE_COLORS.primary,
   },
   categoryChipText: {
-    color: '#666',
+    fontSize: 14,
+    fontWeight: '500',
+    color: LOVABLE_COLORS.foreground,
   },
   categoryChipTextSelected: {
     color: '#fff',
@@ -277,36 +324,50 @@ const styles = StyleSheet.create({
   resultsTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: LOVABLE_COLORS.foreground,
   },
   resultsCount: {
     fontSize: 14,
-    color: '#666',
+    color: LOVABLE_COLORS.mutedForeground,
   },
   recipeGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 16,
-    paddingBottom: 24,
+    paddingBottom: 80,
   },
   recipeCardWrapper: {
     width: '48%',
   },
   recipeCard: {
-    backgroundColor: '#fff',
-    elevation: 2,
+    backgroundColor: LOVABLE_COLORS.card,
+    borderRadius: 12,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  recipeImageContainer: {
+    position: 'relative',
+    width: '100%',
   },
   recipeImage: {
-    height: 140,
-  },
-  recipePlaceholder: {
-    height: 140,
+    width: '100%',
+    aspectRatio: 1,
     backgroundColor: '#f0f0f0',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  recipePlaceholderIcon: {
+  recipeImagePlaceholder: {
+    width: '100%',
+    aspectRatio: 1,
+    backgroundColor: '#f0f0f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  recipeImageEmoji: {
     fontSize: 48,
   },
   categoryBadge: {
@@ -314,6 +375,7 @@ const styles = StyleSheet.create({
     top: 12,
     left: 12,
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backdropFilter: 'blur(8px)',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -321,22 +383,22 @@ const styles = StyleSheet.create({
   categoryBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#333',
+    color: LOVABLE_COLORS.foreground,
     textTransform: 'capitalize',
   },
   recipeContent: {
-    paddingTop: 12,
+    padding: 16,
   },
   recipeName: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
-    marginBottom: 6,
-    color: '#333',
+    marginBottom: 8,
+    color: LOVABLE_COLORS.foreground,
   },
   recipeDescription: {
     fontSize: 12,
-    color: '#666',
-    marginBottom: 12,
+    color: LOVABLE_COLORS.mutedForeground,
+    marginBottom: 16,
     minHeight: 32,
   },
   recipeStats: {
@@ -347,30 +409,23 @@ const styles = StyleSheet.create({
   recipeStat: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 2,
-  },
-  recipeStatIcon: {
-    fontSize: 12,
+    gap: 4,
   },
   recipeStatValue: {
     fontSize: 12,
     fontWeight: '600',
-    color: colors.nutrition,
+    color: LOVABLE_COLORS.primary,
   },
   recipeStatLabel: {
     fontSize: 11,
-    color: '#666',
+    color: LOVABLE_COLORS.mutedForeground,
   },
-  loadingContainer: {
-    paddingVertical: 48,
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 16,
-    color: '#666',
+  recipeStatMuted: {
+    fontSize: 12,
+    color: LOVABLE_COLORS.mutedForeground,
   },
   emptyContainer: {
-    paddingVertical: 48,
+    paddingVertical: 64,
     alignItems: 'center',
   },
   emptyIcon: {
@@ -380,12 +435,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: LOVABLE_COLORS.foreground,
     marginBottom: 8,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#666',
+    color: LOVABLE_COLORS.mutedForeground,
     textAlign: 'center',
   },
 });

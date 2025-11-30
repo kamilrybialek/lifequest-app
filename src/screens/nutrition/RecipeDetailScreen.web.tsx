@@ -1,9 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Image } from 'react-native';
-import { Text, Card, Button, IconButton, Chip } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import { Text } from 'react-native-paper';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { getRecipeById } from '../../database/nutrition.web';
-import { colors } from '../../theme/colors';
+import { ArrowLeft, Plus, Clock, Users, Flame } from 'lucide-react-native';
+
+const LOVABLE_COLORS = {
+  primary: '#FA7D09',
+  primaryLight: 'rgba(250, 125, 9, 0.05)',
+  background: '#ECF2F7',
+  card: '#F5F8FA',
+  foreground: '#1A202C',
+  mutedForeground: '#718096',
+  border: '#CBD5E0',
+};
 
 interface RecipeIngredient {
   id: number;
@@ -62,7 +72,6 @@ export const RecipeDetailScreen = () => {
   };
 
   const handleAddToMealPlan = () => {
-    // Will be implemented with meal plan integration
     console.log('Add to meal plan:', recipe?.name);
     navigation.goBack();
   };
@@ -80,9 +89,9 @@ export const RecipeDetailScreen = () => {
       <View style={styles.errorContainer}>
         <Text style={styles.errorIcon}>🍳</Text>
         <Text style={styles.errorText}>Recipe not found</Text>
-        <Button mode="contained" onPress={() => navigation.goBack()} style={styles.errorButton}>
-          Go Back
-        </Button>
+        <TouchableOpacity style={styles.errorButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.errorButtonText}>Go Back</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -91,182 +100,136 @@ export const RecipeDetailScreen = () => {
     ? recipe.instructions.split('\n').filter((line) => line.trim())
     : [];
 
-  const difficultyColors = {
-    easy: '#4CAF50',
-    medium: '#FF9800',
-    hard: '#F44336',
-  };
-
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+      <ScrollView showsVerticalScrollIndicator={false}>
         {/* Hero Image */}
-        {recipe.photo_url ? (
-          <View style={styles.heroContainer}>
-            <Image source={{ uri: recipe.photo_url }} style={styles.heroImage} />
-            <View style={styles.heroOverlay} />
+        <View style={styles.heroContainer}>
+          {recipe.photo_url ? (
+            <View style={styles.heroImageContainer}>
+              <Text style={styles.heroPlaceholderIcon}>🍽️</Text>
+              <View style={styles.heroOverlay} />
+            </View>
+          ) : (
+            <View style={styles.heroPlaceholder}>
+              <Text style={styles.heroPlaceholderIcon}>🍽️</Text>
+              <View style={styles.heroOverlay} />
+            </View>
+          )}
 
-            {/* Back Button */}
-            <IconButton
-              icon="arrow-left"
-              size={24}
-              iconColor="#fff"
-              containerColor="rgba(0, 0, 0, 0.5)"
-              style={styles.backButton}
-              onPress={() => navigation.goBack()}
-            />
+          {/* Back Button */}
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <ArrowLeft color="#fff" size={20} />
+          </TouchableOpacity>
 
-            {/* Add Button */}
-            <IconButton
-              icon="plus"
-              size={24}
-              iconColor="#fff"
-              containerColor={colors.nutrition}
-              style={styles.addButton}
-              onPress={handleAddToMealPlan}
-            />
-          </View>
-        ) : (
-          <View style={styles.heroPlaceholder}>
-            <Text style={styles.heroPlaceholderIcon}>🍽️</Text>
-          </View>
-        )}
+          {/* Add Button */}
+          <TouchableOpacity style={styles.addButton} onPress={handleAddToMealPlan}>
+            <Plus color="#fff" size={20} />
+          </TouchableOpacity>
+        </View>
 
         <View style={styles.content}>
           {/* Recipe Info Card */}
-          <Card style={styles.infoCard}>
-            <Card.Content>
-              {recipe.category && (
-                <Chip
-                  style={styles.categoryChip}
-                  textStyle={styles.categoryChipText}
-                  mode="outlined"
-                >
-                  {recipe.category}
-                </Chip>
-              )}
+          <View style={styles.infoCard}>
+            {recipe.category && (
+              <View style={styles.categoryBadge}>
+                <Text style={styles.categoryBadgeText}>{recipe.category}</Text>
+              </View>
+            )}
 
-              <Text style={styles.recipeName}>{recipe.name}</Text>
-              {recipe.description && (
-                <Text style={styles.recipeDescription}>{recipe.description}</Text>
-              )}
+            <Text style={styles.recipeName}>{recipe.name}</Text>
+            {recipe.description && (
+              <Text style={styles.recipeDescription}>{recipe.description}</Text>
+            )}
 
-              {/* Stats */}
-              <View style={styles.statsGrid}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statIcon}>🔥</Text>
+            {/* Stats Grid */}
+            <View style={styles.statsGrid}>
+              <View style={styles.statItem}>
+                <View style={styles.statIconRow}>
+                  <Flame color={LOVABLE_COLORS.primary} size={20} />
                   <Text style={styles.statValue}>{Math.round(recipe.total_calories)}</Text>
-                  <Text style={styles.statLabel}>Calories</Text>
                 </View>
-
-                <View style={styles.statItem}>
-                  <Text style={styles.statIcon}>⏱️</Text>
-                  <Text style={styles.statValue}>{recipe.prep_time_minutes || 0}</Text>
-                  <Text style={styles.statLabel}>Minutes</Text>
-                </View>
-
-                <View style={styles.statItem}>
-                  <Text style={styles.statIcon}>👥</Text>
-                  <Text style={styles.statValue}>{recipe.servings || 1}</Text>
-                  <Text style={styles.statLabel}>Servings</Text>
-                </View>
+                <Text style={styles.statLabel}>Calories</Text>
               </View>
 
-              {/* Macros */}
-              <View style={styles.macrosContainer}>
-                <View style={styles.macroItem}>
-                  <Text style={styles.macroValue}>{Math.round(recipe.total_protein)}g</Text>
-                  <Text style={styles.macroLabel}>Protein</Text>
+              <View style={styles.statItem}>
+                <View style={styles.statIconRow}>
+                  <Clock color={LOVABLE_COLORS.foreground} size={20} />
+                  <Text style={styles.statValueNormal}>{recipe.prep_time_minutes || 0}</Text>
                 </View>
-                <View style={styles.macroItem}>
-                  <Text style={styles.macroValue}>{Math.round(recipe.total_carbs)}g</Text>
-                  <Text style={styles.macroLabel}>Carbs</Text>
-                </View>
-                <View style={styles.macroItem}>
-                  <Text style={styles.macroValue}>{Math.round(recipe.total_fat)}g</Text>
-                  <Text style={styles.macroLabel}>Fat</Text>
-                </View>
+                <Text style={styles.statLabel}>Minutes</Text>
               </View>
 
-              {/* Additional Info */}
-              {(recipe.difficulty || recipe.cuisine_type || recipe.cook_time_minutes) && (
-                <View style={styles.additionalInfo}>
-                  {recipe.difficulty && (
-                    <Chip
-                      style={[
-                        styles.infoChip,
-                        { backgroundColor: `${difficultyColors[recipe.difficulty]}15` },
-                      ]}
-                      textStyle={{ color: difficultyColors[recipe.difficulty] }}
-                    >
-                      {recipe.difficulty.charAt(0).toUpperCase() + recipe.difficulty.slice(1)}
-                    </Chip>
-                  )}
-                  {recipe.cuisine_type && (
-                    <Chip style={styles.infoChip}>{recipe.cuisine_type}</Chip>
-                  )}
-                  {recipe.cook_time_minutes && (
-                    <Chip style={styles.infoChip}>Cook: {recipe.cook_time_minutes}min</Chip>
-                  )}
+              <View style={styles.statItem}>
+                <View style={styles.statIconRow}>
+                  <Users color={LOVABLE_COLORS.foreground} size={20} />
+                  <Text style={styles.statValueNormal}>{recipe.servings || 1}</Text>
                 </View>
-              )}
-            </Card.Content>
-          </Card>
+                <Text style={styles.statLabel}>Servings</Text>
+              </View>
+            </View>
+
+            {/* Macros */}
+            <View style={styles.macrosContainer}>
+              <View style={styles.macroItem}>
+                <Text style={styles.macroValue}>{Math.round(recipe.total_protein)}g</Text>
+                <Text style={styles.macroLabel}>Protein</Text>
+              </View>
+              <View style={styles.macroItem}>
+                <Text style={styles.macroValue}>{Math.round(recipe.total_carbs)}g</Text>
+                <Text style={styles.macroLabel}>Carbs</Text>
+              </View>
+              <View style={styles.macroItem}>
+                <Text style={styles.macroValue}>{Math.round(recipe.total_fat)}g</Text>
+                <Text style={styles.macroLabel}>Fat</Text>
+              </View>
+            </View>
+          </View>
 
           {/* Ingredients */}
           {recipe.ingredients && recipe.ingredients.length > 0 && (
-            <Card style={styles.sectionCard}>
-              <Card.Content>
-                <Text style={styles.sectionTitle}>Ingredients</Text>
-                <View style={styles.ingredientsList}>
-                  {recipe.ingredients.map((ingredient, index) => (
-                    <View key={index} style={styles.ingredientItem}>
-                      <View style={styles.ingredientBullet} />
-                      <Text style={styles.ingredientName}>
-                        {ingredient.food_name || ingredient.ingredient_name || 'Unknown ingredient'}
+            <View style={styles.sectionCard}>
+              <Text style={styles.sectionTitle}>Ingredients</Text>
+              <View style={styles.ingredientsList}>
+                {recipe.ingredients.map((ingredient, index) => (
+                  <View key={index} style={styles.ingredientItem}>
+                    <View style={styles.ingredientBullet} />
+                    <Text style={styles.ingredientName}>
+                      {ingredient.food_name || ingredient.ingredient_name || 'Unknown ingredient'}
+                    </Text>
+                    {(ingredient.quantity || ingredient.unit) && (
+                      <Text style={styles.ingredientAmount}>
+                        {ingredient.quantity || ''} {ingredient.unit || ''}
                       </Text>
-                      {(ingredient.quantity || ingredient.unit) && (
-                        <Text style={styles.ingredientAmount}>
-                          {ingredient.quantity || ''} {ingredient.unit || ''}
-                        </Text>
-                      )}
-                    </View>
-                  ))}
-                </View>
-              </Card.Content>
-            </Card>
+                    )}
+                  </View>
+                ))}
+              </View>
+            </View>
           )}
 
           {/* Instructions */}
           {instructions.length > 0 && (
-            <Card style={styles.sectionCard}>
-              <Card.Content>
-                <Text style={styles.sectionTitle}>Instructions</Text>
-                <View style={styles.instructionsList}>
-                  {instructions.map((instruction, index) => (
-                    <View key={index} style={styles.instructionItem}>
-                      <View style={styles.instructionNumber}>
-                        <Text style={styles.instructionNumberText}>{index + 1}</Text>
-                      </View>
-                      <Text style={styles.instructionText}>{instruction}</Text>
+            <View style={styles.sectionCard}>
+              <Text style={styles.sectionTitle}>Instructions</Text>
+              <View style={styles.instructionsList}>
+                {instructions.map((instruction, index) => (
+                  <View key={index} style={styles.instructionItem}>
+                    <View style={styles.instructionNumber}>
+                      <Text style={styles.instructionNumberText}>{index + 1}</Text>
                     </View>
-                  ))}
-                </View>
-              </Card.Content>
-            </Card>
+                    <Text style={styles.instructionText}>{instruction}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
           )}
 
           {/* Bottom CTA */}
-          <Button
-            mode="contained"
-            onPress={handleAddToMealPlan}
-            style={styles.addToMealPlanButton}
-            contentStyle={styles.addToMealPlanButtonContent}
-            icon="plus"
-            buttonColor={colors.nutrition}
-          >
-            Add to Meal Plan
-          </Button>
+          <TouchableOpacity style={styles.addToMealPlanButton} onPress={handleAddToMealPlan}>
+            <Plus color="#fff" size={20} style={{ marginRight: 8 }} />
+            <Text style={styles.addToMealPlanButtonText}>Add to Meal Plan</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -276,29 +239,26 @@ export const RecipeDetailScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    maxWidth: 480,
+    backgroundColor: LOVABLE_COLORS.background,
+    maxWidth: 448,
     marginHorizontal: 'auto' as any,
     width: '100%',
-  },
-  scrollView: {
-    flex: 1,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: LOVABLE_COLORS.background,
   },
   loadingText: {
     fontSize: 16,
-    color: '#666',
+    color: LOVABLE_COLORS.mutedForeground,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: LOVABLE_COLORS.background,
     padding: 24,
   },
   errorIcon: {
@@ -308,30 +268,34 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: LOVABLE_COLORS.foreground,
     marginBottom: 24,
   },
   errorButton: {
-    minWidth: 120,
+    backgroundColor: LOVABLE_COLORS.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  errorButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   heroContainer: {
     height: 320,
     position: 'relative',
   },
-  heroImage: {
+  heroImageContainer: {
     width: '100%',
     height: '100%',
-  },
-  heroOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: '50%',
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    backgroundColor: '#e0e0e0',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   heroPlaceholder: {
-    height: 320,
+    width: '100%',
+    height: '100%',
     backgroundColor: '#e0e0e0',
     alignItems: 'center',
     justifyContent: 'center',
@@ -339,42 +303,81 @@ const styles = StyleSheet.create({
   heroPlaceholderIcon: {
     fontSize: 80,
   },
+  heroOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '50%',
+    background: 'linear-gradient(to top, rgba(0, 0, 0, 0.3), transparent)' as any,
+  },
   backButton: {
     position: 'absolute',
     top: 16,
     left: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backdropFilter: 'blur(8px)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   addButton: {
     position: 'absolute',
     top: 16,
     right: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: LOVABLE_COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   content: {
     paddingHorizontal: 16,
     marginTop: -32,
-    paddingBottom: 24,
+    paddingBottom: 80,
   },
   infoCard: {
-    backgroundColor: '#fff',
-    elevation: 4,
+    backgroundColor: LOVABLE_COLORS.card,
+    borderRadius: 12,
+    padding: 24,
     marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  categoryChip: {
+  categoryBadge: {
     alignSelf: 'flex-start',
+    backgroundColor: LOVABLE_COLORS.border,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
     marginBottom: 12,
   },
-  categoryChipText: {
+  categoryBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: LOVABLE_COLORS.foreground,
     textTransform: 'capitalize',
   },
   recipeName: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: 'bold',
-    color: '#333',
+    color: LOVABLE_COLORS.foreground,
     marginBottom: 8,
   },
   recipeDescription: {
     fontSize: 16,
-    color: '#666',
+    color: LOVABLE_COLORS.mutedForeground,
     marginBottom: 24,
     lineHeight: 24,
   },
@@ -386,27 +389,32 @@ const styles = StyleSheet.create({
   statItem: {
     alignItems: 'center',
   },
-  statIcon: {
-    fontSize: 24,
-    marginBottom: 8,
+  statIconRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 4,
   },
   statValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: colors.nutrition,
+    color: LOVABLE_COLORS.primary,
+  },
+  statValueNormal: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: LOVABLE_COLORS.foreground,
   },
   statLabel: {
     fontSize: 12,
-    color: '#666',
-    marginTop: 4,
+    color: LOVABLE_COLORS.mutedForeground,
   },
   macrosContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
     padding: 16,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: `${LOVABLE_COLORS.primary}10`,
     borderRadius: 12,
-    marginBottom: 16,
   },
   macroItem: {
     alignItems: 'center',
@@ -414,30 +422,28 @@ const styles = StyleSheet.create({
   macroValue: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: colors.nutrition,
+    color: LOVABLE_COLORS.primary,
   },
   macroLabel: {
     fontSize: 12,
-    color: '#666',
+    color: LOVABLE_COLORS.mutedForeground,
     marginTop: 4,
   },
-  additionalInfo: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  infoChip: {
-    backgroundColor: '#f0f0f0',
-  },
   sectionCard: {
-    backgroundColor: '#fff',
-    elevation: 2,
+    backgroundColor: LOVABLE_COLORS.card,
+    borderRadius: 12,
+    padding: 24,
     marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: LOVABLE_COLORS.foreground,
     marginBottom: 16,
   },
   ingredientsList: {
@@ -452,17 +458,17 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.nutrition,
+    backgroundColor: LOVABLE_COLORS.primary,
   },
   ingredientName: {
     flex: 1,
     fontSize: 15,
-    color: '#333',
+    color: LOVABLE_COLORS.foreground,
   },
   ingredientAmount: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
+    color: LOVABLE_COLORS.mutedForeground,
   },
   instructionsList: {
     gap: 16,
@@ -475,7 +481,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: colors.nutrition,
+    backgroundColor: LOVABLE_COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -487,14 +493,27 @@ const styles = StyleSheet.create({
   instructionText: {
     flex: 1,
     fontSize: 15,
-    color: '#333',
+    color: LOVABLE_COLORS.foreground,
     lineHeight: 22,
     paddingTop: 6,
   },
   addToMealPlanButton: {
-    marginVertical: 8,
+    backgroundColor: LOVABLE_COLORS.primary,
+    borderRadius: 8,
+    paddingVertical: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+    marginTop: 8,
   },
-  addToMealPlanButtonContent: {
-    paddingVertical: 8,
+  addToMealPlanButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

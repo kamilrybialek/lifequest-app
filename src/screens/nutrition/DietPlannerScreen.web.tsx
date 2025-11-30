@@ -1,30 +1,38 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
-import { Text, Card, Button, IconButton } from 'react-native-paper';
+import { Text, IconButton } from 'react-native-paper';
 import { useAuthStore } from '../../store/authStore';
-import { getMealPlans, getMealPlanById } from '../../database/nutrition.web';
+import { getMealPlans } from '../../database/nutrition.web';
 import { useNavigation } from '@react-navigation/native';
-import { colors } from '../../theme/colors';
+import { Plus } from 'lucide-react-native';
+
+const LOVABLE_COLORS = {
+  primary: '#FA7D09',
+  primaryLight: 'rgba(250, 125, 9, 0.05)',
+  background: '#ECF2F7',
+  card: '#F5F8FA',
+  foreground: '#1A202C',
+  mutedForeground: '#718096',
+  border: '#CBD5E0',
+};
 
 export const DietPlannerScreen = () => {
   const navigation = useNavigation();
   const { user } = useAuthStore();
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [weekDates, setWeekDates] = useState<Date[]>([]);
-  const [mealPlan, setMealPlan] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [mealPlan, setMealPlan] = useState<any>({
+    breakfast: null,
+    lunch: null,
+    dinner: null,
+  });
 
   const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   useEffect(() => {
     const dates = getWeekDates();
     setWeekDates(dates);
-    loadMealPlan();
   }, []);
-
-  useEffect(() => {
-    loadMealPlan();
-  }, [selectedDate]);
 
   const getWeekDates = () => {
     const curr = new Date();
@@ -37,27 +45,6 @@ export const DietPlannerScreen = () => {
       dates.push(date);
     }
     return dates;
-  };
-
-  const loadMealPlan = async () => {
-    if (!user) return;
-
-    setLoading(true);
-    try {
-      // Load meal plans for selected date
-      const plans = await getMealPlans(user.id);
-      // For now, using sample data - will be populated from database
-      setMealPlan({
-        breakfast: null,
-        lunch: null,
-        dinner: null,
-        snack: null,
-      });
-    } catch (error) {
-      console.error('Error loading meal plan:', error);
-    } finally {
-      setLoading(false);
-    }
   };
 
   const formatDate = (date: Date) => {
@@ -74,73 +61,61 @@ export const DietPlannerScreen = () => {
   };
 
   const calculateDailySummary = () => {
-    const meals = [mealPlan?.breakfast, mealPlan?.lunch, mealPlan?.dinner, mealPlan?.snack].filter(Boolean);
+    const meals = [mealPlan?.breakfast, mealPlan?.lunch, mealPlan?.dinner].filter(Boolean);
 
     return {
-      calories: meals.reduce((sum, meal) => sum + (meal?.estimated_calories || 0), 0),
-      protein: meals.reduce((sum, meal) => sum + (meal?.estimated_protein || 0), 0),
-      carbs: meals.reduce((sum, meal) => sum + (meal?.estimated_carbs || 0), 0),
-      fat: meals.reduce((sum, meal) => sum + (meal?.estimated_fat || 0), 0),
+      calories: meals.reduce((sum: number, meal: any) => sum + (meal?.calories || 0), 0),
+      protein: meals.reduce((sum: number, meal: any) => sum + (meal?.protein || 0), 0),
+      carbs: meals.reduce((sum: number, meal: any) => sum + (meal?.carbs || 0), 0),
     };
   };
 
   const summary = calculateDailySummary();
 
-  const renderMealCard = (mealType: string, meal: any) => {
-    const mealIcons: { [key: string]: string } = {
-      breakfast: '🍳',
-      lunch: '🥗',
-      dinner: '🍽️',
-      snack: '🍎',
-    };
-
+  const renderMealSection = (mealType: string, meal: any) => {
     return (
       <View key={mealType} style={styles.mealSection}>
         <View style={styles.mealHeader}>
-          <Text style={styles.mealTitle}>
-            {mealIcons[mealType]} {mealType.charAt(0).toUpperCase() + mealType.slice(1)}
-          </Text>
-          <Button
-            mode="text"
-            onPress={() => navigation.navigate('RecipeList' as never, { mealType, date: selectedDate.toISOString() } as never)}
-            labelStyle={styles.editButtonText}
+          <Text style={styles.mealTitle}>{mealType}</Text>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('RecipeList' as never, { mealType } as never)}
           >
-            {meal ? 'Edit' : 'Add'}
-          </Button>
+            <Text style={styles.editButton}>{meal ? 'Edit' : 'Add'}</Text>
+          </TouchableOpacity>
         </View>
 
         {meal ? (
-          <Card style={styles.mealCard}>
+          <View style={styles.mealCard}>
             <View style={styles.mealContent}>
+              <View style={styles.mealImageContainer}>
+                {/* Placeholder image */}
+                <View style={styles.mealImagePlaceholder}>
+                  <Text style={styles.mealImageEmoji}>🍽️</Text>
+                </View>
+              </View>
               <View style={styles.mealInfo}>
-                <Text style={styles.mealName}>{meal.meal_name}</Text>
+                <Text style={styles.mealName} numberOfLines={1}>
+                  {meal.name}
+                </Text>
                 <Text style={styles.mealDescription} numberOfLines={2}>
-                  {meal.description || 'No description'}
+                  {meal.description}
                 </Text>
                 <View style={styles.mealStats}>
-                  <Text style={styles.mealStat}>
-                    <Text style={styles.mealStatValue}>{meal.estimated_calories || 0}</Text> kcal
-                  </Text>
-                  <Text style={styles.mealStat}>
-                    <Text style={styles.mealStatValue}>{meal.prep_time_minutes || 0}</Text> min
-                  </Text>
-                  <Text style={styles.mealStat}>
-                    <Text style={styles.mealStatValue}>{meal.estimated_protein || 0}g</Text> protein
-                  </Text>
+                  <Text style={styles.mealStatPrimary}>{meal.calories} kcal</Text>
+                  <Text style={styles.mealStatMuted}>{meal.prepTime} min</Text>
+                  <Text style={styles.mealStatMuted}>{meal.protein}g protein</Text>
                 </View>
               </View>
             </View>
-          </Card>
+          </View>
         ) : (
-          <Card style={[styles.mealCard, styles.emptyMealCard]}>
-            <TouchableOpacity
-              style={styles.emptyMealContent}
-              onPress={() => navigation.navigate('RecipeList' as never, { mealType, date: selectedDate.toISOString() } as never)}
-            >
-              <IconButton icon="plus" size={32} iconColor={colors.nutrition} />
-              <Text style={styles.emptyMealText}>Add {mealType}</Text>
-            </TouchableOpacity>
-          </Card>
+          <TouchableOpacity
+            style={styles.emptyMealCard}
+            onPress={() => navigation.navigate('RecipeList' as never, { mealType } as never)}
+          >
+            <Plus color={LOVABLE_COLORS.mutedForeground} size={32} />
+            <Text style={styles.emptyMealText}>Add {mealType}</Text>
+          </TouchableOpacity>
         )}
       </View>
     );
@@ -148,10 +123,10 @@ export const DietPlannerScreen = () => {
 
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollView}>
-        {/* Header with Gradient Effect */}
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header with gradient */}
         <View style={styles.header}>
-          <Text style={styles.title}>🍽️ Meal Planner</Text>
+          <Text style={styles.title}>Meal Planner</Text>
 
           {/* Week Calendar */}
           <ScrollView
@@ -193,42 +168,38 @@ export const DietPlannerScreen = () => {
               <Text style={styles.dateText}>{formatDate(selectedDate)}</Text>
               <Text style={styles.dateSubtext}>Plan your meals for the day</Text>
             </View>
-            <IconButton
-              icon="plus"
-              size={28}
-              mode="contained"
-              containerColor={colors.nutrition}
-              iconColor="#fff"
+            <TouchableOpacity
+              style={styles.addButton}
               onPress={() => navigation.navigate('RecipeList' as never)}
-            />
+            >
+              <Plus color="#fff" size={20} />
+            </TouchableOpacity>
           </View>
 
           {/* Meal Sections */}
           <View style={styles.mealsContainer}>
-            {renderMealCard('breakfast', mealPlan?.breakfast)}
-            {renderMealCard('lunch', mealPlan?.lunch)}
-            {renderMealCard('dinner', mealPlan?.dinner)}
+            {renderMealSection('Breakfast', mealPlan.breakfast)}
+            {renderMealSection('Lunch', mealPlan.lunch)}
+            {renderMealSection('Dinner', mealPlan.dinner)}
 
             {/* Daily Summary */}
-            <Card style={styles.summaryCard}>
-              <Card.Content>
-                <Text style={styles.summaryTitle}>Daily Summary</Text>
-                <View style={styles.summaryGrid}>
-                  <View style={styles.summaryItem}>
-                    <Text style={styles.summaryValue}>{Math.round(summary.calories)}</Text>
-                    <Text style={styles.summaryLabel}>Total Kcal</Text>
-                  </View>
-                  <View style={styles.summaryItem}>
-                    <Text style={styles.summaryValueNormal}>{Math.round(summary.protein)}g</Text>
-                    <Text style={styles.summaryLabel}>Protein</Text>
-                  </View>
-                  <View style={styles.summaryItem}>
-                    <Text style={styles.summaryValueNormal}>{Math.round(summary.carbs)}g</Text>
-                    <Text style={styles.summaryLabel}>Carbs</Text>
-                  </View>
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryTitle}>Daily Summary</Text>
+              <View style={styles.summaryGrid}>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValue}>{Math.round(summary.calories)}</Text>
+                  <Text style={styles.summaryLabel}>Total Kcal</Text>
                 </View>
-              </Card.Content>
-            </Card>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValueNormal}>{Math.round(summary.protein)}g</Text>
+                  <Text style={styles.summaryLabel}>Protein</Text>
+                </View>
+                <View style={styles.summaryItem}>
+                  <Text style={styles.summaryValueNormal}>{Math.round(summary.carbs)}g</Text>
+                  <Text style={styles.summaryLabel}>Carbs</Text>
+                </View>
+              </View>
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -239,25 +210,22 @@ export const DietPlannerScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    maxWidth: 480,
+    backgroundColor: LOVABLE_COLORS.background,
+    maxWidth: 448,
     marginHorizontal: 'auto' as any,
     width: '100%',
   },
-  scrollView: {
-    flex: 1,
-  },
   header: {
-    backgroundColor: '#fff',
+    backgroundColor: LOVABLE_COLORS.primaryLight,
     paddingHorizontal: 16,
     paddingTop: 24,
     paddingBottom: 16,
   },
   title: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: 'bold',
-    marginBottom: 20,
-    color: '#333',
+    marginBottom: 24,
+    color: LOVABLE_COLORS.foreground,
   },
   weekCalendar: {
     marginBottom: 8,
@@ -269,21 +237,26 @@ const styles = StyleSheet.create({
     width: 64,
     height: 80,
     borderRadius: 16,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: LOVABLE_COLORS.card,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#e0e0e0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
   dayButtonSelected: {
-    backgroundColor: colors.nutrition,
-    borderColor: colors.nutrition,
+    backgroundColor: LOVABLE_COLORS.primary,
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
     transform: [{ scale: 1.05 }],
   },
   dayLabel: {
     fontSize: 12,
-    fontWeight: '600',
-    color: '#666',
+    fontWeight: '500',
+    color: LOVABLE_COLORS.foreground,
     marginBottom: 4,
   },
   dayLabelSelected: {
@@ -292,7 +265,7 @@ const styles = StyleSheet.create({
   dayNumber: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: LOVABLE_COLORS.foreground,
   },
   dayNumberSelected: {
     color: '#fff',
@@ -301,7 +274,7 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.nutrition,
+    backgroundColor: LOVABLE_COLORS.primary,
     marginTop: 4,
   },
   content: {
@@ -316,16 +289,29 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: LOVABLE_COLORS.foreground,
   },
   dateSubtext: {
     fontSize: 14,
-    color: '#666',
-    marginTop: 4,
+    color: LOVABLE_COLORS.mutedForeground,
+    marginTop: 2,
+  },
+  addButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: LOVABLE_COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   mealsContainer: {
     gap: 16,
-    paddingBottom: 24,
+    paddingBottom: 80,
   },
   mealSection: {
     marginBottom: 8,
@@ -339,20 +325,42 @@ const styles = StyleSheet.create({
   mealTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
+    color: LOVABLE_COLORS.foreground,
   },
-  editButtonText: {
-    color: colors.nutrition,
+  editButton: {
     fontSize: 14,
+    color: LOVABLE_COLORS.primary,
+    fontWeight: '500',
   },
   mealCard: {
-    backgroundColor: '#fff',
-    elevation: 2,
+    backgroundColor: LOVABLE_COLORS.card,
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
   mealContent: {
     flexDirection: 'row',
     padding: 16,
     gap: 16,
+  },
+  mealImageContainer: {
+    width: 96,
+    height: 96,
+  },
+  mealImagePlaceholder: {
+    width: 96,
+    height: 96,
+    borderRadius: 12,
+    backgroundColor: '#f0f0f0',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mealImageEmoji: {
+    fontSize: 40,
   },
   mealInfo: {
     flex: 1,
@@ -360,53 +368,55 @@ const styles = StyleSheet.create({
   mealName: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#333',
-    marginBottom: 6,
+    color: LOVABLE_COLORS.foreground,
+    marginBottom: 4,
   },
   mealDescription: {
     fontSize: 12,
-    color: '#666',
-    marginBottom: 12,
+    color: LOVABLE_COLORS.mutedForeground,
+    marginBottom: 8,
   },
   mealStats: {
     flexDirection: 'row',
-    gap: 16,
+    gap: 12,
   },
-  mealStat: {
+  mealStatPrimary: {
     fontSize: 12,
-    color: '#666',
-  },
-  mealStatValue: {
     fontWeight: '600',
-    color: colors.nutrition,
+    color: LOVABLE_COLORS.primary,
+  },
+  mealStatMuted: {
+    fontSize: 12,
+    color: LOVABLE_COLORS.mutedForeground,
   },
   emptyMealCard: {
-    borderStyle: 'dashed',
-    borderWidth: 2,
-    borderColor: '#e0e0e0',
     backgroundColor: 'transparent',
-  },
-  emptyMealContent: {
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: LOVABLE_COLORS.border,
+    borderStyle: 'dashed',
     paddingVertical: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
   emptyMealText: {
     fontSize: 14,
-    color: '#666',
+    color: LOVABLE_COLORS.mutedForeground,
     marginTop: 8,
   },
   summaryCard: {
-    backgroundColor: `${colors.nutrition}15`,
-    borderColor: `${colors.nutrition}30`,
+    backgroundColor: `${LOVABLE_COLORS.primary}10`,
+    borderRadius: 12,
+    padding: 24,
     borderWidth: 1,
+    borderColor: `${LOVABLE_COLORS.primary}30`,
     marginTop: 8,
   },
   summaryTitle: {
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 16,
-    color: '#333',
+    color: LOVABLE_COLORS.foreground,
   },
   summaryGrid: {
     flexDirection: 'row',
@@ -418,16 +428,16 @@ const styles = StyleSheet.create({
   summaryValue: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: colors.nutrition,
+    color: LOVABLE_COLORS.primary,
   },
   summaryValueNormal: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#333',
+    color: LOVABLE_COLORS.foreground,
   },
   summaryLabel: {
     fontSize: 12,
-    color: '#666',
+    color: LOVABLE_COLORS.mutedForeground,
     marginTop: 4,
   },
 });
