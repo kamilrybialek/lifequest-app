@@ -1,56 +1,75 @@
-const CACHE_NAME = 'lifequest-admin-v1';
+const CACHE_NAME = 'lifequest-admin-v2'; // ✅ UPDATED VERSION
 const urlsToCache = [
-  './index.html',
   './manifest.json'
 ];
 
 // Install event - cache essential files
 self.addEventListener('install', (event) => {
+  console.log('Service Worker: Installing v2 with new features...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
-        console.log('Opened cache');
+        console.log('Service Worker: Caching static assets');
         return cache.addAll(urlsToCache);
       })
   );
+  // Force waiting SW to become active immediately
   self.skipWaiting();
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - NETWORK FIRST for HTML, cache first for assets
 self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Cache hit - return response
-        if (response) {
+  const url = new URL(event.request.url);
+
+  // For HTML files (index.html), always try network first
+  if (event.request.method === 'GET' &&
+      (url.pathname.endsWith('.html') || url.pathname.endsWith('/'))) {
+
+    event.respondWith(
+      // Try network first
+      fetch(event.request)
+        .then((response) => {
+          // Clone and cache the new version
+          const responseToCache = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
+          console.log('Service Worker: Serving fresh HTML from network');
           return response;
-        }
-
-        // Clone the request
-        const fetchRequest = event.request.clone();
-
-        return fetch(fetchRequest).then((response) => {
-          // Check if valid response
-          if (!response || response.status !== 200 || response.type !== 'basic') {
+        })
+        .catch(() => {
+          // Fallback to cache if offline
+          console.log('Service Worker: Network failed, serving cached HTML');
+          return caches.match(event.request);
+        })
+    );
+  }
+  // For other assets (CSS, JS, images), use cache first
+  else {
+    event.respondWith(
+      caches.match(event.request)
+        .then((response) => {
+          if (response) {
             return response;
           }
 
-          // Clone the response
-          const responseToCache = response.clone();
+          const fetchRequest = event.request.clone();
 
-          // Cache the fetched response
-          caches.open(CACHE_NAME)
-            .then((cache) => {
+          return fetch(fetchRequest).then((response) => {
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
+            }
+
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
               cache.put(event.request, responseToCache);
             });
 
-          return response;
-        }).catch(() => {
-          // Return offline page if available
-          return caches.match('./index.html');
-        });
-      })
-  );
+            return response;
+          });
+        })
+    );
+  }
 });
 
 // Activate event - clean up old caches
