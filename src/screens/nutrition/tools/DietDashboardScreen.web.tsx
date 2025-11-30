@@ -26,15 +26,15 @@ import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Lovable Design System Colors
-const LOVABLE_COLORS = {
-  primary: '#FA7D09',        // Orange from Lovable
-  primaryLight: 'rgba(250, 125, 9, 0.05)',
-  background: '#ECF2F7',     // Light blue-gray
-  card: '#F5F8FA',           // Card background
+// Enhanced Design System (matching app colors)
+const ENHANCED_COLORS = {
+  primary: '#4CAF50',        // App green (diet color)
+  primaryLight: 'rgba(76, 175, 80, 0.1)',
+  background: '#F5F5F5',     // Light gray background
+  card: '#FFFFFF',           // White cards
   foreground: '#1A202C',     // Dark text
   mutedForeground: '#718096', // Muted text
-  border: '#CBD5E0',         // Border color
+  border: '#E0E0E0',         // Border color
 };
 
 // Types
@@ -523,7 +523,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
         {/* Quick Actions */}
         <View style={styles.quickActionsCard}>
           <View style={styles.quickActionsHeader}>
-            <Ionicons name="flash" size={24} color={LOVABLE_COLORS.primary} />
+            <Ionicons name="flash" size={24} color={ENHANCED_COLORS.primary} />
             <Text style={styles.quickActionsTitle}>Quick Actions</Text>
           </View>
           <View style={styles.quickActionsGrid}>
@@ -531,8 +531,8 @@ export const DietDashboardScreen = ({ navigation }: any) => {
               style={styles.quickActionButton}
               onPress={() => setShowAutoPlanner(true)}
             >
-              <View style={[styles.quickActionIcon, { backgroundColor: LOVABLE_COLORS.primary + '20' }]}>
-                <Ionicons name="sparkles" size={24} color={LOVABLE_COLORS.primary} />
+              <View style={[styles.quickActionIcon, { backgroundColor: ENHANCED_COLORS.primary + '20' }]}>
+                <Ionicons name="sparkles" size={24} color={ENHANCED_COLORS.primary} />
               </View>
               <Text style={styles.quickActionLabel}>Auto Plan</Text>
             </TouchableOpacity>
@@ -603,7 +603,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
                       {ingredient.name}
                     </Text>
                     {isSelected && (
-                      <Ionicons name="checkmark-circle" size={16} color={LOVABLE_COLORS.primary} />
+                      <Ionicons name="checkmark-circle" size={16} color={ENHANCED_COLORS.primary} />
                     )}
                   </TouchableOpacity>
                 );
@@ -741,7 +741,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
           <View style={styles.weeklyPlanSection}>
             <View style={styles.weeklyPlanHeader}>
               <View style={styles.weeklyPlanTitleRow}>
-                <Ionicons name="calendar" size={24} color={LOVABLE_COLORS.primary} />
+                <Ionicons name="calendar" size={24} color={ENHANCED_COLORS.primary} />
                 <Text style={styles.weeklyPlanTitle}>This Week's Plan</Text>
               </View>
               <Text style={styles.weeklyPlanSubtitle}>
@@ -848,7 +848,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
           <>
             <View style={styles.shoppingListHeader}>
               <View style={styles.shoppingListTitleRow}>
-                <Ionicons name="cart" size={24} color={LOVABLE_COLORS.primary} />
+                <Ionicons name="cart" size={24} color={ENHANCED_COLORS.primary} />
                 <Text style={styles.shoppingListTitle}>Shopping List</Text>
               </View>
               <Text style={styles.shoppingListSubtitle}>
@@ -859,7 +859,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
             {shoppingList.map((item) => (
               <View key={item.id} style={styles.shoppingListItem}>
                 <View style={styles.shoppingListItemIcon}>
-                  <Ionicons name="basket-outline" size={20} color={LOVABLE_COLORS.primary} />
+                  <Ionicons name="basket-outline" size={20} color={ENHANCED_COLORS.primary} />
                 </View>
                 <View style={styles.shoppingListItemInfo}>
                   <Text style={styles.shoppingListItemName}>{item.name}</Text>
@@ -989,7 +989,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
                     <Text style={styles.recipeModalSectionTitle}>Ingredients</Text>
                     {selectedRecipe.extendedIngredients.map((ingredient) => (
                       <View key={ingredient.id} style={styles.ingredientItem}>
-                        <Ionicons name="checkmark-circle" size={16} color={LOVABLE_COLORS.primary} />
+                        <Ionicons name="checkmark-circle" size={16} color={ENHANCED_COLORS.primary} />
                         <Text style={styles.ingredientItemText}>{ingredient.original}</Text>
                       </View>
                     ))}
@@ -1099,14 +1099,14 @@ export const DietDashboardScreen = ({ navigation }: any) => {
               style={styles.portionCounterButton}
               onPress={() => setPortionCount(Math.max(1, portionCount - 1))}
             >
-              <Ionicons name="remove" size={24} color={LOVABLE_COLORS.primary} />
+              <Ionicons name="remove" size={24} color={ENHANCED_COLORS.primary} />
             </TouchableOpacity>
             <Text style={styles.portionCounterValue}>{portionCount}</Text>
             <TouchableOpacity
               style={styles.portionCounterButton}
               onPress={() => setPortionCount(portionCount + 1)}
             >
-              <Ionicons name="add" size={24} color={LOVABLE_COLORS.primary} />
+              <Ionicons name="add" size={24} color={ENHANCED_COLORS.primary} />
             </TouchableOpacity>
           </View>
 
@@ -1149,7 +1149,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
           <Ionicons
             name="calendar"
             size={20}
-            color={activeTab === 'planner' ? LOVABLE_COLORS.primary : colors.textSecondary}
+            color={activeTab === 'planner' ? ENHANCED_COLORS.primary : colors.textSecondary}
           />
           <Text
             style={[
@@ -1168,7 +1168,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
           <Ionicons
             name="cart"
             size={20}
-            color={activeTab === 'shopping' ? LOVABLE_COLORS.primary : colors.textSecondary}
+            color={activeTab === 'shopping' ? ENHANCED_COLORS.primary : colors.textSecondary}
           />
           <Text
             style={[
@@ -1187,7 +1187,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
           <Ionicons
             name="cash"
             size={20}
-            color={activeTab === 'costs' ? LOVABLE_COLORS.primary : colors.textSecondary}
+            color={activeTab === 'costs' ? ENHANCED_COLORS.primary : colors.textSecondary}
           />
           <Text
             style={[
@@ -1215,10 +1215,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: LOVABLE_COLORS.background,
-    maxWidth: 768,
-    marginHorizontal: 'auto' as any,
-    width: '100%',
+    backgroundColor: ENHANCED_COLORS.background,
   },
   header: {
     flexDirection: 'row',
@@ -1226,7 +1223,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    backgroundColor: LOVABLE_COLORS.card,
+    backgroundColor: ENHANCED_COLORS.card,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
@@ -1250,7 +1247,7 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: LOVABLE_COLORS.card,
+    backgroundColor: ENHANCED_COLORS.card,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
@@ -1265,7 +1262,7 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabActive: {
-    borderBottomColor: LOVABLE_COLORS.primary,
+    borderBottomColor: ENHANCED_COLORS.primary,
   },
   tabText: {
     ...typography.body,
@@ -1275,7 +1272,7 @@ const styles = StyleSheet.create({
   tabTextActive: {
     ...typography.bodyBold,
     fontSize: 14,
-    color: LOVABLE_COLORS.primary,
+    color: ENHANCED_COLORS.primary,
   },
   scrollView: {
     flex: 1,
@@ -1284,7 +1281,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   quickActionsCard: {
-    backgroundColor: LOVABLE_COLORS.card,
+    backgroundColor: ENHANCED_COLORS.card,
     borderRadius: 12,
     padding: spacing.md,
     marginBottom: spacing.md,
@@ -1322,7 +1319,7 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
   filtersCard: {
-    backgroundColor: LOVABLE_COLORS.card,
+    backgroundColor: ENHANCED_COLORS.card,
     borderRadius: 12,
     padding: spacing.md,
     marginBottom: spacing.md,
@@ -1343,7 +1340,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    backgroundColor: LOVABLE_COLORS.background,
+    backgroundColor: ENHANCED_COLORS.background,
     borderRadius: 20,
     marginRight: spacing.sm,
     gap: spacing.xs,
@@ -1351,8 +1348,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   ingredientChipSelected: {
-    backgroundColor: LOVABLE_COLORS.primary + '20',
-    borderColor: LOVABLE_COLORS.primary,
+    backgroundColor: ENHANCED_COLORS.primary + '20',
+    borderColor: ENHANCED_COLORS.primary,
   },
   ingredientIcon: {
     fontSize: 16,
@@ -1365,7 +1362,7 @@ const styles = StyleSheet.create({
   ingredientLabelSelected: {
     ...typography.bodyBold,
     fontSize: 14,
-    color: LOVABLE_COLORS.primary,
+    color: ENHANCED_COLORS.primary,
   },
   filterChipsRow: {
     flexDirection: 'row',
@@ -1378,15 +1375,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    backgroundColor: LOVABLE_COLORS.background,
+    backgroundColor: ENHANCED_COLORS.background,
     borderRadius: 20,
     gap: spacing.xs,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   filterChipActive: {
-    backgroundColor: LOVABLE_COLORS.primary + '20',
-    borderColor: LOVABLE_COLORS.primary,
+    backgroundColor: ENHANCED_COLORS.primary + '20',
+    borderColor: ENHANCED_COLORS.primary,
   },
   filterChipIcon: {
     fontSize: 14,
@@ -1399,7 +1396,7 @@ const styles = StyleSheet.create({
   filterChipTextActive: {
     ...typography.bodyBold,
     fontSize: 13,
-    color: LOVABLE_COLORS.primary,
+    color: ENHANCED_COLORS.primary,
   },
   clearFiltersButton: {
     flexDirection: 'row',
@@ -1415,7 +1412,7 @@ const styles = StyleSheet.create({
     color: colors.error,
   },
   searchCard: {
-    backgroundColor: LOVABLE_COLORS.card,
+    backgroundColor: ENHANCED_COLORS.card,
     borderRadius: 12,
     padding: spacing.md,
     marginBottom: spacing.md,
@@ -1425,7 +1422,7 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: LOVABLE_COLORS.background,
+    backgroundColor: ENHANCED_COLORS.background,
     borderRadius: 12,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
@@ -1441,7 +1438,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: LOVABLE_COLORS.primary,
+    backgroundColor: ENHANCED_COLORS.primary,
     borderRadius: 12,
     paddingVertical: spacing.md,
     gap: spacing.sm,
@@ -1471,7 +1468,7 @@ const styles = StyleSheet.create({
   },
   recipeCard: {
     width: '48%',
-    backgroundColor: LOVABLE_COLORS.card,
+    backgroundColor: ENHANCED_COLORS.card,
     borderRadius: 12,
     overflow: 'hidden',
     ...shadows.small,
@@ -1479,7 +1476,7 @@ const styles = StyleSheet.create({
   recipeImage: {
     width: '100%',
     height: 120,
-    backgroundColor: LOVABLE_COLORS.background,
+    backgroundColor: ENHANCED_COLORS.background,
   },
   recipeInfo: {
     padding: spacing.sm,
@@ -1530,7 +1527,7 @@ const styles = StyleSheet.create({
   dayChip: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    backgroundColor: LOVABLE_COLORS.card,
+    backgroundColor: ENHANCED_COLORS.card,
     borderRadius: 20,
     marginRight: spacing.sm,
     borderWidth: 2,
@@ -1540,8 +1537,8 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   dayChipSelected: {
-    backgroundColor: LOVABLE_COLORS.primary + '20',
-    borderColor: LOVABLE_COLORS.primary,
+    backgroundColor: ENHANCED_COLORS.primary + '20',
+    borderColor: ENHANCED_COLORS.primary,
   },
   dayChipText: {
     ...typography.body,
@@ -1551,10 +1548,10 @@ const styles = StyleSheet.create({
   dayChipTextSelected: {
     ...typography.bodyBold,
     fontSize: 14,
-    color: LOVABLE_COLORS.primary,
+    color: ENHANCED_COLORS.primary,
   },
   dayChipBadge: {
-    backgroundColor: LOVABLE_COLORS.primary,
+    backgroundColor: ENHANCED_COLORS.primary,
     borderRadius: 10,
     paddingHorizontal: 6,
     paddingVertical: 2,
@@ -1569,7 +1566,7 @@ const styles = StyleSheet.create({
   },
   mealCard: {
     flexDirection: 'row',
-    backgroundColor: LOVABLE_COLORS.card,
+    backgroundColor: ENHANCED_COLORS.card,
     borderRadius: 12,
     overflow: 'hidden',
     ...shadows.small,
@@ -1577,7 +1574,7 @@ const styles = StyleSheet.create({
   mealCardImage: {
     width: 80,
     height: 80,
-    backgroundColor: LOVABLE_COLORS.background,
+    backgroundColor: ENHANCED_COLORS.background,
   },
   mealCardInfo: {
     flex: 1,
@@ -1590,7 +1587,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   mealTypeTag: {
-    backgroundColor: LOVABLE_COLORS.primary + '20',
+    backgroundColor: ENHANCED_COLORS.primary + '20',
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: 12,
@@ -1598,7 +1595,7 @@ const styles = StyleSheet.create({
   mealTypeTagText: {
     ...typography.bodyBold,
     fontSize: 11,
-    color: LOVABLE_COLORS.primary,
+    color: ENHANCED_COLORS.primary,
   },
   mealCardTitle: {
     ...typography.bodyBold,
@@ -1623,7 +1620,7 @@ const styles = StyleSheet.create({
   emptyDayState: {
     alignItems: 'center',
     padding: spacing.xl,
-    backgroundColor: LOVABLE_COLORS.card,
+    backgroundColor: ENHANCED_COLORS.card,
     borderRadius: 12,
   },
   emptyDayStateText: {
@@ -1673,7 +1670,7 @@ const styles = StyleSheet.create({
   shoppingListItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: LOVABLE_COLORS.card,
+    backgroundColor: ENHANCED_COLORS.card,
     borderRadius: 12,
     padding: spacing.md,
     marginBottom: spacing.sm,
@@ -1684,7 +1681,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: LOVABLE_COLORS.primary + '20',
+    backgroundColor: ENHANCED_COLORS.primary + '20',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1703,7 +1700,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   costCard: {
-    backgroundColor: LOVABLE_COLORS.card,
+    backgroundColor: ENHANCED_COLORS.card,
     borderRadius: 12,
     padding: spacing.lg,
     marginBottom: spacing.md,
@@ -1770,7 +1767,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: LOVABLE_COLORS.card,
+    backgroundColor: ENHANCED_COLORS.card,
     borderRadius: 12,
     padding: spacing.md,
     marginBottom: spacing.sm,
@@ -1783,7 +1780,7 @@ const styles = StyleSheet.create({
   costBreakdownItemDay: {
     ...typography.caption,
     fontSize: 12,
-    color: LOVABLE_COLORS.primary,
+    color: ENHANCED_COLORS.primary,
     marginBottom: 2,
   },
   costBreakdownItemName: {
@@ -1798,7 +1795,7 @@ const styles = StyleSheet.create({
   },
   modalContainer: {
     flex: 1,
-    backgroundColor: LOVABLE_COLORS.background,
+    backgroundColor: ENHANCED_COLORS.background,
   },
   modalHeader: {
     flexDirection: 'row',
@@ -1806,7 +1803,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
-    backgroundColor: LOVABLE_COLORS.card,
+    backgroundColor: ENHANCED_COLORS.card,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
@@ -1820,7 +1817,7 @@ const styles = StyleSheet.create({
   recipeModalImage: {
     width: '100%',
     height: 250,
-    backgroundColor: LOVABLE_COLORS.background,
+    backgroundColor: ENHANCED_COLORS.background,
   },
   recipeModalInfo: {
     padding: spacing.md,
@@ -1875,7 +1872,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: LOVABLE_COLORS.primary,
+    backgroundColor: ENHANCED_COLORS.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1892,7 +1889,7 @@ const styles = StyleSheet.create({
   },
   modalFooter: {
     padding: spacing.md,
-    backgroundColor: LOVABLE_COLORS.card,
+    backgroundColor: ENHANCED_COLORS.card,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
@@ -1900,7 +1897,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: LOVABLE_COLORS.primary,
+    backgroundColor: ENHANCED_COLORS.primary,
     borderRadius: 12,
     paddingVertical: spacing.md,
     gap: spacing.sm,
@@ -1918,7 +1915,7 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   portionModalContent: {
-    backgroundColor: LOVABLE_COLORS.card,
+    backgroundColor: ENHANCED_COLORS.card,
     borderRadius: 16,
     padding: spacing.lg,
     width: '100%',
@@ -1947,15 +1944,15 @@ const styles = StyleSheet.create({
   portionDayChip: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    backgroundColor: LOVABLE_COLORS.background,
+    backgroundColor: ENHANCED_COLORS.background,
     borderRadius: 20,
     marginRight: spacing.sm,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   portionDayChipSelected: {
-    backgroundColor: LOVABLE_COLORS.primary + '20',
-    borderColor: LOVABLE_COLORS.primary,
+    backgroundColor: ENHANCED_COLORS.primary + '20',
+    borderColor: ENHANCED_COLORS.primary,
   },
   portionDayChipText: {
     ...typography.body,
@@ -1965,7 +1962,7 @@ const styles = StyleSheet.create({
   portionDayChipTextSelected: {
     ...typography.bodyBold,
     fontSize: 14,
-    color: LOVABLE_COLORS.primary,
+    color: ENHANCED_COLORS.primary,
   },
   mealTypeSelector: {
     flexDirection: 'row',
@@ -1975,14 +1972,14 @@ const styles = StyleSheet.create({
   mealTypeChip: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
-    backgroundColor: LOVABLE_COLORS.background,
+    backgroundColor: ENHANCED_COLORS.background,
     borderRadius: 20,
     borderWidth: 2,
     borderColor: 'transparent',
   },
   mealTypeChipSelected: {
-    backgroundColor: LOVABLE_COLORS.primary + '20',
-    borderColor: LOVABLE_COLORS.primary,
+    backgroundColor: ENHANCED_COLORS.primary + '20',
+    borderColor: ENHANCED_COLORS.primary,
   },
   mealTypeChipText: {
     ...typography.body,
@@ -1992,7 +1989,7 @@ const styles = StyleSheet.create({
   mealTypeChipTextSelected: {
     ...typography.bodyBold,
     fontSize: 14,
-    color: LOVABLE_COLORS.primary,
+    color: ENHANCED_COLORS.primary,
   },
   portionCounter: {
     flexDirection: 'row',
@@ -2005,7 +2002,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: LOVABLE_COLORS.primary + '20',
+    backgroundColor: ENHANCED_COLORS.primary + '20',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2020,7 +2017,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: LOVABLE_COLORS.primary,
+    backgroundColor: ENHANCED_COLORS.primary,
     borderRadius: 12,
     paddingVertical: spacing.md,
     gap: spacing.sm,
