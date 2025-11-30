@@ -124,7 +124,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
   const { user } = useAuthStore();
 
   // State
-  const [activeTab, setActiveTab] = useState<'planner' | 'shopping' | 'costs'>('planner');
+  const [activeTab, setActiveTab] = useState<'recipe' | 'week' | 'shopping' | 'costs'>('recipe');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Recipe[]>([]);
   const [mealPlan, setMealPlan] = useState<MealPlanItem[]>([]);
@@ -153,6 +153,9 @@ export const DietDashboardScreen = ({ navigation }: any) => {
   const [mealsPerDay, setMealsPerDay] = useState(3);
   const [daysToGenerate, setDaysToGenerate] = useState(7);
   const [preferredCuisines, setPreferredCuisines] = useState<string[]>([]);
+  const [autoPlannerDiets, setAutoPlannerDiets] = useState<string[]>([]);
+  const [includeMealTypes, setIncludeMealTypes] = useState<string[]>(['breakfast', 'lunch', 'dinner']);
+  const [maxCookingTime, setMaxCookingTime] = useState(60);
 
   // Calculate total costs
   const totalWeeklyCost = mealPlan.reduce((sum, item) => {
@@ -505,8 +508,113 @@ export const DietDashboardScreen = ({ navigation }: any) => {
     generateShoppingList(updatedPlan);
   };
 
-  // Render meal planner tab
-  const renderMealPlanner = () => (
+  // Generate auto meal plan
+  const generateAutoMealPlan = async () => {
+    setPlannerLoading(true);
+    try {
+      const newMealPlan: MealPlanItem[] = [];
+      const usedRecipeIds = new Set<number>();
+
+      // Determine which days to plan
+      const daysToUse = DAYS.slice(0, daysToGenerate);
+
+      // For each day
+      for (const day of daysToUse) {
+        // For each meal type to include
+        for (const mealType of includeMealTypes) {
+          try {
+            // Fetch random recipes from TheMealDB
+            const response = await fetch(`${THEMEALDB_BASE_URL}/random.php`);
+            const data = await response.json();
+
+            if (data.meals && data.meals.length > 0) {
+              const mealData = data.meals[0];
+              const recipe = transformMealDBToRecipe(mealData);
+
+              // Skip if already used
+              if (usedRecipeIds.has(recipe.id)) {
+                continue;
+              }
+
+              // Apply filters
+              let skipRecipe = false;
+
+              // Check cuisine filter
+              if (preferredCuisines.length > 0) {
+                const matchesCuisine = preferredCuisines.some(c =>
+                  recipe.cuisines.some(rc => rc.toLowerCase() === c.toLowerCase())
+                );
+                if (!matchesCuisine) {
+                  skipRecipe = true;
+                }
+              }
+
+              // Check diet filters
+              if (autoPlannerDiets.length > 0) {
+                const title = recipe.title.toLowerCase();
+                for (const dietFilter of autoPlannerDiets) {
+                  if (dietFilter === 'vegetarian' && (title.includes('meat') || title.includes('chicken') || title.includes('beef'))) {
+                    skipRecipe = true;
+                  }
+                  if (dietFilter === 'vegan' && (title.includes('cheese') || title.includes('egg') || title.includes('milk'))) {
+                    skipRecipe = true;
+                  }
+                }
+              }
+
+              // Check cooking time
+              if (recipe.readyInMinutes > maxCookingTime) {
+                skipRecipe = true;
+              }
+
+              if (skipRecipe) {
+                continue;
+              }
+
+              // Add to plan
+              const mealPlanItem: MealPlanItem = {
+                id: `${day}-${mealType}-${Date.now()}-${Math.random()}`,
+                recipeId: recipe.id,
+                recipe: recipe,
+                day: day,
+                mealType: mealType as any,
+                portions: 2,
+                date: new Date().toISOString(),
+              };
+
+              newMealPlan.push(mealPlanItem);
+              usedRecipeIds.add(recipe.id);
+            }
+          } catch (error) {
+            console.error(`Error fetching recipe for ${day} ${mealType}:`, error);
+          }
+
+          // Small delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
+      }
+
+      // Update state
+      setMealPlan(newMealPlan);
+      generateShoppingList(newMealPlan);
+      setShowAutoPlanner(false);
+      setActiveTab('week');
+
+      Alert.alert(
+        'Success',
+        `Generated ${newMealPlan.length} meals for your weekly plan!`,
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('Error generating auto meal plan:', error);
+      Alert.alert('Error', 'Failed to generate meal plan. Please try again.');
+    } finally {
+      setPlannerLoading(false);
+    }
+  };
+
+  // Render recipe search tab
+  const renderRecipeSearch = () => (
     <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
       <View style={styles.content}>
         {/* Quick Actions */}
@@ -725,46 +833,102 @@ export const DietDashboardScreen = ({ navigation }: any) => {
           </View>
         )}
 
-        {/* Weekly Meal Plan */}
-        {mealPlan.length > 0 && (
-          <View style={styles.weeklyPlanSection}>
-            <View style={styles.weeklyPlanHeader}>
-              <View style={styles.weeklyPlanTitleRow}>
-                <Ionicons name="calendar" size={24} color={colors.diet} />
-                <Text style={styles.weeklyPlanTitle}>This Week's Plan</Text>
+        {/* Empty State */}
+        {searchResults.length === 0 && !loading && (
+          <View style={styles.emptyState}>
+            <Ionicons name="search-outline" size={64} color={colors.textLight} />
+            <Text style={styles.emptyStateTitle}>Find Your Perfect Recipe</Text>
+            <Text style={styles.emptyStateText}>
+              Use filters and search to discover recipes, or browse random meals
+            </Text>
+          </View>
+        )}
+      </View>
+    </ScrollView>
+  );
+
+  // Render weekly view tab
+  const renderWeeklyView = () => (
+    <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <View style={styles.content}>
+        {mealPlan.length > 0 ? (
+          <>
+            {/* Week Summary Card */}
+            <View style={styles.weekSummaryCard}>
+              <View style={styles.weekSummaryHeader}>
+                <View style={styles.weekSummaryTitleRow}>
+                  <Ionicons name="calendar" size={24} color={colors.diet} />
+                  <Text style={styles.weekSummaryTitle}>Your Weekly Plan</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.weekSummaryRefreshButton}
+                  onPress={() => setShowAutoPlanner(true)}
+                >
+                  <Ionicons name="sparkles" size={20} color={colors.diet} />
+                  <Text style={styles.weekSummaryRefreshText}>Regenerate</Text>
+                </TouchableOpacity>
               </View>
-              <Text style={styles.weeklyPlanSubtitle}>
-                {mealPlan.length} meal{mealPlan.length !== 1 ? 's' : ''} planned
-              </Text>
+              <View style={styles.weekSummaryStats}>
+                <View style={styles.weekSummaryStat}>
+                  <Text style={styles.weekSummaryStatValue}>{mealPlan.length}</Text>
+                  <Text style={styles.weekSummaryStatLabel}>Meals</Text>
+                </View>
+                <View style={styles.weekSummaryStatDivider} />
+                <View style={styles.weekSummaryStat}>
+                  <Text style={styles.weekSummaryStatValue}>
+                    ${(totalWeeklyCost / 100).toFixed(0)}
+                  </Text>
+                  <Text style={styles.weekSummaryStatLabel}>Est. Cost</Text>
+                </View>
+                <View style={styles.weekSummaryStatDivider} />
+                <View style={styles.weekSummaryStat}>
+                  <Text style={styles.weekSummaryStatValue}>{DAYS.filter(d => mealPlan.some(m => m.day === d)).length}</Text>
+                  <Text style={styles.weekSummaryStatLabel}>Days</Text>
+                </View>
+              </View>
             </View>
 
             {/* Day Selector */}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              style={styles.daySelector}
+              style={styles.weekDaySelector}
+              contentContainerStyle={styles.weekDaySelectorContent}
             >
-              {DAYS.map((day) => {
+              {DAYS.map((day, index) => {
                 const dayMeals = mealPlan.filter(m => m.day === day);
                 const isSelected = selectedDay === day;
+                const today = new Date();
+                const dayDate = new Date(today);
+                dayDate.setDate(today.getDate() - today.getDay() + index + 1);
+
                 return (
                   <TouchableOpacity
                     key={day}
                     style={[
-                      styles.dayChip,
-                      isSelected && styles.dayChipSelected,
+                      styles.weekDayChip,
+                      isSelected && styles.weekDayChipSelected,
                     ]}
                     onPress={() => setSelectedDay(day)}
                   >
                     <Text style={[
-                      styles.dayChipText,
-                      isSelected && styles.dayChipTextSelected,
+                      styles.weekDayChipDate,
+                      isSelected && styles.weekDayChipDateSelected,
+                    ]}>
+                      {dayDate.getDate()}
+                    </Text>
+                    <Text style={[
+                      styles.weekDayChipDay,
+                      isSelected && styles.weekDayChipDaySelected,
                     ]}>
                       {day}
                     </Text>
                     {dayMeals.length > 0 && (
-                      <View style={styles.dayChipBadge}>
-                        <Text style={styles.dayChipBadgeText}>{dayMeals.length}</Text>
+                      <View style={[
+                        styles.weekDayChipBadge,
+                        isSelected && styles.weekDayChipBadgeSelected,
+                      ]}>
+                        <Text style={styles.weekDayChipBadgeText}>{dayMeals.length}</Text>
                       </View>
                     )}
                   </TouchableOpacity>
@@ -773,56 +937,82 @@ export const DietDashboardScreen = ({ navigation }: any) => {
             </ScrollView>
 
             {/* Meals for Selected Day */}
-            <View style={styles.dayMealsSection}>
-              {mealPlan.filter(m => m.day === selectedDay).map((meal) => (
-                <View key={meal.id} style={styles.mealCard}>
-                  <Image source={{ uri: meal.recipe.image }} style={styles.mealCardImage} />
-                  <View style={styles.mealCardInfo}>
-                    <View style={styles.mealCardHeader}>
-                      <View style={styles.mealTypeTag}>
-                        <Text style={styles.mealTypeTagText}>
-                          {meal.mealType.charAt(0).toUpperCase() + meal.mealType.slice(1)}
-                        </Text>
-                      </View>
-                      <TouchableOpacity onPress={() => removeMealFromPlan(meal.id)}>
-                        <Ionicons name="trash-outline" size={20} color={colors.error} />
-                      </TouchableOpacity>
-                    </View>
-                    <Text style={styles.mealCardTitle} numberOfLines={2}>
-                      {meal.recipe.title}
-                    </Text>
-                    <View style={styles.mealCardMeta}>
-                      <View style={styles.mealCardMetaItem}>
-                        <Ionicons name="people" size={14} color={colors.textSecondary} />
-                        <Text style={styles.mealCardMetaText}>{meal.portions} servings</Text>
-                      </View>
-                      <View style={styles.mealCardMetaItem}>
-                        <Ionicons name="time" size={14} color={colors.textSecondary} />
-                        <Text style={styles.mealCardMetaText}>{meal.recipe.readyInMinutes}min</Text>
-                      </View>
-                    </View>
-                  </View>
-                </View>
-              ))}
-              {mealPlan.filter(m => m.day === selectedDay).length === 0 && (
-                <View style={styles.emptyDayState}>
-                  <Ionicons name="restaurant-outline" size={48} color={colors.textLight} />
-                  <Text style={styles.emptyDayStateText}>No meals planned for {selectedDay}</Text>
-                  <Text style={styles.emptyDayStateSubtext}>Search recipes above to add meals</Text>
-                </View>
-              )}
-            </View>
-          </View>
-        )}
+            <View style={styles.weekDayMealsSection}>
+              {MEAL_TYPES.map((mealType) => {
+                const meal = mealPlan.find(m => m.day === selectedDay && m.mealType === mealType);
 
-        {/* Empty State */}
-        {mealPlan.length === 0 && searchResults.length === 0 && !loading && (
+                return (
+                  <View key={mealType} style={styles.weekMealSlot}>
+                    <View style={styles.weekMealSlotHeader}>
+                      <Text style={styles.weekMealSlotTitle}>
+                        {mealType.charAt(0).toUpperCase() + mealType.slice(1)}
+                      </Text>
+                      {!meal && (
+                        <TouchableOpacity
+                          style={styles.weekMealSlotAddButton}
+                          onPress={() => {
+                            setSelectedMealType(mealType);
+                            setActiveTab('recipe');
+                          }}
+                        >
+                          <Ionicons name="add-circle-outline" size={20} color={colors.diet} />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
+                    {meal ? (
+                      <TouchableOpacity
+                        style={styles.weekMealCard}
+                        onPress={() => fetchRecipeDetails(meal.recipe.id)}
+                      >
+                        <Image source={{ uri: meal.recipe.image }} style={styles.weekMealCardImage} />
+                        <View style={styles.weekMealCardInfo}>
+                          <Text style={styles.weekMealCardTitle} numberOfLines={2}>
+                            {meal.recipe.title}
+                          </Text>
+                          <View style={styles.weekMealCardMeta}>
+                            <View style={styles.weekMealCardMetaItem}>
+                              <Ionicons name="time-outline" size={14} color={colors.textSecondary} />
+                              <Text style={styles.weekMealCardMetaText}>{meal.recipe.readyInMinutes}min</Text>
+                            </View>
+                            <View style={styles.weekMealCardMetaItem}>
+                              <Ionicons name="people-outline" size={14} color={colors.textSecondary} />
+                              <Text style={styles.weekMealCardMetaText}>{meal.portions}</Text>
+                            </View>
+                          </View>
+                        </View>
+                        <TouchableOpacity
+                          style={styles.weekMealCardDelete}
+                          onPress={() => removeMealFromPlan(meal.id)}
+                        >
+                          <Ionicons name="trash-outline" size={18} color={colors.error} />
+                        </TouchableOpacity>
+                      </TouchableOpacity>
+                    ) : (
+                      <View style={styles.weekMealCardEmpty}>
+                        <Ionicons name="add-outline" size={32} color={colors.textLight} />
+                        <Text style={styles.weekMealCardEmptyText}>No meal planned</Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
+          </>
+        ) : (
           <View style={styles.emptyState}>
-            <Ionicons name="restaurant-outline" size={64} color={colors.textLight} />
-            <Text style={styles.emptyStateTitle}>Start Planning Your Meals</Text>
+            <Ionicons name="calendar-outline" size={64} color={colors.textLight} />
+            <Text style={styles.emptyStateTitle}>No Weekly Plan Yet</Text>
             <Text style={styles.emptyStateText}>
-              Use Auto Plan for a quick weekly plan, or search recipes to add meals manually
+              Use Auto Plan to generate a full weekly meal plan, or add meals manually from the Recipe tab
             </Text>
+            <TouchableOpacity
+              style={styles.emptyStateButton}
+              onPress={() => setShowAutoPlanner(true)}
+            >
+              <Ionicons name="sparkles" size={20} color="white" />
+              <Text style={styles.emptyStateButtonText}>Generate Auto Plan</Text>
+            </TouchableOpacity>
           </View>
         )}
       </View>
@@ -1111,6 +1301,223 @@ export const DietDashboardScreen = ({ navigation }: any) => {
     </Modal>
   );
 
+  // Render auto planner modal
+  const renderAutoPlannerModal = () => (
+    <Modal
+      visible={showAutoPlanner}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setShowAutoPlanner(false)}
+    >
+      <View style={styles.autoPlannerModalOverlay}>
+        <View style={styles.autoPlannerModalContent}>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <View style={styles.autoPlannerModalHeader}>
+              <View style={styles.autoPlannerModalTitleRow}>
+                <Ionicons name="sparkles" size={28} color={colors.diet} />
+                <Text style={styles.autoPlannerModalTitle}>AI Meal Planner</Text>
+              </View>
+              <TouchableOpacity onPress={() => setShowAutoPlanner(false)}>
+                <Ionicons name="close" size={28} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.autoPlannerModalSubtitle}>
+              Generate a personalized weekly meal plan based on your preferences
+            </Text>
+
+            {/* Days to Generate */}
+            <View style={styles.autoPlannerSection}>
+              <Text style={styles.autoPlannerLabel}>Plan Duration</Text>
+              <View style={styles.autoPlannerDaysSelector}>
+                {[3, 5, 7].map((days) => (
+                  <TouchableOpacity
+                    key={days}
+                    style={[
+                      styles.autoPlannerDaysChip,
+                      daysToGenerate === days && styles.autoPlannerDaysChipSelected,
+                    ]}
+                    onPress={() => setDaysToGenerate(days)}
+                  >
+                    <Text style={[
+                      styles.autoPlannerDaysChipText,
+                      daysToGenerate === days && styles.autoPlannerDaysChipTextSelected,
+                    ]}>
+                      {days} days
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Meals Per Day */}
+            <View style={styles.autoPlannerSection}>
+              <Text style={styles.autoPlannerLabel}>Meals Per Day</Text>
+              <View style={styles.autoPlannerMealTypesGrid}>
+                {MEAL_TYPES.map((type) => {
+                  const isSelected = includeMealTypes.includes(type);
+                  return (
+                    <TouchableOpacity
+                      key={type}
+                      style={[
+                        styles.autoPlannerMealTypeChip,
+                        isSelected && styles.autoPlannerMealTypeChipSelected,
+                      ]}
+                      onPress={() => {
+                        if (isSelected) {
+                          setIncludeMealTypes(includeMealTypes.filter(t => t !== type));
+                        } else {
+                          setIncludeMealTypes([...includeMealTypes, type]);
+                        }
+                      }}
+                    >
+                      <Text style={[
+                        styles.autoPlannerMealTypeChipText,
+                        isSelected && styles.autoPlannerMealTypeChipTextSelected,
+                      ]}>
+                        {type.charAt(0).toUpperCase() + type.slice(1)}
+                      </Text>
+                      {isSelected && (
+                        <Ionicons name="checkmark-circle" size={16} color={colors.diet} style={{ marginLeft: 4 }} />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Diet Preferences */}
+            <View style={styles.autoPlannerSection}>
+              <Text style={styles.autoPlannerLabel}>Diet Preferences (Optional)</Text>
+              <View style={styles.autoPlannerFiltersGrid}>
+                {DIET_FILTERS.map((filter) => {
+                  const isSelected = autoPlannerDiets.includes(filter.id);
+                  return (
+                    <TouchableOpacity
+                      key={filter.id}
+                      style={[
+                        styles.autoPlannerFilterChip,
+                        isSelected && styles.autoPlannerFilterChipSelected,
+                      ]}
+                      onPress={() => {
+                        if (isSelected) {
+                          setAutoPlannerDiets(autoPlannerDiets.filter(d => d !== filter.id));
+                        } else {
+                          setAutoPlannerDiets([...autoPlannerDiets, filter.id]);
+                        }
+                      }}
+                    >
+                      <Text style={styles.autoPlannerFilterChipIcon}>{filter.icon}</Text>
+                      <Text style={[
+                        styles.autoPlannerFilterChipText,
+                        isSelected && styles.autoPlannerFilterChipTextSelected,
+                      ]}>
+                        {filter.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Cuisine Preferences */}
+            <View style={styles.autoPlannerSection}>
+              <Text style={styles.autoPlannerLabel}>Cuisine Preferences (Optional)</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.autoPlannerCuisineScroll}
+              >
+                {CUISINE_FILTERS.map((filter) => {
+                  const isSelected = preferredCuisines.includes(filter.id);
+                  return (
+                    <TouchableOpacity
+                      key={filter.id}
+                      style={[
+                        styles.autoPlannerCuisineChip,
+                        isSelected && styles.autoPlannerCuisineChipSelected,
+                      ]}
+                      onPress={() => {
+                        if (isSelected) {
+                          setPreferredCuisines(preferredCuisines.filter(c => c !== filter.id));
+                        } else {
+                          setPreferredCuisines([...preferredCuisines, filter.id]);
+                        }
+                      }}
+                    >
+                      <Text style={styles.autoPlannerCuisineChipIcon}>{filter.icon}</Text>
+                      <Text style={[
+                        styles.autoPlannerCuisineChipText,
+                        isSelected && styles.autoPlannerCuisineChipTextSelected,
+                      ]}>
+                        {filter.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+
+            {/* Max Cooking Time */}
+            <View style={styles.autoPlannerSection}>
+              <View style={styles.autoPlannerLabelRow}>
+                <Text style={styles.autoPlannerLabel}>Max Cooking Time</Text>
+                <Text style={styles.autoPlannerLabelValue}>{maxCookingTime} min</Text>
+              </View>
+              <View style={styles.autoPlannerTimeSelector}>
+                {[30, 45, 60, 90].map((time) => (
+                  <TouchableOpacity
+                    key={time}
+                    style={[
+                      styles.autoPlannerTimeChip,
+                      maxCookingTime === time && styles.autoPlannerTimeChipSelected,
+                    ]}
+                    onPress={() => setMaxCookingTime(time)}
+                  >
+                    <Text style={[
+                      styles.autoPlannerTimeChipText,
+                      maxCookingTime === time && styles.autoPlannerTimeChipTextSelected,
+                    ]}>
+                      {time}m
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            {/* Generate Button */}
+            <TouchableOpacity
+              style={[
+                styles.autoPlannerGenerateButton,
+                plannerLoading && styles.autoPlannerGenerateButtonDisabled,
+              ]}
+              onPress={generateAutoMealPlan}
+              disabled={plannerLoading || includeMealTypes.length === 0}
+            >
+              {plannerLoading ? (
+                <>
+                  <ActivityIndicator color="white" size="small" />
+                  <Text style={styles.autoPlannerGenerateButtonText}>Generating...</Text>
+                </>
+              ) : (
+                <>
+                  <Ionicons name="sparkles" size={20} color="white" />
+                  <Text style={styles.autoPlannerGenerateButtonText}>
+                    Generate Plan ({daysToGenerate} days × {includeMealTypes.length} meals)
+                  </Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <Text style={styles.autoPlannerNote}>
+              Note: This will replace your current meal plan
+            </Text>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+
   // Main render
   return (
     <SafeAreaView style={styles.container}>
@@ -1132,21 +1539,40 @@ export const DietDashboardScreen = ({ navigation }: any) => {
       {/* Tab Bar */}
       <View style={styles.tabBar}>
         <TouchableOpacity
-          style={[styles.tab, activeTab === 'planner' && styles.tabActive]}
-          onPress={() => setActiveTab('planner')}
+          style={[styles.tab, activeTab === 'recipe' && styles.tabActive]}
+          onPress={() => setActiveTab('recipe')}
         >
           <Ionicons
-            name="calendar"
+            name="search"
             size={20}
-            color={activeTab === 'planner' ? colors.diet : colors.textSecondary}
+            color={activeTab === 'recipe' ? colors.diet : colors.textSecondary}
           />
           <Text
             style={[
               styles.tabText,
-              activeTab === 'planner' && styles.tabTextActive,
+              activeTab === 'recipe' && styles.tabTextActive,
             ]}
           >
-            Planner
+            Recipe
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tab, activeTab === 'week' && styles.tabActive]}
+          onPress={() => setActiveTab('week')}
+        >
+          <Ionicons
+            name="calendar"
+            size={20}
+            color={activeTab === 'week' ? colors.diet : colors.textSecondary}
+          />
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === 'week' && styles.tabTextActive,
+            ]}
+          >
+            Week
           </Text>
         </TouchableOpacity>
 
@@ -1190,13 +1616,15 @@ export const DietDashboardScreen = ({ navigation }: any) => {
       </View>
 
       {/* Content */}
-      {activeTab === 'planner' && renderMealPlanner()}
+      {activeTab === 'recipe' && renderRecipeSearch()}
+      {activeTab === 'week' && renderWeeklyView()}
       {activeTab === 'shopping' && renderShoppingList()}
       {activeTab === 'costs' && renderCostEstimates()}
 
       {/* Modals */}
       {renderRecipeModal()}
       {renderPortionModal()}
+      {renderAutoPlannerModal()}
     </SafeAreaView>
   );
 };
@@ -2016,5 +2444,443 @@ const styles = StyleSheet.create({
     ...typography.bodyBold,
     fontSize: 16,
     color: 'white',
+  },
+  // Weekly View Styles
+  weekSummaryCard: {
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    ...shadows.small,
+  },
+  weekSummaryHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  weekSummaryTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  weekSummaryTitle: {
+    ...typography.h3,
+    color: colors.text,
+  },
+  weekSummaryRefreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.diet + '20',
+    borderRadius: 20,
+  },
+  weekSummaryRefreshText: {
+    ...typography.bodyBold,
+    fontSize: 13,
+    color: colors.diet,
+  },
+  weekSummaryStats: {
+    flexDirection: 'row',
+    paddingTop: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  weekSummaryStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  weekSummaryStatValue: {
+    ...typography.h2,
+    fontSize: 28,
+    color: colors.diet,
+  },
+  weekSummaryStatLabel: {
+    ...typography.caption,
+    fontSize: 12,
+    color: colors.textSecondary,
+    marginTop: 4,
+  },
+  weekSummaryStatDivider: {
+    width: 1,
+    backgroundColor: colors.border,
+  },
+  weekDaySelector: {
+    marginBottom: spacing.md,
+  },
+  weekDaySelectorContent: {
+    gap: spacing.sm,
+  },
+  weekDayChip: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: colors.border,
+    alignItems: 'center',
+    minWidth: 70,
+    ...shadows.small,
+  },
+  weekDayChipSelected: {
+    backgroundColor: colors.diet + '20',
+    borderColor: colors.diet,
+  },
+  weekDayChipDate: {
+    ...typography.h3,
+    fontSize: 20,
+    color: colors.text,
+    marginBottom: 4,
+  },
+  weekDayChipDateSelected: {
+    color: colors.diet,
+  },
+  weekDayChipDay: {
+    ...typography.caption,
+    fontSize: 12,
+    color: colors.textSecondary,
+  },
+  weekDayChipDaySelected: {
+    ...typography.bodyBold,
+    fontSize: 12,
+    color: colors.diet,
+  },
+  weekDayChipBadge: {
+    backgroundColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginTop: 4,
+  },
+  weekDayChipBadgeSelected: {
+    backgroundColor: colors.diet,
+  },
+  weekDayChipBadgeText: {
+    ...typography.bodyBold,
+    fontSize: 11,
+    color: 'white',
+  },
+  weekDayMealsSection: {
+    gap: spacing.md,
+  },
+  weekMealSlot: {
+    marginBottom: spacing.sm,
+  },
+  weekMealSlotHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  weekMealSlotTitle: {
+    ...typography.h4,
+    fontSize: 16,
+    color: colors.text,
+  },
+  weekMealSlotAddButton: {
+    padding: spacing.xs,
+  },
+  weekMealCard: {
+    flexDirection: 'row',
+    backgroundColor: colors.background,
+    borderRadius: 12,
+    overflow: 'hidden',
+    ...shadows.small,
+  },
+  weekMealCardImage: {
+    width: 100,
+    height: 100,
+    backgroundColor: colors.backgroundGray,
+  },
+  weekMealCardInfo: {
+    flex: 1,
+    padding: spacing.md,
+    justifyContent: 'center',
+  },
+  weekMealCardTitle: {
+    ...typography.bodyBold,
+    fontSize: 15,
+    color: colors.text,
+    marginBottom: spacing.sm,
+  },
+  weekMealCardMeta: {
+    flexDirection: 'row',
+    gap: spacing.md,
+  },
+  weekMealCardMetaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  weekMealCardMetaText: {
+    ...typography.caption,
+    fontSize: 13,
+    color: colors.textSecondary,
+  },
+  weekMealCardDelete: {
+    padding: spacing.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  weekMealCardEmpty: {
+    backgroundColor: colors.backgroundGray,
+    borderRadius: 12,
+    padding: spacing.xl,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: colors.border,
+    borderStyle: 'dashed',
+  },
+  weekMealCardEmptyText: {
+    ...typography.caption,
+    fontSize: 14,
+    color: colors.textLight,
+    marginTop: spacing.sm,
+  },
+  emptyStateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.diet,
+    borderRadius: 12,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+  },
+  emptyStateButtonText: {
+    ...typography.bodyBold,
+    fontSize: 16,
+    color: 'white',
+  },
+  // Auto Planner Modal Styles
+  autoPlannerModalOverlay: {
+    flex: 1,
+    backgroundColor: colors.overlay,
+    justifyContent: 'flex-end',
+  },
+  autoPlannerModalContent: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: spacing.lg,
+    maxHeight: '90%',
+  },
+  autoPlannerModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  autoPlannerModalTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  autoPlannerModalTitle: {
+    ...typography.h2,
+    color: colors.text,
+  },
+  autoPlannerModalSubtitle: {
+    ...typography.body,
+    fontSize: 15,
+    color: colors.textSecondary,
+    marginBottom: spacing.lg,
+  },
+  autoPlannerSection: {
+    marginBottom: spacing.lg,
+  },
+  autoPlannerLabel: {
+    ...typography.h4,
+    fontSize: 15,
+    color: colors.text,
+    marginBottom: spacing.sm,
+  },
+  autoPlannerLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  autoPlannerLabelValue: {
+    ...typography.bodyBold,
+    fontSize: 15,
+    color: colors.diet,
+  },
+  autoPlannerDaysSelector: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  autoPlannerDaysChip: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.backgroundGray,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    alignItems: 'center',
+  },
+  autoPlannerDaysChipSelected: {
+    backgroundColor: colors.diet + '20',
+    borderColor: colors.diet,
+  },
+  autoPlannerDaysChipText: {
+    ...typography.body,
+    fontSize: 15,
+    color: colors.text,
+  },
+  autoPlannerDaysChipTextSelected: {
+    ...typography.bodyBold,
+    fontSize: 15,
+    color: colors.diet,
+  },
+  autoPlannerMealTypesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  autoPlannerMealTypeChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.backgroundGray,
+    borderRadius: 20,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  autoPlannerMealTypeChipSelected: {
+    backgroundColor: colors.diet + '20',
+    borderColor: colors.diet,
+  },
+  autoPlannerMealTypeChipText: {
+    ...typography.body,
+    fontSize: 14,
+    color: colors.text,
+  },
+  autoPlannerMealTypeChipTextSelected: {
+    ...typography.bodyBold,
+    fontSize: 14,
+    color: colors.diet,
+  },
+  autoPlannerFiltersGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  autoPlannerFilterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.backgroundGray,
+    borderRadius: 20,
+    gap: spacing.xs,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  autoPlannerFilterChipSelected: {
+    backgroundColor: colors.diet + '20',
+    borderColor: colors.diet,
+  },
+  autoPlannerFilterChipIcon: {
+    fontSize: 16,
+  },
+  autoPlannerFilterChipText: {
+    ...typography.body,
+    fontSize: 14,
+    color: colors.text,
+  },
+  autoPlannerFilterChipTextSelected: {
+    ...typography.bodyBold,
+    fontSize: 14,
+    color: colors.diet,
+  },
+  autoPlannerCuisineScroll: {
+    marginHorizontal: -spacing.lg,
+    paddingHorizontal: spacing.lg,
+  },
+  autoPlannerCuisineChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.backgroundGray,
+    borderRadius: 20,
+    marginRight: spacing.sm,
+    gap: spacing.xs,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  autoPlannerCuisineChipSelected: {
+    backgroundColor: colors.diet + '20',
+    borderColor: colors.diet,
+  },
+  autoPlannerCuisineChipIcon: {
+    fontSize: 16,
+  },
+  autoPlannerCuisineChipText: {
+    ...typography.body,
+    fontSize: 14,
+    color: colors.text,
+  },
+  autoPlannerCuisineChipTextSelected: {
+    ...typography.bodyBold,
+    fontSize: 14,
+    color: colors.diet,
+  },
+  autoPlannerTimeSelector: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  autoPlannerTimeChip: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.backgroundGray,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: 'transparent',
+    alignItems: 'center',
+  },
+  autoPlannerTimeChipSelected: {
+    backgroundColor: colors.diet + '20',
+    borderColor: colors.diet,
+  },
+  autoPlannerTimeChipText: {
+    ...typography.body,
+    fontSize: 14,
+    color: colors.text,
+  },
+  autoPlannerTimeChipTextSelected: {
+    ...typography.bodyBold,
+    fontSize: 14,
+    color: colors.diet,
+  },
+  autoPlannerGenerateButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.diet,
+    borderRadius: 12,
+    paddingVertical: spacing.md,
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  autoPlannerGenerateButtonDisabled: {
+    opacity: 0.5,
+  },
+  autoPlannerGenerateButtonText: {
+    ...typography.bodyBold,
+    fontSize: 16,
+    color: 'white',
+  },
+  autoPlannerNote: {
+    ...typography.caption,
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: spacing.md,
   },
 });
