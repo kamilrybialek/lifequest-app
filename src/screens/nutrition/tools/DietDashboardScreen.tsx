@@ -2464,7 +2464,7 @@ export const DietDashboardScreen = ({ navigation }: any) => {
       {renderAutoMealPlannerModal()}
       {renderPromoModal()}
       </View>
-    </View>
+    </LinearGradient>
   );
 };
 
