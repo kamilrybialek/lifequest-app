@@ -395,12 +395,19 @@ app.post('/api/admin/recipes', adminAuth, (req, res) => {
   try {
     const {
       title,
+      name,
       image,
       readyInMinutes,
+      ready_in_minutes,
       servings,
       cuisines,
+      cuisine_type,
       diets,
+      dish_type,
+      category,
+      difficulty,
       summary,
+      description,
       calories,
       protein,
       carbs,
@@ -410,32 +417,37 @@ app.post('/api/admin/recipes', adminAuth, (req, res) => {
       source
     } = req.body;
 
+    const recipeTitle = title || name;
+
     // Validate required fields
-    if (!title || !instructions) {
-      return res.status(400).json({ error: 'Title and instructions are required' });
+    if (!recipeTitle) {
+      return res.status(400).json({ error: 'Title/name is required' });
     }
 
     const result = db.prepare(`
       INSERT INTO custom_recipes (
         title, image, ready_in_minutes, servings,
-        cuisines, diets, summary,
+        cuisines, diets, dish_type, category, difficulty, summary,
         calories, protein, carbs, fat,
         ingredients, instructions, source,
         created_at, updated_at, created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      title,
+      recipeTitle,
       image || '',
-      readyInMinutes || 30,
+      readyInMinutes || ready_in_minutes || 30,
       servings || 4,
-      JSON.stringify(cuisines || []),
-      JSON.stringify(diets || []),
-      summary || '',
+      typeof cuisines === 'string' ? cuisines : JSON.stringify(cuisines || cuisine_type || []),
+      typeof diets === 'string' ? diets : JSON.stringify(diets || []),
+      dish_type || null,
+      category || null,
+      difficulty || 'medium',
+      summary || description || '',
       calories || 0,
       protein || 0,
       carbs || 0,
       fat || 0,
-      JSON.stringify(ingredients || []),
+      typeof ingredients === 'string' ? ingredients : JSON.stringify(ingredients || []),
       instructions || '',
       source || 'custom',
       new Date().toISOString(),
@@ -466,12 +478,19 @@ app.put('/api/admin/recipes/:id', adminAuth, (req, res) => {
     const recipeId = parseInt(req.params.id);
     const {
       title,
+      name,
       image,
       readyInMinutes,
+      ready_in_minutes,
       servings,
       cuisines,
+      cuisine_type,
       diets,
+      dish_type,
+      category,
+      difficulty,
       summary,
+      description,
       calories,
       protein,
       carbs,
@@ -481,6 +500,8 @@ app.put('/api/admin/recipes/:id', adminAuth, (req, res) => {
       source
     } = req.body;
 
+    const recipeTitle = title || name;
+
     const result = db.prepare(`
       UPDATE custom_recipes SET
         title = ?,
@@ -489,6 +510,9 @@ app.put('/api/admin/recipes/:id', adminAuth, (req, res) => {
         servings = ?,
         cuisines = ?,
         diets = ?,
+        dish_type = ?,
+        category = ?,
+        difficulty = ?,
         summary = ?,
         calories = ?,
         protein = ?,
@@ -500,18 +524,21 @@ app.put('/api/admin/recipes/:id', adminAuth, (req, res) => {
         updated_at = ?
       WHERE id = ?
     `).run(
-      title,
+      recipeTitle,
       image,
-      readyInMinutes,
+      readyInMinutes || ready_in_minutes,
       servings,
-      JSON.stringify(cuisines),
-      JSON.stringify(diets),
-      summary,
+      typeof cuisines === 'string' ? cuisines : JSON.stringify(cuisines || cuisine_type || []),
+      typeof diets === 'string' ? diets : JSON.stringify(diets || []),
+      dish_type,
+      category,
+      difficulty,
+      summary || description,
       calories,
       protein,
       carbs,
       fat,
-      JSON.stringify(ingredients),
+      typeof ingredients === 'string' ? ingredients : JSON.stringify(ingredients || []),
       instructions,
       source,
       new Date().toISOString(),
@@ -576,6 +603,9 @@ db.exec(`
     servings INTEGER DEFAULT 4,
     cuisines TEXT DEFAULT '[]',
     diets TEXT DEFAULT '[]',
+    dish_type TEXT,
+    category TEXT,
+    difficulty TEXT DEFAULT 'medium',
     summary TEXT,
     calories INTEGER DEFAULT 0,
     protein INTEGER DEFAULT 0,
@@ -589,6 +619,25 @@ db.exec(`
     created_by INTEGER REFERENCES admin_users(id)
   )
 `);
+
+// Add missing columns if table already exists
+try {
+  db.exec(`ALTER TABLE custom_recipes ADD COLUMN dish_type TEXT`);
+} catch (e) {
+  // Column already exists
+}
+
+try {
+  db.exec(`ALTER TABLE custom_recipes ADD COLUMN category TEXT`);
+} catch (e) {
+  // Column already exists
+}
+
+try {
+  db.exec(`ALTER TABLE custom_recipes ADD COLUMN difficulty TEXT DEFAULT 'medium'`);
+} catch (e) {
+  // Column already exists
+}
 
 // Start server
 app.listen(PORT, () => {
