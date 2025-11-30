@@ -80,6 +80,16 @@ const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack'] as const;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const IS_WEB = SCREEN_WIDTH > 768;
 
+// Design colors (app's diet theme with gradient backgrounds)
+const DESIGN_COLORS = {
+  primary: '#CE82FF', // App's diet purple
+  primaryLight: '#E5B8FF',
+  gradientStart: '#F5E8FF', // Light purple
+  gradientEnd: '#FFFFFF',
+  textDark: '#3C3C3C',
+  textGray: '#777777',
+};
+
 // API configuration - Priority: Firebase → TheMealDB → Spoonacular
 const SPOONACULAR_API_KEY = '8b6cd47792ff4057ad699f9b0523d9df';
 const SPOONACULAR_BASE_URL = 'https://api.spoonacular.com';
@@ -1572,55 +1582,38 @@ export const DietDashboardScreen = ({ navigation }: any) => {
 
       {loading && <ActivityIndicator size="large" color={colors.diet} style={styles.loader} />}
 
-      {/* Recipe Results - Grid Layout */}
+      {/* Recipe Results - Trending Style */}
       {searchResults.length > 0 && (
-        <View style={styles.recipesSection}>
-          <View style={styles.resultsHeader}>
-            <Text style={styles.resultsTitle}>
-              {searchResults.length} Recipes Found
-            </Text>
+        <View style={styles.trendingSection}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Trending</Text>
           </View>
 
-          <View style={styles.recipesGrid}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.trendingScroll}
+          >
             {searchResults.map((recipe) => (
               <TouchableOpacity
                 key={recipe.id}
-                style={styles.recipeCardGrid}
+                style={styles.trendingCard}
                 onPress={() => getRecipeDetails(recipe.id)}
-                activeOpacity={0.95}
+                activeOpacity={0.9}
               >
-                <View style={styles.recipeImageContainerGrid}>
-                  <Image source={{ uri: recipe.image }} style={styles.recipeImageGrid} />
-                  {recipe.readyInMinutes > 0 && (
-                    <View style={styles.timeBadgeGrid}>
-                      <Ionicons name="time-outline" size={10} color="#FFFFFF" />
-                      <Text style={styles.timeBadgeText}>{recipe.readyInMinutes}min</Text>
-                    </View>
-                  )}
-                  {recipe.calories && recipe.calories > 0 && (
-                    <View style={styles.calorieBadgeGrid}>
-                      <Ionicons name="flame" size={10} color="#FFF" />
-                      <Text style={styles.calorieTextGrid}>{recipe.calories}</Text>
-                    </View>
-                  )}
-                </View>
-
-                <View style={styles.recipeCardContentGrid}>
-                  <Text style={styles.recipeTitleGrid} numberOfLines={2}>{recipe.title}</Text>
-
-                  {recipe.protein && recipe.protein > 0 && (
-                    <View style={styles.macrosRowGrid}>
-                      <Text style={styles.macroTextGrid}>P: {recipe.protein}g</Text>
-                      <Text style={styles.macroDivider}>•</Text>
-                      <Text style={styles.macroTextGrid}>C: {recipe.carbs}g</Text>
-                      <Text style={styles.macroDivider}>•</Text>
-                      <Text style={styles.macroTextGrid}>F: {recipe.fat}g</Text>
-                    </View>
-                  )}
-                </View>
+                <Image source={{ uri: recipe.image }} style={styles.trendingImage} />
+                <LinearGradient
+                  colors={['transparent', 'rgba(0,0,0,0.7)']}
+                  style={styles.trendingOverlay}
+                >
+                  <Text style={styles.trendingTitle} numberOfLines={2}>{recipe.title}</Text>
+                  <Text style={styles.trendingMeta}>
+                    {recipe.readyInMinutes ? `${recipe.readyInMinutes} Mins` : '30 Mins'} | 1 Serving
+                  </Text>
+                </LinearGradient>
               </TouchableOpacity>
             ))}
-          </View>
+          </ScrollView>
         </View>
       )}
     </View>
@@ -2372,15 +2365,32 @@ export const DietDashboardScreen = ({ navigation }: any) => {
   );
 
   return (
-    <View style={styles.container}>
+    <LinearGradient
+      colors={[DESIGN_COLORS.gradientStart, DESIGN_COLORS.gradientEnd]}
+      style={styles.container}
+    >
       <View style={styles.contentWrapper}>
-        {/* Clean Header */}
-        <View style={styles.headerClean}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButtonClean}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitleClean}>Meal Planner</Text>
-          <View style={styles.headerRight} />
+        {/* Hero Header */}
+        <View style={styles.heroHeader}>
+          <View style={styles.greetingRow}>
+            <Text style={styles.greetingText}>Hi, {user?.name || 'there'}</Text>
+            <TouchableOpacity onPress={() => navigation.goBack()}>
+              <Ionicons name="close" size={24} color={DESIGN_COLORS.textDark} />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.heroQuestion}>What do you want{'\n'}to cook?</Text>
+
+          {/* Search Bar */}
+          <View style={styles.searchBarHero}>
+            <Ionicons name="search" size={20} color={DESIGN_COLORS.textGray} />
+            <TextInput
+              style={styles.searchInputHero}
+              placeholder="Search any recipe"
+              placeholderTextColor={DESIGN_COLORS.textGray}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
         </View>
 
       {/* Tab Bar */}
@@ -2461,39 +2471,54 @@ export const DietDashboardScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
   },
   contentWrapper: {
     flex: 1,
     width: '100%',
-    backgroundColor: '#FAFAFA',
   },
-  // Clean Header Styles
-  headerClean: {
+  // Hero Header Styles
+  heroHeader: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: Platform.OS === 'ios' ? 50 : spacing.xl,
+    paddingBottom: spacing.lg,
+  },
+  greetingRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  greetingText: {
+    fontSize: 14,
+    color: DESIGN_COLORS.textGray,
+    fontWeight: '400',
+  },
+  heroQuestion: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: DESIGN_COLORS.textDark,
+    lineHeight: 36,
+    marginBottom: spacing.lg,
+  },
+  searchBarHero: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingTop: Platform.OS === 'ios' ? 50 : spacing.lg,
-    paddingBottom: spacing.md,
-    backgroundColor: 'white',
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  backButtonClean: {
-    padding: spacing.sm,
-    marginLeft: -spacing.sm,
-  },
-  headerTitleClean: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.text,
+  searchInputHero: {
     flex: 1,
-    textAlign: 'center',
-    marginRight: 40, // Balance out back button
-  },
-  headerRight: {
-    width: 40,
+    fontSize: 15,
+    color: DESIGN_COLORS.textDark,
+    padding: 0,
   },
   // Minimal Tab Bar
   tabBar: {
@@ -2991,15 +3016,55 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.border,
   },
-  recipeInfo: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing.sm,
-    paddingBottom: spacing.sm,
+  // Trending Section Styles (layout.png inspired)
+  trendingSection: {
+    marginTop: spacing.lg,
+    marginBottom: spacing.xl,
   },
-  recipeInfoText: {
+  sectionHeaderRow: {
+    paddingHorizontal: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: DESIGN_COLORS.textDark,
+  },
+  trendingScroll: {
+    paddingHorizontal: spacing.lg,
+  },
+  trendingCard: {
+    width: 180,
+    height: 200,
+    marginRight: spacing.md,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#F0F0F0',
+  },
+  trendingImage: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  trendingOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: spacing.md,
+    justifyContent: 'flex-end',
+  },
+  trendingTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 4,
+  },
+  trendingMeta: {
     fontSize: 11,
-    color: colors.textSecondary,
+    fontWeight: '500',
+    color: '#FFFFFF',
+    opacity: 0.9,
   },
   plannerSection: {
     padding: spacing.lg,
