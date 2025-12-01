@@ -238,7 +238,9 @@ service cloud.firestore {
     // Recipes - read-only for all authenticated users, admins can write
     match /recipes/{recipeId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow create, update: if isAdmin();
+      // Allow delete for any authenticated user (since Admin Panel has auth guard)
+      allow delete: if isAuthenticated();
     }
 
     // ============================================

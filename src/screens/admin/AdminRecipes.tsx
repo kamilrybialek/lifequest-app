@@ -567,6 +567,8 @@ export const AdminRecipes = () => {
 
   // Delete recipe from database
   const deleteRecipe = async (recipeId: string) => {
+    console.log('🗑️ Attempting to delete recipe:', recipeId, 'Type:', typeof recipeId);
+
     Alert.alert(
       'Delete Recipe',
       'Are you sure you want to delete this recipe?',
@@ -577,12 +579,21 @@ export const AdminRecipes = () => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await deleteDoc(doc(db, 'recipes', recipeId));
+              console.log('🔥 Deleting from Firebase:', recipeId);
+              const recipeRef = doc(db, 'recipes', String(recipeId));
+              console.log('📍 Recipe ref path:', recipeRef.path);
+
+              await deleteDoc(recipeRef);
+
+              console.log('✅ Delete successful!');
               Alert.alert('✅ Deleted', 'Recipe removed from database');
               await loadDatabaseRecipes();
-            } catch (error) {
+            } catch (error: any) {
               console.error('❌ Error deleting recipe:', error);
-              Alert.alert('Error', 'Failed to delete recipe');
+              console.error('❌ Error code:', error?.code);
+              console.error('❌ Error message:', error?.message);
+              console.error('❌ Full error:', JSON.stringify(error, null, 2));
+              Alert.alert('Error', `Failed to delete recipe: ${error?.message || 'Unknown error'}`);
             }
           },
         },
@@ -593,14 +604,32 @@ export const AdminRecipes = () => {
   // Clear all recipes from database
   const clearAllRecipes = async () => {
     try {
+      console.log('🗑️ Fetching all recipes to delete...');
       const recipesSnapshot = await getDocs(collection(db, 'recipes'));
-      const deletePromises = recipesSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      console.log(`📊 Found ${recipesSnapshot.size} recipes to delete`);
+
+      if (recipesSnapshot.size === 0) {
+        Alert.alert('Info', 'No recipes to delete');
+        return;
+      }
+
+      console.log('🔥 Starting batch delete...');
+      const deletePromises = recipesSnapshot.docs.map((docSnapshot, index) => {
+        console.log(`  Deleting ${index + 1}/${recipesSnapshot.size}: ${docSnapshot.id}`);
+        return deleteDoc(docSnapshot.ref);
+      });
+
       await Promise.all(deletePromises);
+
+      console.log('✅ All recipes deleted successfully!');
       Alert.alert('✅ Success', `Deleted ${recipesSnapshot.size} recipes from database`);
       await loadDatabaseRecipes();
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error clearing recipes:', error);
-      Alert.alert('Error', 'Failed to clear all recipes');
+      console.error('❌ Error code:', error?.code);
+      console.error('❌ Error message:', error?.message);
+      console.error('❌ Full error:', JSON.stringify(error, null, 2));
+      Alert.alert('Error', `Failed to clear all recipes: ${error?.message || 'Unknown error'}`);
     }
   };
 
