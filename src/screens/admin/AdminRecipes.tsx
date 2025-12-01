@@ -590,6 +590,20 @@ export const AdminRecipes = () => {
     );
   };
 
+  // Clear all recipes from database
+  const clearAllRecipes = async () => {
+    try {
+      const recipesSnapshot = await getDocs(collection(db, 'recipes'));
+      const deletePromises = recipesSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deletePromises);
+      Alert.alert('✅ Success', `Deleted ${recipesSnapshot.size} recipes from database`);
+      await loadDatabaseRecipes();
+    } catch (error) {
+      console.error('❌ Error clearing recipes:', error);
+      Alert.alert('Error', 'Failed to clear all recipes');
+    }
+  };
+
   // Toggle filter
   const toggleFilter = (filterId: string) => {
     setSelectedFilters((prev) =>
@@ -657,7 +671,7 @@ export const AdminRecipes = () => {
   );
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
         <View>
@@ -666,13 +680,30 @@ export const AdminRecipes = () => {
             {activeTab === 'api' ? 'Search & import from Spoonacular' : `${dbRecipes.length} recipes in database`}
           </Text>
         </View>
-        {activeTab === 'api' && (
+        {activeTab === 'api' ? (
           <TouchableOpacity
             style={styles.bulkImportButton}
             onPress={() => setShowBulkModal(true)}
           >
             <Ionicons name="download" size={20} color="#FFF" />
             <Text style={styles.bulkImportButtonText}>Bulk Import</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.bulkImportButton, { backgroundColor: colors.error }]}
+            onPress={() => {
+              Alert.alert(
+                'Clear All Recipes',
+                'Are you sure you want to delete ALL recipes from the database? This cannot be undone.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Delete All', style: 'destructive', onPress: clearAllRecipes },
+                ]
+              );
+            }}
+          >
+            <Ionicons name="trash" size={20} color="#FFF" />
+            <Text style={styles.bulkImportButtonText}>Clear All</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -1307,7 +1338,7 @@ export const AdminRecipes = () => {
           </View>
         </View>
       </Modal>
-    </View>
+    </ScrollView>
   );
 };
 

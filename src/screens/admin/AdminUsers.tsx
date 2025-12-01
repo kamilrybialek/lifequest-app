@@ -237,7 +237,7 @@ export const AdminUsers = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Users Management</Text>
@@ -349,7 +349,7 @@ export const AdminUsers = () => {
       </ScrollView>
 
       <UserModal />
-    </View>
+    </ScrollView>
   );
 };
 
