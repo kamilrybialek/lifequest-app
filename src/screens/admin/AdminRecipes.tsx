@@ -671,7 +671,13 @@ export const AdminRecipes = () => {
   );
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: colors.backgroundGray }}
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ flexGrow: 1 }}
+      bounces={true}
+      alwaysBounceVertical={true}
+    >
       {/* Header */}
       <View style={styles.header}>
         <View>

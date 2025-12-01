@@ -237,7 +237,13 @@ export const AdminUsers = () => {
   }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView
+      style={{ flex: 1, backgroundColor: '#F5F7FA' }}
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ flexGrow: 1 }}
+      bounces={true}
+      alwaysBounceVertical={true}
+    >
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Users Management</Text>

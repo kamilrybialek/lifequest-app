@@ -25,7 +25,6 @@ const ADMIN_TABS = [
   { id: 'dashboard', label: 'Dashboard', icon: 'grid', color: colors.primary },
   { id: 'users', label: 'Users', icon: 'people', color: colors.mental },
   { id: 'recipes', label: 'Recipes', icon: 'restaurant', color: colors.diet },
-  { id: 'import', label: 'Quick Import', icon: 'download', color: colors.nutrition },
   { id: 'lessons', label: 'Lessons', icon: 'book', color: colors.finance },
   { id: 'analytics', label: 'Analytics', icon: 'bar-chart', color: colors.physical },
   { id: 'settings', label: 'Settings', icon: 'settings', color: colors.textSecondary },
@@ -168,7 +167,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, activeTab, o
       )}
 
       {/* Main Content */}
-      <View style={styles.main}>{children}</View>
+      <View style={styles.main} key={activeTab}>
+        {children}
+      </View>
     </View>
   );
 };
