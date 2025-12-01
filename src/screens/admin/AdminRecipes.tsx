@@ -16,7 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../theme/colors';
 import { spacing } from '../../theme/spacing';
 import { collection, addDoc, getDocs, query, limit, doc, deleteDoc } from 'firebase/firestore';
-import { db } from '../../config/firebase';
+import { db, auth } from '../../config/firebase';
 import { COMMON_INGREDIENTS } from '../../data/ingredients';
 import { DISH_TYPE_FILTERS, matchesDishTypeFilter } from '../../data/recipeFilters';
 
@@ -170,6 +170,28 @@ export const AdminRecipes = () => {
     } finally {
       setLoadingDb(false);
     }
+  };
+
+  // Check Firebase Auth status (diagnostics)
+  const checkAuthStatus = async () => {
+    const user = auth.currentUser;
+    console.log('🔐 ========== FIREBASE AUTH STATUS ==========');
+    console.log('📧 User:', user ? 'LOGGED IN' : '❌ NOT LOGGED IN');
+    if (user) {
+      console.log('📧 Email:', user.email);
+      console.log('🆔 UID:', user.uid);
+      console.log('✉️ Email Verified:', user.emailVerified);
+
+      // Try to get ID token to check claims
+      try {
+        const token = await user.getIdTokenResult();
+        console.log('🎫 Token Claims:', token.claims);
+      } catch (error) {
+        console.error('❌ Error getting token:', error);
+      }
+    }
+    console.log('🔐 ==========================================');
+    return user;
   };
 
   // Filter database recipes by search query and dish type
@@ -569,6 +591,13 @@ export const AdminRecipes = () => {
   const deleteRecipe = async (recipeId: string) => {
     console.log('🗑️ Attempting to delete recipe:', recipeId, 'Type:', typeof recipeId);
 
+    // Check auth status first
+    const user = await checkAuthStatus();
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to delete recipes. Please refresh the page and log in again.');
+      return;
+    }
+
     Alert.alert(
       'Delete Recipe',
       'Are you sure you want to delete this recipe?',
@@ -603,6 +632,13 @@ export const AdminRecipes = () => {
 
   // Clear all recipes from database
   const clearAllRecipes = async () => {
+    // Check auth status first
+    const user = await checkAuthStatus();
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to delete recipes. Please refresh the page and log in again.');
+      return;
+    }
+
     try {
       console.log('🗑️ Fetching all recipes to delete...');
       const recipesSnapshot = await getDocs(collection(db, 'recipes'));
@@ -724,22 +760,34 @@ export const AdminRecipes = () => {
             <Text style={styles.bulkImportButtonText}>Bulk Import</Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity
-            style={[styles.bulkImportButton, { backgroundColor: colors.error }]}
-            onPress={() => {
-              Alert.alert(
-                'Clear All Recipes',
-                'Are you sure you want to delete ALL recipes from the database? This cannot be undone.',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  { text: 'Delete All', style: 'destructive', onPress: clearAllRecipes },
-                ]
-              );
-            }}
-          >
-            <Ionicons name="trash" size={20} color="#FFF" />
-            <Text style={styles.bulkImportButtonText}>Clear All</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity
+              style={[styles.bulkImportButton, { backgroundColor: colors.mental }]}
+              onPress={async () => {
+                await checkAuthStatus();
+                Alert.alert('Auth Check', 'Check console for authentication details');
+              }}
+            >
+              <Ionicons name="shield-checkmark" size={20} color="#FFF" />
+              <Text style={styles.bulkImportButtonText}>Test Auth</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.bulkImportButton, { backgroundColor: colors.error }]}
+              onPress={() => {
+                Alert.alert(
+                  'Clear All Recipes',
+                  'Are you sure you want to delete ALL recipes from the database? This cannot be undone.',
+                  [
+                    { text: 'Cancel', style: 'cancel' },
+                    { text: 'Delete All', style: 'destructive', onPress: clearAllRecipes },
+                  ]
+                );
+              }}
+            >
+              <Ionicons name="trash" size={20} color="#FFF" />
+              <Text style={styles.bulkImportButtonText}>Clear All</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 
