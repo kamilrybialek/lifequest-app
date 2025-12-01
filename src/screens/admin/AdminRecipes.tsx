@@ -185,7 +185,12 @@ export const AdminRecipes = () => {
       // Try to get ID token to check claims
       try {
         const token = await user.getIdTokenResult();
-        console.log('🎫 Token Claims:', token.claims);
+        console.log('🎫 FULL Token Claims (stringified):');
+        console.log(JSON.stringify(token.claims, null, 2));
+        console.log('🔑 Email in claims:', token.claims.email);
+        console.log('🔑 Auth time:', new Date((token.claims.auth_time as number) * 1000).toLocaleString());
+        console.log('🔑 Token issued at:', new Date((token.claims.iat as number) * 1000).toLocaleString());
+        console.log('🔑 Token expires at:', new Date((token.claims.exp as number) * 1000).toLocaleString());
       } catch (error) {
         console.error('❌ Error getting token:', error);
       }
@@ -587,6 +592,48 @@ export const AdminRecipes = () => {
     }
   };
 
+  // Test direct delete (bypassing Alert for debugging)
+  const testDirectDelete = async (recipeId: string) => {
+    console.log('🧪 TEST: Direct delete without Alert confirmation');
+    console.log('🗑️ Attempting to delete recipe:', recipeId, 'Type:', typeof recipeId);
+
+    // Check auth status first
+    const user = await checkAuthStatus();
+    if (!user) {
+      console.error('❌ User not logged in!');
+      if (typeof window !== 'undefined') {
+        window.alert('Error: You must be logged in to delete recipes. Please refresh the page and log in again.');
+      }
+      return;
+    }
+
+    try {
+      console.log('🔥 Deleting from Firebase:', recipeId);
+      const recipeRef = doc(db, 'recipes', String(recipeId));
+      console.log('📍 Recipe ref path:', recipeRef.path);
+
+      await deleteDoc(recipeRef);
+
+      console.log('✅ Delete successful!');
+      if (typeof window !== 'undefined') {
+        window.alert('✅ Recipe deleted successfully!');
+      }
+      await loadDatabaseRecipes();
+    } catch (error: any) {
+      console.error('❌ ========== DELETE ERROR ==========');
+      console.error('❌ Error object:', error);
+      console.error('❌ Error code:', error?.code);
+      console.error('❌ Error message:', error?.message);
+      console.error('❌ Error name:', error?.name);
+      console.error('❌ Error stack:', error?.stack);
+      console.error('❌ Full error stringified:', JSON.stringify(error, null, 2));
+      console.error('❌ ===================================');
+      if (typeof window !== 'undefined') {
+        window.alert(`Failed to delete recipe: ${error?.message || error?.code || 'Unknown error'}`);
+      }
+    }
+  };
+
   // Delete recipe from database
   const deleteRecipe = async (recipeId: string) => {
     console.log('🗑️ Attempting to delete recipe:', recipeId, 'Type:', typeof recipeId);
@@ -598,36 +645,44 @@ export const AdminRecipes = () => {
       return;
     }
 
-    Alert.alert(
-      'Delete Recipe',
-      'Are you sure you want to delete this recipe?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              console.log('🔥 Deleting from Firebase:', recipeId);
-              const recipeRef = doc(db, 'recipes', String(recipeId));
-              console.log('📍 Recipe ref path:', recipeRef.path);
+    // Use browser confirm on web instead of Alert.alert (which may not work)
+    if (typeof window !== 'undefined') {
+      const confirmed = window.confirm('Are you sure you want to delete this recipe?');
+      if (!confirmed) {
+        console.log('ℹ️ User cancelled delete');
+        return;
+      }
+    }
 
-              await deleteDoc(recipeRef);
+    try {
+      console.log('🔥 Deleting from Firebase:', recipeId);
+      const recipeRef = doc(db, 'recipes', String(recipeId));
+      console.log('📍 Recipe ref path:', recipeRef.path);
 
-              console.log('✅ Delete successful!');
-              Alert.alert('✅ Deleted', 'Recipe removed from database');
-              await loadDatabaseRecipes();
-            } catch (error: any) {
-              console.error('❌ Error deleting recipe:', error);
-              console.error('❌ Error code:', error?.code);
-              console.error('❌ Error message:', error?.message);
-              console.error('❌ Full error:', JSON.stringify(error, null, 2));
-              Alert.alert('Error', `Failed to delete recipe: ${error?.message || 'Unknown error'}`);
-            }
-          },
-        },
-      ]
-    );
+      await deleteDoc(recipeRef);
+
+      console.log('✅ Delete successful!');
+      if (typeof window !== 'undefined') {
+        window.alert('✅ Recipe deleted successfully!');
+      } else {
+        Alert.alert('✅ Deleted', 'Recipe removed from database');
+      }
+      await loadDatabaseRecipes();
+    } catch (error: any) {
+      console.error('❌ ========== DELETE ERROR ==========');
+      console.error('❌ Error object:', error);
+      console.error('❌ Error code:', error?.code);
+      console.error('❌ Error message:', error?.message);
+      console.error('❌ Error name:', error?.name);
+      console.error('❌ Error stack:', error?.stack);
+      console.error('❌ Full error stringified:', JSON.stringify(error, null, 2));
+      console.error('❌ ===================================');
+      if (typeof window !== 'undefined') {
+        window.alert(`Failed to delete recipe: ${error?.message || error?.code || 'Unknown error'}`);
+      } else {
+        Alert.alert('Error', `Failed to delete recipe: ${error?.message || 'Unknown error'}`);
+      }
+    }
   };
 
   // Clear all recipes from database
@@ -760,32 +815,56 @@ export const AdminRecipes = () => {
             <Text style={styles.bulkImportButtonText}>Bulk Import</Text>
           </TouchableOpacity>
         ) : (
-          <View style={{ flexDirection: 'row', gap: 8 }}>
+          <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap' }}>
             <TouchableOpacity
-              style={[styles.bulkImportButton, { backgroundColor: colors.mental }]}
+              style={[styles.bulkImportButton, { backgroundColor: colors.mental, minWidth: 100 }]}
               onPress={async () => {
                 await checkAuthStatus();
-                Alert.alert('Auth Check', 'Check console for authentication details');
+                if (typeof window !== 'undefined') {
+                  window.alert('Check console for authentication details');
+                }
               }}
             >
               <Ionicons name="shield-checkmark" size={20} color="#FFF" />
-              <Text style={styles.bulkImportButtonText}>Test Auth</Text>
+              <Text style={styles.bulkImportButtonText}>Auth</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.bulkImportButton, { backgroundColor: colors.error }]}
+              style={[styles.bulkImportButton, { backgroundColor: colors.physical, minWidth: 100 }]}
+              onPress={async () => {
+                if (dbRecipes.length === 0) {
+                  if (typeof window !== 'undefined') {
+                    window.alert('No recipes to test delete. Import some recipes first.');
+                  }
+                  return;
+                }
+                const firstRecipe = dbRecipes[0];
+                console.log('🧪 Testing direct delete on first recipe:', firstRecipe.title);
+                await testDirectDelete(firstRecipe.id as string);
+              }}
+            >
+              <Ionicons name="flask" size={20} color="#FFF" />
+              <Text style={styles.bulkImportButtonText}>Test</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.bulkImportButton, { backgroundColor: colors.error, minWidth: 100 }]}
               onPress={() => {
-                Alert.alert(
-                  'Clear All Recipes',
-                  'Are you sure you want to delete ALL recipes from the database? This cannot be undone.',
-                  [
-                    { text: 'Cancel', style: 'cancel' },
-                    { text: 'Delete All', style: 'destructive', onPress: clearAllRecipes },
-                  ]
-                );
+                if (typeof window !== 'undefined') {
+                  const confirmed = window.confirm('Are you sure you want to delete ALL recipes from the database? This cannot be undone.');
+                  if (confirmed) clearAllRecipes();
+                } else {
+                  Alert.alert(
+                    'Clear All Recipes',
+                    'Are you sure you want to delete ALL recipes from the database? This cannot be undone.',
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { text: 'Delete All', style: 'destructive', onPress: clearAllRecipes },
+                    ]
+                  );
+                }
               }}
             >
               <Ionicons name="trash" size={20} color="#FFF" />
-              <Text style={styles.bulkImportButtonText}>Clear All</Text>
+              <Text style={styles.bulkImportButtonText}>Clear</Text>
             </TouchableOpacity>
           </View>
         )}
