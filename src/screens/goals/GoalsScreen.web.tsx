@@ -1,5 +1,5 @@
 /**
- * Goals Screen - Web/PWA Version
+ * Goals Screen
  *
  * Time-based goal planning with focus on Steve Harvey's 300 Life Goals method:
  * - Monthly goals (30-day targets)
@@ -17,8 +17,9 @@ import {
   TouchableOpacity,
   TextInput,
   Modal,
-  SafeAreaView,
+  Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, shadows, gradients } from '../../theme';
@@ -57,13 +58,13 @@ export const GoalsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color={colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Cele</Text>
+        <Text style={styles.headerTitle}>Goals</Text>
         <TouchableOpacity onPress={() => setShowInfo(true)} style={styles.infoButton}>
           <Ionicons name="information-circle-outline" size={24} color={colors.primary} />
         </TouchableOpacity>
@@ -86,8 +87,8 @@ export const GoalsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               <Text style={styles.methodIconText}>🎯</Text>
             </View>
             <View style={styles.methodContent}>
-              <Text style={styles.methodTitle}>Metoda 300 Celów Życiowych</Text>
-              <Text style={styles.methodSubtitle}>Steve Harvey • Dotknij aby dowiedzieć się więcej</Text>
+              <Text style={styles.methodTitle}>300 Life Goals Method</Text>
+              <Text style={styles.methodSubtitle}>Steve Harvey • Tap to learn more</Text>
             </View>
             <Ionicons name="chevron-forward" size={20} color="#FFF" />
           </LinearGradient>
@@ -95,8 +96,8 @@ export const GoalsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
         {/* Goal Time Horizons */}
         <GoalSection
-          title="Cele na ten miesiąc"
-          subtitle="30-dniowe cele"
+          title="This Month's Goals"
+          subtitle="30-day targets"
           icon="calendar-outline"
           color={colors.mental}
           goals={getGoalsByHorizon('month')}
@@ -106,8 +107,8 @@ export const GoalsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         />
 
         <GoalSection
-          title="Cele na ten kwartał"
-          subtitle="90-dniowe cele"
+          title="This Quarter's Goals"
+          subtitle="90-day targets"
           icon="calendar"
           color={colors.finance}
           goals={getGoalsByHorizon('quarter')}
@@ -117,8 +118,8 @@ export const GoalsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         />
 
         <GoalSection
-          title="Cele na ten rok"
-          subtitle="Cele roczne"
+          title="This Year's Goals"
+          subtitle="Annual goals"
           icon="calendar-sharp"
           color={colors.physical}
           goals={getGoalsByHorizon('year')}
@@ -128,8 +129,8 @@ export const GoalsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         />
 
         <GoalSection
-          title="Cele na całe życie"
-          subtitle={`Dodaj 300 celów życiowych • ${getGoalsByHorizon('life').length}/300`}
+          title="Life Goals"
+          subtitle={`Add 300 life goals • ${getGoalsByHorizon('life').length}/300`}
           icon="infinite"
           color={colors.nutrition}
           goals={getGoalsByHorizon('life')}
@@ -148,12 +149,11 @@ export const GoalsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         <View style={styles.inputWrapper}>
           <TextInput
             style={styles.input}
-            placeholder={`Dodaj cel ${getHorizonLabel(selectedHorizon).toLowerCase()}...`}
+            placeholder={`Add ${getHorizonLabel(selectedHorizon).toLowerCase()} goal...`}
             placeholderTextColor={colors.textLight}
             value={newGoalText}
             onChangeText={setNewGoalText}
             onSubmitEditing={addGoal}
-            // @ts-ignore - returnKeyType works on web
             returnKeyType="done"
           />
           <TouchableOpacity
@@ -170,25 +170,25 @@ export const GoalsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
         </View>
         <View style={styles.horizonSelector}>
           <HorizonButton
-            label="Miesiąc"
+            label="Month"
             selected={selectedHorizon === 'month'}
             onPress={() => setSelectedHorizon('month')}
             color={colors.mental}
           />
           <HorizonButton
-            label="Kwartał"
+            label="Quarter"
             selected={selectedHorizon === 'quarter'}
             onPress={() => setSelectedHorizon('quarter')}
             color={colors.finance}
           />
           <HorizonButton
-            label="Rok"
+            label="Year"
             selected={selectedHorizon === 'year'}
             onPress={() => setSelectedHorizon('year')}
             color={colors.physical}
           />
           <HorizonButton
-            label="Życie"
+            label="Life"
             selected={selectedHorizon === 'life'}
             onPress={() => setSelectedHorizon('life')}
             color={colors.nutrition}
@@ -202,7 +202,7 @@ export const GoalsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           <View style={styles.modalContent}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Metoda 300 Celów Życiowych</Text>
+                <Text style={styles.modalTitle}>300 Life Goals Method</Text>
                 <TouchableOpacity onPress={() => setShowInfo(false)}>
                   <Ionicons name="close-circle" size={32} color={colors.textLight} />
                 </TouchableOpacity>
@@ -210,58 +210,58 @@ export const GoalsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
 
               <View style={styles.infoSection}>
                 <Text style={styles.infoEmoji}>🎯</Text>
-                <Text style={styles.infoTitle}>Kto stworzył tę metodę?</Text>
+                <Text style={styles.infoTitle}>Who created this method?</Text>
                 <Text style={styles.infoText}>
-                  Metodę 300 celów życiowych spopularyzował <Text style={styles.bold}>Steve Harvey</Text>
-                  , amerykański komik, prezenter telewizyjny i autor motywacyjny. Harvey zachęcał
-                  swoich słuchaczy do stworzenia listy 300 rzeczy, które chcą osiągnąć w życiu.
+                  The 300 life goals method was popularized by <Text style={styles.bold}>Steve Harvey</Text>
+                  , American comedian, TV host, and motivational author. Harvey encouraged
+                  his listeners to create a list of 300 things they want to achieve in life.
                 </Text>
               </View>
 
               <View style={styles.infoSection}>
                 <Text style={styles.infoEmoji}>💡</Text>
-                <Text style={styles.infoTitle}>Dlaczego 300 celów?</Text>
+                <Text style={styles.infoTitle}>Why 300 goals?</Text>
                 <Text style={styles.infoText}>
-                  Harvey stwierdził: "Chcę, żebyście napisali listę 300 rzeczy, które chcecie w
-                  życiu - nadzieje, marzenia, pieniądze w banku, samochody, domy, wakacje,
-                  doświadczenia, cele, organizacje charytatywne, które chcecie wspierać, rodzinę i
-                  przyjaciół, którym chcecie coś podarować - wszystko."
+                  Harvey stated: "I want you to write a list of 300 things that you want in
+                  life - hopes, dreams, money in the bank, cars, homes, vacations,
+                  experiences, goals, charities you want to support, family and
+                  friends you want to give things to - everything."
                 </Text>
               </View>
 
               <View style={styles.infoSection}>
                 <Text style={styles.infoEmoji}>🚀</Text>
-                <Text style={styles.infoTitle}>Filozofia metody</Text>
+                <Text style={styles.infoTitle}>Method Philosophy</Text>
                 <Text style={styles.infoText}>
-                  Idea polega na przekroczeniu postrzeganych ograniczeń poprzez zmuszenie się do
-                  zapisania 300 różnych celów, aspiracji i pragnień. To wyzwanie prowadzi do
-                  głębszej introspekcji i pomaga ludziom myśleć poza tym, co początkowo uważają za
-                  możliwe.
+                  The idea is to push beyond perceived limitations by forcing yourself to
+                  write down 300 different goals, aspirations and desires. This challenge leads to
+                  deeper introspection and helps people think beyond what they initially believe is
+                  possible.
                 </Text>
               </View>
 
               <View style={styles.infoSection}>
                 <Text style={styles.infoEmoji}>📝</Text>
-                <Text style={styles.infoTitle}>Kategorie celów</Text>
+                <Text style={styles.infoTitle}>Goal Categories</Text>
                 <View style={styles.categoryList}>
-                  <CategoryItem text="Cele finansowe (domy, samochody, oszczędności)" />
-                  <CategoryItem text="Cele kariery i biznesu" />
-                  <CategoryItem text="Cele zdrowotne i fitness" />
-                  <CategoryItem text="Cele relacyjne (rodzina, przyjaciele)" />
-                  <CategoryItem text="Doświadczenia i podróże" />
-                  <CategoryItem text="Cele edukacyjne i rozwój osobisty" />
-                  <CategoryItem text="Cele charytatywne i społeczne" />
-                  <CategoryItem text="Hobby i pasje" />
+                  <CategoryItem text="Financial goals (homes, cars, savings)" />
+                  <CategoryItem text="Career and business goals" />
+                  <CategoryItem text="Health and fitness goals" />
+                  <CategoryItem text="Relationship goals (family, friends)" />
+                  <CategoryItem text="Experiences and travel" />
+                  <CategoryItem text="Educational goals and personal development" />
+                  <CategoryItem text="Charitable and social goals" />
+                  <CategoryItem text="Hobbies and passions" />
                 </View>
               </View>
 
               <View style={styles.infoSection}>
                 <Text style={styles.infoEmoji}>✨</Text>
-                <Text style={styles.infoTitle}>Jak zacząć?</Text>
+                <Text style={styles.infoTitle}>How to get started?</Text>
                 <Text style={styles.infoText}>
-                  Nie martw się, jeśli nie wymyślisz od razu 300 celów. Zacznij od tego, co
-                  przychodzi Ci do głowy i dodawaj kolejne cele w miarę upływu czasu. Kluczem jest
-                  regularne przeglądanie i aktualizowanie swojej listy.
+                  Don't worry if you can't think of 300 goals right away. Start with what
+                  comes to mind and add more goals over time. The key is
+                  regularly reviewing and updating your list.
                 </Text>
               </View>
 
@@ -270,7 +270,7 @@ export const GoalsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
                 onPress={() => setShowInfo(false)}
                 activeOpacity={0.8}
               >
-                <Text style={styles.closeButtonText}>Rozumiem</Text>
+                <Text style={styles.closeButtonText}>Got it</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -350,8 +350,8 @@ const GoalSection: React.FC<GoalSectionProps> = ({
         </View>
       ) : (
         <View style={styles.emptyState}>
-          <Text style={styles.emptyStateText}>Brak celów</Text>
-          <Text style={styles.emptyStateSubtext}>Dodaj swój pierwszy cel poniżej</Text>
+          <Text style={styles.emptyStateText}>No goals yet</Text>
+          <Text style={styles.emptyStateSubtext}>Add your first goal below</Text>
         </View>
       )}
     </View>
@@ -421,13 +421,13 @@ const CategoryItem: React.FC<{ text: string }> = ({ text }) => (
 const getHorizonLabel = (horizon: TimeHorizon): string => {
   switch (horizon) {
     case 'month':
-      return 'Miesiąc';
+      return 'month';
     case 'quarter':
-      return 'Kwartał';
+      return 'quarter';
     case 'year':
-      return 'Rok';
+      return 'year';
     case 'life':
-      return 'Życie';
+      return 'life';
   }
 };
 
@@ -610,7 +610,11 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
-    paddingBottom: spacing.lg,
+    ...Platform.select({
+      ios: {
+        paddingBottom: spacing.xl,
+      },
+    }),
   },
   inputWrapper: {
     flexDirection: 'row',
@@ -627,8 +631,7 @@ const styles = StyleSheet.create({
     ...typography.body,
     color: colors.text,
     paddingVertical: spacing.md,
-    outlineStyle: 'none',
-  } as any,
+  },
   addButton: {
     padding: spacing.xs,
   },
@@ -668,7 +671,7 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 24,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.xl,
-    paddingBottom: spacing.xl,
+    paddingBottom: Platform.OS === 'ios' ? spacing.xl * 2 : spacing.xl,
     maxHeight: '90%',
   },
   modalHeader: {

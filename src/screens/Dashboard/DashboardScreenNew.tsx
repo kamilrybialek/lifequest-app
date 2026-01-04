@@ -140,27 +140,27 @@ export const DashboardScreenNew = ({ navigation }: any) => {
                 <Text style={styles.goalsIcon}>🎯</Text>
               </View>
               <View style={styles.goalsContent}>
-                <Text style={styles.goalsTitle}>Twoje Cele</Text>
-                <Text style={styles.goalsSubtitle}>Metoda 300 Celów Życiowych</Text>
+                <Text style={styles.goalsTitle}>Your Goals</Text>
+                <Text style={styles.goalsSubtitle}>300 Life Goals Method</Text>
               </View>
               <Ionicons name="chevron-forward" size={24} color="#FFF" />
             </View>
             <View style={styles.goalsStats}>
               <View style={styles.goalsStat}>
                 <Text style={styles.goalsStatValue}>0</Text>
-                <Text style={styles.goalsStatLabel}>Miesiąc</Text>
+                <Text style={styles.goalsStatLabel}>Month</Text>
               </View>
               <View style={styles.goalsStat}>
                 <Text style={styles.goalsStatValue}>0</Text>
-                <Text style={styles.goalsStatLabel}>Kwartał</Text>
+                <Text style={styles.goalsStatLabel}>Quarter</Text>
               </View>
               <View style={styles.goalsStat}>
                 <Text style={styles.goalsStatValue}>0</Text>
-                <Text style={styles.goalsStatLabel}>Rok</Text>
+                <Text style={styles.goalsStatLabel}>Year</Text>
               </View>
               <View style={styles.goalsStat}>
                 <Text style={styles.goalsStatValue}>0/300</Text>
-                <Text style={styles.goalsStatLabel}>Życie</Text>
+                <Text style={styles.goalsStatLabel}>Life</Text>
               </View>
             </View>
           </LinearGradient>
