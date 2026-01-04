@@ -7,6 +7,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, typography, spacing } from '../theme';
+import { AnalyticsErrors } from '../services/analytics';
 
 interface Props {
   children: ReactNode;
@@ -45,8 +46,8 @@ export class ErrorBoundary extends Component<Props, State> {
       errorInfo,
     });
 
-    // TODO: Send error to analytics service
-    // trackError(error, errorInfo);
+    // Track error in analytics
+    AnalyticsErrors.appError(error.message, error.stack);
   }
 
   handleReset = () => {
