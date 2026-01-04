@@ -1,8 +1,6 @@
 /**
- * DASHBOARD - Native Version with Real Data
- *
- * Loads real data from useAppStore
- * Matching PWA design language
+ * DASHBOARD - Native Version with TimeBloc Design
+ * Soft, premium, minimal design language
  */
 
 import React, { useState, useEffect } from 'react';
@@ -12,17 +10,15 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors } from '../../theme/colors';
-import { designSystem } from '../../theme/designSystem';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
+import { timeblocColors, timeblocShadows, timeblocSpacing, timeblocBorderRadius, timeblocTypography, timeblocGradients } from '../../theme/timeblocTheme';
 
 interface QuickAction {
   id: string;
@@ -34,10 +30,10 @@ interface QuickAction {
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
-  { id: '1', title: 'Finance', icon: '💰', color: ['#4A90E2', '#5FA3E8'], description: 'Track finances', screen: 'FinancePathNew' },
-  { id: '2', title: 'Mental', icon: '🧠', color: ['#9C27B0', '#BA68C8'], description: 'Mental wellness', screen: 'MentalHealthPath' },
-  { id: '3', title: 'Physical', icon: '💪', color: ['#FF6B6B', '#FF8787'], description: 'Physical health', screen: 'PhysicalHealthPath' },
-  { id: '4', title: 'Nutrition', icon: '🥗', color: ['#4CAF50', '#66BB6A'], description: 'Nutrition', screen: 'NutritionPath' },
+  { id: '1', title: 'Finance', icon: '💰', color: timeblocGradients.finance, description: 'Track finances', screen: 'FinancePathNew' },
+  { id: '2', title: 'Mental', icon: '🧠', color: timeblocGradients.mental, description: 'Mental wellness', screen: 'MentalHealthPath' },
+  { id: '3', title: 'Physical', icon: '💪', color: timeblocGradients.physical, description: 'Physical health', screen: 'PhysicalHealthPath' },
+  { id: '4', title: 'Nutrition', icon: '🥗', color: timeblocGradients.nutrition, description: 'Nutrition', screen: 'NutritionPath' },
 ];
 
 export const DashboardScreenNew = ({ navigation }: any) => {
@@ -83,7 +79,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
   if (loading) {
     return (
       <SafeAreaView style={[styles.container, styles.centerContent]}>
-        <ActivityIndicator size="large" color={colors.primary} />
+        <ActivityIndicator size="large" color={timeblocColors.primary} />
         <Text style={styles.loadingText}>Loading your dashboard...</Text>
       </SafeAreaView>
     );
@@ -91,23 +87,6 @@ export const DashboardScreenNew = ({ navigation }: any) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <LinearGradient
-        colors={['#4A90E2', '#5FA3E8']}
-        style={styles.header}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-      >
-        <View>
-          <Text style={styles.greeting}>{getGreeting()} 👋</Text>
-          <Text style={styles.userName}>{user?.email?.split('@')[0] || 'Champion'}!</Text>
-        </View>
-        <TouchableOpacity style={styles.levelBadge}>
-          <Ionicons name="star" size={20} color="#FFD700" />
-          <Text style={styles.levelText}>Level {progress.level}</Text>
-        </TouchableOpacity>
-      </LinearGradient>
-
       <ScrollView
         style={styles.content}
         showsVerticalScrollIndicator={false}
@@ -115,22 +94,33 @@ export const DashboardScreenNew = ({ navigation }: any) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
+        {/* Header - Soft TimeBloc Style */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.greeting}>{getGreeting()} 👋</Text>
+            <Text style={styles.userName}>{user?.email?.split('@')[0] || 'Champion'}!</Text>
+          </View>
+          <TouchableOpacity style={styles.levelBadge}>
+            <Text style={styles.levelNumber}>{progress.level}</Text>
+          </TouchableOpacity>
+        </View>
+
         {/* Welcome Card */}
         <View style={styles.welcomeCard}>
-          <Text style={styles.welcomeTitle}>🎯 Welcome to LifeQuest!</Text>
+          <Text style={styles.welcomeTitle}>Welcome to LifeQuest!</Text>
           <Text style={styles.welcomeText}>
             You're on level {progress.level} with {progress.totalPoints} XP. Keep going!
           </Text>
         </View>
 
-        {/* Goals Card - Steve Harvey's 300 Life Goals */}
+        {/* Goals Card - Soft Purple Gradient */}
         <TouchableOpacity
           style={styles.goalsCard}
           onPress={() => navigation?.navigate('GoalsScreen')}
           activeOpacity={0.8}
         >
           <LinearGradient
-            colors={['#6B46C1', '#9F7AEA']}
+            colors={timeblocGradients.primary}
             style={styles.goalsGradient}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -143,7 +133,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
                 <Text style={styles.goalsTitle}>Your Goals</Text>
                 <Text style={styles.goalsSubtitle}>300 Life Goals Method</Text>
               </View>
-              <Ionicons name="chevron-forward" size={24} color="#FFF" />
+              <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.9)" />
             </View>
             <View style={styles.goalsStats}>
               <View style={styles.goalsStat}>
@@ -168,7 +158,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
 
         {/* Quick Actions */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>⚡ Quick Actions</Text>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.actionsGrid}>
             {QUICK_ACTIONS.map((action) => (
               <TouchableOpacity
@@ -185,34 +175,33 @@ export const DashboardScreenNew = ({ navigation }: any) => {
                 >
                   <Text style={styles.actionIcon}>{action.icon}</Text>
                   <Text style={styles.actionTitle}>{action.title}</Text>
-                  <Text style={styles.actionDescription}>{action.description}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* Stats Overview - Real Data */}
+        {/* Stats Overview */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📊 Your Stats</Text>
+          <Text style={styles.sectionTitle}>Your Stats</Text>
           <View style={styles.statsGrid}>
             <View style={styles.statCard}>
-              <Ionicons name="flame" size={32} color="#FF4500" />
+              <Text style={styles.statIcon}>🔥</Text>
               <Text style={styles.statValue}>{totalStreak}</Text>
-              <Text style={styles.statLabel}>Current Streak</Text>
+              <Text style={styles.statLabel}>Streak</Text>
             </View>
             <View style={styles.statCard}>
-              <Ionicons name="trophy" size={32} color="#FFD700" />
+              <Text style={styles.statIcon}>⭐</Text>
               <Text style={styles.statValue}>{progress.totalPoints}</Text>
               <Text style={styles.statLabel}>Total XP</Text>
             </View>
             <View style={styles.statCard}>
-              <Ionicons name="ribbon" size={32} color="#9C27B0" />
+              <Text style={styles.statIcon}>🏆</Text>
               <Text style={styles.statValue}>{unlockedAchievements}/{totalAchievements}</Text>
               <Text style={styles.statLabel}>Achievements</Text>
             </View>
             <View style={styles.statCard}>
-              <Ionicons name="trending-up" size={32} color={colors.primary} />
+              <Text style={styles.statIcon}>📈</Text>
               <Text style={styles.statValue}>{bestStreak}</Text>
               <Text style={styles.statLabel}>Best Streak</Text>
             </View>
@@ -221,16 +210,16 @@ export const DashboardScreenNew = ({ navigation }: any) => {
 
         {/* Pillar Streaks */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔥 Your Streaks</Text>
+          <Text style={styles.sectionTitle}>Your Streaks</Text>
           <View style={styles.streaksContainer}>
             {progress.streaks.map((streak) => {
               const pillarData: Record<string, { icon: string; color: string; name: string }> = {
-                finance: { icon: '💰', color: '#4A90E2', name: 'Finance' },
-                mental: { icon: '🧠', color: '#9C27B0', name: 'Mental' },
-                physical: { icon: '💪', color: '#FF6B6B', name: 'Physical' },
-                nutrition: { icon: '🥗', color: '#4CAF50', name: 'Nutrition' },
+                finance: { icon: '💰', color: timeblocColors.finance, name: 'Finance' },
+                mental: { icon: '🧠', color: timeblocColors.mental, name: 'Mental' },
+                physical: { icon: '💪', color: timeblocColors.physical, name: 'Physical' },
+                nutrition: { icon: '🥗', color: timeblocColors.nutrition, name: 'Nutrition' },
               };
-              const data = pillarData[streak.pillar] || { icon: '📊', color: '#666', name: streak.pillar };
+              const data = pillarData[streak.pillar] || { icon: '📊', color: timeblocColors.textSecondary, name: streak.pillar };
 
               return (
                 <View key={streak.pillar} style={styles.streakCard}>
@@ -263,7 +252,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
         {/* Recent Achievements */}
         {unlockedAchievements > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>🏆 Recent Achievements</Text>
+            <Text style={styles.sectionTitle}>Recent Achievements</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false}>
               <View style={styles.achievementsRow}>
                 {progress.achievements
@@ -291,100 +280,82 @@ export const DashboardScreenNew = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: designSystem.colors.background,
+    backgroundColor: timeblocColors.background,
   },
   centerContent: {
     justifyContent: 'center',
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: colors.textSecondary,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 24,
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 6,
-  },
-  greeting: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.9)',
-    marginBottom: 4,
-    fontWeight: '600',
-  },
-  userName: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: '#FFF',
-  },
-  levelBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 6,
-  },
-  levelText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#FFF',
+    marginTop: timeblocSpacing.lg,
+    ...timeblocTypography.body,
+    color: timeblocColors.textSecondary,
   },
   content: {
     flex: 1,
   },
+  // Header
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: timeblocSpacing.xl,
+    paddingTop: timeblocSpacing.xxl,
+    paddingBottom: timeblocSpacing.xl,
+  },
+  greeting: {
+    ...timeblocTypography.small,
+    marginBottom: timeblocSpacing.xs,
+  },
+  userName: {
+    ...timeblocTypography.h1,
+  },
+  levelBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: timeblocColors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...timeblocShadows.soft,
+  },
+  levelNumber: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: timeblocColors.primary,
+  },
+  // Welcome Card
   welcomeCard: {
-    margin: 20,
-    padding: 20,
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    marginHorizontal: timeblocSpacing.xl,
+    marginBottom: timeblocSpacing.xl,
+    padding: timeblocSpacing.xl,
+    backgroundColor: timeblocColors.surface,
+    borderRadius: timeblocBorderRadius.lg,
+    ...timeblocShadows.soft,
   },
   welcomeTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 8,
+    ...timeblocTypography.h3,
+    marginBottom: timeblocSpacing.sm,
   },
   welcomeText: {
-    fontSize: 15,
-    color: colors.textSecondary,
-    lineHeight: 22,
+    ...timeblocTypography.body,
+    color: timeblocColors.textSecondary,
   },
+  // Goals Card
   goalsCard: {
-    marginHorizontal: 20,
-    marginBottom: 20,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 6,
+    marginHorizontal: timeblocSpacing.xl,
+    marginBottom: timeblocSpacing.xl,
+    borderRadius: timeblocBorderRadius.xl,
+    ...timeblocShadows.medium,
     overflow: 'hidden',
   },
   goalsGradient: {
-    padding: 20,
+    padding: timeblocSpacing.xl,
   },
   goalsHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: timeblocSpacing.lg,
   },
   goalsIconContainer: {
     width: 48,
@@ -393,7 +364,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: 12,
+    marginRight: timeblocSpacing.md,
   },
   goalsIcon: {
     fontSize: 24,
@@ -404,8 +375,8 @@ const styles = StyleSheet.create({
   goalsTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#FFF',
-    marginBottom: 4,
+    color: '#FFFFFF',
+    marginBottom: 2,
   },
   goalsSubtitle: {
     fontSize: 13,
@@ -413,175 +384,149 @@ const styles = StyleSheet.create({
   },
   goalsStats: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 8,
+    gap: timeblocSpacing.sm,
   },
   goalsStat: {
     flex: 1,
     backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: timeblocBorderRadius.md,
+    padding: timeblocSpacing.md,
     alignItems: 'center',
   },
   goalsStatValue: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '700',
-    color: '#FFF',
-    marginBottom: 4,
+    color: '#FFFFFF',
+    marginBottom: 2,
   },
   goalsStatLabel: {
     fontSize: 11,
     color: 'rgba(255,255,255,0.9)',
   },
+  // Sections
   section: {
-    marginTop: 8,
-    paddingHorizontal: 20,
+    marginTop: timeblocSpacing.lg,
+    paddingHorizontal: timeblocSpacing.xl,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 16,
+    ...timeblocTypography.h3,
+    marginBottom: timeblocSpacing.md,
   },
+  // Quick Actions
   actionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 24,
+    gap: timeblocSpacing.md,
+    marginBottom: timeblocSpacing.lg,
   },
   actionCardWrapper: {
     width: '48%',
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
+    borderRadius: timeblocBorderRadius.lg,
+    ...timeblocShadows.soft,
+    overflow: 'hidden',
   },
   actionCard: {
-    padding: 20,
-    borderRadius: 16,
-    minHeight: 140,
+    padding: timeblocSpacing.xl,
+    borderRadius: timeblocBorderRadius.lg,
+    minHeight: 120,
     justifyContent: 'center',
     alignItems: 'center',
   },
   actionIcon: {
-    fontSize: 40,
-    marginBottom: 8,
+    fontSize: 36,
+    marginBottom: timeblocSpacing.sm,
   },
   actionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFF',
-    marginBottom: 4,
+    color: '#FFFFFF',
   },
-  actionDescription: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.9)',
-    textAlign: 'center',
-  },
+  // Stats
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 12,
-    marginBottom: 24,
+    gap: timeblocSpacing.md,
+    marginBottom: timeblocSpacing.lg,
   },
   statCard: {
     width: '48%',
-    backgroundColor: '#FFF',
-    padding: 20,
-    borderRadius: 16,
+    backgroundColor: timeblocColors.surface,
+    padding: timeblocSpacing.lg,
+    borderRadius: timeblocBorderRadius.lg,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    ...timeblocShadows.soft,
+  },
+  statIcon: {
+    fontSize: 32,
+    marginBottom: timeblocSpacing.sm,
   },
   statValue: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: colors.text,
-    marginTop: 8,
-    marginBottom: 4,
+    ...timeblocTypography.h2,
+    marginBottom: timeblocSpacing.xs,
   },
   statLabel: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    fontWeight: '600',
+    ...timeblocTypography.small,
   },
+  // Streaks
   streaksContainer: {
-    gap: 12,
-    marginBottom: 24,
+    gap: timeblocSpacing.md,
+    marginBottom: timeblocSpacing.lg,
   },
   streakCard: {
-    backgroundColor: '#FFF',
-    padding: 16,
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    backgroundColor: timeblocColors.surface,
+    padding: timeblocSpacing.lg,
+    borderRadius: timeblocBorderRadius.lg,
+    ...timeblocShadows.soft,
   },
   streakHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: timeblocSpacing.md,
   },
   streakIcon: {
     fontSize: 32,
-    marginRight: 12,
+    marginRight: timeblocSpacing.md,
   },
   streakInfo: {
     flex: 1,
   },
   streakName: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: colors.text,
-    marginBottom: 4,
+    ...timeblocTypography.bodyBold,
+    marginBottom: 2,
   },
   streakText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '600',
+    ...timeblocTypography.small,
   },
   streakProgress: {
     height: 6,
-    backgroundColor: designSystem.colors.backgroundGray,
-    borderRadius: 3,
+    backgroundColor: timeblocColors.borderLight,
+    borderRadius: timeblocBorderRadius.full,
     overflow: 'hidden',
   },
   streakProgressFill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: timeblocBorderRadius.full,
   },
+  // Achievements
   achievementsRow: {
     flexDirection: 'row',
-    gap: 12,
-    paddingBottom: 12,
+    gap: timeblocSpacing.md,
+    paddingBottom: timeblocSpacing.md,
   },
   achievementCard: {
     width: 100,
-    backgroundColor: '#FFF',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: timeblocColors.surface,
+    padding: timeblocSpacing.lg,
+    borderRadius: timeblocBorderRadius.md,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 3,
+    ...timeblocShadows.soft,
   },
   achievementIcon: {
     fontSize: 40,
-    marginBottom: 8,
+    marginBottom: timeblocSpacing.sm,
   },
   achievementName: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.text,
+    ...timeblocTypography.tiny,
     textAlign: 'center',
   },
 });
