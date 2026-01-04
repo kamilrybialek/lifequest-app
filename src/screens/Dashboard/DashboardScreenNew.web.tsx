@@ -122,6 +122,49 @@ export const DashboardScreenNew = ({ navigation }: any) => {
           </Text>
         </View>
 
+        {/* Goals Card - Steve Harvey's 300 Life Goals */}
+        <TouchableOpacity
+          style={styles.goalsCard}
+          onPress={() => navigation?.navigate('GoalsScreen')}
+          activeOpacity={0.8}
+        >
+          <LinearGradient
+            colors={['#6B46C1', '#9F7AEA']}
+            style={styles.goalsGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          >
+            <View style={styles.goalsHeader}>
+              <View style={styles.goalsIconContainer}>
+                <Text style={styles.goalsIcon}>🎯</Text>
+              </View>
+              <View style={styles.goalsContent}>
+                <Text style={styles.goalsTitle}>Twoje Cele</Text>
+                <Text style={styles.goalsSubtitle}>Metoda 300 Celów Życiowych</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={24} color="#FFF" />
+            </View>
+            <View style={styles.goalsStats}>
+              <View style={styles.goalsStat}>
+                <Text style={styles.goalsStatValue}>0</Text>
+                <Text style={styles.goalsStatLabel}>Miesiąc</Text>
+              </View>
+              <View style={styles.goalsStat}>
+                <Text style={styles.goalsStatValue}>0</Text>
+                <Text style={styles.goalsStatLabel}>Kwartał</Text>
+              </View>
+              <View style={styles.goalsStat}>
+                <Text style={styles.goalsStatValue}>0</Text>
+                <Text style={styles.goalsStatLabel}>Rok</Text>
+              </View>
+              <View style={styles.goalsStat}>
+                <Text style={styles.goalsStatValue}>0/300</Text>
+                <Text style={styles.goalsStatLabel}>Życie</Text>
+              </View>
+            </View>
+          </LinearGradient>
+        </TouchableOpacity>
+
         {/* Quick Actions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>⚡ Quick Actions</Text>
@@ -322,6 +365,72 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.textSecondary,
     lineHeight: 22,
+  },
+  goalsCard: {
+    marginHorizontal: 20,
+    marginBottom: 20,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 6,
+    overflow: 'hidden',
+  },
+  goalsGradient: {
+    padding: 20,
+  },
+  goalsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  goalsIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  goalsIcon: {
+    fontSize: 24,
+  },
+  goalsContent: {
+    flex: 1,
+  },
+  goalsTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFF',
+    marginBottom: 4,
+  },
+  goalsSubtitle: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.9)',
+  },
+  goalsStats: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  goalsStat: {
+    flex: 1,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 12,
+    padding: 12,
+    alignItems: 'center',
+  },
+  goalsStatValue: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFF',
+    marginBottom: 4,
+  },
+  goalsStatLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.9)',
   },
   section: {
     marginTop: 8,
