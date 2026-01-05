@@ -14,6 +14,11 @@ import { MentalHealthPath } from '../screens/mental/MentalHealthPath';
 import { PhysicalHealthPath } from '../screens/physical/PhysicalHealthPath';
 import { NutritionPath } from '../screens/nutrition/NutritionPath';
 
+// Dashboard screens with trackers
+import { MentalHealthScreen } from '../screens/mental/MentalHealthScreen';
+import { PhysicalHealthScreen } from '../screens/physical/PhysicalHealthScreen';
+import { NutritionScreen } from '../screens/nutrition/NutritionScreen';
+
 // Lesson screens
 import { MentalLessonIntro } from '../screens/mental/MentalLessonIntro';
 import { MentalLessonContent } from '../screens/mental/MentalLessonContent';
@@ -103,6 +108,11 @@ export const AppNavigator = () => {
             <Stack.Screen name="MentalHealthPath" component={MentalHealthPath} />
             <Stack.Screen name="PhysicalHealthPath" component={PhysicalHealthPath} />
             <Stack.Screen name="NutritionPath" component={NutritionPath} />
+
+            {/* Dashboard screens with trackers - accessible from Dashboard Quick Actions */}
+            <Stack.Screen name="MentalHealthScreen" component={MentalHealthScreen} />
+            <Stack.Screen name="PhysicalHealthScreen" component={PhysicalHealthScreen} />
+            <Stack.Screen name="NutritionScreen" component={NutritionScreen} />
 
             {/* Lesson screens */}
             <Stack.Screen name="MentalLessonIntro" component={MentalLessonIntro} />

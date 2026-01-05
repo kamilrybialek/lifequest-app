@@ -30,10 +30,10 @@ interface QuickAction {
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
-  { id: '1', title: 'Finance', icon: '💰', color: timeblocGradients.finance, description: 'Track finances', screen: 'FinancePathNew' },
-  { id: '2', title: 'Mental', icon: '🧠', color: timeblocGradients.mental, description: 'Mental wellness', screen: 'MentalHealthPath' },
-  { id: '3', title: 'Physical', icon: '💪', color: timeblocGradients.physical, description: 'Physical health', screen: 'PhysicalHealthPath' },
-  { id: '4', title: 'Nutrition', icon: '🥗', color: timeblocGradients.nutrition, description: 'Nutrition', screen: 'NutritionPath' },
+  { id: '1', title: 'Finance', icon: '💰', color: timeblocGradients.finance, description: 'Track finances', screen: 'FinanceDashboard' },
+  { id: '2', title: 'Mental', icon: '🧠', color: timeblocGradients.mental, description: 'Mental wellness', screen: 'MentalHealthScreen' },
+  { id: '3', title: 'Physical', icon: '💪', color: timeblocGradients.physical, description: 'Physical health', screen: 'PhysicalHealthScreen' },
+  { id: '4', title: 'Nutrition', icon: '🥗', color: timeblocGradients.nutrition, description: 'Nutrition', screen: 'NutritionScreen' },
 ];
 
 export const DashboardScreenNew = ({ navigation }: any) => {
