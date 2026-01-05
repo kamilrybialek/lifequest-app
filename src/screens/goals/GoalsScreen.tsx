@@ -22,8 +22,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, typography, spacing, shadows, gradients } from '../../theme';
 import { useGoalsStore, TimeHorizon, Goal } from '../../store/goalsStore';
+import { timeblocColors, timeblocShadows, timeblocSpacing, timeblocBorderRadius, timeblocTypography, timeblocGradients } from '../../theme/timeblocTheme';
 
 export const GoalsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
   const [showInfo, setShowInfo] = useState(false);
