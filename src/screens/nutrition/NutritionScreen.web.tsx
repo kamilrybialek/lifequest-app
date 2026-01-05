@@ -130,6 +130,33 @@ export const NutritionScreen = ({ navigation }: any) => {
           </View>
         </View>
 
+        {/* Diet Planner CTA */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.dietPlannerCard}
+            onPress={() => navigation?.navigate('DietDashboardScreen')}
+            activeOpacity={0.8}
+          >
+            <LinearGradient
+              colors={['#A0D995', '#B5E3A8']}
+              style={styles.dietPlannerGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View style={styles.dietPlannerContent}>
+                <View style={styles.dietPlannerLeft}>
+                  <Text style={styles.dietPlannerIcon}>🍽️</Text>
+                  <View>
+                    <Text style={styles.dietPlannerTitle}>AI Diet Planner</Text>
+                    <Text style={styles.dietPlannerSubtitle}>Create personalized meal plans</Text>
+                  </View>
+                </View>
+                <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.9)" />
+              </View>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
         {/* Water Tracker */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Water Intake</Text>

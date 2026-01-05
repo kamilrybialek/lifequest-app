@@ -43,6 +43,17 @@ import { BodyMeasurementsScreen } from '../screens/physical/tools/BodyMeasuremen
 import { MealLoggerScreen } from '../screens/nutrition/tools/MealLoggerScreen';
 import { WaterTrackerScreen } from '../screens/nutrition/tools/WaterTrackerScreen';
 import { CalorieCalculatorScreen } from '../screens/nutrition/tools/CalorieCalculatorScreen';
+import { DietDashboardScreen } from '../screens/nutrition/tools/DietDashboardScreen';
+
+// Diet Planner screens
+import { DietPlannerScreen } from '../screens/nutrition/DietPlannerScreen';
+import { RecipeDetailScreen } from '../screens/nutrition/RecipeDetailScreen';
+import { RecipeFinder } from '../screens/nutrition/RecipeFinder';
+import { RecipeListScreen } from '../screens/nutrition/RecipeListScreen';
+
+// Admin screens
+import { AdminRecipes } from '../screens/admin/AdminRecipes';
+import { RecipeImportScreen } from '../screens/admin/RecipeImportScreen';
 
 // Finance tool screens - ENHANCED VERSIONS
 import { FinanceDashboardUnified } from '../screens/finance/FinanceDashboardUnified';
@@ -138,6 +149,17 @@ export const AppNavigator = () => {
             <Stack.Screen name="MealLoggerScreen" component={MealLoggerScreen} />
             <Stack.Screen name="WaterTrackerScreen" component={WaterTrackerScreen} />
             <Stack.Screen name="CalorieCalculatorScreen" component={CalorieCalculatorScreen} />
+            <Stack.Screen name="DietDashboardScreen" component={DietDashboardScreen} />
+
+            {/* Diet Planner screens */}
+            <Stack.Screen name="DietPlannerScreen" component={DietPlannerScreen} />
+            <Stack.Screen name="RecipeDetailScreen" component={RecipeDetailScreen} />
+            <Stack.Screen name="RecipeFinder" component={RecipeFinder} />
+            <Stack.Screen name="RecipeListScreen" component={RecipeListScreen} />
+
+            {/* Admin screens */}
+            <Stack.Screen name="AdminRecipes" component={AdminRecipes} />
+            <Stack.Screen name="RecipeImportScreen" component={RecipeImportScreen} />
 
             {/* Finance tool screens - ENHANCED */}
             <Stack.Screen name="FinanceDashboard" component={FinanceDashboardUnified} />
