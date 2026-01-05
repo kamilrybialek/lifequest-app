@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-nat
 import { Text } from 'react-native-paper';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { getRecipeById } from '../../database/nutrition.web';
-import { ArrowLeft, Plus, Clock, Users, Flame } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 const LOVABLE_COLORS = {
   primary: '#FA7D09',
@@ -119,12 +119,12 @@ export const RecipeDetailScreen = () => {
 
           {/* Back Button */}
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <ArrowLeft color="#fff" size={20} />
+            <Ionicons name="arrow-back" color="#fff" size={20} />
           </TouchableOpacity>
 
           {/* Add Button */}
           <TouchableOpacity style={styles.addButton} onPress={handleAddToMealPlan}>
-            <Plus color="#fff" size={20} />
+            <Ionicons name="add" color="#fff" size={20} />
           </TouchableOpacity>
         </View>
 
@@ -146,7 +146,7 @@ export const RecipeDetailScreen = () => {
             <View style={styles.statsGrid}>
               <View style={styles.statItem}>
                 <View style={styles.statIconRow}>
-                  <Flame color={LOVABLE_COLORS.primary} size={20} />
+                  <Ionicons name="flame" color={LOVABLE_COLORS.primary} size={20} />
                   <Text style={styles.statValue}>{Math.round(recipe.total_calories)}</Text>
                 </View>
                 <Text style={styles.statLabel}>Calories</Text>
@@ -154,7 +154,7 @@ export const RecipeDetailScreen = () => {
 
               <View style={styles.statItem}>
                 <View style={styles.statIconRow}>
-                  <Clock color={LOVABLE_COLORS.foreground} size={20} />
+                  <Ionicons name="time-outline" color={LOVABLE_COLORS.foreground} size={20} />
                   <Text style={styles.statValueNormal}>{recipe.prep_time_minutes || 0}</Text>
                 </View>
                 <Text style={styles.statLabel}>Minutes</Text>
@@ -162,7 +162,7 @@ export const RecipeDetailScreen = () => {
 
               <View style={styles.statItem}>
                 <View style={styles.statIconRow}>
-                  <Users color={LOVABLE_COLORS.foreground} size={20} />
+                  <Ionicons name="people-outline" color={LOVABLE_COLORS.foreground} size={20} />
                   <Text style={styles.statValueNormal}>{recipe.servings || 1}</Text>
                 </View>
                 <Text style={styles.statLabel}>Servings</Text>
@@ -227,7 +227,7 @@ export const RecipeDetailScreen = () => {
 
           {/* Bottom CTA */}
           <TouchableOpacity style={styles.addToMealPlanButton} onPress={handleAddToMealPlan}>
-            <Plus color="#fff" size={20} style={{ marginRight: 8 }} />
+            <Ionicons name="add" color="#fff" size={20} style={{ marginRight: 8 }} />
             <Text style={styles.addToMealPlanButtonText}>Add to Meal Plan</Text>
           </TouchableOpacity>
         </View>

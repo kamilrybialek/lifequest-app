@@ -4,7 +4,7 @@ import { Text } from 'react-native-paper';
 import { useAuthStore } from '../../store/authStore';
 import { getRecipes } from '../../database/nutrition.web';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { Search, Clock, Users, Flame } from 'lucide-react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 const LOVABLE_COLORS = {
   primary: '#FA7D09',
@@ -131,18 +131,18 @@ export const RecipeListScreen = () => {
             {/* Stats */}
             <View style={styles.recipeStats}>
               <View style={styles.recipeStat}>
-                <Flame color={LOVABLE_COLORS.primary} size={14} />
+                <Ionicons name="flame" color={LOVABLE_COLORS.primary} size={14} />
                 <Text style={styles.recipeStatValue}>{Math.round(recipe.total_calories)}</Text>
                 <Text style={styles.recipeStatLabel}>kcal</Text>
               </View>
 
               <View style={styles.recipeStat}>
-                <Clock color={LOVABLE_COLORS.mutedForeground} size={14} />
+                <Ionicons name="time-outline" color={LOVABLE_COLORS.mutedForeground} size={14} />
                 <Text style={styles.recipeStatMuted}>{recipe.prep_time_minutes || 0} min</Text>
               </View>
 
               <View style={styles.recipeStat}>
-                <Users color={LOVABLE_COLORS.mutedForeground} size={14} />
+                <Ionicons name="people-outline" color={LOVABLE_COLORS.mutedForeground} size={14} />
                 <Text style={styles.recipeStatMuted}>{recipe.servings || 1}</Text>
               </View>
             </View>
