@@ -11,11 +11,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
 import { timeblocColors, timeblocShadows, timeblocSpacing, timeblocBorderRadius, timeblocTypography } from '../../theme/timeblocTheme';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 
 export const ProfileScreenNew = () => {
   const { user, logout } = useAuthStore();
   const { progress, loadAppData } = useAppStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [showResetSuccessModal, setShowResetSuccessModal] = useState(false);
 
   const firstName = user?.firstName || user?.email?.split('@')[0] || 'Champion';
 
@@ -30,11 +34,13 @@ export const ProfileScreenNew = () => {
   };
 
   const handleLogout = () => {
-    const confirmed = window.confirm('Are you sure you want to logout?');
-    if (confirmed) {
-      console.log('Logging out...');
-      logout();
-    }
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    console.log('Logging out...');
+    setShowLogoutModal(false);
+    logout();
   };
 
   const handleSettingPress = (setting: string) => {
@@ -42,35 +48,27 @@ export const ProfileScreenNew = () => {
     // TODO: Implement settings navigation
   };
 
-  const handleResetDatabase = async () => {
-    const confirmed = window.confirm(
-      '⚠️ RESET DATABASE\n\n' +
-      'This will delete ALL your data including:\n' +
-      '- Onboarding data\n' +
-      '- Tasks and progress\n' +
-      '- Achievements and streaks\n' +
-      '- User authentication\n\n' +
-      'This action CANNOT be undone!\n\n' +
-      'Are you absolutely sure?'
-    );
+  const handleResetDatabase = () => {
+    setShowResetModal(true);
+  };
 
-    if (confirmed) {
-      try {
-        console.log('Resetting database...');
-        await AsyncStorage.clear();
-        console.log('Database cleared, reloading...');
-
-        // Show success message
-        window.alert('✅ Database has been reset successfully!\n\nThe app will now reload.');
-
-        // Logout and reload
-        await logout();
-        window.location.reload();
-      } catch (error) {
-        console.error('Error resetting database:', error);
-        window.alert('❌ Error: Failed to reset database. Please try again.');
-      }
+  const confirmResetDatabase = async () => {
+    setShowResetModal(false);
+    try {
+      console.log('Resetting database...');
+      await AsyncStorage.clear();
+      console.log('Database cleared');
+      setShowResetSuccessModal(true);
+    } catch (error) {
+      console.error('Error resetting database:', error);
+      // Could add an error modal here too if needed
     }
+  };
+
+  const handleResetSuccess = async () => {
+    setShowResetSuccessModal(false);
+    await logout();
+    window.location.reload();
   };
 
   const unlockedAchievements = progress.achievements.filter(a => a.unlocked);
@@ -287,6 +285,52 @@ export const ProfileScreenNew = () => {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmModal
+        visible={showLogoutModal}
+        title="Logout"
+        message="Are you sure you want to logout?"
+        confirmText="Logout"
+        cancelText="Cancel"
+        confirmColor={timeblocColors.error}
+        onConfirm={confirmLogout}
+        onCancel={() => setShowLogoutModal(false)}
+      />
+
+      {/* Reset Database Confirmation Modal */}
+      <ConfirmModal
+        visible={showResetModal}
+        title="⚠️ RESET DATABASE"
+        message="This will delete ALL your data including:
+- Onboarding data
+- Tasks and progress
+- Achievements and streaks
+- User authentication
+
+This action CANNOT be undone!
+
+Are you absolutely sure?"
+        confirmText="Reset"
+        cancelText="Cancel"
+        confirmColor={timeblocColors.error}
+        onConfirm={confirmResetDatabase}
+        onCancel={() => setShowResetModal(false)}
+      />
+
+      {/* Reset Success Modal */}
+      <ConfirmModal
+        visible={showResetSuccessModal}
+        title="✅ Success"
+        message="Database has been reset successfully!
+
+The app will now reload."
+        confirmText="OK"
+        cancelText="Cancel"
+        confirmColor={timeblocColors.primary}
+        onConfirm={handleResetSuccess}
+        onCancel={handleResetSuccess}
+      />
     </SafeAreaView>
   );
 };
