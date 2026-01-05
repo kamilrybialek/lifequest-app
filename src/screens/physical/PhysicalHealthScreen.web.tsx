@@ -1,5 +1,5 @@
 /**
- * Physical Health Dashboard - TimeBloc Design
+ * Physical Health Dashboard - TimeBloc Design (Web Version)
  * Track workouts, steps, weight, sleep, and body metrics
  */
 
@@ -10,10 +10,8 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   RefreshControl,
   TextInput,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -57,7 +55,7 @@ export const PhysicalHealthScreen = ({ navigation }: any) => {
         workouts: [...physicalHealthData.workouts, newWorkout],
       });
       setDuration('');
-      Alert.alert('💪 Logged', `${durationNum} min ${workoutType} workout recorded!`);
+      window.alert(`💪 ${durationNum} min ${workoutType} workout recorded!`);
     }
   };
 
@@ -68,7 +66,7 @@ export const PhysicalHealthScreen = ({ navigation }: any) => {
         dailySteps: stepsNum,
       });
       setSteps('');
-      Alert.alert('🚶 Updated', `${stepsNum} steps logged!`);
+      window.alert(`🚶 ${stepsNum} steps logged!`);
     }
   };
 
@@ -80,7 +78,7 @@ export const PhysicalHealthScreen = ({ navigation }: any) => {
         weight: weightNum,
         height: heightNum,
       });
-      Alert.alert('📊 Updated', 'Body metrics saved!');
+      window.alert('📊 Body metrics saved!');
     }
   };
 
@@ -100,7 +98,7 @@ export const PhysicalHealthScreen = ({ navigation }: any) => {
   const recentWorkouts = physicalHealthData.workouts.slice(-5).reverse();
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -306,7 +304,7 @@ export const PhysicalHealthScreen = ({ navigation }: any) => {
 
         <View style={{ height: 40 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

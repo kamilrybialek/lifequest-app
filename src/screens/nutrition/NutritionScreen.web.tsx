@@ -1,5 +1,5 @@
 /**
- * Nutrition Dashboard - TimeBloc Design
+ * Nutrition Dashboard - TimeBloc Design (Web Version)
  * Track water intake, calories, meals, and nutrition habits
  */
 
@@ -10,10 +10,8 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   RefreshControl,
   TextInput,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -54,7 +52,7 @@ export const NutritionScreen = ({ navigation }: any) => {
         caloriesConsumed: (nutritionData.caloriesConsumed || 0) + calories,
       });
       setCaloriesInput('');
-      Alert.alert('🔥 Added', `${calories} calories logged!`);
+      window.alert(`🔥 ${calories} calories logged!`);
     }
   };
 
@@ -62,7 +60,7 @@ export const NutritionScreen = ({ navigation }: any) => {
     updateNutritionData({
       caloriesConsumed: 0,
     });
-    Alert.alert('🔄 Reset', 'Calorie count reset!');
+    window.alert('🔄 Calorie count reset!');
   };
 
   const handleToggleProtein = () => {
@@ -88,7 +86,7 @@ export const NutritionScreen = ({ navigation }: any) => {
   const caloriesRemaining = calorieGoal - caloriesConsumed;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -290,7 +288,7 @@ export const NutritionScreen = ({ navigation }: any) => {
 
         <View style={{ height: 40 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

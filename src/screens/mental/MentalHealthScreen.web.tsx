@@ -3,6 +3,11 @@
  * Track mental wellness, sleep, stress, and mindfulness
  */
 
+/**
+ * Mental Health Dashboard - TimeBloc Design (Web Version)
+ * Track mental wellness, sleep, stress, and mindfulness
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -10,10 +15,8 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
   RefreshControl,
   TextInput,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -44,7 +47,7 @@ export const MentalHealthScreen = ({ navigation }: any) => {
         gratitudeEntries: [...mentalHealthData.gratitudeEntries, newEntry],
       });
       setGratitudeText('');
-      Alert.alert('✨ Added', 'Gratitude entry saved!');
+      window.alert('✨ Gratitude entry saved!');
     }
   };
 
@@ -63,7 +66,7 @@ export const MentalHealthScreen = ({ navigation }: any) => {
         sleepLog: [...mentalHealthData.sleepLog, newEntry],
       });
       setSleepHours('');
-      Alert.alert('😴 Logged', `${hours} hours of sleep recorded!`);
+      window.alert(`😴 ${hours} hours of sleep recorded!`);
     }
   };
 
@@ -71,14 +74,14 @@ export const MentalHealthScreen = ({ navigation }: any) => {
     updateMentalHealthData({
       morningLightTime: new Date().toISOString(),
     });
-    Alert.alert('☀️ Great!', 'Morning sunlight logged!');
+    window.alert('☀️ Morning sunlight logged!');
   };
 
   const handleUpdateStress = () => {
     updateMentalHealthData({
       stressLevel,
     });
-    Alert.alert('📊 Updated', 'Stress level saved!');
+    window.alert('📊 Stress level saved!');
   };
 
   const recentGratitude = mentalHealthData.gratitudeEntries.slice(-3).reverse();
@@ -88,7 +91,7 @@ export const MentalHealthScreen = ({ navigation }: any) => {
     : '0';
 
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -277,7 +280,7 @@ export const MentalHealthScreen = ({ navigation }: any) => {
 
         <View style={{ height: 40 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 

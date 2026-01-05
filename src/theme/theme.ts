@@ -1,7 +1,17 @@
-import { MD3LightTheme } from 'react-native-paper';
-import { colors } from './colors';
+/**
+ * React Native Paper Theme Configuration
+ * Uses unified theme from ./index.ts
+ */
 
-export const theme = {
+import { MD3LightTheme } from 'react-native-paper';
+import { colors, typography, shadows } from './index';
+
+// Re-export unified theme components for backward compatibility
+export { colors, typography, shadows };
+export * from './index';
+
+// React Native Paper theme configuration
+export const paperTheme = {
   ...MD3LightTheme,
   colors: {
     ...MD3LightTheme.colors,
@@ -14,75 +24,5 @@ export const theme = {
   roundness: 16, // Duolingo-style rounded corners
 };
 
-export const typography = {
-  // Duolingo uses DIN Round font family
-  title: {
-    fontSize: 28,
-    fontWeight: '800' as const,
-    color: colors.text,
-  },
-  h2: {
-    fontSize: 24,
-    fontWeight: '700' as const,
-    color: colors.text,
-  },
-  heading: {
-    fontSize: 22,
-    fontWeight: '700' as const,
-    color: colors.text,
-  },
-  h3: {
-    fontSize: 18,
-    fontWeight: '700' as const,
-    color: colors.text,
-  },
-  h4: {
-    fontSize: 16,
-    fontWeight: '700' as const,
-    color: colors.text,
-  },
-  body: {
-    fontSize: 16,
-    fontWeight: '400' as const,
-    color: colors.text,
-  },
-  bodyBold: {
-    fontSize: 16,
-    fontWeight: '700' as const,
-    color: colors.text,
-  },
-  caption: {
-    fontSize: 14,
-    fontWeight: '400' as const,
-    color: colors.textSecondary,
-  },
-  small: {
-    fontSize: 12,
-    fontWeight: '400' as const,
-    color: colors.textLight,
-  },
-};
-
-export const shadows = {
-  small: {
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 1,
-    shadowRadius: 0, // Flat shadow
-    elevation: 2,
-  },
-  medium: {
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 0, // Flat shadow
-    elevation: 4,
-  },
-  large: {
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 1,
-    shadowRadius: 0, // Flat shadow
-    elevation: 6,
-  },
-};
+// Default export for backward compatibility
+export const theme = paperTheme;

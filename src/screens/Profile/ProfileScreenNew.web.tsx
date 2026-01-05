@@ -1,19 +1,25 @@
 /**
- * Profile Screen - Duolingo Style (Web Version)
- * Matching Journey and Tasks screen design language
+ * Profile Screen - TimeBloc-Inspired Design (Web Version)
+ * Soft, premium, minimal design language
  */
 
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, RefreshControl } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
+import { timeblocColors, timeblocShadows, timeblocSpacing, timeblocBorderRadius, timeblocTypography } from '../../theme/timeblocTheme';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 
 export const ProfileScreenNew = () => {
   const { user, logout } = useAuthStore();
   const { progress, loadAppData } = useAppStore();
   const [refreshing, setRefreshing] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [showResetSuccessModal, setShowResetSuccessModal] = useState(false);
 
   const firstName = user?.firstName || user?.email?.split('@')[0] || 'Champion';
 
@@ -28,11 +34,13 @@ export const ProfileScreenNew = () => {
   };
 
   const handleLogout = () => {
-    const confirmed = window.confirm('Are you sure you want to logout?');
-    if (confirmed) {
-      console.log('Logging out...');
-      logout();
-    }
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    console.log('Logging out...');
+    setShowLogoutModal(false);
+    logout();
   };
 
   const handleSettingPress = (setting: string) => {
@@ -40,35 +48,27 @@ export const ProfileScreenNew = () => {
     // TODO: Implement settings navigation
   };
 
-  const handleResetDatabase = async () => {
-    const confirmed = window.confirm(
-      '⚠️ RESET DATABASE\n\n' +
-      'This will delete ALL your data including:\n' +
-      '- Onboarding data\n' +
-      '- Tasks and progress\n' +
-      '- Achievements and streaks\n' +
-      '- User authentication\n\n' +
-      'This action CANNOT be undone!\n\n' +
-      'Are you absolutely sure?'
-    );
+  const handleResetDatabase = () => {
+    setShowResetModal(true);
+  };
 
-    if (confirmed) {
-      try {
-        console.log('Resetting database...');
-        await AsyncStorage.clear();
-        console.log('Database cleared, reloading...');
-
-        // Show success message
-        window.alert('✅ Database has been reset successfully!\n\nThe app will now reload.');
-
-        // Logout and reload
-        await logout();
-        window.location.reload();
-      } catch (error) {
-        console.error('Error resetting database:', error);
-        window.alert('❌ Error: Failed to reset database. Please try again.');
-      }
+  const confirmResetDatabase = async () => {
+    setShowResetModal(false);
+    try {
+      console.log('Resetting database...');
+      await AsyncStorage.clear();
+      console.log('Database cleared');
+      setShowResetSuccessModal(true);
+    } catch (error) {
+      console.error('Error resetting database:', error);
+      // Could add an error modal here too if needed
     }
+  };
+
+  const handleResetSuccess = async () => {
+    setShowResetSuccessModal(false);
+    await logout();
+    window.location.reload();
   };
 
   const unlockedAchievements = progress.achievements.filter(a => a.unlocked);
@@ -86,48 +86,25 @@ export const ProfileScreenNew = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Header - Duolingo Style */}
+        {/* Header - TimeBloc Style */}
         <View style={styles.header}>
-          <View style={styles.headerContent}>
-            <Text style={styles.headerEmoji}>👤</Text>
-            <Text style={styles.headerTitle}>Profile</Text>
-            <Text style={styles.headerSubtitle}>Keep growing, {firstName}!</Text>
-          </View>
-          <TouchableOpacity onPress={handleLogout} style={styles.headerLogout}>
-            <Ionicons name="log-out-outline" size={20} color="rgba(255,255,255,0.9)" />
+          <TouchableOpacity onPress={() => {}} style={styles.backButton}>
+            <Ionicons name="chevron-back" size={24} color={timeblocColors.text} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Profile</Text>
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
+            <Ionicons name="log-out-outline" size={20} color={timeblocColors.textSecondary} />
           </TouchableOpacity>
         </View>
 
-        {/* Stats Bar - overlapping header */}
-        <View style={styles.statsBar}>
-          <View style={styles.statItem}>
-            <Ionicons name="star" size={20} color="#FFD700" />
-            <Text style={styles.statValue}>{progress.totalPoints || progress.xp}</Text>
-            <Text style={styles.statLabel}>Total XP</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Ionicons name="flame" size={20} color="#FF6B6B" />
-            <Text style={styles.statValue}>{bestStreak}</Text>
-            <Text style={styles.statLabel}>Best Streak</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Ionicons name="trophy" size={20} color="#4CAF50" />
-            <Text style={styles.statValue}>{unlockedAchievements.length}/{totalAchievements}</Text>
-            <Text style={styles.statLabel}>Achievements</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Ionicons name="calendar" size={20} color="#1CB0F6" />
-            <Text style={styles.statValue}>{currentStreakSum}</Text>
-            <Text style={styles.statLabel}>Current Streak</Text>
-          </View>
-        </View>
-
-        {/* Level Card - Colorful Duolingo Style */}
+        {/* Level Card - Soft Purple Gradient */}
         <View style={styles.levelSection}>
-          <TouchableOpacity style={styles.levelCard} activeOpacity={0.8}>
+          <LinearGradient
+            colors={['#7C6FE8', '#9F8EFF']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.levelCard}
+          >
             <View style={styles.levelCardContent}>
               <View style={styles.levelIconContainer}>
                 <Text style={styles.levelNumber}>{progress.level}</Text>
@@ -149,34 +126,57 @@ export const ProfileScreenNew = () => {
                 </View>
               </View>
             </View>
-          </TouchableOpacity>
+          </LinearGradient>
         </View>
 
-        {/* Achievements Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>🏆 Achievements</Text>
-            <Text style={styles.sectionSubtitle}>{unlockedAchievements.length} of {totalAchievements}</Text>
+        {/* Stats Grid - 2x2 */}
+        <View style={styles.statsSection}>
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <Text style={styles.statIcon}>⭐</Text>
+              <Text style={styles.statValue}>{progress.totalPoints || progress.xp}</Text>
+              <Text style={styles.statLabel}>Total XP</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statIcon}>🔥</Text>
+              <Text style={styles.statValue}>{bestStreak}</Text>
+              <Text style={styles.statLabel}>Best Streak</Text>
+            </View>
           </View>
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <Text style={styles.statIcon}>🏆</Text>
+              <Text style={styles.statValue}>{unlockedAchievements.length}</Text>
+              <Text style={styles.statLabel}>Achievements</Text>
+            </View>
+            <View style={styles.statCard}>
+              <Text style={styles.statIcon}>📅</Text>
+              <Text style={styles.statValue}>{currentStreakSum}</Text>
+              <Text style={styles.statLabel}>Current Streak</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* Achievements Preview - Horizontal Scroll */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Achievements</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.achievementsScroll}>
             {progress.achievements.slice(0, 5).map((achievement) => (
               <TouchableOpacity
                 key={achievement.id}
                 style={[
                   styles.achievementCard,
-                  { backgroundColor: achievement.unlocked ? '#4CAF50' : '#E5E5E5' }
+                  { opacity: achievement.unlocked ? 1 : 0.4 }
                 ]}
                 activeOpacity={0.8}
               >
-                <View style={styles.achievementIconContainer}>
-                  <Text style={styles.achievementIcon}>{achievement.icon}</Text>
-                </View>
-                <Text style={[styles.achievementName, !achievement.unlocked && styles.achievementNameLocked]}>
+                <Text style={styles.achievementIcon}>{achievement.icon}</Text>
+                <Text style={styles.achievementName}>
                   {achievement.name}
                 </Text>
                 {achievement.unlocked && (
-                  <View style={styles.achievementUnlocked}>
-                    <Ionicons name="checkmark-circle" size={20} color="white" />
+                  <View style={styles.achievementCheck}>
+                    <Ionicons name="checkmark-circle" size={16} color={timeblocColors.primary} />
                   </View>
                 )}
               </TouchableOpacity>
@@ -184,66 +184,19 @@ export const ProfileScreenNew = () => {
           </ScrollView>
         </View>
 
-        {/* Pillar Streaks - Colorful Cards */}
+        {/* Settings Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🔥 Pillar Streaks</Text>
-          {progress.streaks.map((streak) => {
-            const pillarColors: Record<string, string> = {
-              finance: '#4A90E2',
-              mental: '#4A90E2',
-              physical: '#FF6B6B',
-              nutrition: '#4CAF50',
-            };
-            const pillarIcons: Record<string, string> = {
-              finance: '💰',
-              mental: '🧠',
-              physical: '💪',
-              nutrition: '🥗',
-            };
-            return (
-              <TouchableOpacity
-                key={streak.pillar}
-                style={[styles.streakCard, { backgroundColor: pillarColors[streak.pillar] }]}
-                activeOpacity={0.8}
-              >
-                <View style={styles.streakCardContent}>
-                  <View style={styles.streakIconContainer}>
-                    <Text style={styles.streakEmoji}>{pillarIcons[streak.pillar]}</Text>
-                  </View>
-                  <View style={styles.streakInfo}>
-                    <Text style={styles.streakPillar}>
-                      {streak.pillar.charAt(0).toUpperCase() + streak.pillar.slice(1)}
-                    </Text>
-                    <View style={styles.streakMeta}>
-                      <View style={styles.streakBadge}>
-                        <Ionicons name="flame" size={12} color="white" />
-                        <Text style={styles.streakBadgeText}>{streak.current} days</Text>
-                      </View>
-                      <Text style={styles.streakLongest}>Best: {streak.longest}</Text>
-                    </View>
-                  </View>
-                  <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.8)" />
-                </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {/* Settings */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>⚙️ Settings</Text>
+          <Text style={styles.sectionLabel}>SETTINGS</Text>
           <View style={styles.settingsCard}>
             <TouchableOpacity
               style={styles.settingItem}
               onPress={() => handleSettingPress('notifications')}
             >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIconContainer, { backgroundColor: '#FF9500' + '20' }]}>
-                  <Ionicons name="notifications-outline" size={20} color="#FF9500" />
-                </View>
+                <Text style={styles.settingEmoji}>🔔</Text>
                 <Text style={styles.settingText}>Notifications</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#CCC" />
+              <Ionicons name="chevron-forward" size={20} color={timeblocColors.textTertiary} />
             </TouchableOpacity>
 
             <View style={styles.settingDivider} />
@@ -253,12 +206,10 @@ export const ProfileScreenNew = () => {
               onPress={() => handleSettingPress('account')}
             >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIconContainer, { backgroundColor: '#1CB0F6' + '20' }]}>
-                  <Ionicons name="person-outline" size={20} color="#1CB0F6" />
-                </View>
+                <Text style={styles.settingEmoji}>👤</Text>
                 <Text style={styles.settingText}>Account Settings</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#CCC" />
+              <Ionicons name="chevron-forward" size={20} color={timeblocColors.textTertiary} />
             </TouchableOpacity>
 
             <View style={styles.settingDivider} />
@@ -268,12 +219,10 @@ export const ProfileScreenNew = () => {
               onPress={() => handleSettingPress('data')}
             >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIconContainer, { backgroundColor: '#9C27B0' + '20' }]}>
-                  <Ionicons name="download-outline" size={20} color="#9C27B0" />
-                </View>
+                <Text style={styles.settingEmoji}>📥</Text>
                 <Text style={styles.settingText}>Export Data</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#CCC" />
+              <Ionicons name="chevron-forward" size={20} color={timeblocColors.textTertiary} />
             </TouchableOpacity>
 
             <View style={styles.settingDivider} />
@@ -283,12 +232,10 @@ export const ProfileScreenNew = () => {
               onPress={() => handleSettingPress('privacy')}
             >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIconContainer, { backgroundColor: '#4CAF50' + '20' }]}>
-                  <Ionicons name="shield-outline" size={20} color="#4CAF50" />
-                </View>
+                <Text style={styles.settingEmoji}>🔒</Text>
                 <Text style={styles.settingText}>Privacy & Security</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#CCC" />
+              <Ionicons name="chevron-forward" size={20} color={timeblocColors.textTertiary} />
             </TouchableOpacity>
 
             <View style={styles.settingDivider} />
@@ -298,31 +245,27 @@ export const ProfileScreenNew = () => {
               onPress={() => handleSettingPress('about')}
             >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIconContainer, { backgroundColor: '#FFB800' + '20' }]}>
-                  <Ionicons name="information-circle-outline" size={20} color="#FFB800" />
-                </View>
+                <Text style={styles.settingEmoji}>ℹ️</Text>
                 <Text style={styles.settingText}>About LifeQuest</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#CCC" />
+              <Ionicons name="chevron-forward" size={20} color={timeblocColors.textTertiary} />
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Danger Zone */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>⚠️ Danger Zone</Text>
+          <Text style={styles.sectionLabel}>DANGER ZONE</Text>
           <View style={styles.settingsCard}>
             <TouchableOpacity
               style={styles.settingItem}
               onPress={handleResetDatabase}
             >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIconContainer, { backgroundColor: '#FF4B4B' + '20' }]}>
-                  <Ionicons name="trash-outline" size={20} color="#FF4B4B" />
-                </View>
-                <Text style={[styles.settingText, { color: '#FF4B4B' }]}>Reset Database</Text>
+                <Text style={styles.settingEmoji}>🗑️</Text>
+                <Text style={[styles.settingText, { color: timeblocColors.error }]}>Reset Database</Text>
               </View>
-              <Ionicons name="warning-outline" size={20} color="#FF4B4B" />
+              <Ionicons name="warning-outline" size={20} color={timeblocColors.error} />
             </TouchableOpacity>
 
             <View style={styles.settingDivider} />
@@ -332,30 +275,62 @@ export const ProfileScreenNew = () => {
               onPress={handleLogout}
             >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIconContainer, { backgroundColor: '#FF4B4B' + '20' }]}>
-                  <Ionicons name="log-out-outline" size={20} color="#FF4B4B" />
-                </View>
-                <Text style={[styles.settingText, { color: '#FF4B4B' }]}>Logout</Text>
+                <Text style={styles.settingEmoji}>🚪</Text>
+                <Text style={[styles.settingText, { color: timeblocColors.error }]}>Logout</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#FF4B4B" />
+              <Ionicons name="chevron-forward" size={20} color={timeblocColors.error} />
             </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Motivation Card */}
-        <View style={styles.motivationSection}>
-          <View style={styles.motivationCard}>
-            <Text style={styles.motivationEmoji}>🚀</Text>
-            <Text style={styles.motivationTitle}>You're doing great!</Text>
-            <Text style={styles.motivationText}>
-              Keep leveling up and unlocking achievements.{'\n'}
-              Every day is a step closer to your goals!
-            </Text>
           </View>
         </View>
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmModal
+        visible={showLogoutModal}
+        title="Logout"
+        message="Are you sure you want to logout?"
+        confirmText="Logout"
+        cancelText="Cancel"
+        confirmColor={timeblocColors.error}
+        onConfirm={confirmLogout}
+        onCancel={() => setShowLogoutModal(false)}
+      />
+
+      {/* Reset Database Confirmation Modal */}
+      <ConfirmModal
+        visible={showResetModal}
+        title="⚠️ RESET DATABASE"
+        message="This will delete ALL your data including:
+- Onboarding data
+- Tasks and progress
+- Achievements and streaks
+- User authentication
+
+This action CANNOT be undone!
+
+Are you absolutely sure?"
+        confirmText="Reset"
+        cancelText="Cancel"
+        confirmColor={timeblocColors.error}
+        onConfirm={confirmResetDatabase}
+        onCancel={() => setShowResetModal(false)}
+      />
+
+      {/* Reset Success Modal */}
+      <ConfirmModal
+        visible={showResetSuccessModal}
+        title="✅ Success"
+        message="Database has been reset successfully!
+
+The app will now reload."
+        confirmText="OK"
+        cancelText="Cancel"
+        confirmColor={timeblocColors.primary}
+        onConfirm={handleResetSuccess}
+        onCancel={handleResetSuccess}
+      />
     </SafeAreaView>
   );
 };
@@ -363,121 +338,78 @@ export const ProfileScreenNew = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F8FA',
+    backgroundColor: timeblocColors.background,
   },
-  // Header - Duolingo Style
+  // Header
   header: {
-    backgroundColor: '#4A90E2',
-    paddingTop: 50,
-    paddingBottom: 30,
-    paddingHorizontal: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  headerContent: {
     alignItems: 'center',
-    flex: 1,
+    paddingHorizontal: timeblocSpacing.xl,
+    paddingVertical: timeblocSpacing.lg,
   },
-  headerEmoji: {
-    fontSize: 48,
-    marginBottom: 8,
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: timeblocColors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...timeblocShadows.soft,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 4,
+    ...timeblocTypography.h2,
   },
-  headerSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.9)',
-  },
-  headerLogout: {
-    padding: 8,
-    marginTop: 8,
-  },
-  // Stats Bar - overlapping header
-  statsBar: {
-    flexDirection: 'row',
-    backgroundColor: 'white',
-    marginHorizontal: 20,
-    marginTop: -20,
-    borderRadius: 16,
-    padding: 12,
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  statItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginTop: 4,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: '#666',
-    textAlign: 'center',
-  },
-  statDivider: {
-    width: 1,
+  logoutButton: {
+    width: 40,
     height: 40,
-    backgroundColor: '#E5E5E5',
+    borderRadius: 20,
+    backgroundColor: timeblocColors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...timeblocShadows.soft,
   },
   // Level Card
   levelSection: {
-    padding: 20,
+    paddingHorizontal: timeblocSpacing.xl,
+    marginTop: timeblocSpacing.lg,
   },
   levelCard: {
-    borderRadius: 20,
-    backgroundColor: '#4A90E2',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
+    borderRadius: timeblocBorderRadius.xl,
+    ...timeblocShadows.medium,
   },
   levelCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
+    padding: timeblocSpacing.xxl,
   },
   levelIconContainer: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(255,255,255,0.25)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: timeblocSpacing.lg,
   },
   levelNumber: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: 'white',
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   levelInfo: {
     flex: 1,
   },
   levelTitle: {
     fontSize: 22,
-    fontWeight: 'bold',
-    color: 'white',
+    fontWeight: '700',
+    color: '#FFFFFF',
     marginBottom: 2,
   },
   levelSubtitle: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.9)',
-    marginBottom: 8,
+    marginBottom: timeblocSpacing.sm,
   },
   levelProgressContainer: {
     flexDirection: 'row',
@@ -486,211 +418,118 @@ const styles = StyleSheet.create({
   levelProgressBar: {
     flex: 1,
     height: 6,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 3,
-    marginRight: 8,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    borderRadius: timeblocBorderRadius.full,
+    marginRight: timeblocSpacing.sm,
   },
   levelProgressFill: {
     height: '100%',
-    backgroundColor: 'white',
-    borderRadius: 3,
+    backgroundColor: '#FFFFFF',
+    borderRadius: timeblocBorderRadius.full,
   },
   levelProgressText: {
     fontSize: 12,
     color: 'rgba(255,255,255,0.9)',
     fontWeight: '600',
   },
+  // Stats Grid
+  statsSection: {
+    paddingHorizontal: timeblocSpacing.xl,
+    marginTop: timeblocSpacing.xxl,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: timeblocSpacing.md,
+    marginBottom: timeblocSpacing.md,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: timeblocColors.surface,
+    borderRadius: timeblocBorderRadius.lg,
+    padding: timeblocSpacing.lg,
+    alignItems: 'center',
+    ...timeblocShadows.soft,
+  },
+  statIcon: {
+    fontSize: 32,
+    marginBottom: timeblocSpacing.sm,
+  },
+  statValue: {
+    ...timeblocTypography.h2,
+    marginBottom: timeblocSpacing.xs,
+  },
+  statLabel: {
+    ...timeblocTypography.small,
+    textAlign: 'center',
+  },
   // Sections
   section: {
-    paddingHorizontal: 20,
-    marginTop: 20,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
+    paddingHorizontal: timeblocSpacing.xl,
+    marginTop: timeblocSpacing.xxl,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
+    ...timeblocTypography.h3,
+    marginBottom: timeblocSpacing.md,
   },
-  sectionSubtitle: {
-    fontSize: 14,
-    color: '#666',
+  sectionLabel: {
+    ...timeblocTypography.label,
+    marginBottom: timeblocSpacing.md,
   },
   // Achievements
   achievementsScroll: {
-    marginHorizontal: -20,
-    paddingHorizontal: 20,
+    marginHorizontal: -timeblocSpacing.xl,
+    paddingHorizontal: timeblocSpacing.xl,
   },
   achievementCard: {
-    width: 120,
-    borderRadius: 16,
-    padding: 16,
-    marginRight: 12,
+    width: 100,
+    backgroundColor: timeblocColors.surface,
+    borderRadius: timeblocBorderRadius.lg,
+    padding: timeblocSpacing.lg,
+    marginRight: timeblocSpacing.md,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  achievementIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
+    ...timeblocShadows.soft,
   },
   achievementIcon: {
-    fontSize: 28,
+    fontSize: 36,
+    marginBottom: timeblocSpacing.sm,
   },
   achievementName: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: 'white',
+    ...timeblocTypography.tiny,
     textAlign: 'center',
+    color: timeblocColors.text,
   },
-  achievementNameLocked: {
-    color: '#999',
-  },
-  achievementUnlocked: {
+  achievementCheck: {
     position: 'absolute',
-    top: 8,
-    right: 8,
-  },
-  // Streaks
-  streakCard: {
-    borderRadius: 20,
-    marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  streakCardContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 20,
-  },
-  streakIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  streakEmoji: {
-    fontSize: 24,
-  },
-  streakInfo: {
-    flex: 1,
-  },
-  streakPillar: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 6,
-  },
-  streakMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  streakBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    gap: 4,
-  },
-  streakBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: 'white',
-  },
-  streakLongest: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.9)',
+    top: timeblocSpacing.sm,
+    right: timeblocSpacing.sm,
   },
   // Settings
   settingsCard: {
-    backgroundColor: 'white',
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    backgroundColor: timeblocColors.surface,
+    borderRadius: timeblocBorderRadius.lg,
+    ...timeblocShadows.soft,
   },
   settingItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
+    paddingVertical: timeblocSpacing.lg,
+    paddingHorizontal: timeblocSpacing.lg,
   },
   settingLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: timeblocSpacing.md,
   },
-  settingIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+  settingEmoji: {
+    fontSize: 24,
   },
   settingText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#1A1A1A',
+    ...timeblocTypography.body,
   },
   settingDivider: {
     height: 1,
-    backgroundColor: '#F3F4F6',
-    marginLeft: 68,
-  },
-  // Motivation Card
-  motivationSection: {
-    padding: 20,
-    paddingTop: 20,
-  },
-  motivationCard: {
-    padding: 24,
-    backgroundColor: 'white',
-    borderRadius: 20,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  motivationEmoji: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  motivationTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  motivationText: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    lineHeight: 20,
+    backgroundColor: timeblocColors.borderLight,
+    marginLeft: timeblocSpacing.lg + timeblocSpacing.md + 24, // emoji + gap + padding
   },
 });

@@ -5,9 +5,12 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppNavigator } from './src/navigation/AppNavigator';
 import { useAuthStore } from './src/store/authStore';
 import { useAppStore } from './src/store/appStore';
-import { theme } from './src/theme/theme';
+import { paperTheme } from './src/theme/theme';
 import { initDatabase } from './src/database/init';
 import { initializeNotifications } from './src/utils/notifications';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
+import { OfflineBanner } from './src/components/OfflineBanner';
+import Analytics from './src/services/analytics';
 import Toast from 'react-native-toast-message';
 
 export default function App() {
@@ -19,6 +22,9 @@ export default function App() {
   useEffect(() => {
     const initialize = async () => {
       try {
+        // Start analytics session
+        Analytics.startSession();
+
         // Initialize database first
         console.log('🔧 [1/4] Initializing database...');
         await initDatabase();
@@ -89,12 +95,15 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      <PaperProvider theme={theme}>
-        <AppNavigator />
-        <Toast />
-      </PaperProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <PaperProvider theme={paperTheme}>
+          <AppNavigator />
+          <OfflineBanner />
+          <Toast />
+        </PaperProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
 

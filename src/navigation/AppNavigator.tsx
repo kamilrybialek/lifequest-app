@@ -49,6 +49,9 @@ import { SubscriptionsScreen } from '../screens/finance/SubscriptionsScreen';
 import { SavingsGoalsScreen } from '../screens/finance/SavingsGoalsScreen';
 import { NetWorthCalculatorScreen } from '../screens/finance/NetWorthCalculatorScreen';
 
+// Goals screen
+import { GoalsScreen } from '../screens/goals/GoalsScreen';
+
 import { useAuthStore } from '../store/authStore';
 
 const Stack = createNativeStackNavigator();
@@ -135,6 +138,9 @@ export const AppNavigator = () => {
             <Stack.Screen name="SubscriptionsScreen" component={SubscriptionsScreen} />
             <Stack.Screen name="SavingsGoalsScreen" component={SavingsGoalsScreen} />
             <Stack.Screen name="NetWorthCalculatorScreen" component={NetWorthCalculatorScreen} />
+
+            {/* Goals screen */}
+            <Stack.Screen name="GoalsScreen" component={GoalsScreen} />
           </>
         )}
       </Stack.Navigator>
