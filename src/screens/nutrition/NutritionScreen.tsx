@@ -1,47 +1,49 @@
+/**
+ * Nutrition Dashboard - TimeBloc Design
+ * Track water intake, calories, meals, and nutrition habits
+ */
+
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Text, Card, Title, Button, Chip, TextInput, ProgressBar } from 'react-native-paper';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  SafeAreaView,
+  RefreshControl,
+  TextInput,
+  Alert,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAppStore } from '../../store/appStore';
 import { useAuthStore } from '../../store/authStore';
 import { calculateBMR, calculateTDEE, calculateCalorieGoal } from '../../utils/healthCalculations';
+import { timeblocColors, timeblocShadows, timeblocSpacing, timeblocBorderRadius, timeblocTypography } from '../../theme/timeblocTheme';
 
-export const NutritionScreen = () => {
+export const NutritionScreen = ({ navigation }: any) => {
   const { nutritionData, updateNutritionData, physicalHealthData } = useAppStore();
   const { user } = useAuthStore();
-  const [firstMealTime, setFirstMealTime] = useState('');
-  const [mealQuality, setMealQuality] = useState(3);
+  const [refreshing, setRefreshing] = useState(false);
   const [caloriesInput, setCaloriesInput] = useState('');
   const [activityLevel, setActivityLevel] = useState<'sedentary' | 'light' | 'moderate' | 'active' | 'very_active'>('moderate');
 
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1000);
+  };
+
   const handleAddWater = () => {
+    const newIntake = Math.min(nutritionData.waterIntake + 1, nutritionData.waterGoal);
     updateNutritionData({
-      waterIntake: Math.min(nutritionData.waterIntake + 1, nutritionData.waterGoal),
+      waterIntake: newIntake,
     });
   };
 
   const handleResetWater = () => {
     updateNutritionData({
       waterIntake: 0,
-    });
-  };
-
-  const handleLogMealTime = () => {
-    if (firstMealTime) {
-      updateNutritionData({
-        firstMealTime,
-      });
-    }
-  };
-
-  const handleToggleProtein = () => {
-    updateNutritionData({
-      hadProtein: !nutritionData.hadProtein,
-    });
-  };
-
-  const handleRateMeal = () => {
-    updateNutritionData({
-      mealQuality,
     });
   };
 
@@ -52,6 +54,7 @@ export const NutritionScreen = () => {
         caloriesConsumed: (nutritionData.caloriesConsumed || 0) + calories,
       });
       setCaloriesInput('');
+      Alert.alert('🔥 Added', `${calories} calories logged!`);
     }
   };
 
@@ -59,17 +62,23 @@ export const NutritionScreen = () => {
     updateNutritionData({
       caloriesConsumed: 0,
     });
+    Alert.alert('🔄 Reset', 'Calorie count reset!');
   };
 
-  // Calculate calorie requirements if we have user data
-  let calorieGoal = nutritionData.calorieGoal || 2000; // Default
+  const handleToggleProtein = () => {
+    updateNutritionData({
+      hadProtein: !nutritionData.hadProtein,
+    });
+  };
+
+  // Calculate calorie requirements
+  let calorieGoal = nutritionData.calorieGoal || 2000;
   let tdee = 0;
   let bmr = 0;
 
   if (physicalHealthData.weight && physicalHealthData.height && user?.age && user?.gender) {
     bmr = calculateBMR(physicalHealthData.weight, physicalHealthData.height, user.age, user.gender);
     tdee = calculateTDEE(bmr, activityLevel);
-    // Assuming maintenance for now, can be adjusted based on user goals
     calorieGoal = calculateCalorieGoal(tdee, 'maintain');
   }
 
@@ -79,463 +88,471 @@ export const NutritionScreen = () => {
   const caloriesRemaining = calorieGoal - caloriesConsumed;
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Title style={styles.title}>🥗 Nutrition</Title>
-        <Text style={styles.subtitle}>Fuel your body optimally</Text>
-      </View>
+    <SafeAreaView style={styles.container}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation?.goBack()} style={styles.backButton}>
+            <Ionicons name="chevron-back" size={24} color={timeblocColors.text} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Nutrition</Text>
+          <View style={styles.placeholder} />
+        </View>
 
-      {/* Calorie Tracker */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title>🔥 Calorie Tracker</Title>
-          <Text style={styles.description}>
-            Track your daily calorie intake
-          </Text>
-
-          <View style={styles.calorieStats}>
-            <View style={styles.calorieStatItem}>
-              <Text style={styles.calorieStatLabel}>Consumed</Text>
-              <Text style={styles.calorieStatValue}>{caloriesConsumed}</Text>
+        {/* Stats Grid */}
+        <View style={styles.statsSection}>
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <Text style={styles.statIcon}>💧</Text>
+              <Text style={styles.statValue}>{nutritionData.waterIntake}/{nutritionData.waterGoal}</Text>
+              <Text style={styles.statLabel}>Water (glasses)</Text>
             </View>
-            <View style={styles.calorieStatDivider} />
-            <View style={styles.calorieStatItem}>
-              <Text style={styles.calorieStatLabel}>Goal</Text>
-              <Text style={styles.calorieStatValue}>{calorieGoal}</Text>
-            </View>
-            <View style={styles.calorieStatDivider} />
-            <View style={styles.calorieStatItem}>
-              <Text style={styles.calorieStatLabel}>Remaining</Text>
-              <Text style={[
-                styles.calorieStatValue,
-                { color: caloriesRemaining >= 0 ? '#4CAF50' : '#F44336' }
-              ]}>
-                {caloriesRemaining}
-              </Text>
+            <View style={styles.statCard}>
+              <Text style={styles.statIcon}>🔥</Text>
+              <Text style={styles.statValue}>{caloriesConsumed}</Text>
+              <Text style={styles.statLabel}>Calories</Text>
             </View>
           </View>
-
-          <ProgressBar
-            progress={Math.min(caloriesProgress, 1)}
-            color={caloriesProgress > 1 ? '#F44336' : '#4CAF50'}
-            style={styles.progressBar}
-          />
-
-          {bmr > 0 && (
-            <View style={styles.metabolismInfo}>
-              <Text style={styles.metabolismText}>
-                💡 BMR: {bmr} cal/day • TDEE: {tdee} cal/day
-              </Text>
-              <Text style={styles.metabolismSubtext}>
-                Based on your height, weight, age, and activity level
-              </Text>
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <Text style={styles.statIcon}>🥩</Text>
+              <Text style={styles.statValue}>{nutritionData.hadProtein ? '✓' : '–'}</Text>
+              <Text style={styles.statLabel}>Protein Today</Text>
             </View>
-          )}
-
-          <TextInput
-            label="Add Calories"
-            value={caloriesInput}
-            onChangeText={setCaloriesInput}
-            keyboardType="numeric"
-            mode="outlined"
-            placeholder="e.g., 500"
-            style={styles.input}
-          />
-
-          <View style={styles.waterButtons}>
-            <Button mode="contained" onPress={handleAddCalories} style={styles.button}>
-              + Add Calories
-            </Button>
-            <Button mode="outlined" onPress={handleResetCalories} style={styles.button}>
-              Reset
-            </Button>
+            <View style={styles.statCard}>
+              <Text style={styles.statIcon}>📊</Text>
+              <Text style={styles.statValue}>{calorieGoal}</Text>
+              <Text style={styles.statLabel}>Goal (cal)</Text>
+            </View>
           </View>
+        </View>
 
-          {caloriesProgress >= 0.9 && caloriesProgress < 1.1 && (
-            <View style={[styles.achievement, { backgroundColor: '#E8F5E9' }]}>
-              <Text style={[styles.achievementText, { color: '#4CAF50' }]}>
-                ✅ Perfect! You're within your calorie goal!
-              </Text>
-            </View>
-          )}
-
-          {caloriesProgress > 1.1 && (
-            <View style={[styles.achievement, { backgroundColor: '#FFEBEE' }]}>
-              <Text style={[styles.achievementText, { color: '#F44336' }]}>
-                ⚠️ You've exceeded your calorie goal
-              </Text>
-            </View>
-          )}
-        </Card.Content>
-      </Card>
-
-      {/* Hydration Tracker */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title>💧 Hydration Tracker</Title>
-          <View style={styles.waterProgress}>
-            <Text style={styles.waterCount}>
-              {nutritionData.waterIntake} / {nutritionData.waterGoal} glasses
-            </Text>
-            <ProgressBar
-              progress={waterProgress}
-              color="#2196F3"
-              style={styles.progressBar}
-            />
+        {/* Water Tracker */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Water Intake</Text>
+          <View style={styles.waterCard}>
+            <LinearGradient
+              colors={['#6FBAFF', '#85C6FF']}
+              style={styles.waterGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <Text style={styles.waterIcon}>💧</Text>
+              <Text style={styles.waterValue}>{nutritionData.waterIntake} / {nutritionData.waterGoal} glasses</Text>
+              <View style={styles.waterProgress}>
+                <View style={[styles.waterProgressFill, { width: `${waterProgress * 100}%` }]} />
+              </View>
+              <View style={styles.waterButtons}>
+                <TouchableOpacity style={styles.waterButton} onPress={handleAddWater}>
+                  <Ionicons name="add" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.waterButton} onPress={handleResetWater}>
+                  <Ionicons name="refresh" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            </LinearGradient>
           </View>
+        </View>
 
-          <View style={styles.waterGlasses}>
-            {Array.from({ length: nutritionData.waterGoal }).map((_, index) => (
-              <Text
-                key={index}
+        {/* Calorie Tracker */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Calorie Tracker</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>🔥 Track Calories</Text>
+            <View style={styles.calorieStats}>
+              <View style={styles.calorieStat}>
+                <Text style={styles.calorieStatLabel}>Consumed</Text>
+                <Text style={styles.calorieStatValue}>{caloriesConsumed}</Text>
+              </View>
+              <View style={styles.calorieStat}>
+                <Text style={styles.calorieStatLabel}>Goal</Text>
+                <Text style={styles.calorieStatValue}>{calorieGoal}</Text>
+              </View>
+              <View style={styles.calorieStat}>
+                <Text style={styles.calorieStatLabel}>Remaining</Text>
+                <Text style={[
+                  styles.calorieStatValue,
+                  { color: caloriesRemaining < 0 ? timeblocColors.error : timeblocColors.success }
+                ]}>
+                  {caloriesRemaining}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.progressBar}>
+              <View
                 style={[
-                  styles.waterGlass,
-                  index < nutritionData.waterIntake && styles.waterGlassFilled,
+                  styles.progressFill,
+                  { width: `${Math.min(caloriesProgress * 100, 100)}%` }
                 ]}
-              >
-                {index < nutritionData.waterIntake ? '💧' : '🥛'}
-              </Text>
-            ))}
-          </View>
-
-          <View style={styles.waterButtons}>
-            <Button mode="contained" onPress={handleAddWater} style={styles.button}>
-              + Add Glass
-            </Button>
-            <Button mode="outlined" onPress={handleResetWater} style={styles.button}>
-              Reset
-            </Button>
-          </View>
-
-          {waterProgress >= 1 && (
-            <View style={styles.achievement}>
-              <Text style={styles.achievementText}>🎉 Hydration goal reached!</Text>
+              />
             </View>
-          )}
-        </Card.Content>
-      </Card>
-
-      {/* Meal Timing (Circadian Eating) */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title>⏰ Meal Timing</Title>
-          <Text style={styles.description}>
-            Track your eating window for circadian optimization (Huberman)
-          </Text>
-
-          <TextInput
-            label="First Meal Time"
-            value={firstMealTime}
-            onChangeText={setFirstMealTime}
-            mode="outlined"
-            placeholder="12:00"
-            style={styles.input}
-          />
-          <Button mode="contained" onPress={handleLogMealTime} style={styles.button}>
-            Log Meal Time
-          </Button>
-
-          {nutritionData.firstMealTime && (
-            <View style={styles.mealInfo}>
-              <Text style={styles.mealInfoText}>
-                First meal today: {nutritionData.firstMealTime}
-              </Text>
+            <View style={styles.inputRow}>
+              <TextInput
+                style={styles.input}
+                placeholder="Add calories"
+                placeholderTextColor={timeblocColors.textTertiary}
+                keyboardType="number-pad"
+                value={caloriesInput}
+                onChangeText={setCaloriesInput}
+              />
+              <TouchableOpacity style={styles.addButton} onPress={handleAddCalories}>
+                <Text style={styles.addButtonText}>Add</Text>
+              </TouchableOpacity>
             </View>
-          )}
-
-          <View style={styles.fastingInfo}>
-            <Title style={styles.fastingTitle}>Common IF Protocols:</Title>
-            <Text style={styles.fastingOption}>• 16:8 (16h fast, 8h eating)</Text>
-            <Text style={styles.fastingOption}>• 18:6 (18h fast, 6h eating)</Text>
-            <Text style={styles.fastingOption}>• 20:4 (20h fast, 4h eating)</Text>
+            <TouchableOpacity style={styles.resetButton} onPress={handleResetCalories}>
+              <Text style={styles.resetButtonText}>Reset Today's Calories</Text>
+            </TouchableOpacity>
           </View>
-        </Card.Content>
-      </Card>
+        </View>
 
-      {/* Protein Awareness */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title>🍖 Protein Intake</Title>
-          <Text style={styles.description}>
-            Did you have protein with each meal today?
-          </Text>
+        {/* Calorie Calculator */}
+        {tdee > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Your Calorie Needs</Text>
+            <View style={styles.calculatorCard}>
+              <View style={styles.calculatorRow}>
+                <Text style={styles.calculatorLabel}>BMR (Basal Metabolic Rate)</Text>
+                <Text style={styles.calculatorValue}>{Math.round(bmr)} cal</Text>
+              </View>
+              <View style={styles.calculatorRow}>
+                <Text style={styles.calculatorLabel}>TDEE (Total Daily Energy)</Text>
+                <Text style={styles.calculatorValue}>{Math.round(tdee)} cal</Text>
+              </View>
+              <View style={styles.calculatorRow}>
+                <Text style={styles.calculatorLabel}>Recommended Goal</Text>
+                <Text style={[styles.calculatorValue, { color: timeblocColors.nutrition }]}>
+                  {Math.round(calorieGoal)} cal
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
 
-          <Button
-            mode={nutritionData.hadProtein ? 'contained' : 'outlined'}
+        {/* Protein Tracker */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Daily Protein</Text>
+          <TouchableOpacity
+            style={styles.proteinCard}
             onPress={handleToggleProtein}
-            style={styles.button}
-            icon={nutritionData.hadProtein ? 'check' : 'close'}
+            activeOpacity={0.8}
           >
-            {nutritionData.hadProtein ? 'Yes, I had protein!' : "Haven't tracked yet"}
-          </Button>
+            <LinearGradient
+              colors={nutritionData.hadProtein ? ['#A0D995', '#B5E3AA'] : ['#E0E0E0', '#F0F0F0']}
+              style={styles.proteinGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              <View style={styles.proteinIconContainer}>
+                <Text style={styles.proteinIcon}>🥩</Text>
+              </View>
+              <View style={styles.proteinContent}>
+                <Text style={[
+                  styles.proteinTitle,
+                  { color: nutritionData.hadProtein ? '#FFFFFF' : timeblocColors.text }
+                ]}>
+                  Had Protein Today?
+                </Text>
+                <Text style={[
+                  styles.proteinSubtitle,
+                  { color: nutritionData.hadProtein ? 'rgba(255,255,255,0.9)' : timeblocColors.textSecondary }
+                ]}>
+                  {nutritionData.hadProtein ? 'Great job! ✓' : 'Tap to mark as complete'}
+                </Text>
+              </View>
+              <Ionicons
+                name={nutritionData.hadProtein ? "checkmark-circle" : "ellipse-outline"}
+                size={32}
+                color={nutritionData.hadProtein ? "#FFFFFF" : timeblocColors.textTertiary}
+              />
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
 
-          <View style={styles.proteinInfo}>
-            <Text style={styles.proteinTitle}>Good Protein Sources:</Text>
-            <Text style={styles.proteinSource}>• Chicken, Turkey, Beef</Text>
-            <Text style={styles.proteinSource}>• Fish (Salmon, Tuna)</Text>
-            <Text style={styles.proteinSource}>• Eggs</Text>
-            <Text style={styles.proteinSource}>• Greek Yogurt</Text>
-            <Text style={styles.proteinSource}>• Legumes, Tofu</Text>
+        {/* Quick Tips */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Nutrition Tips</Text>
+          <View style={styles.tipsGrid}>
+            <View style={styles.tipCard}>
+              <Text style={styles.tipIcon}>🥗</Text>
+              <Text style={styles.tipText}>Eat whole foods</Text>
+            </View>
+            <View style={styles.tipCard}>
+              <Text style={styles.tipIcon}>🍎</Text>
+              <Text style={styles.tipText}>5 servings of fruits/veggies</Text>
+            </View>
           </View>
-        </Card.Content>
-      </Card>
+        </View>
 
-      {/* Meal Quality Check-in */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title>⭐ Meal Quality Rating</Title>
-          <Text style={styles.description}>
-            How would you rate today's overall diet quality?
-          </Text>
-
-          <View style={styles.qualityButtons}>
-            {[1, 2, 3, 4, 5].map((rating) => (
-              <Chip
-                key={rating}
-                selected={mealQuality === rating}
-                onPress={() => setMealQuality(rating)}
-                style={styles.qualityChip}
-              >
-                {rating === 1 && '🍔'}
-                {rating === 2 && '😐'}
-                {rating === 3 && '🙂'}
-                {rating === 4 && '😊'}
-                {rating === 5 && '🌟'}
-              </Chip>
-            ))}
-          </View>
-
-          <View style={styles.qualityLabels}>
-            <Text style={styles.qualityLabel}>Junk</Text>
-            <Text style={styles.qualityLabel}>Optimal</Text>
-          </View>
-
-          <Button mode="contained" onPress={handleRateMeal} style={styles.button}>
-            Save Rating
-          </Button>
-
-          {nutritionData.mealQuality !== undefined && (
-            <Text style={styles.currentRating}>
-              Current rating: {nutritionData.mealQuality}/5
-            </Text>
-          )}
-        </Card.Content>
-      </Card>
-
-      {/* Daily Nutrition Tips */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title>📋 Daily Nutrition Checklist</Title>
-          <View style={styles.checklistItem}>
-            <Text style={styles.checklistText}>✓ Drink 8 glasses of water</Text>
-          </View>
-          <View style={styles.checklistItem}>
-            <Text style={styles.checklistText}>✓ Eat protein with each meal</Text>
-          </View>
-          <View style={styles.checklistItem}>
-            <Text style={styles.checklistText}>✓ Include vegetables in meals</Text>
-          </View>
-          <View style={styles.checklistItem}>
-            <Text style={styles.checklistText}>✓ Limit processed foods</Text>
-          </View>
-          <View style={styles.checklistItem}>
-            <Text style={styles.checklistText}>✓ Stay within eating window</Text>
-          </View>
-        </Card.Content>
-      </Card>
-    </ScrollView>
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: timeblocColors.background,
   },
+  // Header
   header: {
-    padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#fff',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: timeblocSpacing.xl,
+    paddingVertical: timeblocSpacing.lg,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: timeblocColors.surface,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...timeblocShadows.soft,
   },
-  subtitle: {
-    fontSize: 14,
-    color: '#666',
+  headerTitle: {
+    ...timeblocTypography.h2,
   },
-  card: {
-    margin: 16,
-    elevation: 2,
+  placeholder: {
+    width: 40,
   },
-  description: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 16,
+  // Stats
+  statsSection: {
+    paddingHorizontal: timeblocSpacing.xl,
+    marginTop: timeblocSpacing.lg,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: timeblocSpacing.md,
+    marginBottom: timeblocSpacing.md,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: timeblocColors.surface,
+    borderRadius: timeblocBorderRadius.lg,
+    padding: timeblocSpacing.lg,
+    alignItems: 'center',
+    ...timeblocShadows.soft,
+  },
+  statIcon: {
+    fontSize: 32,
+    marginBottom: timeblocSpacing.sm,
+  },
+  statValue: {
+    ...timeblocTypography.h2,
+    marginBottom: timeblocSpacing.xs,
+  },
+  statLabel: {
+    ...timeblocTypography.small,
+    textAlign: 'center',
+  },
+  // Sections
+  section: {
+    paddingHorizontal: timeblocSpacing.xl,
+    marginTop: timeblocSpacing.xxl,
+  },
+  sectionTitle: {
+    ...timeblocTypography.h3,
+    marginBottom: timeblocSpacing.md,
+  },
+  // Water Card
+  waterCard: {
+    borderRadius: timeblocBorderRadius.lg,
+    ...timeblocShadows.soft,
+    overflow: 'hidden',
+  },
+  waterGradient: {
+    padding: timeblocSpacing.xxl,
+    alignItems: 'center',
+  },
+  waterIcon: {
+    fontSize: 48,
+    marginBottom: timeblocSpacing.md,
+  },
+  waterValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: timeblocSpacing.lg,
   },
   waterProgress: {
-    marginVertical: 16,
+    width: '100%',
+    height: 8,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: timeblocBorderRadius.full,
+    overflow: 'hidden',
+    marginBottom: timeblocSpacing.lg,
   },
-  waterCount: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  progressBar: {
-    height: 12,
-    borderRadius: 6,
-  },
-  waterGlasses: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    marginVertical: 16,
-  },
-  waterGlass: {
-    fontSize: 32,
-    margin: 4,
-  },
-  waterGlassFilled: {
-    opacity: 1,
+  waterProgressFill: {
+    height: '100%',
+    backgroundColor: '#FFFFFF',
   },
   waterButtons: {
     flexDirection: 'row',
+    gap: timeblocSpacing.md,
+  },
+  waterButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Card
+  card: {
+    backgroundColor: timeblocColors.surface,
+    borderRadius: timeblocBorderRadius.lg,
+    padding: timeblocSpacing.xl,
+    ...timeblocShadows.soft,
+  },
+  cardTitle: {
+    ...timeblocTypography.h3,
+    marginBottom: timeblocSpacing.lg,
+  },
+  // Calorie Stats
+  calorieStats: {
+    flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: timeblocSpacing.lg,
   },
-  button: {
-    marginTop: 8,
-    flex: 1,
-    marginHorizontal: 4,
+  calorieStat: {
+    alignItems: 'center',
   },
-  achievement: {
-    marginTop: 16,
-    padding: 12,
-    backgroundColor: '#E3F2FD',
-    borderRadius: 8,
+  calorieStatLabel: {
+    ...timeblocTypography.tiny,
+    marginBottom: timeblocSpacing.xs,
   },
-  achievementText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#2196F3',
-    textAlign: 'center',
+  calorieStatValue: {
+    ...timeblocTypography.h2,
+  },
+  // Progress Bar
+  progressBar: {
+    height: 8,
+    backgroundColor: timeblocColors.borderLight,
+    borderRadius: timeblocBorderRadius.full,
+    overflow: 'hidden',
+    marginBottom: timeblocSpacing.lg,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: timeblocColors.nutrition,
+    borderRadius: timeblocBorderRadius.full,
+  },
+  // Input
+  inputRow: {
+    flexDirection: 'row',
+    gap: timeblocSpacing.md,
+    marginBottom: timeblocSpacing.md,
   },
   input: {
-    marginBottom: 12,
+    flex: 1,
+    backgroundColor: timeblocColors.background,
+    borderRadius: timeblocBorderRadius.md,
+    padding: timeblocSpacing.md,
+    ...timeblocTypography.body,
   },
-  mealInfo: {
-    marginTop: 12,
-    padding: 12,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
+  addButton: {
+    backgroundColor: timeblocColors.nutrition,
+    borderRadius: timeblocBorderRadius.md,
+    paddingHorizontal: timeblocSpacing.xl,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  mealInfoText: {
-    fontSize: 14,
-    fontWeight: '600',
+  addButtonText: {
+    ...timeblocTypography.bodyBold,
+    color: '#FFFFFF',
   },
-  fastingInfo: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
+  resetButton: {
+    backgroundColor: timeblocColors.background,
+    borderRadius: timeblocBorderRadius.md,
+    padding: timeblocSpacing.md,
+    alignItems: 'center',
   },
-  fastingTitle: {
-    fontSize: 16,
-    marginBottom: 8,
+  resetButtonText: {
+    ...timeblocTypography.body,
+    color: timeblocColors.textSecondary,
   },
-  fastingOption: {
-    fontSize: 14,
-    marginBottom: 6,
-    color: '#666',
+  // Calculator Card
+  calculatorCard: {
+    backgroundColor: timeblocColors.surface,
+    borderRadius: timeblocBorderRadius.lg,
+    padding: timeblocSpacing.xl,
+    ...timeblocShadows.soft,
   },
-  proteinInfo: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
+  calculatorRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: timeblocSpacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: timeblocColors.borderLight,
+  },
+  calculatorLabel: {
+    ...timeblocTypography.body,
+  },
+  calculatorValue: {
+    ...timeblocTypography.bodyBold,
+    color: timeblocColors.nutrition,
+  },
+  // Protein Card
+  proteinCard: {
+    borderRadius: timeblocBorderRadius.lg,
+    ...timeblocShadows.soft,
+    overflow: 'hidden',
+  },
+  proteinGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: timeblocSpacing.lg,
+  },
+  proteinIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: timeblocSpacing.md,
+  },
+  proteinIcon: {
+    fontSize: 24,
+  },
+  proteinContent: {
+    flex: 1,
   },
   proteinTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
+    fontWeight: '700',
+    marginBottom: 2,
   },
-  proteinSource: {
-    fontSize: 14,
-    marginBottom: 6,
-    color: '#666',
-  },
-  qualityButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 8,
-  },
-  qualityChip: {
-    marginHorizontal: 2,
-  },
-  qualityLabels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  qualityLabel: {
-    fontSize: 12,
-    color: '#666',
-  },
-  currentRating: {
-    marginTop: 12,
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
-    color: '#FF9800',
-  },
-  checklistItem: {
-    padding: 8,
-  },
-  checklistText: {
-    fontSize: 14,
-    color: '#333',
-  },
-  calorieStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 16,
-    paddingVertical: 12,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 12,
-  },
-  calorieStatItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  calorieStatLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
-  },
-  calorieStatValue: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#333',
-  },
-  calorieStatDivider: {
-    width: 1,
-    backgroundColor: '#ddd',
-  },
-  metabolismInfo: {
-    marginTop: 12,
-    marginBottom: 12,
-    padding: 12,
-    backgroundColor: '#E3F2FD',
-    borderRadius: 8,
-  },
-  metabolismText: {
+  proteinSubtitle: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#1976D2',
-    marginBottom: 4,
   },
-  metabolismSubtext: {
-    fontSize: 11,
-    color: '#1565C0',
+  // Tips
+  tipsGrid: {
+    flexDirection: 'row',
+    gap: timeblocSpacing.md,
+  },
+  tipCard: {
+    flex: 1,
+    backgroundColor: timeblocColors.surface,
+    borderRadius: timeblocBorderRadius.lg,
+    padding: timeblocSpacing.lg,
+    alignItems: 'center',
+    ...timeblocShadows.soft,
+  },
+  tipIcon: {
+    fontSize: 36,
+    marginBottom: timeblocSpacing.sm,
+  },
+  tipText: {
+    ...timeblocTypography.tiny,
+    textAlign: 'center',
   },
 });

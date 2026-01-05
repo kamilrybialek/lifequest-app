@@ -1,989 +1,549 @@
+/**
+ * Physical Health Dashboard - TimeBloc Design
+ * Track workouts, steps, weight, sleep, and body metrics
+ */
+
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { Text, Card, Title, TextInput, Button, RadioButton, ProgressBar } from 'react-native-paper';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  SafeAreaView,
+  RefreshControl,
+  TextInput,
+  Alert,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAppStore } from '../../store/appStore';
 import { useAuthStore } from '../../store/authStore';
 import { calculateBMI, getBMICategory, getBMIColor, getIdealWeightRange, calculateBMR, calculateTDEE } from '../../utils/healthCalculations';
-import { logSleep, getSleepLogs, logWeight, getWeightHistory } from '../../database/health';
+import { timeblocColors, timeblocShadows, timeblocSpacing, timeblocBorderRadius, timeblocTypography } from '../../theme/timeblocTheme';
 
-export const PhysicalHealthScreen = () => {
+export const PhysicalHealthScreen = ({ navigation }: any) => {
   const { physicalHealthData, updatePhysicalHealthData } = useAppStore();
   const user = useAuthStore((state) => state.user);
-  const [workoutType, setWorkoutType] = useState<'strength' | 'cardio' | 'mobility' | 'other'>('strength');
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Workout state
   const [duration, setDuration] = useState('');
-  const [intensity, setIntensity] = useState('5');
+  const [workoutType, setWorkoutType] = useState<'strength' | 'cardio' | 'mobility' | 'other'>('strength');
+
+  // Steps state
   const [steps, setSteps] = useState('');
+
+  // Body metrics state
   const [weight, setWeight] = useState(physicalHealthData.weight?.toString() || '');
   const [height, setHeight] = useState(physicalHealthData.height?.toString() || '');
 
-  // Sleep tracking state
-  const [sleepDuration, setSleepDuration] = useState('');
-  const [sleepQuality, setSleepQuality] = useState('3');
-  const [sleepHistory, setSleepHistory] = useState<any[]>([]);
-
-  // Weight tracking state
-  const [newWeight, setNewWeight] = useState('');
-  const [weightNotes, setWeightNotes] = useState('');
-  const [weightHistory, setWeightHistory] = useState<any[]>([]);
-
-  // Load sleep and weight history
-  useEffect(() => {
-    loadHealthData();
-  }, [user?.id]);
-
-  const loadHealthData = async () => {
-    if (!user?.id) return;
-    try {
-      const [sleep, weights] = await Promise.all([
-        getSleepLogs(user.id, 7),
-        getWeightHistory(user.id, 30),
-      ]);
-      setSleepHistory(sleep);
-      setWeightHistory(weights);
-    } catch (error) {
-      console.error('Error loading health data:', error);
-    }
+  const onRefresh = async () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1000);
   };
 
   const handleLogWorkout = () => {
     const durationNum = parseInt(duration);
-    const intensityNum = parseInt(intensity);
-
-    if (!isNaN(durationNum) && !isNaN(intensityNum)) {
+    if (!isNaN(durationNum) && durationNum > 0) {
       const newWorkout = {
         id: Date.now().toString(),
         type: workoutType,
         duration: durationNum,
-        intensity: intensityNum,
+        intensity: 5,
         date: new Date().toISOString(),
       };
       updatePhysicalHealthData({
         workouts: [...physicalHealthData.workouts, newWorkout],
       });
       setDuration('');
-      setIntensity('5');
+      Alert.alert('💪 Logged', `${durationNum} min ${workoutType} workout recorded!`);
     }
   };
 
   const handleUpdateSteps = () => {
     const stepsNum = parseInt(steps);
-    if (!isNaN(stepsNum)) {
+    if (!isNaN(stepsNum) && stepsNum >= 0) {
       updatePhysicalHealthData({
         dailySteps: stepsNum,
       });
       setSteps('');
+      Alert.alert('🚶 Updated', `${stepsNum} steps logged!`);
     }
   };
 
   const handleUpdateBodyMetrics = () => {
     const weightNum = parseFloat(weight);
     const heightNum = parseFloat(height);
-    if (!isNaN(weightNum) && !isNaN(heightNum) && heightNum > 0) {
+    if (!isNaN(weightNum) && weightNum > 0 && !isNaN(heightNum) && heightNum > 0) {
       updatePhysicalHealthData({
         weight: weightNum,
         height: heightNum,
       });
+      Alert.alert('📊 Updated', 'Body metrics saved!');
     }
   };
 
-  const handleLogSleep = async () => {
-    if (!user?.id) {
-      Alert.alert('Error', 'Please log in to track sleep');
-      return;
-    }
-    const durationNum = parseFloat(sleepDuration);
-    const qualityNum = parseInt(sleepQuality);
-    if (!isNaN(durationNum) && durationNum > 0 && qualityNum >= 1 && qualityNum <= 5) {
-      try {
-        await logSleep(user.id, {
-          duration_hours: durationNum,
-          quality_rating: qualityNum,
-        });
-        setSleepDuration('');
-        setSleepQuality('3');
-        await loadHealthData();
-        Alert.alert('Success', '😴 Sleep logged successfully!');
-      } catch (error) {
-        console.error('Error logging sleep:', error);
-        Alert.alert('Error', 'Failed to log sleep');
-      }
-    } else {
-      Alert.alert('Invalid Input', 'Please enter valid sleep duration and quality (1-5)');
-    }
-  };
-
-  const handleLogWeight = async () => {
-    if (!user?.id) {
-      Alert.alert('Error', 'Please log in to track weight');
-      return;
-    }
-    const weightNum = parseFloat(newWeight);
-    const heightNum = physicalHealthData.height || parseFloat(height);
-    if (!isNaN(weightNum) && weightNum > 0) {
-      try {
-        await logWeight(user.id, weightNum, heightNum, weightNotes);
-        setNewWeight('');
-        setWeightNotes('');
-        await loadHealthData();
-        Alert.alert('Success', '⚖️ Weight logged successfully!');
-      } catch (error) {
-        console.error('Error logging weight:', error);
-        Alert.alert('Error', 'Failed to log weight');
-      }
-    } else {
-      Alert.alert('Invalid Input', 'Please enter a valid weight');
-    }
-  };
-
-  const stepsProgress = physicalHealthData.dailySteps / physicalHealthData.stepsGoal;
-
-  // Calculate BMI if weight and height are available
-  const weightNum = physicalHealthData.weight || parseFloat(weight);
-  const heightNum = physicalHealthData.height || parseFloat(height);
-  const bmi = weightNum && heightNum ? calculateBMI(weightNum, heightNum) : 0;
-  const bmiCategory = bmi > 0 ? getBMICategory(bmi) : '';
-  const bmiColor = bmi > 0 ? getBMIColor(bmi) : '#999';
-  const idealWeight = heightNum ? getIdealWeightRange(heightNum) : null;
-  const todayWorkouts = physicalHealthData.workouts.filter(
-    (w) => new Date(w.date).toDateString() === new Date().toDateString()
-  );
-
-  // Calculate comprehensive health stats
-  const avgSleepDuration = sleepHistory.length > 0
-    ? sleepHistory.reduce((sum, log) => sum + (log.duration_hours || 0), 0) / sleepHistory.length
+  // Calculate metrics
+  const bmi = physicalHealthData.weight && physicalHealthData.height
+    ? calculateBMI(physicalHealthData.weight, physicalHealthData.height)
     : 0;
+  const bmiCategory = getBMICategory(bmi);
+  const idealRange = physicalHealthData.height ? getIdealWeightRange(physicalHealthData.height) : null;
 
-  let bmr = 0;
-  let tdee = 0;
-  if (weightNum && heightNum && user?.age && user?.gender && (user.gender === 'male' || user.gender === 'female')) {
-    bmr = calculateBMR(weightNum, heightNum, user.age, user.gender);
-    tdee = calculateTDEE(bmr, 'moderate');
-  }
+  const bmr = physicalHealthData.weight && physicalHealthData.height && user?.age && user?.gender
+    ? calculateBMR(physicalHealthData.weight, physicalHealthData.height, user.age, user.gender)
+    : 0;
+  const tdee = bmr ? calculateTDEE(bmr, 'moderate') : 0;
+
+  const totalWorkouts = physicalHealthData.workouts.length;
+  const recentWorkouts = physicalHealthData.workouts.slice(-5).reverse();
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.header}>
-        <Title style={styles.title}>💪 Physical Health</Title>
-        <Text style={styles.subtitle}>Build a strong, healthy body</Text>
-      </View>
+    <SafeAreaView style={styles.container}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation?.goBack()} style={styles.backButton}>
+            <Ionicons name="chevron-back" size={24} color={timeblocColors.text} />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Physical Health</Text>
+          <View style={styles.placeholder} />
+        </View>
 
-      {/* Health Stats Dashboard */}
-      {weightNum && heightNum && (
-        <Card style={styles.statsCard}>
-          <Card.Content>
-            <Title style={styles.cardTitle}>📊 Your Health Stats</Title>
-            <View style={styles.statsGrid}>
-              <View style={styles.statBox}>
-                <View style={[styles.statBadge, { backgroundColor: bmiColor + '20' }]}>
-                  <Ionicons name="fitness" size={24} color={bmiColor} />
-                </View>
-                <Text style={styles.statValue}>{bmi.toFixed(1)}</Text>
-                <Text style={styles.statLabel}>BMI</Text>
-                <Text style={[styles.statCategory, { color: bmiColor }]}>{bmiCategory}</Text>
-              </View>
-
-              <View style={styles.statBox}>
-                <View style={[styles.statBadge, { backgroundColor: '#FF6B6B20' }]}>
-                  <Ionicons name="heart" size={24} color="#FF6B6B" />
-                </View>
-                <Text style={styles.statValue}>{bmr > 0 ? bmr : '--'}</Text>
-                <Text style={styles.statLabel}>BMR (cal)</Text>
-                <Text style={styles.statCategory}>Resting</Text>
-              </View>
-
-              <View style={styles.statBox}>
-                <View style={[styles.statBadge, { backgroundColor: '#FF572220' }]}>
-                  <Ionicons name="flame" size={24} color="#FF5722" />
-                </View>
-                <Text style={styles.statValue}>{tdee > 0 ? tdee : '--'}</Text>
-                <Text style={styles.statLabel}>TDEE (cal)</Text>
-                <Text style={styles.statCategory}>Daily needs</Text>
-              </View>
-
-              <View style={styles.statBox}>
-                <View style={[styles.statBadge, { backgroundColor: '#4CAF5020' }]}>
-                  <Ionicons name="body" size={24} color="#4CAF50" />
-                </View>
-                <Text style={styles.statValue}>
-                  {idealWeight ? `${idealWeight.min}-${idealWeight.max}` : '--'}
-                </Text>
-                <Text style={styles.statLabel}>Ideal (kg)</Text>
-                <Text style={styles.statCategory}>
-                  {idealWeight && weightNum >= idealWeight.min && weightNum <= idealWeight.max ? 'On target ✓' : 'Goal range'}
-                </Text>
-              </View>
-
-              <View style={styles.statBox}>
-                <View style={[styles.statBadge, { backgroundColor: '#9C27B020' }]}>
-                  <Ionicons name="moon" size={24} color="#9C27B0" />
-                </View>
-                <Text style={styles.statValue}>{avgSleepDuration > 0 ? avgSleepDuration.toFixed(1) : '--'}</Text>
-                <Text style={styles.statLabel}>Sleep (h)</Text>
-                <Text style={[styles.statCategory, {
-                  color: avgSleepDuration >= 7 ? '#4CAF50' : '#FF9800'
-                }]}>
-                  {avgSleepDuration >= 7 ? 'Good ✓' : avgSleepDuration > 0 ? 'Low' : 'No data'}
-                </Text>
-              </View>
-
-              <View style={styles.statBox}>
-                <View style={[styles.statBadge, { backgroundColor: '#3498DB20' }]}>
-                  <Ionicons name="water" size={24} color="#3498DB" />
-                </View>
-                <Text style={styles.statValue}>{Math.round((weightNum || 0) * 0.033)}</Text>
-                <Text style={styles.statLabel}>Water (L)</Text>
-                <Text style={styles.statCategory}>Daily goal</Text>
-              </View>
-
-              <View style={styles.statBox}>
-                <View style={[styles.statBadge, { backgroundColor: '#2196F320' }]}>
-                  <Ionicons name="footsteps" size={24} color="#2196F3" />
-                </View>
-                <Text style={styles.statValue}>{physicalHealthData.dailySteps || 0}</Text>
-                <Text style={styles.statLabel}>Steps</Text>
-                <Text style={[styles.statCategory, {
-                  color: (physicalHealthData.dailySteps || 0) >= 8000 ? '#4CAF50' : '#FF9800'
-                }]}>
-                  {(physicalHealthData.dailySteps || 0) >= 8000 ? 'Goal met! ✓' : `of ${physicalHealthData.stepsGoal || 8000}`}
-                </Text>
-              </View>
-
-              <View style={styles.statBox}>
-                <View style={[styles.statBadge, { backgroundColor: '#FF980020' }]}>
-                  <Ionicons name="barbell" size={24} color="#FF9800" />
-                </View>
-                <Text style={styles.statValue}>{todayWorkouts.length}</Text>
-                <Text style={styles.statLabel}>Workouts</Text>
-                <Text style={styles.statCategory}>Today</Text>
-              </View>
+        {/* Stats Grid */}
+        <View style={styles.statsSection}>
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <Text style={styles.statIcon}>💪</Text>
+              <Text style={styles.statValue}>{totalWorkouts}</Text>
+              <Text style={styles.statLabel}>Workouts</Text>
             </View>
-          </Card.Content>
-        </Card>
-      )}
-
-      {/* Sleep Tracking */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardTitleRow}>
-              <Ionicons name="moon" size={24} color="#9C27B0" />
-              <Title style={styles.cardTitle}>😴 Sleep Tracker</Title>
+            <View style={styles.statCard}>
+              <Text style={styles.statIcon}>🚶</Text>
+              <Text style={styles.statValue}>{physicalHealthData.dailySteps || 0}</Text>
+              <Text style={styles.statLabel}>Steps Today</Text>
             </View>
           </View>
-          <Text style={styles.description}>
-            Track your sleep quality and duration
-          </Text>
-
-          <View style={styles.sleepInputRow}>
-            <View style={styles.sleepInputHalf}>
-              <TextInput
-                label="Duration (hours)"
-                value={sleepDuration}
-                onChangeText={setSleepDuration}
-                keyboardType="decimal-pad"
-                mode="outlined"
-                style={styles.input}
-                placeholder="7.5"
-              />
+          <View style={styles.statsRow}>
+            <View style={styles.statCard}>
+              <Text style={styles.statIcon}>⚖️</Text>
+              <Text style={styles.statValue}>{physicalHealthData.weight || '–'}</Text>
+              <Text style={styles.statLabel}>Weight (kg)</Text>
             </View>
-            <View style={styles.sleepInputHalf}>
+            <View style={styles.statCard}>
+              <Text style={styles.statIcon}>📏</Text>
+              <Text style={styles.statValue}>{bmi > 0 ? bmi.toFixed(1) : '–'}</Text>
+              <Text style={styles.statLabel}>BMI</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* BMI Calculator */}
+        {bmi > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>BMI Calculator</Text>
+            <View style={styles.bmiCard}>
+              <LinearGradient
+                colors={['#FF8E9E', '#FFA8B5']}
+                style={styles.bmiGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <Text style={styles.bmiValue}>{bmi.toFixed(1)}</Text>
+                <Text style={styles.bmiCategory}>{bmiCategory}</Text>
+                {idealRange && (
+                  <Text style={styles.bmiIdeal}>
+                    Ideal: {idealRange.min.toFixed(1)} - {idealRange.max.toFixed(1)} kg
+                  </Text>
+                )}
+              </LinearGradient>
+            </View>
+          </View>
+        )}
+
+        {/* Calorie Calculator */}
+        {tdee > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Daily Calorie Needs</Text>
+            <View style={styles.calorieCard}>
+              <View style={styles.calorieRow}>
+                <Text style={styles.calorieLabel}>BMR (Basal):</Text>
+                <Text style={styles.calorieValue}>{Math.round(bmr)} cal</Text>
+              </View>
+              <View style={styles.calorieRow}>
+                <Text style={styles.calorieLabel}>TDEE (Moderate):</Text>
+                <Text style={styles.calorieValue}>{Math.round(tdee)} cal</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Log Workout */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Log Workout</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>💪 New Workout</Text>
+            <View style={styles.workoutTypes}>
+              {(['strength', 'cardio', 'mobility', 'other'] as const).map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={[
+                    styles.typeButton,
+                    workoutType === type && styles.typeButtonActive
+                  ]}
+                  onPress={() => setWorkoutType(type)}
+                >
+                  <Text style={[
+                    styles.typeButtonText,
+                    workoutType === type && styles.typeButtonTextActive
+                  ]}>
+                    {type.charAt(0).toUpperCase() + type.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            <View style={styles.inputRow}>
               <TextInput
-                label="Quality (1-5)"
-                value={sleepQuality}
-                onChangeText={setSleepQuality}
+                style={styles.input}
+                placeholder="Duration (minutes)"
+                placeholderTextColor={timeblocColors.textTertiary}
                 keyboardType="number-pad"
-                mode="outlined"
-                style={styles.input}
-                placeholder="3"
+                value={duration}
+                onChangeText={setDuration}
+              />
+              <TouchableOpacity style={styles.logButton} onPress={handleLogWorkout}>
+                <Text style={styles.logButtonText}>Log</Text>
+              </TouchableOpacity>
+            </View>
+            {recentWorkouts.length > 0 && (
+              <View style={styles.recentList}>
+                <Text style={styles.recentTitle}>Recent Workouts</Text>
+                {recentWorkouts.map((workout) => (
+                  <View key={workout.id} style={styles.recentItem}>
+                    <Text style={styles.recentText}>
+                      {workout.type.charAt(0).toUpperCase() + workout.type.slice(1)}: {workout.duration} min
+                    </Text>
+                    <Text style={styles.recentDate}>
+                      {new Date(workout.date).toLocaleDateString()}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Steps Tracker */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Daily Steps</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>🚶 Update Steps</Text>
+            <Text style={styles.cardSubtitle}>Target: 10,000 steps/day</Text>
+            <View style={styles.progressBar}>
+              <View
+                style={[
+                  styles.progressFill,
+                  { width: `${Math.min((physicalHealthData.dailySteps || 0) / 10000 * 100, 100)}%` }
+                ]}
               />
             </View>
-          </View>
-
-          <View style={styles.sleepQualityGuide}>
-            <Text style={styles.guideTitle}>Quality Guide:</Text>
-            <Text style={styles.guideText}>⭐ Poor • ⭐⭐ Fair • ⭐⭐⭐ Good • ⭐⭐⭐⭐ Great • ⭐⭐⭐⭐⭐ Excellent</Text>
-          </View>
-
-          <Button mode="contained" onPress={handleLogSleep} style={styles.button} buttonColor="#9C27B0">
-            Log Sleep
-          </Button>
-
-          {sleepHistory.length > 0 && (
-            <View style={styles.historySection}>
-              <Text style={styles.historyTitle}>Recent Sleep (Last 7 days):</Text>
-              {sleepHistory.slice(0, 5).map((log: any, index) => (
-                <View key={index} style={styles.historyItem}>
-                  <View style={styles.historyItemRow}>
-                    <Ionicons name="moon" size={16} color="#9C27B0" />
-                    <Text style={styles.historyDate}>
-                      {new Date(log.sleep_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                    </Text>
-                  </View>
-                  <View style={styles.historyStats}>
-                    <Text style={styles.historyValue}>{log.duration_hours}h</Text>
-                    <View style={styles.qualityBadge}>
-                      <Text style={styles.qualityText}>{'⭐'.repeat(log.quality_rating || 3)}</Text>
-                    </View>
-                  </View>
-                </View>
-              ))}
-              {sleepHistory.length > 0 && (
-                <View style={styles.averageSection}>
-                  <Text style={styles.averageLabel}>7-day average:</Text>
-                  <Text style={styles.averageValue}>
-                    {(sleepHistory.reduce((sum: number, log: any) => sum + (log.duration_hours || 0), 0) / sleepHistory.length).toFixed(1)}h
-                  </Text>
-                </View>
-              )}
-            </View>
-          )}
-        </Card.Content>
-      </Card>
-
-      {/* Weight Tracking */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <View style={styles.cardHeader}>
-            <View style={styles.cardTitleRow}>
-              <Ionicons name="fitness" size={24} color="#FF5722" />
-              <Title style={styles.cardTitle}>⚖️ Weight Tracker</Title>
+            <View style={styles.inputRow}>
+              <TextInput
+                style={styles.input}
+                placeholder="Steps count"
+                placeholderTextColor={timeblocColors.textTertiary}
+                keyboardType="number-pad"
+                value={steps}
+                onChangeText={setSteps}
+              />
+              <TouchableOpacity style={styles.logButton} onPress={handleUpdateSteps}>
+                <Text style={styles.logButtonText}>Update</Text>
+              </TouchableOpacity>
             </View>
           </View>
-          <Text style={styles.description}>
-            Log your weight weekly to track progress
-          </Text>
+        </View>
 
-          <TextInput
-            label="Weight (kg)"
-            value={newWeight}
-            onChangeText={setNewWeight}
-            keyboardType="decimal-pad"
-            mode="outlined"
-            style={styles.input}
-            placeholder="70.5"
-          />
-
-          <TextInput
-            label="Notes (optional)"
-            value={weightNotes}
-            onChangeText={setWeightNotes}
-            mode="outlined"
-            style={styles.input}
-            placeholder="After morning workout"
-            multiline
-          />
-
-          <Button mode="contained" onPress={handleLogWeight} style={styles.button} buttonColor="#FF5722">
-            Log Weight
-          </Button>
-
-          {weightHistory.length > 0 && (
-            <View style={styles.historySection}>
-              <Text style={styles.historyTitle}>Weight History (Last 30 days):</Text>
-              {weightHistory.slice(0, 5).map((log: any, index) => {
-                const prevWeight = weightHistory[index + 1]?.weight_kg;
-                const change = prevWeight ? log.weight_kg - prevWeight : 0;
-                return (
-                  <View key={index} style={styles.historyItem}>
-                    <View style={styles.historyItemRow}>
-                      <Ionicons name="calendar" size={16} color="#FF5722" />
-                      <Text style={styles.historyDate}>
-                        {new Date(log.measurement_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </Text>
-                    </View>
-                    <View style={styles.historyStats}>
-                      <Text style={styles.historyValue}>{log.weight_kg.toFixed(1)} kg</Text>
-                      {change !== 0 && (
-                        <View style={[styles.changeBadge, { backgroundColor: change < 0 ? '#4CAF50' : '#FF9800' }]}>
-                          <Text style={styles.changeText}>
-                            {change > 0 ? '↑' : '↓'} {Math.abs(change).toFixed(1)}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-                );
-              })}
-            </View>
-          )}
-        </Card.Content>
-      </Card>
-
-      {/* BMI Calculator */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title>📊 BMI & Body Metrics</Title>
-          <Text style={styles.description}>
-            Track your body composition and health metrics
-          </Text>
-
-          <TextInput
-            label="Weight (kg)"
-            value={weight}
-            onChangeText={setWeight}
-            keyboardType="numeric"
-            mode="outlined"
-            style={styles.input}
-          />
-
-          <TextInput
-            label="Height (cm)"
-            value={height}
-            onChangeText={setHeight}
-            keyboardType="numeric"
-            mode="outlined"
-            style={styles.input}
-          />
-
-          <Button mode="contained" onPress={handleUpdateBodyMetrics} style={styles.button}>
-            Update Metrics
-          </Button>
-
-          {bmi > 0 && (
-            <View style={styles.bmiResults}>
-              <View style={styles.bmiHeader}>
-                <Text style={styles.bmiTitle}>Your BMI</Text>
-                <View style={[styles.bmiBadge, { backgroundColor: bmiColor + '20' }]}>
-                  <Text style={[styles.bmiValue, { color: bmiColor }]}>{bmi}</Text>
-                </View>
+        {/* Body Metrics */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Body Metrics</Text>
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>📊 Update Metrics</Text>
+            <View style={styles.metricsInputs}>
+              <View style={styles.metricInput}>
+                <Text style={styles.metricLabel}>Weight (kg)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="70"
+                  placeholderTextColor={timeblocColors.textTertiary}
+                  keyboardType="decimal-pad"
+                  value={weight}
+                  onChangeText={setWeight}
+                />
               </View>
-              <Text style={[styles.bmiCategory, { color: bmiColor }]}>
-                {bmiCategory}
-              </Text>
-
-              {idealWeight && (
-                <View style={styles.idealWeightSection}>
-                  <Text style={styles.idealWeightTitle}>Ideal Weight Range:</Text>
-                  <Text style={styles.idealWeightRange}>
-                    {idealWeight.min} - {idealWeight.max} kg
-                  </Text>
-                  {weightNum < idealWeight.min && (
-                    <Text style={styles.weightAdvice}>
-                      💡 Consider gaining {(idealWeight.min - weightNum).toFixed(1)} kg to reach ideal range
-                    </Text>
-                  )}
-                  {weightNum > idealWeight.max && (
-                    <Text style={styles.weightAdvice}>
-                      💡 Consider losing {(weightNum - idealWeight.max).toFixed(1)} kg to reach ideal range
-                    </Text>
-                  )}
-                  {weightNum >= idealWeight.min && weightNum <= idealWeight.max && (
-                    <Text style={[styles.weightAdvice, { color: '#4CAF50' }]}>
-                      ✅ You're in the ideal weight range!
-                    </Text>
-                  )}
-                </View>
-              )}
+              <View style={styles.metricInput}>
+                <Text style={styles.metricLabel}>Height (cm)</Text>
+                <TextInput
+                  style={styles.input}
+                  placeholder="175"
+                  placeholderTextColor={timeblocColors.textTertiary}
+                  keyboardType="decimal-pad"
+                  value={height}
+                  onChangeText={setHeight}
+                />
+              </View>
             </View>
-          )}
-        </Card.Content>
-      </Card>
-
-      {/* Steps Counter */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title>👟 Daily Steps</Title>
-          <View style={styles.stepsProgress}>
-            <Text style={styles.stepsCount}>
-              {physicalHealthData.dailySteps.toLocaleString()} / {physicalHealthData.stepsGoal.toLocaleString()} steps
-            </Text>
-            <ProgressBar
-              progress={Math.min(stepsProgress, 1)}
-              color="#FF5722"
-              style={styles.progressBar}
-            />
+            <TouchableOpacity style={styles.saveButton} onPress={handleUpdateBodyMetrics}>
+              <Text style={styles.saveButtonText}>Save Metrics</Text>
+            </TouchableOpacity>
           </View>
+        </View>
 
-          <TextInput
-            label="Update Steps"
-            value={steps}
-            onChangeText={setSteps}
-            keyboardType="numeric"
-            mode="outlined"
-            style={styles.input}
-          />
-          <Button mode="contained" onPress={handleUpdateSteps} style={styles.button}>
-            Update Steps
-          </Button>
-
-          {stepsProgress >= 1 && (
-            <View style={styles.achievement}>
-              <Text style={styles.achievementText}>🎉 Daily goal reached!</Text>
-            </View>
-          )}
-        </Card.Content>
-      </Card>
-
-      {/* Workout Logger */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title>🏋️ Log Workout</Title>
-          <Text style={styles.description}>
-            Track your training sessions
-          </Text>
-
-          <Text style={styles.label}>Workout Type:</Text>
-          <RadioButton.Group onValueChange={(value) => setWorkoutType(value as any)} value={workoutType}>
-            <View style={styles.radioGroup}>
-              <View style={styles.radioItem}>
-                <RadioButton value="strength" />
-                <Text>Strength</Text>
-              </View>
-              <View style={styles.radioItem}>
-                <RadioButton value="cardio" />
-                <Text>Cardio</Text>
-              </View>
-              <View style={styles.radioItem}>
-                <RadioButton value="mobility" />
-                <Text>Mobility</Text>
-              </View>
-              <View style={styles.radioItem}>
-                <RadioButton value="other" />
-                <Text>Other</Text>
-              </View>
-            </View>
-          </RadioButton.Group>
-
-          <TextInput
-            label="Duration (minutes)"
-            value={duration}
-            onChangeText={setDuration}
-            keyboardType="numeric"
-            mode="outlined"
-            style={styles.input}
-          />
-
-          <TextInput
-            label="Intensity (RPE 1-10)"
-            value={intensity}
-            onChangeText={setIntensity}
-            keyboardType="numeric"
-            mode="outlined"
-            style={styles.input}
-          />
-
-          <Button mode="contained" onPress={handleLogWorkout} style={styles.button}>
-            Log Workout
-          </Button>
-
-          {todayWorkouts.length > 0 && (
-            <View style={styles.todayWorkouts}>
-              <Text style={styles.todayTitle}>Today's Workouts:</Text>
-              {todayWorkouts.map((workout) => (
-                <View key={workout.id} style={styles.workoutItem}>
-                  <Text style={styles.workoutType}>
-                    {workout.type.charAt(0).toUpperCase() + workout.type.slice(1)}
-                  </Text>
-                  <Text style={styles.workoutDetails}>
-                    {workout.duration} min • Intensity: {workout.intensity}/10
-                  </Text>
-                </View>
-              ))}
-            </View>
-          )}
-        </Card.Content>
-      </Card>
-
-      {/* Morning Mobility */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title>🧘 Morning Mobility Routine</Title>
-          <Text style={styles.description}>
-            5-minute routine to start your day (Kłos methodology)
-          </Text>
-          <View style={styles.mobilityList}>
-            <Text style={styles.mobilityItem}>• Cat-Cow Stretch (1 min)</Text>
-            <Text style={styles.mobilityItem}>• Hip Circles (1 min)</Text>
-            <Text style={styles.mobilityItem}>• Shoulder Rolls (1 min)</Text>
-            <Text style={styles.mobilityItem}>• Spinal Twists (1 min)</Text>
-            <Text style={styles.mobilityItem}>• Deep Breathing (1 min)</Text>
-          </View>
-          <Button mode="contained" style={styles.button}>
-            Start Routine
-          </Button>
-        </Card.Content>
-      </Card>
-
-      {/* Cold Exposure (Huberman Protocol) */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title>🧊 Cold Exposure</Title>
-          <Text style={styles.description}>
-            11 minutes per week protocol (Huberman)
-          </Text>
-          <Text style={styles.protocolInfo}>
-            • 2-3 min cold showers, 3-4x per week
-          </Text>
-          <Text style={styles.protocolInfo}>
-            • Total: 11 min/week minimum
-          </Text>
-          <Text style={styles.protocolInfo}>
-            • Benefits: Dopamine, metabolism, resilience
-          </Text>
-          <Button mode="outlined" style={styles.button}>
-            Log Cold Shower
-          </Button>
-        </Card.Content>
-      </Card>
-
-      {/* Movement Reminders */}
-      <Card style={styles.card}>
-        <Card.Content>
-          <Title>⏰ Movement Reminders</Title>
-          <Text style={styles.description}>
-            Break up long sitting periods
-          </Text>
-          <Text style={styles.reminderText}>
-            Stand up and move every 2 hours
-          </Text>
-          <Text style={styles.microExercises}>Micro-exercises:</Text>
-          <Text style={styles.mobilityItem}>• 20 squats</Text>
-          <Text style={styles.mobilityItem}>• 10 push-ups</Text>
-          <Text style={styles.mobilityItem}>• 30-second plank</Text>
-          <Text style={styles.mobilityItem}>• Neck stretches</Text>
-        </Card.Content>
-      </Card>
-    </ScrollView>
+        <View style={{ height: 40 }} />
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: timeblocColors.background,
   },
+  // Header
   header: {
-    padding: 20,
-    paddingTop: 60,
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#666',
-  },
-  card: {
-    margin: 16,
-    elevation: 2,
-  },
-  statsCard: {
-    margin: 16,
-    elevation: 2,
-    backgroundColor: '#fff',
-  },
-  statsGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-    marginTop: 16,
-  },
-  statBox: {
-    width: '47%',
-    backgroundColor: '#f9f9f9',
-    padding: 16,
-    borderRadius: 12,
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: timeblocSpacing.xl,
+    paddingVertical: timeblocSpacing.lg,
   },
-  statBadge: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: timeblocColors.surface,
     justifyContent: 'center',
-    marginBottom: 12,
+    alignItems: 'center',
+    ...timeblocShadows.soft,
+  },
+  headerTitle: {
+    ...timeblocTypography.h2,
+  },
+  placeholder: {
+    width: 40,
+  },
+  // Stats
+  statsSection: {
+    paddingHorizontal: timeblocSpacing.xl,
+    marginTop: timeblocSpacing.lg,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: timeblocSpacing.md,
+    marginBottom: timeblocSpacing.md,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: timeblocColors.surface,
+    borderRadius: timeblocBorderRadius.lg,
+    padding: timeblocSpacing.lg,
+    alignItems: 'center',
+    ...timeblocShadows.soft,
+  },
+  statIcon: {
+    fontSize: 32,
+    marginBottom: timeblocSpacing.sm,
   },
   statValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 4,
+    ...timeblocTypography.h2,
+    marginBottom: timeblocSpacing.xs,
   },
   statLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginBottom: 4,
-  },
-  statCategory: {
-    fontSize: 11,
-    color: '#999',
-    fontWeight: '600',
-  },
-  description: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 16,
-  },
-  stepsProgress: {
-    marginVertical: 16,
-  },
-  stepsCount: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  progressBar: {
-    height: 12,
-    borderRadius: 6,
-  },
-  input: {
-    marginBottom: 12,
-  },
-  button: {
-    marginTop: 8,
-  },
-  achievement: {
-    marginTop: 16,
-    padding: 12,
-    backgroundColor: '#FFEBEE',
-    borderRadius: 8,
-  },
-  achievementText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FF5722',
+    ...timeblocTypography.small,
     textAlign: 'center',
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
+  // Sections
+  section: {
+    paddingHorizontal: timeblocSpacing.xl,
+    marginTop: timeblocSpacing.xxl,
   },
-  radioGroup: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 16,
+  sectionTitle: {
+    ...timeblocTypography.h3,
+    marginBottom: timeblocSpacing.md,
   },
-  radioItem: {
-    flexDirection: 'row',
+  // BMI Card
+  bmiCard: {
+    borderRadius: timeblocBorderRadius.lg,
+    ...timeblocShadows.soft,
+    overflow: 'hidden',
+  },
+  bmiGradient: {
+    padding: timeblocSpacing.xxl,
     alignItems: 'center',
-    marginRight: 16,
-    marginBottom: 8,
-  },
-  todayWorkouts: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-  },
-  todayTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  workoutItem: {
-    padding: 12,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  workoutType: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 4,
-  },
-  workoutDetails: {
-    fontSize: 14,
-    color: '#666',
-  },
-  mobilityList: {
-    marginBottom: 16,
-  },
-  mobilityItem: {
-    fontSize: 14,
-    marginBottom: 8,
-    color: '#333',
-  },
-  protocolInfo: {
-    fontSize: 14,
-    marginBottom: 8,
-    color: '#666',
-  },
-  reminderText: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 12,
-  },
-  microExercises: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  bmiResults: {
-    marginTop: 16,
-    padding: 16,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 12,
-  },
-  bmiHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  bmiTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-  },
-  bmiBadge: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
   },
   bmiValue: {
-    fontSize: 24,
-    fontWeight: '800',
-  },
-  bmiCategory: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 12,
-    textAlign: 'center',
-  },
-  idealWeightSection: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  idealWeightTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-    marginBottom: 4,
-  },
-  idealWeightRange: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#333',
-    marginBottom: 8,
-  },
-  weightAdvice: {
-    fontSize: 13,
-    color: '#666',
-    fontStyle: 'italic',
-    marginTop: 4,
-  },
-  cardHeader: {
-    marginBottom: 8,
-  },
-  cardTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  cardTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginLeft: 8,
-  },
-  sleepInputRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 12,
-  },
-  sleepInputHalf: {
-    flex: 1,
-  },
-  sleepQualityGuide: {
-    backgroundColor: '#F3E5F5',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
-  },
-  guideTitle: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#9C27B0',
-    marginBottom: 4,
-  },
-  guideText: {
-    fontSize: 11,
-    color: '#666',
-  },
-  historySection: {
-    marginTop: 16,
-    paddingTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: '#eee',
-  },
-  historyTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    marginBottom: 12,
-    color: '#333',
-  },
-  historyItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    backgroundColor: '#f9f9f9',
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  historyItemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  historyDate: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#333',
-  },
-  historyStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  historyValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#333',
-  },
-  qualityBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: '#FFF3E0',
-    borderRadius: 6,
-  },
-  qualityText: {
-    fontSize: 10,
-  },
-  changeBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-  },
-  changeText: {
-    fontSize: 12,
+    fontSize: 48,
     fontWeight: '700',
     color: '#FFFFFF',
+    marginBottom: timeblocSpacing.xs,
   },
-  averageSection: {
-    marginTop: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
+  bmiCategory: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: timeblocSpacing.sm,
+  },
+  bmiIdeal: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.9)',
+  },
+  // Calorie Card
+  calorieCard: {
+    backgroundColor: timeblocColors.surface,
+    borderRadius: timeblocBorderRadius.lg,
+    padding: timeblocSpacing.xl,
+    ...timeblocShadows.soft,
+  },
+  calorieRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    paddingVertical: timeblocSpacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: timeblocColors.borderLight,
+  },
+  calorieLabel: {
+    ...timeblocTypography.body,
+  },
+  calorieValue: {
+    ...timeblocTypography.bodyBold,
+    color: timeblocColors.physical,
+  },
+  // Card
+  card: {
+    backgroundColor: timeblocColors.surface,
+    borderRadius: timeblocBorderRadius.lg,
+    padding: timeblocSpacing.xl,
+    ...timeblocShadows.soft,
+  },
+  cardTitle: {
+    ...timeblocTypography.h3,
+    marginBottom: timeblocSpacing.sm,
+  },
+  cardSubtitle: {
+    ...timeblocTypography.small,
+    marginBottom: timeblocSpacing.md,
+  },
+  // Workout Types
+  workoutTypes: {
+    flexDirection: 'row',
+    gap: timeblocSpacing.sm,
+    marginBottom: timeblocSpacing.lg,
+  },
+  typeButton: {
+    flex: 1,
+    paddingVertical: timeblocSpacing.sm,
+    paddingHorizontal: timeblocSpacing.xs,
+    borderRadius: timeblocBorderRadius.md,
+    backgroundColor: timeblocColors.background,
     alignItems: 'center',
   },
-  averageLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
+  typeButtonActive: {
+    backgroundColor: timeblocColors.physical,
   },
-  averageValue: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#9C27B0',
+  typeButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: timeblocColors.textSecondary,
+  },
+  typeButtonTextActive: {
+    color: '#FFFFFF',
+  },
+  // Input
+  inputRow: {
+    flexDirection: 'row',
+    gap: timeblocSpacing.md,
+    marginBottom: timeblocSpacing.md,
+  },
+  input: {
+    flex: 1,
+    backgroundColor: timeblocColors.background,
+    borderRadius: timeblocBorderRadius.md,
+    padding: timeblocSpacing.md,
+    ...timeblocTypography.body,
+  },
+  logButton: {
+    backgroundColor: timeblocColors.physical,
+    borderRadius: timeblocBorderRadius.md,
+    paddingHorizontal: timeblocSpacing.xl,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logButtonText: {
+    ...timeblocTypography.bodyBold,
+    color: '#FFFFFF',
+  },
+  saveButton: {
+    backgroundColor: timeblocColors.primary,
+    borderRadius: timeblocBorderRadius.md,
+    padding: timeblocSpacing.md,
+    alignItems: 'center',
+    marginTop: timeblocSpacing.md,
+  },
+  saveButtonText: {
+    ...timeblocTypography.bodyBold,
+    color: '#FFFFFF',
+  },
+  // Progress Bar
+  progressBar: {
+    height: 8,
+    backgroundColor: timeblocColors.borderLight,
+    borderRadius: timeblocBorderRadius.full,
+    overflow: 'hidden',
+    marginBottom: timeblocSpacing.lg,
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: timeblocColors.physical,
+    borderRadius: timeblocBorderRadius.full,
+  },
+  // Metrics Inputs
+  metricsInputs: {
+    flexDirection: 'row',
+    gap: timeblocSpacing.md,
+    marginBottom: timeblocSpacing.md,
+  },
+  metricInput: {
+    flex: 1,
+  },
+  metricLabel: {
+    ...timeblocTypography.small,
+    marginBottom: timeblocSpacing.xs,
+  },
+  // Recent Lists
+  recentList: {
+    marginTop: timeblocSpacing.lg,
+  },
+  recentTitle: {
+    ...timeblocTypography.bodyBold,
+    marginBottom: timeblocSpacing.sm,
+  },
+  recentItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: timeblocSpacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: timeblocColors.borderLight,
+  },
+  recentText: {
+    ...timeblocTypography.body,
+  },
+  recentDate: {
+    ...timeblocTypography.tiny,
   },
 });
