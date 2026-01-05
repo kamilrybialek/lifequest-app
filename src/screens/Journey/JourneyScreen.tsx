@@ -1,21 +1,21 @@
 /**
- * Journey Screen - Duolingo Style (Native Version)
- * Uses solid colors for consistency across platforms
+ * Journey Screen - TimeBloc Design (Native Version)
+ * Soft, premium, minimal design language
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  
   TouchableOpacity,
   ScrollView,
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../theme/colors';
+import { LinearGradient } from 'expo-linear-gradient';
+import { timeblocColors, timeblocShadows, timeblocSpacing, timeblocBorderRadius, timeblocTypography } from '../../theme/timeblocTheme';
 import { useAppStore } from '../../store/appStore';
 import { useAuthStore } from '../../store/authStore';
 import { Pillar } from '../../types';
@@ -40,7 +40,7 @@ const PATHS: PathCard[] = [
     subtitle: '10 Steps to Wealth',
     icon: 'cash',
     emoji: '💰',
-    color: '#4A90E2',
+    color: '#FF9F66', // TimeBloc finance color
     lessons: 47,
     completed: 0,
   },
@@ -50,7 +50,7 @@ const PATHS: PathCard[] = [
     subtitle: 'Build Unbreakable Focus',
     icon: 'bulb',
     emoji: '🧠',
-    color: '#9C27B0',
+    color: '#6FBAFF', // TimeBloc mental color
     lessons: 35,
     completed: 0,
   },
@@ -60,7 +60,7 @@ const PATHS: PathCard[] = [
     subtitle: 'Transform Your Body',
     icon: 'fitness',
     emoji: '💪',
-    color: '#FF6B6B',
+    color: '#FF8E9E', // TimeBloc physical color
     lessons: 40,
     completed: 0,
   },
@@ -70,7 +70,7 @@ const PATHS: PathCard[] = [
     subtitle: 'Fuel Like a Champion',
     icon: 'restaurant',
     emoji: '🥗',
-    color: '#4CAF50',
+    color: '#A0D995', // TimeBloc nutrition color
     lessons: 30,
     completed: 0,
   },
@@ -97,12 +97,17 @@ export const JourneyScreen = ({ navigation }: any) => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
+        {/* Header - Soft Purple Gradient */}
+        <LinearGradient
+          colors={['#7C6FE8', '#9F8EFF']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.header}
+        >
           <Text style={styles.headerEmoji}>🧭</Text>
           <Text style={styles.headerTitle}>Your Journey</Text>
           <Text style={styles.headerSubtitle}>Choose your path, {firstName}!</Text>
-        </View>
+        </LinearGradient>
 
         {/* Stats Bar */}
         <View style={styles.statsBar}>
@@ -113,7 +118,7 @@ export const JourneyScreen = ({ navigation }: any) => {
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Ionicons name="star" size={20} color="#4A90E2" />
+            <Ionicons name="star" size={20} color={timeblocColors.primary} />
             <Text style={styles.statValue}>{level}</Text>
             <Text style={styles.statLabel}>Level</Text>
           </View>
@@ -135,37 +140,44 @@ export const JourneyScreen = ({ navigation }: any) => {
             return (
               <TouchableOpacity
                 key={path.pillar}
-                style={[styles.pathCard, { backgroundColor: path.color }]}
+                style={styles.pathCard}
                 onPress={() => handlePathPress(path.pillar)}
                 activeOpacity={0.8}
               >
-                <View style={styles.pathCardContent}>
-                  <View style={styles.pathIconContainer}>
-                    <Text style={styles.pathEmoji}>{path.emoji}</Text>
-                  </View>
-
-                  <View style={styles.pathInfo}>
-                    <Text style={styles.pathTitle}>{path.title}</Text>
-                    <Text style={styles.pathSubtitle}>{path.subtitle}</Text>
-
-                    {/* Progress Bar */}
-                    <View style={styles.progressContainer}>
-                      <View style={styles.progressBar}>
-                        <View
-                          style={[
-                            styles.progressFill,
-                            { width: `${progressPercent}%` }
-                          ]}
-                        />
-                      </View>
-                      <Text style={styles.progressText}>
-                        {path.completed}/{path.lessons}
-                      </Text>
+                <LinearGradient
+                  colors={[path.color, path.color + 'E6']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.pathCardGradient}
+                >
+                  <View style={styles.pathCardContent}>
+                    <View style={styles.pathIconContainer}>
+                      <Text style={styles.pathEmoji}>{path.emoji}</Text>
                     </View>
-                  </View>
 
-                  <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.8)" />
-                </View>
+                    <View style={styles.pathInfo}>
+                      <Text style={styles.pathTitle}>{path.title}</Text>
+                      <Text style={styles.pathSubtitle}>{path.subtitle}</Text>
+
+                      {/* Progress Bar */}
+                      <View style={styles.progressContainer}>
+                        <View style={styles.progressBar}>
+                          <View
+                            style={[
+                              styles.progressFill,
+                              { width: `${progressPercent}%` }
+                            ]}
+                          />
+                        </View>
+                        <Text style={styles.progressText}>
+                          {path.completed}/{path.lessons}
+                        </Text>
+                      </View>
+                    </View>
+
+                    <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.8)" />
+                  </View>
+                </LinearGradient>
               </TouchableOpacity>
             );
           })}
@@ -190,94 +202,83 @@ export const JourneyScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F8FA',
+    backgroundColor: timeblocColors.background,
   },
   header: {
-    backgroundColor: '#4A90E2',
     paddingTop: 50,
     paddingBottom: 30,
-    paddingHorizontal: 20,
+    paddingHorizontal: timeblocSpacing.xl,
     alignItems: 'center',
   },
   headerEmoji: {
     fontSize: 48,
-    marginBottom: 8,
+    marginBottom: timeblocSpacing.sm,
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: 'white',
-    marginBottom: 4,
+    ...timeblocTypography.h1,
+    color: '#FFFFFF',
+    marginBottom: timeblocSpacing.xs,
   },
   headerSubtitle: {
-    fontSize: 16,
+    ...timeblocTypography.body,
     color: 'rgba(255,255,255,0.9)',
   },
   statsBar: {
     flexDirection: 'row',
-    backgroundColor: 'white',
-    marginHorizontal: 20,
+    backgroundColor: timeblocColors.surface,
+    marginHorizontal: timeblocSpacing.xl,
     marginTop: -20,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: timeblocBorderRadius.lg,
+    padding: timeblocSpacing.lg,
     justifyContent: 'space-around',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
+    ...timeblocShadows.medium,
   },
   statItem: {
     alignItems: 'center',
     flex: 1,
   },
   statValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginTop: 4,
+    ...timeblocTypography.h3,
+    marginTop: timeblocSpacing.xs,
   },
   statLabel: {
-    fontSize: 12,
-    color: '#666',
+    ...timeblocTypography.small,
   },
   statDivider: {
     width: 1,
     height: 40,
-    backgroundColor: '#E5E5E5',
+    backgroundColor: timeblocColors.borderLight,
   },
   pathsContainer: {
-    padding: 20,
+    padding: timeblocSpacing.xl,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginBottom: 16,
+    ...timeblocTypography.h3,
+    marginBottom: timeblocSpacing.lg,
   },
   pathCard: {
-    borderRadius: 20,
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 5,
+    borderRadius: timeblocBorderRadius.xl,
+    marginBottom: timeblocSpacing.lg,
+    ...timeblocShadows.medium,
+    overflow: 'hidden',
+  },
+  pathCardGradient: {
+    borderRadius: timeblocBorderRadius.xl,
   },
   pathCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
+    padding: timeblocSpacing.xl,
   },
   pathIconContainer: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.3)',
+    backgroundColor: 'rgba(255,255,255,0.25)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: timeblocSpacing.lg,
   },
   pathEmoji: {
     fontSize: 32,
@@ -287,14 +288,14 @@ const styles = StyleSheet.create({
   },
   pathTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: 'white',
+    fontWeight: '700',
+    color: '#FFFFFF',
     marginBottom: 2,
   },
   pathSubtitle: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.9)',
-    marginBottom: 8,
+    marginBottom: timeblocSpacing.sm,
   },
   progressContainer: {
     flexDirection: 'row',
@@ -303,14 +304,14 @@ const styles = StyleSheet.create({
   progressBar: {
     flex: 1,
     height: 6,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 3,
-    marginRight: 8,
+    backgroundColor: 'rgba(255,255,255,0.25)',
+    borderRadius: timeblocBorderRadius.full,
+    marginRight: timeblocSpacing.sm,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: 'white',
-    borderRadius: 3,
+    backgroundColor: '#FFFFFF',
+    borderRadius: timeblocBorderRadius.full,
   },
   progressText: {
     fontSize: 12,
@@ -318,31 +319,24 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   motivationCard: {
-    margin: 20,
+    margin: timeblocSpacing.xl,
     marginTop: 0,
-    padding: 24,
-    backgroundColor: 'white',
-    borderRadius: 20,
+    padding: timeblocSpacing.xxl,
+    backgroundColor: timeblocColors.surface,
+    borderRadius: timeblocBorderRadius.xl,
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    ...timeblocShadows.soft,
   },
   motivationEmoji: {
     fontSize: 48,
-    marginBottom: 12,
+    marginBottom: timeblocSpacing.md,
   },
   motivationTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1A1A1A',
-    marginBottom: 8,
+    ...timeblocTypography.h3,
+    marginBottom: timeblocSpacing.sm,
   },
   motivationText: {
-    fontSize: 14,
-    color: '#666',
+    ...timeblocTypography.body,
     textAlign: 'center',
     lineHeight: 22,
   },
