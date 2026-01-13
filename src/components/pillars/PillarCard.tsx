@@ -31,10 +31,10 @@ const PILLAR_CONFIG = {
     icon: 'fitness' as keyof typeof Ionicons.glyphMap,
     label: 'Physical',
   },
-  nutrition: {
-    color: colors.nutrition,
+  diet: {
+    color: colors.diet,
     icon: 'restaurant' as keyof typeof Ionicons.glyphMap,
-    label: 'Nutrition',
+    label: 'Diet',
   },
 };
 

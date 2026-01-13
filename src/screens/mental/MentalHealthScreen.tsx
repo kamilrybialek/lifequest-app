@@ -1,37 +1,15 @@
-/**
- * Mental Health Dashboard - TimeBloc Design
- * Track mental wellness, sleep, stress, and mindfulness
- */
-
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  SafeAreaView,
-  RefreshControl,
-  TextInput,
-  Alert,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import React, { useState } from 'react';
+import { View, StyleSheet, ScrollView } from 'react-native';
+import { Text, Card, Title, TextInput, Button, Chip } from 'react-native-paper';
 import { useAppStore } from '../../store/appStore';
-import { timeblocColors, timeblocShadows, timeblocSpacing, timeblocBorderRadius, timeblocTypography, timeblocGradients } from '../../theme/timeblocTheme';
 
-export const MentalHealthScreen = ({ navigation }: any) => {
+export const MentalHealthScreen = () => {
   const { mentalHealthData, updateMentalHealthData } = useAppStore();
-  const [refreshing, setRefreshing] = useState(false);
   const [gratitudeText, setGratitudeText] = useState('');
-  const [sleepHours, setSleepHours] = useState('');
-  const [stressLevel, setStressLevel] = useState(mentalHealthData.stressLevel || 5);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    // Reload data
-    setTimeout(() => setRefreshing(false), 1000);
-  };
+  const [bedTime, setBedTime] = useState('');
+  const [wakeTime, setWakeTime] = useState('');
+  const [sleepQuality, setSleepQuality] = useState(3);
+  const [stressLevel, setStressLevel] = useState(5);
 
   const handleAddGratitude = () => {
     if (gratitudeText.trim()) {
@@ -44,26 +22,23 @@ export const MentalHealthScreen = ({ navigation }: any) => {
         gratitudeEntries: [...mentalHealthData.gratitudeEntries, newEntry],
       });
       setGratitudeText('');
-      Alert.alert('✨ Added', 'Gratitude entry saved!');
     }
   };
 
   const handleLogSleep = () => {
-    const hours = parseFloat(sleepHours);
-    if (!isNaN(hours) && hours > 0 && hours <= 24) {
+    if (bedTime && wakeTime) {
       const newEntry = {
         id: Date.now().toString(),
-        bedTime: '',
-        wakeTime: '',
-        quality: 3,
-        hours,
+        bedTime,
+        wakeTime,
+        quality: sleepQuality,
         date: new Date().toISOString(),
       };
       updateMentalHealthData({
         sleepLog: [...mentalHealthData.sleepLog, newEntry],
       });
-      setSleepHours('');
-      Alert.alert('😴 Logged', `${hours} hours of sleep recorded!`);
+      setBedTime('');
+      setWakeTime('');
     }
   };
 
@@ -71,457 +46,283 @@ export const MentalHealthScreen = ({ navigation }: any) => {
     updateMentalHealthData({
       morningLightTime: new Date().toISOString(),
     });
-    Alert.alert('☀️ Great!', 'Morning sunlight logged!');
   };
 
-  const handleUpdateStress = () => {
+  const handleStressUpdate = () => {
     updateMentalHealthData({
       stressLevel,
     });
-    Alert.alert('📊 Updated', 'Stress level saved!');
   };
 
-  const recentGratitude = mentalHealthData.gratitudeEntries.slice(-3).reverse();
-  const recentSleep = mentalHealthData.sleepLog.slice(-7).reverse();
-  const avgSleep = recentSleep.length > 0
-    ? (recentSleep.reduce((sum, log) => sum + (log.hours || 8), 0) / recentSleep.length).toFixed(1)
-    : '0';
-
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation?.goBack()} style={styles.backButton}>
-            <Ionicons name="chevron-back" size={24} color={timeblocColors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Mental Health</Text>
-          <View style={styles.placeholder} />
-        </View>
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <Title style={styles.title}>🧠 Mental Health</Title>
+        <Text style={styles.subtitle}>Optimize your mind & well-being</Text>
+      </View>
 
-        {/* Stats Grid */}
-        <View style={styles.statsSection}>
-          <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <Text style={styles.statIcon}>😴</Text>
-              <Text style={styles.statValue}>{avgSleep}h</Text>
-              <Text style={styles.statLabel}>Avg Sleep</Text>
+      {/* Morning Sunlight (Huberman Protocol) */}
+      <Card style={styles.card}>
+        <Card.Content>
+          <Title>☀️ Morning Sunlight Exposure</Title>
+          <Text style={styles.description}>
+            Get 10 minutes of sunlight within 1 hour of waking up. This helps set your circadian rhythm.
+          </Text>
+          {mentalHealthData.morningLightTime ? (
+            <View style={styles.completed}>
+              <Text style={styles.completedText}>
+                ✅ Completed today at{' '}
+                {new Date(mentalHealthData.morningLightTime).toLocaleTimeString()}
+              </Text>
             </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statIcon}>📊</Text>
-              <Text style={styles.statValue}>{stressLevel}/10</Text>
-              <Text style={styles.statLabel}>Stress Level</Text>
-            </View>
+          ) : (
+            <Button mode="contained" onPress={handleLogMorningLight} style={styles.button}>
+              Log Morning Light
+            </Button>
+          )}
+        </Card.Content>
+      </Card>
+
+      {/* Breathing Exercises */}
+      <Card style={styles.card}>
+        <Card.Content>
+          <Title>🫁 Breathing Exercises</Title>
+          <Text style={styles.description}>
+            Quick breathing techniques to manage stress
+          </Text>
+          <View style={styles.breathingOptions}>
+            <Chip icon="timer" style={styles.chip}>
+              Box Breathing (4-4-4-4)
+            </Chip>
+            <Chip icon="timer" style={styles.chip}>
+              Physiological Sigh
+            </Chip>
           </View>
-          <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <Text style={styles.statIcon}>✨</Text>
-              <Text style={styles.statValue}>{mentalHealthData.gratitudeEntries.length}</Text>
-              <Text style={styles.statLabel}>Gratitude</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statIcon}>☀️</Text>
-              <Text style={styles.statValue}>{mentalHealthData.morningLightTime ? '✓' : '–'}</Text>
-              <Text style={styles.statLabel}>Morning Light</Text>
-            </View>
-          </View>
-        </View>
+        </Card.Content>
+      </Card>
 
-        {/* Morning Sunlight */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Morning Routine</Text>
-          <TouchableOpacity
-            style={styles.actionCard}
-            onPress={handleLogMorningLight}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={['#FFB366', '#FFA947']}
-              style={styles.actionGradient}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
-              <View style={styles.actionIconContainer}>
-                <Text style={styles.actionIcon}>☀️</Text>
-              </View>
-              <View style={styles.actionContent}>
-                <Text style={styles.actionTitle}>Morning Sunlight</Text>
-                <Text style={styles.actionSubtitle}>
-                  {mentalHealthData.morningLightTime
-                    ? `Logged at ${new Date(mentalHealthData.morningLightTime).toLocaleTimeString()}`
-                    : 'Get 10 min within 1 hour of waking'}
-                </Text>
-              </View>
-              <Ionicons name="checkmark-circle" size={24} color={mentalHealthData.morningLightTime ? '#FFF' : 'rgba(255,255,255,0.5)'} />
-            </LinearGradient>
-          </TouchableOpacity>
-        </View>
+      {/* Gratitude Journal */}
+      <Card style={styles.card}>
+        <Card.Content>
+          <Title>🙏 Gratitude Journal</Title>
+          <Text style={styles.description}>
+            Write one thing you're grateful for today
+          </Text>
+          <TextInput
+            label="I'm grateful for..."
+            value={gratitudeText}
+            onChangeText={setGratitudeText}
+            mode="outlined"
+            multiline
+            numberOfLines={3}
+            style={styles.textArea}
+          />
+          <Button mode="contained" onPress={handleAddGratitude} style={styles.button}>
+            Add Entry
+          </Button>
 
-        {/* Sleep Tracker */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Sleep Tracker</Text>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>😴 Log Sleep</Text>
-            <Text style={styles.cardSubtitle}>How many hours did you sleep?</Text>
-            <View style={styles.inputRow}>
-              <TextInput
-                style={styles.input}
-                placeholder="Hours (e.g., 7.5)"
-                placeholderTextColor={timeblocColors.textTertiary}
-                keyboardType="decimal-pad"
-                value={sleepHours}
-                onChangeText={setSleepHours}
-              />
-              <TouchableOpacity style={styles.addButton} onPress={handleLogSleep}>
-                <Text style={styles.addButtonText}>Log</Text>
-              </TouchableOpacity>
-            </View>
-            {recentSleep.length > 0 && (
-              <View style={styles.recentList}>
-                <Text style={styles.recentTitle}>Recent Sleep</Text>
-                {recentSleep.slice(0, 3).map((log) => (
-                  <View key={log.id} style={styles.recentItem}>
-                    <Text style={styles.recentText}>
-                      {new Date(log.date).toLocaleDateString()}: {log.hours || 8}h
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* Stress Level */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Stress Management</Text>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>📊 Current Stress Level</Text>
-            <Text style={styles.stressValue}>{stressLevel}/10</Text>
-            <View style={styles.sliderContainer}>
-              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((level) => (
-                <TouchableOpacity
-                  key={level}
-                  style={[
-                    styles.stressButton,
-                    stressLevel === level && styles.stressButtonActive
-                  ]}
-                  onPress={() => setStressLevel(level)}
-                >
-                  <Text style={[
-                    styles.stressButtonText,
-                    stressLevel === level && styles.stressButtonTextActive
-                  ]}>{level}</Text>
-                </TouchableOpacity>
+          {mentalHealthData.gratitudeEntries.length > 0 && (
+            <View style={styles.entriesList}>
+              <Text style={styles.entriesTitle}>Recent Entries:</Text>
+              {mentalHealthData.gratitudeEntries.slice(-5).reverse().map((entry) => (
+                <View key={entry.id} style={styles.entryItem}>
+                  <Text style={styles.entryText}>• {entry.text}</Text>
+                  <Text style={styles.entryDate}>
+                    {new Date(entry.date).toLocaleDateString()}
+                  </Text>
+                </View>
               ))}
             </View>
-            <TouchableOpacity style={styles.saveButton} onPress={handleUpdateStress}>
-              <Text style={styles.saveButtonText}>Save Stress Level</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+          )}
+        </Card.Content>
+      </Card>
 
-        {/* Gratitude Journal */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Gratitude Journal</Text>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>✨ What are you grateful for?</Text>
-            <TextInput
-              style={styles.textArea}
-              placeholder="Write something you're grateful for today..."
-              placeholderTextColor={timeblocColors.textTertiary}
-              multiline
-              numberOfLines={3}
-              value={gratitudeText}
-              onChangeText={setGratitudeText}
-            />
-            <TouchableOpacity style={styles.addButton} onPress={handleAddGratitude}>
-              <Text style={styles.addButtonText}>Add Entry</Text>
-            </TouchableOpacity>
-            {recentGratitude.length > 0 && (
-              <View style={styles.recentList}>
-                <Text style={styles.recentTitle}>Recent Entries</Text>
-                {recentGratitude.map((entry) => (
-                  <View key={entry.id} style={styles.gratitudeItem}>
-                    <Text style={styles.gratitudeText}>{entry.text}</Text>
-                    <Text style={styles.gratitudeDate}>
-                      {new Date(entry.date).toLocaleDateString()}
-                    </Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </View>
-        </View>
+      {/* Sleep Tracker */}
+      <Card style={styles.card}>
+        <Card.Content>
+          <Title>😴 Sleep Optimization</Title>
+          <Text style={styles.description}>
+            Track your sleep to optimize rest and recovery
+          </Text>
 
-        {/* Breathing Exercises */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Tools</Text>
-          <View style={styles.toolsGrid}>
-            <TouchableOpacity style={styles.toolCard}>
-              <Text style={styles.toolIcon}>🫁</Text>
-              <Text style={styles.toolTitle}>Box Breathing</Text>
-              <Text style={styles.toolSubtitle}>4-4-4-4</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.toolCard}>
-              <Text style={styles.toolIcon}>🧘</Text>
-              <Text style={styles.toolTitle}>Meditation</Text>
-              <Text style={styles.toolSubtitle}>5 min</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+          <TextInput
+            label="Bed Time"
+            value={bedTime}
+            onChangeText={setBedTime}
+            mode="outlined"
+            placeholder="22:00"
+            style={styles.input}
+          />
+          <TextInput
+            label="Wake Time"
+            value={wakeTime}
+            onChangeText={setWakeTime}
+            mode="outlined"
+            placeholder="06:00"
+            style={styles.input}
+          />
 
-        <View style={{ height: 40 }} />
-      </ScrollView>
-    </SafeAreaView>
+          <Text style={styles.label}>Sleep Quality:</Text>
+          <View style={styles.qualityButtons}>
+            {[1, 2, 3, 4, 5].map((rating) => (
+              <Chip
+                key={rating}
+                selected={sleepQuality === rating}
+                onPress={() => setSleepQuality(rating)}
+                style={styles.qualityChip}
+              >
+                {rating === 1 && '😴'}
+                {rating === 2 && '😐'}
+                {rating === 3 && '🙂'}
+                {rating === 4 && '😊'}
+                {rating === 5 && '🌟'}
+              </Chip>
+            ))}
+          </View>
+
+          <Button mode="contained" onPress={handleLogSleep} style={styles.button}>
+            Log Sleep
+          </Button>
+        </Card.Content>
+      </Card>
+
+      {/* Stress Check-in */}
+      <Card style={styles.card}>
+        <Card.Content>
+          <Title>📊 Stress Level Check-in</Title>
+          <Text style={styles.description}>
+            How stressed do you feel right now? (1-10)
+          </Text>
+          <View style={styles.stressSlider}>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((level) => (
+              <Chip
+                key={level}
+                selected={stressLevel === level}
+                onPress={() => setStressLevel(level)}
+                style={styles.stressChip}
+              >
+                {level}
+              </Chip>
+            ))}
+          </View>
+          <Button mode="contained" onPress={handleStressUpdate} style={styles.button}>
+            Update Stress Level
+          </Button>
+          {mentalHealthData.stressLevel !== undefined && (
+            <Text style={styles.currentStress}>
+              Current stress level: {mentalHealthData.stressLevel}/10
+            </Text>
+          )}
+        </Card.Content>
+      </Card>
+    </ScrollView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: timeblocColors.background,
+    backgroundColor: '#f5f5f5',
   },
-  // Header
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: timeblocSpacing.xl,
-    paddingVertical: timeblocSpacing.lg,
+    padding: 20,
+    paddingTop: 60,
+    backgroundColor: '#fff',
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: timeblocColors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...timeblocShadows.soft,
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
   },
-  headerTitle: {
-    ...timeblocTypography.h2,
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
   },
-  placeholder: {
-    width: 40,
-  },
-  // Stats
-  statsSection: {
-    paddingHorizontal: timeblocSpacing.xl,
-    marginTop: timeblocSpacing.lg,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: timeblocSpacing.md,
-    marginBottom: timeblocSpacing.md,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: timeblocColors.surface,
-    borderRadius: timeblocBorderRadius.lg,
-    padding: timeblocSpacing.lg,
-    alignItems: 'center',
-    ...timeblocShadows.soft,
-  },
-  statIcon: {
-    fontSize: 32,
-    marginBottom: timeblocSpacing.sm,
-  },
-  statValue: {
-    ...timeblocTypography.h2,
-    marginBottom: timeblocSpacing.xs,
-  },
-  statLabel: {
-    ...timeblocTypography.small,
-    textAlign: 'center',
-  },
-  // Sections
-  section: {
-    paddingHorizontal: timeblocSpacing.xl,
-    marginTop: timeblocSpacing.xxl,
-  },
-  sectionTitle: {
-    ...timeblocTypography.h3,
-    marginBottom: timeblocSpacing.md,
-  },
-  // Action Card
-  actionCard: {
-    borderRadius: timeblocBorderRadius.lg,
-    ...timeblocShadows.soft,
-    overflow: 'hidden',
-  },
-  actionGradient: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: timeblocSpacing.lg,
-  },
-  actionIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: timeblocSpacing.md,
-  },
-  actionIcon: {
-    fontSize: 24,
-  },
-  actionContent: {
-    flex: 1,
-  },
-  actionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 2,
-  },
-  actionSubtitle: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.9)',
-  },
-  // Card
   card: {
-    backgroundColor: timeblocColors.surface,
-    borderRadius: timeblocBorderRadius.lg,
-    padding: timeblocSpacing.xl,
-    ...timeblocShadows.soft,
+    margin: 16,
+    elevation: 2,
   },
-  cardTitle: {
-    ...timeblocTypography.h3,
-    marginBottom: timeblocSpacing.xs,
+  description: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 16,
   },
-  cardSubtitle: {
-    ...timeblocTypography.small,
-    marginBottom: timeblocSpacing.lg,
+  button: {
+    marginTop: 8,
   },
-  // Input
-  inputRow: {
+  completed: {
+    padding: 12,
+    backgroundColor: '#E8F5E9',
+    borderRadius: 8,
+  },
+  completedText: {
+    fontSize: 14,
+    color: '#4CAF50',
+    fontWeight: '600',
+  },
+  breathingOptions: {
     flexDirection: 'row',
-    gap: timeblocSpacing.md,
+    flexWrap: 'wrap',
+    gap: 8,
   },
-  input: {
-    flex: 1,
-    backgroundColor: timeblocColors.background,
-    borderRadius: timeblocBorderRadius.md,
-    padding: timeblocSpacing.md,
-    ...timeblocTypography.body,
+  chip: {
+    marginRight: 8,
+    marginBottom: 8,
   },
   textArea: {
-    backgroundColor: timeblocColors.background,
-    borderRadius: timeblocBorderRadius.md,
-    padding: timeblocSpacing.md,
-    ...timeblocTypography.body,
-    minHeight: 80,
-    marginBottom: timeblocSpacing.md,
+    marginBottom: 12,
   },
-  addButton: {
-    backgroundColor: timeblocColors.mental,
-    borderRadius: timeblocBorderRadius.md,
-    padding: timeblocSpacing.md,
-    alignItems: 'center',
+  entriesList: {
+    marginTop: 16,
   },
-  addButtonText: {
-    ...timeblocTypography.bodyBold,
-    color: '#FFFFFF',
+  entriesTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 8,
   },
-  saveButton: {
-    backgroundColor: timeblocColors.primary,
-    borderRadius: timeblocBorderRadius.md,
-    padding: timeblocSpacing.md,
-    alignItems: 'center',
-    marginTop: timeblocSpacing.md,
+  entryItem: {
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
-  saveButtonText: {
-    ...timeblocTypography.bodyBold,
-    color: '#FFFFFF',
+  entryText: {
+    fontSize: 14,
+    marginBottom: 4,
   },
-  // Stress Level
-  stressValue: {
-    fontSize: 48,
-    fontWeight: '700',
-    color: timeblocColors.primary,
-    textAlign: 'center',
-    marginVertical: timeblocSpacing.lg,
+  entryDate: {
+    fontSize: 12,
+    color: '#999',
   },
-  sliderContainer: {
+  input: {
+    marginBottom: 12,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  qualityButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: timeblocSpacing.md,
+    marginBottom: 16,
   },
-  stressButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: timeblocColors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
+  qualityChip: {
+    marginHorizontal: 2,
   },
-  stressButtonActive: {
-    backgroundColor: timeblocColors.mental,
-  },
-  stressButtonText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: timeblocColors.textSecondary,
-  },
-  stressButtonTextActive: {
-    color: '#FFFFFF',
-  },
-  // Recent Lists
-  recentList: {
-    marginTop: timeblocSpacing.lg,
-  },
-  recentTitle: {
-    ...timeblocTypography.bodyBold,
-    marginBottom: timeblocSpacing.sm,
-  },
-  recentItem: {
-    paddingVertical: timeblocSpacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: timeblocColors.borderLight,
-  },
-  recentText: {
-    ...timeblocTypography.body,
-  },
-  gratitudeItem: {
-    paddingVertical: timeblocSpacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: timeblocColors.borderLight,
-  },
-  gratitudeText: {
-    ...timeblocTypography.body,
-    marginBottom: timeblocSpacing.xs,
-  },
-  gratitudeDate: {
-    ...timeblocTypography.tiny,
-  },
-  // Tools
-  toolsGrid: {
+  stressSlider: {
     flexDirection: 'row',
-    gap: timeblocSpacing.md,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    marginVertical: 16,
   },
-  toolCard: {
-    flex: 1,
-    backgroundColor: timeblocColors.surface,
-    borderRadius: timeblocBorderRadius.lg,
-    padding: timeblocSpacing.lg,
-    alignItems: 'center',
-    ...timeblocShadows.soft,
+  stressChip: {
+    margin: 4,
   },
-  toolIcon: {
-    fontSize: 36,
-    marginBottom: timeblocSpacing.sm,
-  },
-  toolTitle: {
-    ...timeblocTypography.bodyBold,
-    marginBottom: timeblocSpacing.xs,
-  },
-  toolSubtitle: {
-    ...timeblocTypography.tiny,
+  currentStress: {
+    marginTop: 12,
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    color: '#2196F3',
   },
 });

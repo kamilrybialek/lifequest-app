@@ -272,7 +272,7 @@ export const PhysicalLessonContent = ({ route, navigation }: any) => {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+        <TouchableOpacity onPress={() => navigation.navigate('MainTabs', { screen: 'Physical' })} style={styles.backButton}>
           <Ionicons name="arrow-back" size={28} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>

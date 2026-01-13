@@ -335,6 +335,436 @@ app.get('/api/admin/feedback', adminAuth, (req, res) => {
   }
 });
 
+// ===== RECIPE MANAGEMENT =====
+
+// Get all recipes
+app.get('/api/admin/recipes', adminAuth, (req, res) => {
+  try {
+    const { source, diet, cuisine, search } = req.query;
+
+    let query = 'SELECT * FROM custom_recipes WHERE 1=1';
+    const params: any[] = [];
+
+    if (source) {
+      query += ' AND source = ?';
+      params.push(source);
+    }
+
+    if (diet) {
+      query += ' AND diets LIKE ?';
+      params.push(`%${diet}%`);
+    }
+
+    if (cuisine) {
+      query += ' AND cuisines LIKE ?';
+      params.push(`%${cuisine}%`);
+    }
+
+    if (search) {
+      query += ' AND (title LIKE ? OR summary LIKE ?)';
+      params.push(`%${search}%`, `%${search}%`);
+    }
+
+    query += ' ORDER BY created_at DESC';
+
+    const recipes = db.prepare(query).all(...params);
+    res.json({ recipes });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Get single recipe
+app.get('/api/admin/recipes/:id', adminAuth, (req, res) => {
+  try {
+    const recipeId = parseInt(req.params.id);
+    const recipe = db.prepare('SELECT * FROM custom_recipes WHERE id = ?').get(recipeId);
+
+    if (!recipe) {
+      return res.status(404).json({ error: 'Recipe not found' });
+    }
+
+    res.json({ recipe });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Create new recipe
+app.post('/api/admin/recipes', adminAuth, (req, res) => {
+  try {
+    const {
+      title,
+      name,
+      image,
+      readyInMinutes,
+      ready_in_minutes,
+      servings,
+      cuisines,
+      cuisine_type,
+      diets,
+      dish_type,
+      category,
+      difficulty,
+      summary,
+      description,
+      calories,
+      protein,
+      carbs,
+      fat,
+      ingredients,
+      instructions,
+      source
+    } = req.body;
+
+    const recipeTitle = title || name;
+
+    // Validate required fields
+    if (!recipeTitle) {
+      return res.status(400).json({ error: 'Title/name is required' });
+    }
+
+    const result = db.prepare(`
+      INSERT INTO custom_recipes (
+        title, image, ready_in_minutes, servings,
+        cuisines, diets, dish_type, category, difficulty, summary,
+        calories, protein, carbs, fat,
+        ingredients, instructions, source,
+        created_at, updated_at, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      recipeTitle,
+      image || '',
+      readyInMinutes || ready_in_minutes || 30,
+      servings || 4,
+      typeof cuisines === 'string' ? cuisines : JSON.stringify(cuisines || cuisine_type || []),
+      typeof diets === 'string' ? diets : JSON.stringify(diets || []),
+      dish_type || null,
+      category || null,
+      difficulty || 'medium',
+      summary || description || '',
+      calories || 0,
+      protein || 0,
+      carbs || 0,
+      fat || 0,
+      typeof ingredients === 'string' ? ingredients : JSON.stringify(ingredients || []),
+      instructions || '',
+      source || 'custom',
+      new Date().toISOString(),
+      new Date().toISOString(),
+      (req as any).admin.id
+    );
+
+    // Log activity
+    db.prepare(`
+      INSERT INTO admin_activity_logs (admin_id, action, details, created_at)
+      VALUES (?, ?, ?, ?)
+    `).run(
+      (req as any).admin.id,
+      'recipe_created',
+      JSON.stringify({ recipeId: result.lastInsertRowid, title }),
+      new Date().toISOString()
+    );
+
+    res.json({ success: true, recipeId: result.lastInsertRowid });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Update recipe
+app.put('/api/admin/recipes/:id', adminAuth, (req, res) => {
+  try {
+    const recipeId = parseInt(req.params.id);
+    const {
+      title,
+      name,
+      image,
+      readyInMinutes,
+      ready_in_minutes,
+      servings,
+      cuisines,
+      cuisine_type,
+      diets,
+      dish_type,
+      category,
+      difficulty,
+      summary,
+      description,
+      calories,
+      protein,
+      carbs,
+      fat,
+      ingredients,
+      instructions,
+      source
+    } = req.body;
+
+    const recipeTitle = title || name;
+
+    const result = db.prepare(`
+      UPDATE custom_recipes SET
+        title = ?,
+        image = ?,
+        ready_in_minutes = ?,
+        servings = ?,
+        cuisines = ?,
+        diets = ?,
+        dish_type = ?,
+        category = ?,
+        difficulty = ?,
+        summary = ?,
+        calories = ?,
+        protein = ?,
+        carbs = ?,
+        fat = ?,
+        ingredients = ?,
+        instructions = ?,
+        source = ?,
+        updated_at = ?
+      WHERE id = ?
+    `).run(
+      recipeTitle,
+      image,
+      readyInMinutes || ready_in_minutes,
+      servings,
+      typeof cuisines === 'string' ? cuisines : JSON.stringify(cuisines || cuisine_type || []),
+      typeof diets === 'string' ? diets : JSON.stringify(diets || []),
+      dish_type,
+      category,
+      difficulty,
+      summary || description,
+      calories,
+      protein,
+      carbs,
+      fat,
+      typeof ingredients === 'string' ? ingredients : JSON.stringify(ingredients || []),
+      instructions,
+      source,
+      new Date().toISOString(),
+      recipeId
+    );
+
+    // Log activity
+    db.prepare(`
+      INSERT INTO admin_activity_logs (admin_id, action, details, created_at)
+      VALUES (?, ?, ?, ?)
+    `).run(
+      (req as any).admin.id,
+      'recipe_updated',
+      JSON.stringify({ recipeId, title }),
+      new Date().toISOString()
+    );
+
+    res.json({ success: true, changes: result.changes });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete recipe
+app.delete('/api/admin/recipes/:id', adminAuth, (req, res) => {
+  try {
+    const recipeId = parseInt(req.params.id);
+
+    // Get recipe details before deletion
+    const recipe = db.prepare('SELECT * FROM custom_recipes WHERE id = ?').get(recipeId);
+
+    if (!recipe) {
+      return res.status(404).json({ error: 'Recipe not found' });
+    }
+
+    const result = db.prepare('DELETE FROM custom_recipes WHERE id = ?').run(recipeId);
+
+    // Log activity
+    db.prepare(`
+      INSERT INTO admin_activity_logs (admin_id, action, details, created_at)
+      VALUES (?, ?, ?, ?)
+    `).run(
+      (req as any).admin.id,
+      'recipe_deleted',
+      JSON.stringify({ recipeId, title: (recipe as any).title }),
+      new Date().toISOString()
+    );
+
+    res.json({ success: true, changes: result.changes });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Delete ALL recipes (database cleanup)
+app.delete('/api/admin/recipes', adminAuth, (req, res) => {
+  try {
+    // Get count before deletion
+    const countBefore = db.prepare('SELECT COUNT(*) as count FROM custom_recipes').get() as { count: number };
+
+    // Delete all recipes
+    const result = db.prepare('DELETE FROM custom_recipes').run();
+
+    // Reset auto-increment counter
+    db.prepare('DELETE FROM sqlite_sequence WHERE name = ?').run('custom_recipes');
+
+    // Log activity
+    db.prepare(`
+      INSERT INTO admin_activity_logs (admin_id, action, details, created_at)
+      VALUES (?, ?, ?, ?)
+    `).run(
+      (req as any).admin.id,
+      'recipes_bulk_deleted',
+      JSON.stringify({ count: countBefore.count }),
+      new Date().toISOString()
+    );
+
+    console.log(`🗑️  Deleted ${countBefore.count} recipes from database`);
+
+    res.json({
+      success: true,
+      deletedCount: countBefore.count,
+      message: `Successfully deleted ${countBefore.count} recipes`
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Bulk import recipes
+app.post('/api/admin/recipes/bulk', adminAuth, (req, res) => {
+  try {
+    const { recipes } = req.body;
+
+    if (!Array.isArray(recipes) || recipes.length === 0) {
+      return res.status(400).json({ error: 'Recipes array is required' });
+    }
+
+    const imported: number[] = [];
+    const errors: any[] = [];
+
+    // Use transaction for better performance
+    const insertRecipe = db.prepare(`
+      INSERT INTO custom_recipes (
+        title, image, ready_in_minutes, servings,
+        cuisines, diets, dish_type, category, difficulty, summary,
+        calories, protein, carbs, fat,
+        ingredients, instructions, source,
+        created_at, updated_at, created_by
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const insertMany = db.transaction((recipesToInsert: any[]) => {
+      for (const recipe of recipesToInsert) {
+        try {
+          const recipeTitle = recipe.title || recipe.name;
+
+          if (!recipeTitle) {
+            errors.push({ recipe, error: 'Missing title' });
+            continue;
+          }
+
+          const result = insertRecipe.run(
+            recipeTitle,
+            recipe.image || '',
+            recipe.readyInMinutes || recipe.ready_in_minutes || 30,
+            recipe.servings || 4,
+            typeof recipe.cuisines === 'string' ? recipe.cuisines : JSON.stringify(recipe.cuisines || recipe.cuisine_type || []),
+            typeof recipe.diets === 'string' ? recipe.diets : JSON.stringify(recipe.diets || []),
+            recipe.dish_type || recipe.dishType || null,
+            recipe.category || null,
+            recipe.difficulty || 'medium',
+            recipe.summary || recipe.description || '',
+            recipe.calories || 0,
+            recipe.protein || 0,
+            recipe.carbs || 0,
+            recipe.fat || 0,
+            typeof recipe.ingredients === 'string' ? recipe.ingredients : JSON.stringify(recipe.ingredients || recipe.extendedIngredients || []),
+            recipe.instructions || '',
+            recipe.source || 'bulk_import',
+            new Date().toISOString(),
+            new Date().toISOString(),
+            (req as any).admin.id
+          );
+
+          imported.push(result.lastInsertRowid as number);
+        } catch (err: any) {
+          errors.push({ recipe: recipe.title || 'Unknown', error: err.message });
+        }
+      }
+    });
+
+    // Execute transaction
+    insertMany(recipes);
+
+    // Log activity
+    db.prepare(`
+      INSERT INTO admin_activity_logs (admin_id, action, details, created_at)
+      VALUES (?, ?, ?, ?)
+    `).run(
+      (req as any).admin.id,
+      'recipes_bulk_imported',
+      JSON.stringify({ importedCount: imported.length, errorCount: errors.length }),
+      new Date().toISOString()
+    );
+
+    console.log(`📥 Bulk imported ${imported.length} recipes (${errors.length} errors)`);
+
+    res.json({
+      success: true,
+      importedCount: imported.length,
+      errorCount: errors.length,
+      importedIds: imported,
+      errors: errors.slice(0, 10) // Only return first 10 errors to avoid huge response
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Initialize custom_recipes table if not exists
+db.exec(`
+  CREATE TABLE IF NOT EXISTS custom_recipes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    image TEXT,
+    ready_in_minutes INTEGER DEFAULT 30,
+    servings INTEGER DEFAULT 4,
+    cuisines TEXT DEFAULT '[]',
+    diets TEXT DEFAULT '[]',
+    dish_type TEXT,
+    category TEXT,
+    difficulty TEXT DEFAULT 'medium',
+    summary TEXT,
+    calories INTEGER DEFAULT 0,
+    protein INTEGER DEFAULT 0,
+    carbs INTEGER DEFAULT 0,
+    fat INTEGER DEFAULT 0,
+    ingredients TEXT DEFAULT '[]',
+    instructions TEXT,
+    source TEXT DEFAULT 'custom',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    created_by INTEGER REFERENCES admin_users(id)
+  )
+`);
+
+// Add missing columns if table already exists
+try {
+  db.exec(`ALTER TABLE custom_recipes ADD COLUMN dish_type TEXT`);
+} catch (e) {
+  // Column already exists
+}
+
+try {
+  db.exec(`ALTER TABLE custom_recipes ADD COLUMN category TEXT`);
+} catch (e) {
+  // Column already exists
+}
+
+try {
+  db.exec(`ALTER TABLE custom_recipes ADD COLUMN difficulty TEXT DEFAULT 'medium'`);
+} catch (e) {
+  // Column already exists
+}
+
 // Start server
 app.listen(PORT, () => {
   console.log(`🚀 Admin API server running on http://localhost:${PORT}`);

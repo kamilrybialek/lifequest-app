@@ -6,6 +6,7 @@ import { useOnboardingStore } from '../../store/onboardingStore';
 export const FinanceScreen = ({ navigation }: any) => {
   const { data, updateData, setCurrentStep } = useOnboardingStore();
 
+  const [currency, setCurrency] = useState(data.currency ?? '');
   const [incomeLevel, setIncomeLevel] = useState(data.incomeLevel ?? -1);
   const [debtLevel, setDebtLevel] = useState(data.debtLevel ?? -1);
   const [savingsLevel, setSavingsLevel] = useState(data.savingsLevel ?? -1);
@@ -13,6 +14,7 @@ export const FinanceScreen = ({ navigation }: any) => {
 
   const handleNext = () => {
     updateData({
+      currency,
       incomeLevel,
       debtLevel,
       savingsLevel,
@@ -26,7 +28,7 @@ export const FinanceScreen = ({ navigation }: any) => {
     navigation.goBack();
   };
 
-  const isValid = incomeLevel >= 0 && debtLevel >= 0 && savingsLevel >= 0 && budgeting >= 0;
+  const isValid = currency && incomeLevel >= 0 && debtLevel >= 0 && savingsLevel >= 0 && budgeting >= 0;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -38,8 +40,40 @@ export const FinanceScreen = ({ navigation }: any) => {
       </View>
 
       <ScrollView style={styles.content}>
-        <Text style={styles.title}>Finance</Text>
+        <Text style={styles.title}>💰 Finance</Text>
         <Text style={styles.subtitle}>Let's understand your financial situation</Text>
+
+        {/* Currency Selection */}
+        <View style={styles.fieldContainer}>
+          <Text style={styles.label}>What's your preferred currency? *</Text>
+          <Text style={styles.helperText}>This will be used for all financial tracking</Text>
+          <View style={styles.currencyGrid}>
+            {[
+              { code: 'USD', symbol: '$', name: 'US Dollar' },
+              { code: 'EUR', symbol: '€', name: 'Euro' },
+              { code: 'PLN', symbol: 'zł', name: 'Polish Złoty' },
+              { code: 'GBP', symbol: '£', name: 'British Pound' },
+              { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
+              { code: 'CNY', symbol: '¥', name: 'Chinese Yuan' },
+            ].map((curr) => (
+              <TouchableOpacity
+                key={curr.code}
+                style={[styles.currencyButton, currency === curr.code && styles.currencyButtonSelected]}
+                onPress={() => setCurrency(curr.code)}
+              >
+                <Text style={[styles.currencySymbol, currency === curr.code && styles.currencySymbolSelected]}>
+                  {curr.symbol}
+                </Text>
+                <Text style={[styles.currencyCode, currency === curr.code && styles.currencyCodeSelected]}>
+                  {curr.code}
+                </Text>
+                <Text style={[styles.currencyName, currency === curr.code && styles.currencyNameSelected]}>
+                  {curr.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
 
         {/* Income Level */}
         <View style={styles.fieldContainer}>
@@ -202,18 +236,68 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: colors.text,
+    marginBottom: 8,
+  },
+  helperText: {
+    fontSize: 13,
+    color: colors.textLight,
     marginBottom: 12,
+  },
+  currencyGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  currencyButton: {
+    width: '48%',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+  },
+  currencyButtonSelected: {
+    borderColor: colors.primary,
+    backgroundColor: `${colors.primary}10`,
+  },
+  currencySymbol: {
+    fontSize: 28,
+    marginBottom: 4,
+  },
+  currencySymbolSelected: {
+    color: colors.primary,
+  },
+  currencyCode: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 2,
+  },
+  currencyCodeSelected: {
+    color: colors.primary,
+  },
+  currencyName: {
+    fontSize: 11,
+    color: colors.textLight,
+    textAlign: 'center',
+  },
+  currencyNameSelected: {
+    color: colors.primary,
   },
   radioGroup: {
     gap: 8,
   },
   radioButton: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#E5E7EB',
     backgroundColor: '#FFFFFF',
+    minHeight: 48,
+    justifyContent: 'center',
   },
   radioButtonSelected: {
     borderColor: colors.primary,
@@ -230,6 +314,7 @@ const styles = StyleSheet.create({
   footer: {
     padding: 24,
     paddingBottom: 40,
+    backgroundColor: colors.background,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -254,10 +339,16 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
   },
   buttonDisabled: {
     backgroundColor: colors.textLight,
     opacity: 0.5,
+    shadowOpacity: 0,
   },
   buttonText: {
     color: '#FFFFFF',

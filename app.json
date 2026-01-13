@@ -32,7 +32,7 @@
       "scope": "/",
       "startUrl": "/",
       "backgroundColor": "#FFFFFF",
-      "themeColor": "#58CC02",
+      "themeColor": "#4A90E2",
       "display": "standalone",
       "orientation": "portrait",
       "bundler": "metro",

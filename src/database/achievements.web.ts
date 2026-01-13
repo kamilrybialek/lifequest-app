@@ -75,7 +75,7 @@ export const getUserAchievements = async (userId: number): Promise<any[]> => {
   });
 
   // Sort by unlocked_at DESC
-  return result.sort((a, b) => {
+  return result.sort((a: any, b: any) => {
     return new Date(b.unlocked_at).getTime() - new Date(a.unlocked_at).getTime();
   });
 };

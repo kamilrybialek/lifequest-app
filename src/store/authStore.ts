@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { User } from '../types';
-import { auth } from '../config/firebase';
+import { auth, authPersistenceReady } from '../config/firebase';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -67,11 +67,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         weight: userData.weight,
         height: userData.height,
         gender: userData.gender as 'male' | 'female' | 'other' | undefined,
+        currency: userData.currency,
+        financialStatus: userData.financialStatus as 'debt' | 'paycheck' | 'stable' | 'saving' | 'investing' | undefined,
+        activityLevel: userData.activityLevel as 'sedentary' | 'light' | 'moderate' | 'active' | undefined,
+        sleepQuality: userData.sleepQuality,
+        mealsPerDay: userData.mealsPerDay,
+        fastFoodFrequency: userData.fastFoodFrequency,
+        waterIntakeLevel: userData.waterIntakeLevel,
+        dietQuality: userData.dietQuality,
         onboarded: userData.onboarded ?? false,
         createdAt: userData.created_at?.toDate?.()?.toISOString() ?? new Date().toISOString(),
       };
 
       set({ user, isAuthenticated: true });
+
+      // Sync currency to currency store if available
+      if (userData.currency) {
+        const { useCurrencyStore } = await import('./currencyStore');
+        useCurrencyStore.getState().setCurrency(userData.currency);
+        console.log('💱 Currency synced from Firestore:', userData.currency);
+      }
+
       console.log('✅ User logged in successfully');
     } catch (error: any) {
       console.error('❌ Login error:', error);
@@ -207,18 +223,34 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     try {
       console.log('📝 Updating user profile...');
 
-      // Update in Firestore
+      // Update in Firestore (including all new fields)
       await updateUserProfile(currentUser.id, {
         age: data.age,
         weight: data.weight,
         height: data.height,
         gender: data.gender,
+        currency: data.currency,
+        financialStatus: data.financialStatus,
+        activityLevel: data.activityLevel,
+        sleepQuality: data.sleepQuality,
+        mealsPerDay: data.mealsPerDay,
+        fastFoodFrequency: data.fastFoodFrequency,
+        waterIntakeLevel: data.waterIntakeLevel,
+        dietQuality: data.dietQuality,
         onboarded: data.onboarded,
       });
 
       // Update local state
       const updatedUser = { ...currentUser, ...data };
       set({ user: updatedUser });
+
+      // Sync currency to currency store if changed
+      if (data.currency) {
+        const { useCurrencyStore } = await import('./currencyStore');
+        useCurrencyStore.getState().setCurrency(data.currency);
+        console.log('💱 Currency updated:', data.currency);
+      }
+
       console.log('✅ Profile updated successfully');
     } catch (error) {
       console.error('❌ Profile update error:', error);
@@ -266,11 +298,27 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         weight: userData.weight,
         height: userData.height,
         gender: userData.gender as 'male' | 'female' | 'other' | undefined,
+        currency: userData.currency,
+        financialStatus: userData.financialStatus as 'debt' | 'paycheck' | 'stable' | 'saving' | 'investing' | undefined,
+        activityLevel: userData.activityLevel as 'sedentary' | 'light' | 'moderate' | 'active' | undefined,
+        sleepQuality: userData.sleepQuality,
+        mealsPerDay: userData.mealsPerDay,
+        fastFoodFrequency: userData.fastFoodFrequency,
+        waterIntakeLevel: userData.waterIntakeLevel,
+        dietQuality: userData.dietQuality,
         onboarded: userData.onboarded ?? false,
         createdAt: userData.created_at?.toDate?.()?.toISOString() ?? new Date().toISOString(),
       };
 
       set({ user, isAuthenticated: true, isLoading: false });
+
+      // Sync currency to currency store if available
+      if (userData.currency) {
+        const { useCurrencyStore } = await import('./currencyStore');
+        useCurrencyStore.getState().setCurrency(userData.currency);
+        console.log('💱 Currency synced from Firestore:', userData.currency);
+      }
+
       console.log('✅ User loaded successfully');
     } catch (error) {
       console.error('❌ Error loading user:', error);
@@ -281,10 +329,53 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
 // Guard to prevent multiple simultaneous onAuthStateChanged calls
 let isHandlingAuthChange = false;
+// Track if we've completed the initial auth check
+let hasCompletedInitialCheck = false;
+
+// CRITICAL: Wait for Firebase persistence setup AND auth state check before showing login
+// This prevents the flash of login screen while Firebase initializes (especially on iOS PWA)
+let isAuthStateReady = false;
+
+// MUST wait for persistence to be set up first, then check auth state
+console.log('⏳ [AuthStore] Waiting for Firebase Auth persistence to complete...');
+authPersistenceReady
+  .then(() => {
+    console.log('🔐 [AuthStore] Persistence ready, now checking for existing auth state...');
+    return auth.authStateReady();
+  })
+  .then(() => {
+    console.log('✅ [AuthStore] Auth state check complete');
+    isAuthStateReady = true;
+
+    // If we completed auth ready check and there's no user, show login screen
+    const currentState = useAuthStore.getState();
+    if (!currentState.isAuthenticated && currentState.isLoading) {
+      console.log('👤 [AuthStore] No user session found - showing login screen');
+      useAuthStore.setState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false
+      });
+    } else if (currentState.isAuthenticated) {
+      console.log('✅ [AuthStore] User session restored from persistence');
+    }
+  })
+  .catch((error) => {
+    console.error('❌ [AuthStore] Auth initialization failed:', error);
+    // Even if there's an error, show login screen instead of hanging
+    isAuthStateReady = true;
+    useAuthStore.setState({
+      user: null,
+      isAuthenticated: false,
+      isLoading: false
+    });
+  });
 
 // Set up Firebase auth state change listener
 onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
-  console.log('🔄 Auth state changed:', firebaseUser ? 'SIGNED_IN' : 'SIGNED_OUT');
+  console.log('🔄 Auth state changed:', firebaseUser ? 'SIGNED_IN' : 'SIGNED_OUT',
+    hasCompletedInitialCheck ? '' : '[INITIAL CHECK]',
+    isAuthStateReady ? '[AUTH READY]' : '[WAITING FOR AUTH READY]');
 
   // Prevent multiple simultaneous calls
   if (isHandlingAuthChange) {
@@ -296,12 +387,25 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
     isHandlingAuthChange = true;
 
     if (!firebaseUser) {
-      // User signed out
-      const currentState = useAuthStore.getState();
-      // Only update if state actually changed
-      if (currentState.user !== null || currentState.isAuthenticated !== false) {
-        useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: false });
+      // User signed out or not found
+      console.log('📝 No user found');
+
+      // CRITICAL: Only show login screen if authStateReady has completed
+      // This prevents showing login screen while Firebase is still checking persistence
+      if (isAuthStateReady) {
+        console.log('✅ Auth ready confirmed - safe to show login screen');
+        useAuthStore.setState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false
+        });
+      } else {
+        console.log('⏳ Waiting for authStateReady before showing login screen...');
+        // Keep loading screen visible until authStateReady completes
+        // This will be handled by the second call to onAuthStateChanged
       }
+
+      hasCompletedInitialCheck = true;
     } else {
       // User signed in - reload user data
       try {
@@ -365,34 +469,29 @@ onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
             currentUser.onboarded !== newUser.onboarded;
 
           if (hasChanged) {
-            // Debug: log WHY it changed
-            if (!currentUser) {
-              console.log('📝 User data changed: no current user (first login)');
-            } else {
-              const changedFields: string[] = [];
-              if (currentUser.id !== newUser.id) changedFields.push(`id: ${currentUser.id} → ${newUser.id}`);
-              if (currentUser.email !== newUser.email) changedFields.push(`email: ${currentUser.email} → ${newUser.email}`);
-              if (currentUser.firstName !== newUser.firstName) changedFields.push(`firstName: ${currentUser.firstName} → ${newUser.firstName}`);
-              if (currentUser.age !== newUser.age) changedFields.push(`age: ${currentUser.age} → ${newUser.age}`);
-              if (currentUser.weight !== newUser.weight) changedFields.push(`weight: ${currentUser.weight} → ${newUser.weight}`);
-              if (currentUser.height !== newUser.height) changedFields.push(`height: ${currentUser.height} → ${newUser.height}`);
-              if (currentUser.gender !== newUser.gender) changedFields.push(`gender: ${currentUser.gender} → ${newUser.gender}`);
-              if (currentUser.onboarded !== newUser.onboarded) changedFields.push(`onboarded: ${currentUser.onboarded} → ${newUser.onboarded}`);
-              console.log('📝 User data changed:', changedFields.join(', '));
-            }
-            useAuthStore.setState({ user: newUser, isAuthenticated: true, isLoading: false });
+            console.log('📝 User data changed, updating state');
+            // Set ALL state atomically - user, isAuthenticated, AND isLoading together
+            useAuthStore.setState({
+              user: newUser,
+              isAuthenticated: true,
+              isLoading: false
+            });
           } else {
-            console.log('✓ User data unchanged, skipping state update');
-            // Still update loading state if needed
-            const currentState = useAuthStore.getState();
-            if (currentState.isLoading !== false || currentState.isAuthenticated !== true) {
-              useAuthStore.setState({ isAuthenticated: true, isLoading: false });
-            }
+            console.log('✓ User data unchanged, just ensuring auth flags are correct');
+            // Still update to ensure isAuthenticated and isLoading are correct
+            useAuthStore.setState({
+              user: newUser,
+              isAuthenticated: true,
+              isLoading: false
+            });
           }
+
+          hasCompletedInitialCheck = true;
         }
       } catch (error) {
         console.error('Error in auth state listener:', error);
         useAuthStore.setState({ user: null, isAuthenticated: false, isLoading: false });
+        hasCompletedInitialCheck = true;
       }
     }
   } finally {

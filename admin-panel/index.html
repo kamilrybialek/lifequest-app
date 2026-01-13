@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>LifeQuest Admin Panel</title>
     <style>
         * {
@@ -11,16 +14,34 @@
             box-sizing: border-box;
         }
 
+        html {
+            overflow-x: hidden;
+            width: 100%;
+            height: 100%;
+            /* Safari iOS specific fixes */
+            -webkit-text-size-adjust: 100%;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: #F5F7FA;
             color: #333;
+            overflow-x: hidden;
+            overflow-y: auto !important; /* Force scrolling */
+            width: 100%;
+            min-height: 100vh;
+            position: relative;
+            /* Safari iOS scroll fixes */
+            -webkit-overflow-scrolling: touch;
+            touch-action: pan-y pinch-zoom;
         }
 
         .container {
             max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
+            overflow-x: hidden;
+            width: 100%;
         }
 
         /* Header */
@@ -256,7 +277,287 @@
             color: #D32F2F;
             margin-top: 12px;
         }
+
+        /* Mobile Responsive Styles */
+        @media (max-width: 768px) {
+            .container {
+                padding: 12px;
+                overflow-x: hidden; /* Prevent horizontal scroll */
+            }
+
+            .header {
+                padding: 16px;
+                margin-bottom: 16px;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .header p {
+                font-size: 12px;
+            }
+
+            /* Stats Grid - 2 columns on mobile */
+            .stats {
+                grid-template-columns: 1fr 1fr;
+                gap: 12px;
+                margin-bottom: 16px;
+            }
+
+            .stat-card {
+                padding: 16px;
+            }
+
+            .stat-card h3 {
+                font-size: 12px;
+            }
+
+            .stat-card .value {
+                font-size: 24px;
+            }
+
+            /* Tabs - Scrollable on mobile */
+            .tabs {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none; /* Firefox */
+                -ms-overflow-style: none; /* IE/Edge */
+                margin-bottom: 16px;
+                gap: 8px;
+                padding-bottom: 8px;
+            }
+
+            .tabs::-webkit-scrollbar {
+                display: none; /* Chrome/Safari */
+            }
+
+            .tab {
+                white-space: nowrap;
+                font-size: 13px;
+                padding: 10px 16px;
+                flex-shrink: 0;
+            }
+
+            /* Recipe Management Header - Stack vertically on mobile */
+            .content-section > div > div:first-child {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 12px !important;
+            }
+
+            .content-section > div > div:first-child > div {
+                width: 100% !important;
+                justify-content: space-between !important;
+            }
+
+            .content-section > div > div:first-child h3 {
+                margin-bottom: 0 !important;
+            }
+
+            /* Recipe action buttons - Full width on mobile */
+            .content-section > div > div:first-child button {
+                flex: 1 !important;
+                min-width: 0 !important;
+                width: auto !important;
+                font-size: 13px !important;
+                padding: 10px 12px !important;
+                white-space: nowrap;
+            }
+
+            /* Recipe Filters - Stack vertically on mobile */
+            .recipe-filters-grid {
+                grid-template-columns: 1fr !important;
+                gap: 8px !important;
+                padding: 12px !important;
+            }
+
+            /* Tables - Horizontal scroll on mobile */
+            .content-section table {
+                display: block !important;
+                overflow-x: auto !important;
+                -webkit-overflow-scrolling: touch !important;
+                white-space: nowrap !important;
+                font-size: 13px !important;
+                width: 100% !important;
+                margin-bottom: 16px !important;
+            }
+
+            table {
+                display: block;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                white-space: nowrap;
+                font-size: 13px;
+            }
+
+            table thead {
+                display: table-header-group;
+            }
+
+            table tbody {
+                display: table-row-group;
+            }
+
+            table th,
+            table td {
+                padding: 10px;
+                font-size: 12px;
+            }
+
+            /* Buttons */
+            .btn {
+                font-size: 14px;
+                padding: 12px;
+                touch-action: manipulation;
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            /* Modal - Full screen on mobile */
+            .modal-content {
+                width: 95%;
+                max-width: none;
+                padding: 20px;
+                max-height: 90vh;
+                overflow-y: auto;
+                border-radius: 12px;
+            }
+
+            .modal-content h2 {
+                font-size: 20px;
+                margin-bottom: 16px;
+            }
+
+            /* Form inputs - Better touch targets */
+            .form-group input,
+            .form-group select,
+            .form-group textarea {
+                font-size: 16px !important; /* Prevents zoom on iOS */
+                padding: 12px !important;
+                touch-action: manipulation;
+            }
+
+            /* Login container */
+            .login-container {
+                margin: 50px auto;
+                padding: 24px;
+                width: 90%;
+            }
+
+            .login-container h2 {
+                font-size: 22px;
+            }
+
+            /* Content sections */
+            .content-section {
+                overflow-x: hidden;
+                overflow-y: visible !important;
+                /* Safari iOS scroll fix */
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .content-section h2 {
+                font-size: 20px;
+                margin-bottom: 16px;
+            }
+
+            .content-section h3 {
+                font-size: 16px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            /* Extra small devices */
+            .header h1 {
+                font-size: 18px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-card .value {
+                font-size: 20px;
+            }
+
+            .tab {
+                font-size: 12px;
+                padding: 8px 12px;
+            }
+
+            table th,
+            table td {
+                padding: 8px;
+                font-size: 11px;
+            }
+
+            /* Recipe buttons - Stack vertically on very small screens */
+            .content-section > div > div:first-child > div {
+                flex-direction: column !important;
+                gap: 8px !important;
+            }
+
+            .content-section > div > div:first-child button {
+                width: 100% !important;
+                flex: none !important;
+                font-size: 14px !important;
+                padding: 12px !important;
+            }
+        }
+
+        /* PWA Install prompt */
+        .install-prompt {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #58CC02;
+            color: white;
+            padding: 16px 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 10000;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            max-width: 90%;
+            animation: slideUp 0.3s ease-out;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        .install-prompt button {
+            background: white;
+            color: #58CC02;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        .install-prompt .close-install {
+            background: transparent;
+            color: white;
+            padding: 4px 8px;
+        }
     </style>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#58CC02">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="LifeQuest Admin">
+    <link rel="apple-touch-icon" href="icon-192.png">
 </head>
 <body>
     <!-- Login Screen -->
@@ -383,14 +684,73 @@
                 </div>
 
                 <div>
-                    <h3 style="margin-bottom: 12px;">Recipes</h3>
-                    <button class="btn" onclick="showCreateRecipeModal()">+ Add Recipe</button>
-                    <br><br>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
+                        <h3 style="margin: 0;">Recipes <span id="recipeCount" style="color: #58CC02; font-weight: 700;">(0)</span></h3>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button class="btn" onclick="showBulkImportModal()" style="width: auto; padding: 12px 20px; background: #FF6B6B;">📥 Bulk Import</button>
+                            <button class="btn btn-secondary" onclick="confirmDeleteAllRecipes()" style="width: auto; padding: 12px 20px; background: #DC3545; color: white;">🗑️ Clear All</button>
+                            <button class="btn" onclick="showCreateRecipeModal()" style="width: auto; padding: 12px 24px;">+ Add Recipe</button>
+                        </div>
+                    </div>
+
+                    <!-- Recipe Filters -->
+                    <div class="recipe-filters-grid" style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 16px; display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 4px; font-size: 13px; font-weight: 600;">Search</label>
+                            <input type="text" id="recipeSearchInput" placeholder="Search recipes..." onkeyup="filterRecipes()" style="width: 100%; padding: 10px; border: 2px solid #E5E5E5; border-radius: 6px; font-size: 14px;">
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 4px; font-size: 13px; font-weight: 600;">Dish Type</label>
+                            <select id="recipeDishTypeFilter" onchange="filterRecipes()" style="width: 100%; padding: 10px; border: 2px solid #E5E5E5; border-radius: 6px; font-size: 14px;">
+                                <option value="">All Types</option>
+                                <option value="pasta">🍝 Pasta</option>
+                                <option value="rice">🍚 Rice</option>
+                                <option value="soup">🍲 Soup</option>
+                                <option value="salad">🥗 Salad</option>
+                                <option value="pizza">🍕 Pizza</option>
+                                <option value="sandwich">🥪 Sandwich</option>
+                                <option value="curry">🍛 Curry</option>
+                                <option value="stir-fry">🥘 Stir Fry</option>
+                                <option value="grill">🍗 Grilled</option>
+                                <option value="baked">🥧 Baked</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 4px; font-size: 13px; font-weight: 600;">Category</label>
+                            <select id="recipeCategoryFilter" onchange="filterRecipes()" style="width: 100%; padding: 10px; border: 2px solid #E5E5E5; border-radius: 6px; font-size: 14px;">
+                                <option value="">All Categories</option>
+                                <option value="breakfast">Breakfast</option>
+                                <option value="lunch">Lunch</option>
+                                <option value="dinner">Dinner</option>
+                                <option value="snack">Snack</option>
+                                <option value="dessert">Dessert</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="display: block; margin-bottom: 4px; font-size: 13px; font-weight: 600;">Cuisine</label>
+                            <select id="recipeCuisineFilter" onchange="filterRecipes()" style="width: 100%; padding: 10px; border: 2px solid #E5E5E5; border-radius: 6px; font-size: 14px;">
+                                <option value="">All Cuisines</option>
+                                <option value="italian">🇮🇹 Italian</option>
+                                <option value="chinese">🇨🇳 Chinese</option>
+                                <option value="mexican">🇲🇽 Mexican</option>
+                                <option value="indian">🇮🇳 Indian</option>
+                                <option value="thai">🇹🇭 Thai</option>
+                                <option value="japanese">🇯🇵 Japanese</option>
+                                <option value="american">🇺🇸 American</option>
+                                <option value="french">🇫🇷 French</option>
+                                <option value="greek">🇬🇷 Greek</option>
+                                <option value="polish">🇵🇱 Polish</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <table>
                         <thead>
                             <tr>
                                 <th>Name</th>
                                 <th>Category</th>
+                                <th>Cuisine</th>
+                                <th>Dish Type</th>
                                 <th>Servings</th>
                                 <th>Difficulty</th>
                                 <th>Prep Time</th>
@@ -400,7 +760,7 @@
                             </tr>
                         </thead>
                         <tbody id="recipesTableBody">
-                            <tr><td colspan="8" style="text-align:center">Loading...</td></tr>
+                            <tr><td colspan="10" style="text-align:center">Loading...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -621,6 +981,22 @@
                 </select>
             </div>
             <div class="form-group">
+                <label>Dish Type</label>
+                <select id="recipeDishType" style="width:100%; padding:12px; border:2px solid #E5E5E5; border-radius:8px;">
+                    <option value="">Select type...</option>
+                    <option value="pasta">🍝 Pasta</option>
+                    <option value="rice">🍚 Rice</option>
+                    <option value="soup">🍲 Soup</option>
+                    <option value="salad">🥗 Salad</option>
+                    <option value="pizza">🍕 Pizza</option>
+                    <option value="sandwich">🥪 Sandwich</option>
+                    <option value="curry">🍛 Curry</option>
+                    <option value="stir-fry">🥘 Stir Fry</option>
+                    <option value="grill">🍗 Grilled</option>
+                    <option value="baked">🥧 Baked</option>
+                </select>
+            </div>
+            <div class="form-group">
                 <label>Cuisine Type</label>
                 <input type="text" id="recipeCuisine" placeholder="American, Italian, Asian...">
             </div>
@@ -656,6 +1032,68 @@
             </div>
             <button class="btn" onclick="createRecipe()">Add Recipe</button>
             <button class="btn btn-secondary" onclick="closeModal('createRecipeModal')" style="margin-top:12px;">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Bulk Import Modal -->
+    <div id="bulkImportModal" class="modal">
+        <div class="modal-content" style="max-width: 800px;">
+            <h2>📥 Bulk Import Budget Recipes</h2>
+            <p style="color: #666; margin-bottom: 20px;">Search and import multiple recipes at once. Enter recipe names (one per line) and the system will find the best matches from multiple recipe databases.</p>
+
+            <div class="form-group">
+                <label>Recipe Names (one per line)</label>
+                <textarea id="bulkRecipeNames" rows="15" placeholder="Chicken curry with rice and vegetables
+Fried rice with egg, peas and carrots
+Mexican rice with beans, corn and tomatoes
+..."></textarea>
+                <small style="color: #666; display: block; margin-top: 4px;">
+                    💡 Tip: Copy and paste the 100 Budget Meal-Prep Recipes list
+                </small>
+            </div>
+
+            <div style="background: #F0F9FF; padding: 16px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #3B82F6;">
+                <strong style="color: #1E40AF;">Import Settings:</strong>
+                <div style="margin-top: 8px;">
+                    <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                        <input type="checkbox" id="importAutomaticEstimates" checked style="width: auto; margin-right: 8px;">
+                        <span>Automatically estimate nutrition values (calories, protein, carbs, fat)</span>
+                    </label>
+                    <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                        <input type="checkbox" id="importSkipDuplicates" checked style="width: auto; margin-right: 8px;">
+                        <span>Skip recipes with similar titles already in database</span>
+                    </label>
+                    <label style="display: flex; align-items: center;">
+                        <input type="checkbox" id="importBudgetOptimized" checked style="width: auto; margin-right: 8px;">
+                        <span>Prioritize budget-friendly recipe sources</span>
+                    </label>
+                </div>
+            </div>
+
+            <div id="bulkImportProgress" style="display: none; background: #FFF7ED; padding: 16px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #F59E0B;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <strong>Importing recipes...</strong>
+                    <span id="bulkImportProgressText">0 / 0</span>
+                </div>
+                <div style="width: 100%; height: 24px; background: #E5E7EB; border-radius: 12px; overflow: hidden;">
+                    <div id="bulkImportProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #F59E0B 0%, #FBBF24 100%); transition: width 0.3s;"></div>
+                </div>
+                <small id="bulkImportCurrentRecipe" style="color: #92400E; display: block; margin-top: 8px;">Preparing...</small>
+            </div>
+
+            <div id="bulkImportResults" style="display: none; background: #F0FDF4; padding: 16px; border-radius: 8px; margin-bottom: 16px; border-left: 4px solid #10B981;">
+                <strong style="color: #065F46;">✅ Import Complete!</strong>
+                <div style="margin-top: 8px; color: #065F46;">
+                    <div>✓ Successfully imported: <strong id="bulkImportSuccessCount">0</strong> recipes</div>
+                    <div>✗ Failed: <strong id="bulkImportErrorCount">0</strong> recipes</div>
+                    <div>⏱️ Time taken: <strong id="bulkImportTime">0</strong> seconds</div>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 12px;">
+                <button class="btn" onclick="startBulkImport()" id="bulkImportButton" style="flex: 1;">Start Import</button>
+                <button class="btn btn-secondary" onclick="closeModal('bulkImportModal')" style="flex: 1;">Close</button>
+            </div>
         </div>
     </div>
 
@@ -896,6 +1334,9 @@
             }
         }
 
+        // Global variable to store all recipes for filtering
+        let allRecipes = [];
+
         async function loadRecipes() {
             try {
                 const response = await fetch(`${API_URL}/api/admin/recipes`, {
@@ -903,22 +1344,80 @@
                 });
                 const data = await response.json();
 
-                const tbody = document.getElementById('recipesTableBody');
-                tbody.innerHTML = data.recipes.map(r => `
-                    <tr>
-                        <td><strong>${r.name}</strong></td>
-                        <td><span class="badge badge-info">${r.category || 'N/A'}</span></td>
-                        <td>${r.servings}</td>
-                        <td><span class="badge badge-${r.difficulty === 'easy' ? 'success' : r.difficulty === 'medium' ? 'warning' : 'info'}">${r.difficulty || 'N/A'}</span></td>
-                        <td>${r.prep_time_minutes || 0}m</td>
-                        <td>${r.total_calories || 0} cal</td>
-                        <td>${r.is_public ? '<span class="badge badge-success">Public</span>' : '<span class="badge badge-warning">Private</span>'}</td>
-                        <td><button onclick="deleteRecipe(${r.id})" style="color:red;border:none;background:none;cursor:pointer;">Delete</button></td>
-                    </tr>
-                `).join('');
+                allRecipes = data.recipes || [];
+
+                // Update recipe count
+                document.getElementById('recipeCount').textContent = `(${allRecipes.length})`;
+
+                // Render all recipes initially
+                renderRecipes(allRecipes);
             } catch (error) {
                 console.error('Error loading recipes:', error);
+                document.getElementById('recipesTableBody').innerHTML = '<tr><td colspan="10" style="text-align:center;color:red;">Error loading recipes</td></tr>';
             }
+        }
+
+        function renderRecipes(recipes) {
+            const tbody = document.getElementById('recipesTableBody');
+
+            if (recipes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;">No recipes found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = recipes.map(r => `
+                <tr>
+                    <td><strong>${r.title || r.name}</strong></td>
+                    <td><span class="badge badge-info">${r.category || 'N/A'}</span></td>
+                    <td>${r.cuisine_type || r.cuisines || '-'}</td>
+                    <td>${r.dish_type || '-'}</td>
+                    <td>${r.servings}</td>
+                    <td><span class="badge badge-${r.difficulty === 'easy' ? 'success' : r.difficulty === 'medium' ? 'warning' : 'info'}">${r.difficulty || 'N/A'}</span></td>
+                    <td>${r.prep_time_minutes || r.ready_in_minutes || 0}m</td>
+                    <td>${r.total_calories || r.calories || 0} cal</td>
+                    <td>${r.is_public ? '<span class="badge badge-success">Public</span>' : '<span class="badge badge-warning">Private</span>'}</td>
+                    <td><button onclick="deleteRecipe(${r.id})" style="color:red;border:none;background:none;cursor:pointer;font-weight:600;">🗑️ Delete</button></td>
+                </tr>
+            `).join('');
+        }
+
+        function filterRecipes() {
+            const searchTerm = document.getElementById('recipeSearchInput').value.toLowerCase();
+            const dishType = document.getElementById('recipeDishTypeFilter').value.toLowerCase();
+            const category = document.getElementById('recipeCategoryFilter').value.toLowerCase();
+            const cuisine = document.getElementById('recipeCuisineFilter').value.toLowerCase();
+
+            const filtered = allRecipes.filter(recipe => {
+                const name = (recipe.title || recipe.name || '').toLowerCase();
+                const desc = (recipe.description || recipe.summary || '').toLowerCase();
+                const recipeDishType = (recipe.dish_type || '').toLowerCase();
+                const recipeCategory = (recipe.category || '').toLowerCase();
+                const recipeCuisine = (recipe.cuisine_type || recipe.cuisines || '').toLowerCase();
+
+                // Check search term
+                if (searchTerm && !name.includes(searchTerm) && !desc.includes(searchTerm)) {
+                    return false;
+                }
+
+                // Check dish type
+                if (dishType && !recipeDishType.includes(dishType)) {
+                    return false;
+                }
+
+                // Check category
+                if (category && !recipeCategory.includes(category)) {
+                    return false;
+                }
+
+                // Check cuisine
+                if (cuisine && !recipeCuisine.includes(cuisine)) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            renderRecipes(filtered);
         }
 
         function showCreateFoodModal() {
@@ -970,13 +1469,23 @@
         }
 
         async function createRecipe() {
+            const name = document.getElementById('recipeName').value.trim();
+            if (!name) {
+                alert('Please enter a recipe name');
+                return;
+            }
+
             const data = {
-                name: document.getElementById('recipeName').value,
+                name: name,
+                title: name, // Also send as title for compatibility
                 description: document.getElementById('recipeDescription').value || null,
                 category: document.getElementById('recipeCategory').value,
+                dish_type: document.getElementById('recipeDishType').value || null,
                 cuisine_type: document.getElementById('recipeCuisine').value || null,
+                cuisines: document.getElementById('recipeCuisine').value || null,
                 servings: parseInt(document.getElementById('recipeServings').value),
                 prep_time_minutes: parseInt(document.getElementById('recipePrepTime').value) || null,
+                ready_in_minutes: parseInt(document.getElementById('recipePrepTime').value) || null,
                 cook_time_minutes: parseInt(document.getElementById('recipeCookTime').value) || null,
                 difficulty: document.getElementById('recipeDifficulty').value,
                 instructions: document.getElementById('recipeInstructions').value || null,
@@ -985,7 +1494,7 @@
             };
 
             try {
-                await fetch(`${API_URL}/api/admin/recipes`, {
+                const response = await fetch(`${API_URL}/api/admin/recipes`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -994,15 +1503,23 @@
                     body: JSON.stringify(data)
                 });
 
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to create recipe');
+                }
+
                 closeModal('createRecipeModal');
                 loadRecipes();
 
                 // Clear form
                 document.getElementById('recipeName').value = '';
                 document.getElementById('recipeDescription').value = '';
+                document.getElementById('recipeDishType').value = '';
                 document.getElementById('recipeCuisine').value = '';
                 document.getElementById('recipeInstructions').value = '';
                 document.getElementById('recipePublic').checked = false;
+
+                alert('Recipe created successfully!');
             } catch (error) {
                 alert('Error creating recipe: ' + error.message);
             }
@@ -1038,6 +1555,260 @@
             }
         }
 
+        // Bulk Import Functions
+        function showBulkImportModal() {
+            document.getElementById('bulkImportModal').classList.add('active');
+            // Reset UI
+            document.getElementById('bulkImportProgress').style.display = 'none';
+            document.getElementById('bulkImportResults').style.display = 'none';
+            document.getElementById('bulkImportButton').disabled = false;
+        }
+
+        async function confirmDeleteAllRecipes() {
+            if (!confirm('⚠️ Are you sure you want to delete ALL recipes?\n\nThis action cannot be undone!')) {
+                return;
+            }
+
+            if (!confirm('This will permanently delete ALL recipes from the database. Type YES to confirm.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/admin/recipes`, {
+                    method: 'DELETE',
+                    headers: { 'x-admin-email': adminEmail }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert(`✅ Successfully deleted ${data.deletedCount} recipes!`);
+                    loadRecipes();
+                } else {
+                    alert('Error: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Error deleting all recipes: ' + error.message);
+            }
+        }
+
+        async function startBulkImport() {
+            const recipesText = document.getElementById('bulkRecipeNames').value.trim();
+
+            if (!recipesText) {
+                alert('Please enter recipe names (one per line)');
+                return;
+            }
+
+            // Parse recipe names
+            const recipeNames = recipesText.split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0)
+                .map(line => line.replace(/^\d+\.\s*/, '')); // Remove numbering like "1. "
+
+            if (recipeNames.length === 0) {
+                alert('No valid recipe names found');
+                return;
+            }
+
+            // Disable button
+            document.getElementById('bulkImportButton').disabled = true;
+
+            // Show progress
+            document.getElementById('bulkImportProgress').style.display = 'block';
+            document.getElementById('bulkImportResults').style.display = 'none';
+
+            const startTime = Date.now();
+            const recipesToImport = [];
+            let successCount = 0;
+            let errorCount = 0;
+
+            // Search for each recipe
+            for (let i = 0; i < recipeNames.length; i++) {
+                const recipeName = recipeNames[i];
+
+                // Update progress
+                document.getElementById('bulkImportProgressText').textContent = `${i + 1} / ${recipeNames.length}`;
+                document.getElementById('bulkImportProgressBar').style.width = `${((i + 1) / recipeNames.length) * 100}%`;
+                document.getElementById('bulkImportCurrentRecipe').textContent = `Searching: ${recipeName}`;
+
+                try {
+                    // Search TheMealDB API
+                    const searchUrl = `https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(recipeName)}`;
+                    const response = await fetch(searchUrl);
+                    const data = await response.json();
+
+                    if (data.meals && data.meals.length > 0) {
+                        const meal = data.meals[0]; // Take first result
+
+                        // Transform to our format
+                        const recipe = {
+                            title: meal.strMeal,
+                            image: meal.strMealThumb,
+                            ready_in_minutes: 30,
+                            servings: 4,
+                            cuisines: JSON.stringify([meal.strArea || 'International']),
+                            diets: JSON.stringify([]),
+                            dish_type: detectDishType(meal.strMeal),
+                            category: meal.strCategory?.toLowerCase() || 'dinner',
+                            difficulty: 'medium',
+                            summary: `Delicious ${meal.strMeal} recipe from ${meal.strArea || 'International'} cuisine.`,
+                            calories: estimateCalories(meal.strMeal),
+                            protein: estimateProtein(meal.strMeal),
+                            carbs: estimateCarbs(meal.strMeal),
+                            fat: estimateFat(meal.strMeal),
+                            ingredients: JSON.stringify(extractIngredients(meal)),
+                            instructions: meal.strInstructions || '',
+                            source: 'themealdb'
+                        };
+
+                        recipesToImport.push(recipe);
+                        successCount++;
+                    } else {
+                        // Recipe not found, create a placeholder
+                        const recipe = {
+                            title: recipeName,
+                            image: 'https://via.placeholder.com/300x200?text=Budget+Recipe',
+                            ready_in_minutes: 30,
+                            servings: 4,
+                            cuisines: JSON.stringify(['International']),
+                            diets: JSON.stringify([]),
+                            dish_type: detectDishType(recipeName),
+                            category: 'dinner',
+                            difficulty: 'medium',
+                            summary: `Budget-friendly ${recipeName}`,
+                            calories: 400,
+                            protein: 20,
+                            carbs: 50,
+                            fat: 10,
+                            ingredients: JSON.stringify([]),
+                            instructions: 'Recipe instructions to be added.',
+                            source: 'manual'
+                        };
+
+                        recipesToImport.push(recipe);
+                        successCount++;
+                    }
+
+                    // Small delay to avoid rate limiting
+                    await new Promise(resolve => setTimeout(resolve, 100));
+
+                } catch (error) {
+                    console.error(`Error searching for ${recipeName}:`, error);
+                    errorCount++;
+                }
+            }
+
+            // Import all recipes via bulk endpoint
+            try {
+                document.getElementById('bulkImportCurrentRecipe').textContent = 'Saving to database...';
+
+                const response = await fetch(`${API_URL}/api/admin/recipes/bulk`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'x-admin-email': adminEmail
+                    },
+                    body: JSON.stringify({ recipes: recipesToImport })
+                });
+
+                const data = await response.json();
+
+                const endTime = Date.now();
+                const timeTaken = Math.round((endTime - startTime) / 1000);
+
+                // Show results
+                document.getElementById('bulkImportProgress').style.display = 'none';
+                document.getElementById('bulkImportResults').style.display = 'block';
+                document.getElementById('bulkImportSuccessCount').textContent = data.importedCount || successCount;
+                document.getElementById('bulkImportErrorCount').textContent = data.errorCount || errorCount;
+                document.getElementById('bulkImportTime').textContent = timeTaken;
+
+                // Reload recipes
+                loadRecipes();
+
+                alert(`✅ Import complete!\n\nImported: ${data.importedCount} recipes\nFailed: ${data.errorCount} recipes\nTime: ${timeTaken}s`);
+
+            } catch (error) {
+                alert('Error importing recipes: ' + error.message);
+            } finally {
+                document.getElementById('bulkImportButton').disabled = false;
+            }
+        }
+
+        // Helper: Detect dish type from recipe name
+        function detectDishType(name) {
+            const lower = name.toLowerCase();
+            if (lower.includes('pasta') || lower.includes('penne') || lower.includes('spaghetti')) return 'pasta';
+            if (lower.includes('rice') || lower.includes('risotto') || lower.includes('pilaf')) return 'rice';
+            if (lower.includes('soup') || lower.includes('broth')) return 'soup';
+            if (lower.includes('curry')) return 'curry';
+            if (lower.includes('stew')) return 'stew';
+            if (lower.includes('salad')) return 'salad';
+            if (lower.includes('pizza')) return 'pizza';
+            if (lower.includes('sandwich')) return 'sandwich';
+            if (lower.includes('grill') || lower.includes('grilled')) return 'grill';
+            if (lower.includes('bake') || lower.includes('baked')) return 'baked';
+            if (lower.includes('stir-fry') || lower.includes('stir fry')) return 'stir-fry';
+            return null;
+        }
+
+        // Helper: Estimate calories from recipe name
+        function estimateCalories(name) {
+            const lower = name.toLowerCase();
+            // High calorie keywords
+            if (lower.includes('cream') || lower.includes('fried') || lower.includes('butter')) return 600;
+            // Medium calorie keywords
+            if (lower.includes('chicken') || lower.includes('beef') || lower.includes('pork')) return 450;
+            // Low calorie keywords
+            if (lower.includes('vegetable') || lower.includes('salad') || lower.includes('soup')) return 300;
+            // Default
+            return 400;
+        }
+
+        // Helper: Estimate protein
+        function estimateProtein(name) {
+            const lower = name.toLowerCase();
+            if (lower.includes('chicken') || lower.includes('beef') || lower.includes('pork') || lower.includes('fish')) return 30;
+            if (lower.includes('egg') || lower.includes('beans') || lower.includes('lentil') || lower.includes('tofu')) return 20;
+            return 15;
+        }
+
+        // Helper: Estimate carbs
+        function estimateCarbs(name) {
+            const lower = name.toLowerCase();
+            if (lower.includes('pasta') || lower.includes('rice') || lower.includes('potato') || lower.includes('bread')) return 60;
+            if (lower.includes('vegetable') || lower.includes('salad')) return 20;
+            return 45;
+        }
+
+        // Helper: Estimate fat
+        function estimateFat(name) {
+            const lower = name.toLowerCase();
+            if (lower.includes('cream') || lower.includes('fried') || lower.includes('butter') || lower.includes('cheese')) return 25;
+            if (lower.includes('oil') || lower.includes('avocado')) return 20;
+            return 12;
+        }
+
+        // Helper: Extract ingredients from TheMealDB format
+        function extractIngredients(meal) {
+            const ingredients = [];
+            for (let i = 1; i <= 20; i++) {
+                const ingredient = meal[`strIngredient${i}`];
+                const measure = meal[`strMeasure${i}`];
+                if (ingredient && ingredient.trim()) {
+                    ingredients.push({
+                        id: i,
+                        name: ingredient.trim(),
+                        amount: 0,
+                        unit: measure ? measure.trim() : '',
+                        original: `${measure || ''} ${ingredient}`.trim()
+                    });
+                }
+            }
+            return ingredients;
+        }
+
         function showError(elementId, message) {
             const el = document.getElementById(elementId);
             el.textContent = message;
@@ -1051,6 +1822,66 @@
                 document.getElementById('emailInput').value = saved;
             }
         };
+
+        // PWA Install Logic
+        let deferredPrompt;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+
+            // Show install prompt after user is logged in
+            setTimeout(() => {
+                if (!localStorage.getItem('pwa-installed')) {
+                    const installPrompt = document.getElementById('installPrompt');
+                    if (installPrompt) {
+                        installPrompt.style.display = 'flex';
+                    }
+                }
+            }, 2000);
+        });
+
+        function installPWA() {
+            const installPrompt = document.getElementById('installPrompt');
+            if (installPrompt) {
+                installPrompt.style.display = 'none';
+            }
+
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('PWA installed');
+                        localStorage.setItem('pwa-installed', 'true');
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        }
+
+        function closeInstallPrompt() {
+            const installPrompt = document.getElementById('installPrompt');
+            if (installPrompt) {
+                installPrompt.style.display = 'none';
+            }
+            localStorage.setItem('pwa-dismissed', 'true');
+        }
+
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('✅ Service Worker registered', reg))
+                    .catch(err => console.log('❌ Service Worker registration failed', err));
+            });
+        }
     </script>
+
+    <!-- PWA Install Prompt -->
+    <div id="installPrompt" class="install-prompt">
+        <span>📱 Install LifeQuest Admin for quick access</span>
+        <button onclick="installPWA()">Install</button>
+        <button class="close-install" onclick="closeInstallPrompt()">✕</button>
+    </div>
 </body>
 </html>

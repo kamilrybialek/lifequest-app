@@ -1,16 +1,24 @@
+/**
+ * Physical Lesson Introduction - Duolingo Style
+ * Modern gradient design with engaging visuals
+ */
+
 import React from 'react';
 import {
   View,
-  Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  SafeAreaView,
-  StatusBar,
+  Dimensions,
 } from 'react-native';
+import { Text } from 'react-native-paper';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors } from '../../theme/colors';
 import { getPhysicalLessonContent } from '../../data/physicalLessonContent';
+import { PHYSICAL_FOUNDATIONS } from '../../types/physical';
+
+const { width } = Dimensions.get('window');
 
 export const PhysicalLessonIntro = ({ route, navigation }: any) => {
   const { lessonId, lessonTitle, foundationId } = route.params;
@@ -21,11 +29,13 @@ export const PhysicalLessonIntro = ({ route, navigation }: any) => {
     return null;
   }
 
-  // Extract time estimate from lesson (assuming it's in the physical types)
-  const timeEstimate = 7; // Default, will be dynamic based on lesson
+  // Find the foundation and lesson details
+  const foundation = PHYSICAL_FOUNDATIONS.find((f) => f.id === foundationId);
+  const lesson = foundation?.lessons.find((l) => l.id === lessonId);
+  const timeEstimate = lesson?.estimatedTime || 5;
+  const xpReward = lesson?.xp || 50;
 
   const handleStartLesson = () => {
-    // Navigate to lesson content screen
     navigation.navigate('PhysicalLessonContent', {
       lessonId,
       lessonTitle,
@@ -37,176 +47,336 @@ export const PhysicalLessonIntro = ({ route, navigation }: any) => {
   const summary = lessonContent.sections
     .slice(0, 2)
     .map((s) => s.content)
-    .join(' ');
+    .join(' ')
+    .substring(0, 180) + '...';
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" />
+    <View style={styles.container}>
+      {/* Header with Gradient */}
+      <LinearGradient
+        colors={['#FF6B6B', '#FF5252']}
+        style={styles.headerGradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+      >
+        <View style={styles.headerContent}>
+          <TouchableOpacity onPress={() => navigation.navigate('MainTabs', { screen: 'Physical' })} style={styles.closeButton}>
+            <Ionicons name="close" size={28} color="#FFFFFF" />
+          </TouchableOpacity>
 
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="close" size={28} color={colors.text} />
-        </TouchableOpacity>
-        <View style={styles.headerRight}>
-          <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
-          <Text style={styles.timeEstimate}>{timeEstimate} min</Text>
-        </View>
-      </View>
-
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Title */}
-        <View style={styles.titleSection}>
-          <Text style={styles.title}>{lessonTitle}</Text>
-        </View>
-
-        {/* Overview */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="bulb" size={24} color={colors.physical} />
-            <Text style={styles.sectionTitle}>What You'll Learn</Text>
-          </View>
-          <Text style={styles.sectionText}>{summary}</Text>
-        </View>
-
-        {/* Key Sections Preview */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="list" size={24} color={colors.primary} />
-            <Text style={styles.sectionTitle}>Topics Covered</Text>
-          </View>
-          {lessonContent.sections.map((section, index) => (
-            <View key={index} style={styles.keyPoint}>
-              <View style={styles.bulletPoint} />
-              <Text style={styles.keyPointText}>
-                {section.title || `Section ${index + 1}`}
-              </Text>
+          {/* Lesson Icon */}
+          <View style={styles.iconContainer}>
+            <View style={styles.iconCircle}>
+              <Ionicons name="fitness" size={48} color="#FF6B6B" />
             </View>
-          ))}
-        </View>
-
-        {/* Action Question Preview */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="checkmark-circle" size={24} color={colors.success} />
-            <Text style={styles.sectionTitle}>You'll Be Asked</Text>
           </View>
-          <Text style={styles.sectionText}>{lessonContent.actionQuestion.question}</Text>
+
+          {/* Lesson Title */}
+          <Text style={styles.headerTitle}>{lessonTitle}</Text>
+
+          {/* Stats Row */}
+          <View style={styles.statsRow}>
+            <View style={styles.statBadge}>
+              <Ionicons name="time-outline" size={16} color="rgba(255,255,255,0.9)" />
+              <Text style={styles.statText}>{timeEstimate} min</Text>
+            </View>
+            <View style={styles.statBadge}>
+              <Ionicons name="star" size={16} color="#FFD700" />
+              <Text style={styles.statText}>+{xpReward} XP</Text>
+            </View>
+          </View>
+        </View>
+      </LinearGradient>
+
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* What You'll Learn Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardIconContainer, { backgroundColor: '#FFEBEE' }]}>
+              <Ionicons name="book" size={24} color={colors.physical} />
+            </View>
+            <Text style={styles.cardTitle}>What You'll Learn</Text>
+          </View>
+          <Text style={styles.cardText}>{summary}</Text>
         </View>
 
-        <View style={{ height: 100 }} />
+        {/* Topics Covered Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardIconContainer, { backgroundColor: '#E8F5E9' }]}>
+              <Ionicons name="list" size={24} color="#4CAF50" />
+            </View>
+            <Text style={styles.cardTitle}>Topics Covered</Text>
+          </View>
+          <View style={styles.topicsList}>
+            {lessonContent.sections.map((section, index) => (
+              <View key={index} style={styles.topicItem}>
+                <View style={styles.topicNumber}>
+                  <Text style={styles.topicNumberText}>{index + 1}</Text>
+                </View>
+                <Text style={styles.topicText}>
+                  {section.title || `Section ${index + 1}`}
+                </Text>
+                <Ionicons name="checkmark-circle" size={20} color="#E0E0E0" />
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Action Question Card */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <View style={[styles.cardIconContainer, { backgroundColor: '#FFF3E0' }]}>
+              <Ionicons name="create" size={24} color="#FF9800" />
+            </View>
+            <Text style={styles.cardTitle}>You'll Be Asked</Text>
+          </View>
+          <View style={styles.questionPreview}>
+            <Text style={styles.questionText}>{lessonContent.actionQuestion.question}</Text>
+            <Text style={styles.questionHint}>
+              You'll answer this at the end of the lesson
+            </Text>
+          </View>
+        </View>
+
+        {/* Motivational Quote */}
+        <View style={styles.quoteCard}>
+          <Ionicons name="sparkles" size={32} color="#FF6B6B" />
+          <Text style={styles.quoteText}>
+            "Every lesson is a step towards optimal health"
+          </Text>
+        </View>
+
+        <View style={{ height: 120 }} />
       </ScrollView>
 
-      {/* Start Button */}
+      {/* Start Button - Fixed at Bottom */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.startButton} onPress={handleStartLesson}>
-          <Text style={styles.startButtonText}>Start Lesson</Text>
-          <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
+        <TouchableOpacity
+          style={styles.startButton}
+          onPress={handleStartLesson}
+          activeOpacity={0.9}
+        >
+          <LinearGradient
+            colors={['#FF6B6B', '#FF5252']}
+            style={styles.startButtonGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+          >
+            <Text style={styles.startButtonText}>START LESSON</Text>
+            <Ionicons name="arrow-forward" size={24} color="#FFFFFF" />
+          </LinearGradient>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  timeEstimate: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginLeft: 4,
-  },
   container: {
     flex: 1,
+    backgroundColor: '#F5F8FA',
   },
-  titleSection: {
-    padding: 24,
-    paddingBottom: 16,
+  headerGradient: {
+    paddingTop: 60,
+    paddingBottom: 40,
+    borderBottomLeftRadius: 30,
+    borderBottomRightRadius: 30,
   },
-  title: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: colors.text,
-    lineHeight: 40,
-  },
-  section: {
-    paddingHorizontal: 24,
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
+  headerContent: {
     alignItems: 'center',
-    marginBottom: 12,
+    paddingHorizontal: 20,
   },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.text,
-    marginLeft: 8,
-  },
-  sectionText: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: colors.textSecondary,
-  },
-  keyPoint: {
-    flexDirection: 'row',
-    marginBottom: 12,
-    alignItems: 'flex-start',
-  },
-  bulletPoint: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.physical,
-    marginTop: 9,
-    marginRight: 12,
-  },
-  keyPointText: {
-    flex: 1,
-    fontSize: 16,
-    lineHeight: 24,
-    color: colors.text,
-  },
-  bottomBar: {
-    padding: 16,
-    paddingBottom: 32,
-    backgroundColor: colors.background,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
-  startButton: {
-    flexDirection: 'row',
-    backgroundColor: colors.physical,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 12,
+  closeButton: {
+    position: 'absolute',
+    top: 0,
+    left: 20,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
   },
-  startButtonText: {
+  iconContainer: {
+    marginBottom: 20,
+  },
+  iconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '800',
     color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 16,
+    paddingHorizontal: 20,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  statBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  statText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  cardIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  cardTitle: {
     fontSize: 18,
     fontWeight: '700',
+    color: colors.text,
+  },
+  cardText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: colors.textSecondary,
+  },
+  topicsList: {
+    gap: 12,
+  },
+  topicItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  topicNumber: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#FFEBEE',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  topicNumberText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: colors.physical,
+  },
+  topicText: {
+    flex: 1,
+    fontSize: 15,
+    color: colors.text,
+    fontWeight: '600',
+  },
+  questionPreview: {
+    backgroundColor: '#FFF9E6',
+    padding: 16,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#FF9800',
+  },
+  questionText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: colors.text,
+    marginBottom: 8,
+  },
+  questionHint: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+  },
+  quoteCard: {
+    backgroundColor: '#FFEBEE',
+    borderRadius: 16,
+    padding: 24,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  quoteText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: colors.text,
+    textAlign: 'center',
+    marginTop: 12,
+    fontStyle: 'italic',
+  },
+  bottomBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#FFFFFF',
+    padding: 20,
+    paddingBottom: 30,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  startButton: {
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  startButtonGradient: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 18,
+    gap: 12,
+  },
+  startButtonText: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
 });

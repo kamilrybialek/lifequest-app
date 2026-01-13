@@ -4,7 +4,7 @@ import { Text, IconButton } from 'react-native-paper';
 import { useAuthStore } from '../../store/authStore';
 import { getMealPlans } from '../../database/nutrition.web';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { Plus } from 'lucide-react-native';
 
 const LOVABLE_COLORS = {
   primary: '#FA7D09',
@@ -113,7 +113,7 @@ export const DietPlannerScreen = () => {
             style={styles.emptyMealCard}
             onPress={() => navigation.navigate('RecipeList' as never, { mealType } as never)}
           >
-            <Ionicons name="add-circle-outline" color={LOVABLE_COLORS.mutedForeground} size={32} />
+            <Plus color={LOVABLE_COLORS.mutedForeground} size={32} />
             <Text style={styles.emptyMealText}>Add {mealType}</Text>
           </TouchableOpacity>
         )}
@@ -172,7 +172,7 @@ export const DietPlannerScreen = () => {
               style={styles.addButton}
               onPress={() => navigation.navigate('RecipeList' as never)}
             >
-              <Ionicons name="add" color="#fff" size={20} />
+              <Plus color="#fff" size={20} />
             </TouchableOpacity>
           </View>
 

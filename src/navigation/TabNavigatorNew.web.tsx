@@ -2,25 +2,17 @@ import React from 'react';
 import { Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme';
+import { colors } from '../theme/colors';
 
-// Import WEB versions of screens
+// Import .web.tsx versions EXPLICITLY
 import { DashboardScreenNew } from '../screens/Dashboard/DashboardScreenNew.web';
+import { ToolsScreen } from '../screens/tools/ToolsScreen';
 import { TasksScreen } from '../screens/tasks/TasksScreen.web';
 import { JourneyScreen } from '../screens/Journey/JourneyScreen.web';
 import { ProfileScreenNew } from '../screens/Profile/ProfileScreenNew.web';
 
 const Tab = createBottomTabNavigator();
 
-/**
- * Journey-Focused Navigation - WEB VERSION
- *
- * 4 Main Tabs (Duolingo Style):
- * - Home: Daily overview
- * - Journey: Learning paths
- * - Tasks: Todo management
- * - Profile: Stats & settings
- */
 export const TabNavigatorNew = () => {
   return (
     <Tab.Navigator
@@ -30,10 +22,12 @@ export const TabNavigatorNew = () => {
 
           if (route.name === 'Dashboard') {
             iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Journey') {
-            iconName = focused ? 'compass' : 'compass-outline';
+          } else if (route.name === 'Tools') {
+            iconName = focused ? 'construct' : 'construct-outline';
           } else if (route.name === 'Tasks') {
             iconName = focused ? 'checkbox' : 'checkbox-outline';
+          } else if (route.name === 'Journey') {
+            iconName = focused ? 'compass' : 'compass-outline';
           } else if (route.name === 'ProfileNew') {
             iconName = focused ? 'person' : 'person-outline';
           }
@@ -68,14 +62,19 @@ export const TabNavigatorNew = () => {
         options={{ tabBarLabel: 'Home' }}
       />
       <Tab.Screen
-        name="Journey"
-        component={JourneyScreen}
-        options={{ tabBarLabel: 'Journey' }}
+        name="Tools"
+        component={ToolsScreen}
+        options={{ tabBarLabel: 'Tools' }}
       />
       <Tab.Screen
         name="Tasks"
         component={TasksScreen}
         options={{ tabBarLabel: 'Tasks' }}
+      />
+      <Tab.Screen
+        name="Journey"
+        component={JourneyScreen}
+        options={{ tabBarLabel: 'Journey' }}
       />
       <Tab.Screen
         name="ProfileNew"

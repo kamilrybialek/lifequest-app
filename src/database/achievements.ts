@@ -28,6 +28,7 @@ export interface UserAchievement {
  */
 export const getAllAchievements = async (): Promise<Achievement[]> => {
   const db = await getDatabase();
+  if (!db) return [];
   const result = await db.getAllAsync<Achievement>('SELECT * FROM achievements ORDER BY category, requirement_value');
   return result || [];
 };
@@ -37,6 +38,7 @@ export const getAllAchievements = async (): Promise<Achievement[]> => {
  */
 export const getUserAchievements = async (userId: number): Promise<any[]> => {
   const db = await getDatabase();
+  if (!db) return [];
   const result = await db.getAllAsync(
     `SELECT ua.*, a.title, a.description, a.icon, a.category, a.xp_reward, a.badge_color
      FROM user_achievements ua
@@ -53,6 +55,7 @@ export const getUserAchievements = async (userId: number): Promise<any[]> => {
  */
 export const getAchievementsWithProgress = async (userId: number): Promise<any[]> => {
   const db = await getDatabase();
+  if (!db) return [];
   const result = await db.getAllAsync(
     `SELECT
       a.*,
@@ -73,6 +76,7 @@ export const getAchievementsWithProgress = async (userId: number): Promise<any[]
  */
 export const unlockAchievement = async (userId: number, achievementKey: string): Promise<boolean> => {
   const db = await getDatabase();
+  if (!db) return false;
 
   // Check if already unlocked
   const existing = await db.getFirstAsync(
@@ -117,6 +121,7 @@ export const updateAchievementProgress = async (
   progress: number
 ): Promise<void> => {
   const db = await getDatabase();
+  if (!db) return;
 
   await db.runAsync(
     `INSERT INTO user_achievements (user_id, achievement_key, progress)
@@ -141,6 +146,7 @@ export const updateAchievementProgress = async (
  */
 export const checkAchievements = async (userId: number): Promise<string[]> => {
   const db = await getDatabase();
+  if (!db) return [];
   const unlockedAchievements: string[] = [];
 
   // Get user stats
@@ -210,6 +216,7 @@ export const checkAchievements = async (userId: number): Promise<string[]> => {
  */
 export const getAchievementCount = async (userId: number): Promise<{ unlocked: number; total: number }> => {
   const db = await getDatabase();
+  if (!db) return { unlocked: 0, total: 0 };
 
   const unlocked = await db.getFirstAsync<{ count: number }>(
     'SELECT COUNT(*) as count FROM user_achievements WHERE user_id = ?',

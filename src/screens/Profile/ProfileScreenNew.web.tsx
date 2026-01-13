@@ -1,27 +1,46 @@
 /**
- * Profile Screen - TimeBloc-Inspired Design (Web Version)
- * Soft, premium, minimal design language
+ * Profile Screen - Duolingo Style (Web Version)
+ * Matching Journey and Tasks screen design language
  */
 
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, RefreshControl } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, RefreshControl, Image, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
-import { timeblocColors, timeblocShadows, timeblocSpacing, timeblocBorderRadius, timeblocTypography } from '../../theme/timeblocTheme';
-import { ConfirmModal } from '../../components/ui/ConfirmModal';
+import { deleteAllUserData } from '../../services/firebaseUserService';
+import { uploadProfilePhoto, deleteProfilePhoto, getProfilePhotoURL, pickImage } from '../../services/photoUploadService';
 
 export const ProfileScreenNew = () => {
   const { user, logout } = useAuthStore();
   const { progress, loadAppData } = useAppStore();
   const [refreshing, setRefreshing] = useState(false);
-  const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [showResetModal, setShowResetModal] = useState(false);
-  const [showResetSuccessModal, setShowResetSuccessModal] = useState(false);
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoLoading, setPhotoLoading] = useState(false);
+  const [photoError, setPhotoError] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<string>(''); // "compressing", "uploading", ""
+  const [showPhotoMenu, setShowPhotoMenu] = useState(false);
 
   const firstName = user?.firstName || user?.email?.split('@')[0] || 'Champion';
+
+  useEffect(() => {
+    const loadPhoto = async () => {
+      if (user?.id) {
+        try {
+          const photoURL = await getProfilePhotoURL(user.id);
+          console.log('📸 Loaded photo URL:', photoURL ? 'exists' : 'none');
+          setProfilePhoto(photoURL);
+          setPhotoError(false);
+        } catch (error) {
+          console.error('❌ Error loading photo:', error);
+          setPhotoError(true);
+        }
+      }
+    };
+    loadPhoto();
+  }, [user?.id]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -33,13 +52,93 @@ export const ProfileScreenNew = () => {
     setRefreshing(false);
   };
 
-  const handleLogout = () => {
-    setShowLogoutModal(true);
+  const handleUploadPhoto = async () => {
+    if (!user?.id) {
+      console.error('❌ No user ID');
+      return;
+    }
+
+    try {
+      // Step 1: Pick image (no loading state yet - just file picker)
+      console.log('📂 Opening file picker...');
+      const imageUri = await pickImage();
+
+      if (!imageUri) {
+        console.log('❌ No image selected');
+        return;
+      }
+
+      console.log('📸 Image selected');
+
+      // Step 2: Show loading state
+      setUploadingPhoto(true);
+      setPhotoError(false);
+      setUploadStatus('compressing');
+
+      // Step 3: Upload photo (compress + save to Firestore)
+      console.log('🔄 Uploading photo...');
+      const photoDataUrl = await uploadProfilePhoto(user.id, imageUri);
+      console.log('✅ Photo uploaded successfully');
+
+      // Step 4: Update UI
+      setProfilePhoto(photoDataUrl);
+      setPhotoLoading(true); // Will be set to false when Image onLoad fires
+      // Success - no alert needed
+
+    } catch (error) {
+      console.error('❌ Error uploading photo:', error);
+      setPhotoError(true);
+      // Error logged to console, no user-facing alert
+    } finally {
+      setUploadingPhoto(false);
+      setUploadStatus('');
+    }
   };
 
-  const confirmLogout = () => {
+  const handleDeletePhoto = async () => {
+    if (!user?.id || !profilePhoto) {
+      return;
+    }
+
+    // Just delete without confirmation
+    try {
+      setUploadingPhoto(true);
+      await deleteProfilePhoto(user.id);
+      setProfilePhoto(null);
+      // Success - no alert needed
+    } catch (error) {
+      console.error('❌ Error deleting photo:', error);
+      // Error logged to console, no user-facing alert
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handlePhotoClick = () => {
+    if (uploadingPhoto) return;
+
+    if (profilePhoto) {
+      // Show edit menu
+      setShowPhotoMenu(!showPhotoMenu);
+    } else {
+      // No photo yet, just upload
+      handleUploadPhoto();
+    }
+  };
+
+  const handleChangePhoto = () => {
+    setShowPhotoMenu(false);
+    handleUploadPhoto();
+  };
+
+  const handleRemovePhoto = () => {
+    setShowPhotoMenu(false);
+    handleDeletePhoto();
+  };
+
+  const handleLogout = () => {
+    // Just logout without confirmation
     console.log('Logging out...');
-    setShowLogoutModal(false);
     logout();
   };
 
@@ -48,27 +147,55 @@ export const ProfileScreenNew = () => {
     // TODO: Implement settings navigation
   };
 
-  const handleResetDatabase = () => {
-    setShowResetModal(true);
-  };
+  const handleRemoveUserAccount = async () => {
+    const confirmed = window.confirm(
+      '🗑️ REMOVE USER ACCOUNT\n\n' +
+      'This will completely remove your account and ALL data:\n\n' +
+      '• All progress and XP\n' +
+      '• Tasks and achievements\n' +
+      '• Streaks and statistics\n' +
+      '• Finance, Mental, Physical, Nutrition data\n' +
+      '• Onboarding information\n\n' +
+      'You will need to complete onboarding again.\n\n' +
+      '⚠️ This action CANNOT be undone!\n\n' +
+      'Are you absolutely sure?'
+    );
 
-  const confirmResetDatabase = async () => {
-    setShowResetModal(false);
-    try {
-      console.log('Resetting database...');
-      await AsyncStorage.clear();
-      console.log('Database cleared');
-      setShowResetSuccessModal(true);
-    } catch (error) {
-      console.error('Error resetting database:', error);
-      // Could add an error modal here too if needed
+    if (confirmed) {
+      try {
+        if (!user?.id) {
+          window.alert('Error: User not found');
+          return;
+        }
+
+        console.log('Removing user account...');
+
+        // 1. Delete all Firestore data
+        await deleteAllUserData(user.id);
+
+        // 2. Clear AsyncStorage (local data)
+        await AsyncStorage.clear();
+
+        console.log('Account data removed successfully');
+
+        // Show success message
+        window.alert(
+          '✅ Account Removed\n\n' +
+          'Your account and all data have been removed.\n\n' +
+          'You can now create a new account or login again.'
+        );
+
+        // 3. Logout and reload (will redirect to login/onboarding)
+        await logout();
+        window.location.reload();
+      } catch (error) {
+        console.error('Error removing account:', error);
+        window.alert(
+          '❌ Error\n\n' +
+          'Failed to remove account. Please try again or contact support.'
+        );
+      }
     }
-  };
-
-  const handleResetSuccess = async () => {
-    setShowResetSuccessModal(false);
-    await logout();
-    window.location.reload();
   };
 
   const unlockedAchievements = progress.achievements.filter(a => a.unlocked);
@@ -86,25 +213,131 @@ export const ProfileScreenNew = () => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Header - TimeBloc Style */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => {}} style={styles.backButton}>
-            <Ionicons name="chevron-back" size={24} color={timeblocColors.text} />
+        {/* Profile Photo Section with Header */}
+        <View style={styles.photoSection}>
+          {/* Logout button in corner */}
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutButtonTop}>
+            <Ionicons name="log-out-outline" size={24} color="#666" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Profile</Text>
-          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-            <Ionicons name="log-out-outline" size={20} color={timeblocColors.textSecondary} />
-          </TouchableOpacity>
+
+          <View style={styles.photoWrapper}>
+            <TouchableOpacity
+              style={styles.photoContainer}
+              onPress={handlePhotoClick}
+              disabled={uploadingPhoto}
+              activeOpacity={0.7}
+            >
+              {uploadingPhoto ? (
+                <View style={styles.photoPlaceholder}>
+                  <ActivityIndicator size="large" color="#4A90E2" />
+                  <Text style={styles.uploadingText}>
+                    {uploadStatus === 'compressing' ? 'Compressing...' : 'Uploading...'}
+                  </Text>
+                </View>
+              ) : profilePhoto && !photoError ? (
+                <Image
+                  key={profilePhoto}
+                  source={{ uri: profilePhoto }}
+                  style={styles.profilePhoto}
+                  resizeMode="cover"
+                  onError={(error) => {
+                    console.error('❌ Image load error:', error);
+                    setPhotoError(true);
+                  }}
+                />
+              ) : (
+                <View style={styles.photoPlaceholder}>
+                  <Ionicons name="person" size={50} color="#CCC" />
+                  {photoError && (
+                    <Text style={styles.errorText}>Tap to retry</Text>
+                  )}
+                  {!photoError && !profilePhoto && (
+                    <Text style={styles.uploadHint}>Tap to add photo</Text>
+                  )}
+                </View>
+              )}
+            </TouchableOpacity>
+
+            {/* Edit Icon - only show when photo exists */}
+            {profilePhoto && !uploadingPhoto && (
+              <TouchableOpacity
+                style={styles.editIconButton}
+                onPress={handlePhotoClick}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="pencil" size={16} color="white" />
+              </TouchableOpacity>
+            )}
+
+            {/* Dropdown Menu with Overlay */}
+            {showPhotoMenu && profilePhoto && (
+              <>
+                <TouchableOpacity
+                  style={styles.photoMenuOverlay}
+                  onPress={() => setShowPhotoMenu(false)}
+                  activeOpacity={1}
+                />
+                <View style={styles.photoMenu}>
+                  <TouchableOpacity
+                    style={styles.photoMenuItem}
+                    onPress={handleChangePhoto}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="camera" size={20} color="#4A90E2" />
+                    <Text style={styles.photoMenuText}>Change Photo</Text>
+                  </TouchableOpacity>
+
+                  <View style={styles.photoMenuDivider} />
+
+                  <TouchableOpacity
+                    style={styles.photoMenuItem}
+                    onPress={handleRemovePhoto}
+                    activeOpacity={0.7}
+                  >
+                    <Ionicons name="trash" size={20} color="#FF4B4B" />
+                    <Text style={[styles.photoMenuText, { color: '#FF4B4B' }]}>Delete Photo</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+
+          <View style={styles.photoInfo}>
+            <Text style={styles.photoTitle}>{firstName}</Text>
+            <Text style={styles.photoSubtitle}>Level {progress.level} • {progress.totalPoints} XP</Text>
+          </View>
         </View>
 
-        {/* Level Card - Soft Purple Gradient */}
+        {/* Stats Bar */}
+        <View style={styles.statsBar}>
+          <View style={styles.statItem}>
+            <Ionicons name="star" size={20} color="#FFD700" />
+            <Text style={styles.statValue}>{progress.totalPoints || progress.xp}</Text>
+            <Text style={styles.statLabel}>Total XP</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="flame" size={20} color="#FF6B6B" />
+            <Text style={styles.statValue}>{bestStreak}</Text>
+            <Text style={styles.statLabel}>Best Streak</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="trophy" size={20} color="#4CAF50" />
+            <Text style={styles.statValue}>{unlockedAchievements.length}/{totalAchievements}</Text>
+            <Text style={styles.statLabel}>Achievements</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="calendar" size={20} color="#1CB0F6" />
+            <Text style={styles.statValue}>{currentStreakSum}</Text>
+            <Text style={styles.statLabel}>Current Streak</Text>
+          </View>
+        </View>
+
+        {/* Level Card - Colorful Duolingo Style */}
         <View style={styles.levelSection}>
-          <LinearGradient
-            colors={['#7C6FE8', '#9F8EFF']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.levelCard}
-          >
+          <TouchableOpacity style={styles.levelCard} activeOpacity={0.8}>
             <View style={styles.levelCardContent}>
               <View style={styles.levelIconContainer}>
                 <Text style={styles.levelNumber}>{progress.level}</Text>
@@ -126,77 +359,24 @@ export const ProfileScreenNew = () => {
                 </View>
               </View>
             </View>
-          </LinearGradient>
+          </TouchableOpacity>
         </View>
 
-        {/* Stats Grid - 2x2 */}
-        <View style={styles.statsSection}>
-          <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <Text style={styles.statIcon}>⭐</Text>
-              <Text style={styles.statValue}>{progress.totalPoints || progress.xp}</Text>
-              <Text style={styles.statLabel}>Total XP</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statIcon}>🔥</Text>
-              <Text style={styles.statValue}>{bestStreak}</Text>
-              <Text style={styles.statLabel}>Best Streak</Text>
-            </View>
-          </View>
-          <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <Text style={styles.statIcon}>🏆</Text>
-              <Text style={styles.statValue}>{unlockedAchievements.length}</Text>
-              <Text style={styles.statLabel}>Achievements</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statIcon}>📅</Text>
-              <Text style={styles.statValue}>{currentStreakSum}</Text>
-              <Text style={styles.statLabel}>Current Streak</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Achievements Preview - Horizontal Scroll */}
+        {/* Settings */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Achievements</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.achievementsScroll}>
-            {progress.achievements.slice(0, 5).map((achievement) => (
-              <TouchableOpacity
-                key={achievement.id}
-                style={[
-                  styles.achievementCard,
-                  { opacity: achievement.unlocked ? 1 : 0.4 }
-                ]}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.achievementIcon}>{achievement.icon}</Text>
-                <Text style={styles.achievementName}>
-                  {achievement.name}
-                </Text>
-                {achievement.unlocked && (
-                  <View style={styles.achievementCheck}>
-                    <Ionicons name="checkmark-circle" size={16} color={timeblocColors.primary} />
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* Settings Section */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>SETTINGS</Text>
+          <Text style={styles.sectionTitle}>⚙️ Settings</Text>
           <View style={styles.settingsCard}>
             <TouchableOpacity
               style={styles.settingItem}
               onPress={() => handleSettingPress('notifications')}
             >
               <View style={styles.settingLeft}>
-                <Text style={styles.settingEmoji}>🔔</Text>
+                <View style={[styles.settingIconContainer, { backgroundColor: '#FF9500' + '20' }]}>
+                  <Ionicons name="notifications-outline" size={20} color="#FF9500" />
+                </View>
                 <Text style={styles.settingText}>Notifications</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={timeblocColors.textTertiary} />
+              <Ionicons name="chevron-forward" size={20} color="#CCC" />
             </TouchableOpacity>
 
             <View style={styles.settingDivider} />
@@ -206,10 +386,12 @@ export const ProfileScreenNew = () => {
               onPress={() => handleSettingPress('account')}
             >
               <View style={styles.settingLeft}>
-                <Text style={styles.settingEmoji}>👤</Text>
+                <View style={[styles.settingIconContainer, { backgroundColor: '#1CB0F6' + '20' }]}>
+                  <Ionicons name="person-outline" size={20} color="#1CB0F6" />
+                </View>
                 <Text style={styles.settingText}>Account Settings</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={timeblocColors.textTertiary} />
+              <Ionicons name="chevron-forward" size={20} color="#CCC" />
             </TouchableOpacity>
 
             <View style={styles.settingDivider} />
@@ -219,10 +401,12 @@ export const ProfileScreenNew = () => {
               onPress={() => handleSettingPress('data')}
             >
               <View style={styles.settingLeft}>
-                <Text style={styles.settingEmoji}>📥</Text>
+                <View style={[styles.settingIconContainer, { backgroundColor: '#9C27B0' + '20' }]}>
+                  <Ionicons name="download-outline" size={20} color="#9C27B0" />
+                </View>
                 <Text style={styles.settingText}>Export Data</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={timeblocColors.textTertiary} />
+              <Ionicons name="chevron-forward" size={20} color="#CCC" />
             </TouchableOpacity>
 
             <View style={styles.settingDivider} />
@@ -232,10 +416,12 @@ export const ProfileScreenNew = () => {
               onPress={() => handleSettingPress('privacy')}
             >
               <View style={styles.settingLeft}>
-                <Text style={styles.settingEmoji}>🔒</Text>
+                <View style={[styles.settingIconContainer, { backgroundColor: '#4CAF50' + '20' }]}>
+                  <Ionicons name="shield-outline" size={20} color="#4CAF50" />
+                </View>
                 <Text style={styles.settingText}>Privacy & Security</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={timeblocColors.textTertiary} />
+              <Ionicons name="chevron-forward" size={20} color="#CCC" />
             </TouchableOpacity>
 
             <View style={styles.settingDivider} />
@@ -245,27 +431,31 @@ export const ProfileScreenNew = () => {
               onPress={() => handleSettingPress('about')}
             >
               <View style={styles.settingLeft}>
-                <Text style={styles.settingEmoji}>ℹ️</Text>
+                <View style={[styles.settingIconContainer, { backgroundColor: '#FFB800' + '20' }]}>
+                  <Ionicons name="information-circle-outline" size={20} color="#FFB800" />
+                </View>
                 <Text style={styles.settingText}>About LifeQuest</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={timeblocColors.textTertiary} />
+              <Ionicons name="chevron-forward" size={20} color="#CCC" />
             </TouchableOpacity>
           </View>
         </View>
 
         {/* Danger Zone */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>DANGER ZONE</Text>
+          <Text style={styles.sectionTitle}>⚠️ Danger Zone</Text>
           <View style={styles.settingsCard}>
             <TouchableOpacity
               style={styles.settingItem}
-              onPress={handleResetDatabase}
+              onPress={handleRemoveUserAccount}
             >
               <View style={styles.settingLeft}>
-                <Text style={styles.settingEmoji}>🗑️</Text>
-                <Text style={[styles.settingText, { color: timeblocColors.error }]}>Reset Database</Text>
+                <View style={[styles.settingIconContainer, { backgroundColor: '#FF4B4B' + '20' }]}>
+                  <Ionicons name="trash-bin-outline" size={20} color="#FF4B4B" />
+                </View>
+                <Text style={[styles.settingText, { color: '#FF4B4B', fontWeight: '600' }]}>Remove User Account</Text>
               </View>
-              <Ionicons name="warning-outline" size={20} color={timeblocColors.error} />
+              <Ionicons name="warning-outline" size={20} color="#FF4B4B" />
             </TouchableOpacity>
 
             <View style={styles.settingDivider} />
@@ -275,62 +465,30 @@ export const ProfileScreenNew = () => {
               onPress={handleLogout}
             >
               <View style={styles.settingLeft}>
-                <Text style={styles.settingEmoji}>🚪</Text>
-                <Text style={[styles.settingText, { color: timeblocColors.error }]}>Logout</Text>
+                <View style={[styles.settingIconContainer, { backgroundColor: '#FF4B4B' + '20' }]}>
+                  <Ionicons name="log-out-outline" size={20} color="#FF4B4B" />
+                </View>
+                <Text style={[styles.settingText, { color: '#FF4B4B' }]}>Logout</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={timeblocColors.error} />
+              <Ionicons name="chevron-forward" size={20} color="#FF4B4B" />
             </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Motivation Card */}
+        <View style={styles.motivationSection}>
+          <View style={styles.motivationCard}>
+            <Text style={styles.motivationEmoji}>🚀</Text>
+            <Text style={styles.motivationTitle}>You're doing great!</Text>
+            <Text style={styles.motivationText}>
+              Keep leveling up and unlocking achievements.{'\n'}
+              Every day is a step closer to your goals!
+            </Text>
           </View>
         </View>
 
         <View style={{ height: 40 }} />
       </ScrollView>
-
-      {/* Logout Confirmation Modal */}
-      <ConfirmModal
-        visible={showLogoutModal}
-        title="Logout"
-        message="Are you sure you want to logout?"
-        confirmText="Logout"
-        cancelText="Cancel"
-        confirmColor={timeblocColors.error}
-        onConfirm={confirmLogout}
-        onCancel={() => setShowLogoutModal(false)}
-      />
-
-      {/* Reset Database Confirmation Modal */}
-      <ConfirmModal
-        visible={showResetModal}
-        title="⚠️ RESET DATABASE"
-        message="This will delete ALL your data including:
-- Onboarding data
-- Tasks and progress
-- Achievements and streaks
-- User authentication
-
-This action CANNOT be undone!
-
-Are you absolutely sure?"
-        confirmText="Reset"
-        cancelText="Cancel"
-        confirmColor={timeblocColors.error}
-        onConfirm={confirmResetDatabase}
-        onCancel={() => setShowResetModal(false)}
-      />
-
-      {/* Reset Success Modal */}
-      <ConfirmModal
-        visible={showResetSuccessModal}
-        title="✅ Success"
-        message="Database has been reset successfully!
-
-The app will now reload."
-        confirmText="OK"
-        cancelText="Cancel"
-        confirmColor={timeblocColors.primary}
-        onConfirm={handleResetSuccess}
-        onCancel={handleResetSuccess}
-      />
     </SafeAreaView>
   );
 };
@@ -338,78 +496,254 @@ The app will now reload."
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: timeblocColors.background,
+    backgroundColor: '#F5F8FA',
   },
-  // Header
+  // Header - Duolingo Style
   header: {
+    backgroundColor: '#4A90E2',
+    paddingTop: 50,
+    paddingBottom: 30,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: timeblocSpacing.xl,
-    paddingVertical: timeblocSpacing.lg,
+    alignItems: 'flex-start',
   },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: timeblocColors.surface,
-    justifyContent: 'center',
+  headerContent: {
     alignItems: 'center',
-    ...timeblocShadows.soft,
+    flex: 1,
+  },
+  headerEmoji: {
+    fontSize: 48,
+    marginBottom: 8,
   },
   headerTitle: {
-    ...timeblocTypography.h2,
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 4,
   },
-  logoutButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: timeblocColors.surface,
+  headerSubtitle: {
+    fontSize: 16,
+    color: 'rgba(255,255,255,0.9)',
+  },
+  headerLogout: {
+    padding: 8,
+    marginTop: 8,
+  },
+  // Profile Photo Section
+  photoSection: {
+    alignItems: 'center',
+    paddingVertical: 30,
+    paddingTop: 50,
+    position: 'relative',
+  },
+  logoutButtonTop: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    padding: 8,
+    zIndex: 10,
+  },
+  photoWrapper: {
+    position: 'relative',
+    marginBottom: 12,
+    zIndex: 100,
+  },
+  photoContainer: {
+    position: 'relative',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    overflow: 'hidden',
+    borderWidth: 4,
+    borderColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  profilePhoto: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 60,
+  },
+  editIconButton: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#4A90E2',
     justifyContent: 'center',
     alignItems: 'center',
-    ...timeblocShadows.soft,
+    borderWidth: 3,
+    borderColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  photoMenuOverlay: {
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 9998,
+  },
+  photoMenu: {
+    position: 'absolute',
+    top: 130,
+    left: '50%',
+    transform: [{ translateX: -80 }],
+    width: 160,
+    backgroundColor: 'white',
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+    elevation: 10,
+    overflow: 'hidden',
+    zIndex: 9999,
+  },
+  photoMenuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    gap: 10,
+  },
+  photoMenuDivider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+  },
+  photoMenuText: {
+    fontSize: 14,
+    color: '#333',
+    fontWeight: '500',
+  },
+  photoPlaceholder: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 60,
+    backgroundColor: '#F5F8FA',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  uploadingText: {
+    fontSize: 12,
+    color: '#666',
+    marginTop: 8,
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#FF4B4B',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  uploadHint: {
+    fontSize: 11,
+    color: '#999',
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  photoInfo: {
+    alignItems: 'center',
+  },
+  photoTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 4,
+  },
+  photoSubtitle: {
+    fontSize: 14,
+    color: '#666',
+  },
+  // Stats Bar
+  statsBar: {
+    flexDirection: 'row',
+    backgroundColor: 'white',
+    marginHorizontal: 20,
+    marginTop: 10,
+    borderRadius: 16,
+    padding: 12,
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+  },
+  statItem: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginTop: 4,
+  },
+  statLabel: {
+    fontSize: 11,
+    color: '#666',
+    textAlign: 'center',
+  },
+  statDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: '#E5E5E5',
   },
   // Level Card
   levelSection: {
-    paddingHorizontal: timeblocSpacing.xl,
-    marginTop: timeblocSpacing.lg,
+    padding: 20,
   },
   levelCard: {
-    borderRadius: timeblocBorderRadius.xl,
-    ...timeblocShadows.medium,
+    borderRadius: 20,
+    backgroundColor: '#4A90E2',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
   },
   levelCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: timeblocSpacing.xxl,
+    padding: 20,
   },
   levelIconContainer: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: timeblocSpacing.lg,
+    marginRight: 16,
   },
   levelNumber: {
     fontSize: 28,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: 'bold',
+    color: 'white',
   },
   levelInfo: {
     flex: 1,
   },
   levelTitle: {
     fontSize: 22,
-    fontWeight: '700',
-    color: '#FFFFFF',
+    fontWeight: 'bold',
+    color: 'white',
     marginBottom: 2,
   },
   levelSubtitle: {
     fontSize: 14,
     color: 'rgba(255,255,255,0.9)',
-    marginBottom: timeblocSpacing.sm,
+    marginBottom: 8,
   },
   levelProgressContainer: {
     flexDirection: 'row',
@@ -418,118 +752,211 @@ const styles = StyleSheet.create({
   levelProgressBar: {
     flex: 1,
     height: 6,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    borderRadius: timeblocBorderRadius.full,
-    marginRight: timeblocSpacing.sm,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    borderRadius: 3,
+    marginRight: 8,
   },
   levelProgressFill: {
     height: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: timeblocBorderRadius.full,
+    backgroundColor: 'white',
+    borderRadius: 3,
   },
   levelProgressText: {
     fontSize: 12,
     color: 'rgba(255,255,255,0.9)',
     fontWeight: '600',
   },
-  // Stats Grid
-  statsSection: {
-    paddingHorizontal: timeblocSpacing.xl,
-    marginTop: timeblocSpacing.xxl,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: timeblocSpacing.md,
-    marginBottom: timeblocSpacing.md,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: timeblocColors.surface,
-    borderRadius: timeblocBorderRadius.lg,
-    padding: timeblocSpacing.lg,
-    alignItems: 'center',
-    ...timeblocShadows.soft,
-  },
-  statIcon: {
-    fontSize: 32,
-    marginBottom: timeblocSpacing.sm,
-  },
-  statValue: {
-    ...timeblocTypography.h2,
-    marginBottom: timeblocSpacing.xs,
-  },
-  statLabel: {
-    ...timeblocTypography.small,
-    textAlign: 'center',
-  },
   // Sections
   section: {
-    paddingHorizontal: timeblocSpacing.xl,
-    marginTop: timeblocSpacing.xxl,
+    paddingHorizontal: 20,
+    marginTop: 20,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
   },
   sectionTitle: {
-    ...timeblocTypography.h3,
-    marginBottom: timeblocSpacing.md,
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
   },
-  sectionLabel: {
-    ...timeblocTypography.label,
-    marginBottom: timeblocSpacing.md,
+  sectionSubtitle: {
+    fontSize: 14,
+    color: '#666',
   },
   // Achievements
   achievementsScroll: {
-    marginHorizontal: -timeblocSpacing.xl,
-    paddingHorizontal: timeblocSpacing.xl,
+    marginHorizontal: -20,
+    paddingHorizontal: 20,
   },
   achievementCard: {
-    width: 100,
-    backgroundColor: timeblocColors.surface,
-    borderRadius: timeblocBorderRadius.lg,
-    padding: timeblocSpacing.lg,
-    marginRight: timeblocSpacing.md,
+    width: 120,
+    borderRadius: 16,
+    padding: 16,
+    marginRight: 12,
     alignItems: 'center',
-    ...timeblocShadows.soft,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  achievementIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
   },
   achievementIcon: {
-    fontSize: 36,
-    marginBottom: timeblocSpacing.sm,
+    fontSize: 28,
   },
   achievementName: {
-    ...timeblocTypography.tiny,
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'white',
     textAlign: 'center',
-    color: timeblocColors.text,
   },
-  achievementCheck: {
+  achievementNameLocked: {
+    color: '#999',
+  },
+  achievementUnlocked: {
     position: 'absolute',
-    top: timeblocSpacing.sm,
-    right: timeblocSpacing.sm,
+    top: 8,
+    right: 8,
+  },
+  // Streaks
+  streakCard: {
+    borderRadius: 20,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  streakCardContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 20,
+  },
+  streakIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  streakEmoji: {
+    fontSize: 24,
+  },
+  streakInfo: {
+    flex: 1,
+  },
+  streakPillar: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: 'white',
+    marginBottom: 6,
+  },
+  streakMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  streakBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    gap: 4,
+  },
+  streakBadgeText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: 'white',
+  },
+  streakLongest: {
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.9)',
   },
   // Settings
   settingsCard: {
-    backgroundColor: timeblocColors.surface,
-    borderRadius: timeblocBorderRadius.lg,
-    ...timeblocShadows.soft,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
   },
   settingItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: timeblocSpacing.lg,
-    paddingHorizontal: timeblocSpacing.lg,
+    padding: 16,
   },
   settingLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: timeblocSpacing.md,
+    gap: 12,
   },
-  settingEmoji: {
-    fontSize: 24,
+  settingIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   settingText: {
-    ...timeblocTypography.body,
+    fontSize: 16,
+    fontWeight: '500',
+    color: '#1A1A1A',
   },
   settingDivider: {
     height: 1,
-    backgroundColor: timeblocColors.borderLight,
-    marginLeft: timeblocSpacing.lg + timeblocSpacing.md + 24, // emoji + gap + padding
+    backgroundColor: '#F3F4F6',
+    marginLeft: 68,
+  },
+  // Motivation Card
+  motivationSection: {
+    padding: 20,
+    paddingTop: 20,
+  },
+  motivationCard: {
+    padding: 24,
+    backgroundColor: 'white',
+    borderRadius: 20,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  motivationEmoji: {
+    fontSize: 48,
+    marginBottom: 12,
+  },
+  motivationTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1A1A1A',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  motivationText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
