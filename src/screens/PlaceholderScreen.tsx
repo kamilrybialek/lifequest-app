@@ -30,7 +30,7 @@ export const PlaceholderScreen = ({ route }: any) => {
       <Text style={styles.text}>PWA Version Under Construction</Text>
       <Text style={styles.subtitle}>Tab: {route?.name || 'unknown'}</Text>
       <Text style={styles.info}>
-        The full LifeQuest experience is available on mobile apps.{'\n'}
+        The full Structura experience is available on mobile apps.{'\n'}
         Web version coming soon!
       </Text>
       <Text style={styles.count}>Render #{placeholderRenderCount}</Text>

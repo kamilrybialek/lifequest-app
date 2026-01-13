@@ -2,7 +2,7 @@
 
 ## Overview
 
-This redesign completely transforms how tools collect data and how that data drives personalized task generation in LifeQuest. The core philosophy: **Tools are not just trackers - they're intelligent data sources that power your daily journey.**
+This redesign completely transforms how tools collect data and how that data drives personalized task generation in Structura. The core philosophy: **Tools are not just trackers - they're intelligent data sources that power your daily journey.**
 
 ## Problem Statement
 
@@ -305,7 +305,7 @@ const insights = getActionableInsights(toolData);
 
 ## Conclusion
 
-This redesign transforms LifeQuest from a collection of isolated tools into an intelligent, personalized coaching system. Every tool now serves a purpose: collecting data that drives meaningful, actionable daily tasks.
+This redesign transforms Structura from a collection of isolated tools into an intelligent, personalized coaching system. Every tool now serves a purpose: collecting data that drives meaningful, actionable daily tasks.
 
 **The user's journey is no longer generic - it's uniquely theirs, powered by their own data and progress.**
 

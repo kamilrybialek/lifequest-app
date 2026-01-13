@@ -31,7 +31,7 @@ export const AboutScreen = ({ navigation }: any) => {
           <View style={styles.appIcon}>
             <Text style={styles.appIconText}>🎯</Text>
           </View>
-          <Text style={styles.appName}>LifeQuest</Text>
+          <Text style={styles.appName}>Structura</Text>
           <Text style={styles.appTagline}>4 Pillars. One Journey. Better You.</Text>
           <View style={styles.versionBadge}>
             <Text style={styles.versionText}>Version {appVersion} ({buildNumber})</Text>
@@ -149,7 +149,7 @@ export const AboutScreen = ({ navigation }: any) => {
 
         {/* Copyright */}
         <Text style={styles.copyright}>
-          © 2025 LifeQuest. All rights reserved.
+          © 2025 Structura. All rights reserved.
         </Text>
 
         <View style={styles.bottomSpacer} />

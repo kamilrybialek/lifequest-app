@@ -1,6 +1,6 @@
-# LifeQuest Admin Panel - PWA
+# Structura Admin Panel - PWA
 
-Progressive Web App dla zarządzania aplikacją LifeQuest.
+Progressive Web App dla zarządzania aplikacją Structura.
 
 ## 🚀 Funkcje
 

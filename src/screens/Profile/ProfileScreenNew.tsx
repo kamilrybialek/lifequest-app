@@ -1,6 +1,6 @@
 /**
- * Profile Screen - Duolingo Style (Native Version)
- * Matching Journey and Tasks screen design language
+ * Profile Screen - TimeBloc Design (Native Version)
+ * Soft, premium, minimal design language
  */
 
 import React, { useState, useEffect } from 'react';
@@ -9,10 +9,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
 import { useCurrencyStore } from '../../store/currencyStore';
 import { CURRENCIES } from '../../constants/currencies';
+import { timeblocColors, timeblocShadows, timeblocSpacing, timeblocBorderRadius, timeblocTypography } from '../../theme/timeblocTheme';
 import { deleteAllUserData } from '../../services/firebaseUserService';
 import { pickImage, uploadProfilePhoto, deleteProfilePhoto } from '../../services/photoUploadService';
 
@@ -238,7 +240,7 @@ export const ProfileScreenNew = () => {
           <View style={styles.photoContainer}>
             {uploadingPhoto ? (
               <View style={styles.photoPlaceholder}>
-                <ActivityIndicator size="large" color="#4A90E2" />
+                <ActivityIndicator size="large" color="timeblocColors.primary" />
                 <Text style={styles.uploadingText}>Uploading...</Text>
               </View>
             ) : profilePhoto ? (
@@ -285,19 +287,19 @@ export const ProfileScreenNew = () => {
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Ionicons name="flame" size={20} color="#FF6B6B" />
+            <Ionicons name="flame" size={20} color="timeblocColors.physical" />
             <Text style={styles.statValue}>{bestStreak}</Text>
             <Text style={styles.statLabel}>Best Streak</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Ionicons name="trophy" size={20} color="#4CAF50" />
+            <Ionicons name="trophy" size={20} color="timeblocColors.nutrition" />
             <Text style={styles.statValue}>{unlockedAchievements.length}/{totalAchievements}</Text>
             <Text style={styles.statLabel}>Achievements</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Ionicons name="calendar" size={20} color="#1CB0F6" />
+            <Ionicons name="calendar" size={20} color="timeblocColors.mental" />
             <Text style={styles.statValue}>{currentStreakSum}</Text>
             <Text style={styles.statLabel}>Current Streak</Text>
           </View>
@@ -342,7 +344,7 @@ export const ProfileScreenNew = () => {
                 key={achievement.id}
                 style={[
                   styles.achievementCard,
-                  { backgroundColor: achievement.unlocked ? '#4CAF50' : '#E5E5E5' }
+                  { backgroundColor: achievement.unlocked ? timeblocColors.nutrition : '#E5E5E5' }
                 ]}
                 activeOpacity={0.8}
               >
@@ -367,10 +369,10 @@ export const ProfileScreenNew = () => {
           <Text style={styles.sectionTitle}>🔥 Pillar Streaks</Text>
           {progress.streaks.map((streak) => {
             const pillarColors: Record<string, string> = {
-              finance: '#4A90E2',
-              mental: '#4A90E2',
-              physical: '#FF6B6B',
-              nutrition: '#4CAF50',
+              finance: timeblocColors.primary,
+              mental: timeblocColors.primary,
+              physical: timeblocColors.physical',
+              nutrition: timeblocColors.nutrition,
             };
             const pillarIcons: Record<string, string> = {
               finance: '💰',
@@ -416,8 +418,8 @@ export const ProfileScreenNew = () => {
               onPress={() => handleSettingPress('notifications')}
             >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIconContainer, { backgroundColor: '#FF9500' + '20' }]}>
-                  <Ionicons name="notifications-outline" size={20} color="#FF9500" />
+                <View style={[styles.settingIconContainer, { backgroundColor: timeblocColors.warning' + '20' }]}>
+                  <Ionicons name="notifications-outline" size={20} color="timeblocColors.warning" />
                 </View>
                 <Text style={styles.settingText}>Notifications</Text>
               </View>
@@ -431,8 +433,8 @@ export const ProfileScreenNew = () => {
               onPress={() => setShowCurrencyModal(true)}
             >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIconContainer, { backgroundColor: '#4CAF50' + '20' }]}>
-                  <Ionicons name="cash-outline" size={20} color="#4CAF50" />
+                <View style={[styles.settingIconContainer, { backgroundColor: timeblocColors.nutrition + '20' }]}>
+                  <Ionicons name="cash-outline" size={20} color="timeblocColors.nutrition" />
                 </View>
                 <View>
                   <Text style={styles.settingText}>Currency</Text>
@@ -451,8 +453,8 @@ export const ProfileScreenNew = () => {
               onPress={() => handleSettingPress('account')}
             >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIconContainer, { backgroundColor: '#1CB0F6' + '20' }]}>
-                  <Ionicons name="person-outline" size={20} color="#1CB0F6" />
+                <View style={[styles.settingIconContainer, { backgroundColor: timeblocColors.mental' + '20' }]}>
+                  <Ionicons name="person-outline" size={20} color="timeblocColors.mental" />
                 </View>
                 <Text style={styles.settingText}>Account Settings</Text>
               </View>
@@ -466,8 +468,8 @@ export const ProfileScreenNew = () => {
               onPress={() => handleSettingPress('data')}
             >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIconContainer, { backgroundColor: '#9C27B0' + '20' }]}>
-                  <Ionicons name="download-outline" size={20} color="#9C27B0" />
+                <View style={[styles.settingIconContainer, { backgroundColor: timeblocColors.premium' + '20' }]}>
+                  <Ionicons name="download-outline" size={20} color="timeblocColors.premium" />
                 </View>
                 <Text style={styles.settingText}>Export Data</Text>
               </View>
@@ -481,8 +483,8 @@ export const ProfileScreenNew = () => {
               onPress={() => handleSettingPress('privacy')}
             >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIconContainer, { backgroundColor: '#4CAF50' + '20' }]}>
-                  <Ionicons name="shield-outline" size={20} color="#4CAF50" />
+                <View style={[styles.settingIconContainer, { backgroundColor: timeblocColors.nutrition + '20' }]}>
+                  <Ionicons name="shield-outline" size={20} color="timeblocColors.nutrition" />
                 </View>
                 <Text style={styles.settingText}>Privacy & Security</Text>
               </View>
@@ -496,10 +498,10 @@ export const ProfileScreenNew = () => {
               onPress={() => handleSettingPress('about')}
             >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIconContainer, { backgroundColor: '#FFB800' + '20' }]}>
-                  <Ionicons name="information-circle-outline" size={20} color="#FFB800" />
+                <View style={[styles.settingIconContainer, { backgroundColor: timeblocColors.gold' + '20' }]}>
+                  <Ionicons name="information-circle-outline" size={20} color="timeblocColors.gold" />
                 </View>
-                <Text style={styles.settingText}>About LifeQuest</Text>
+                <Text style={styles.settingText}>About Structura</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#CCC" />
             </TouchableOpacity>
@@ -513,8 +515,8 @@ export const ProfileScreenNew = () => {
                   onPress={() => (navigation as any).navigate('Admin')}
                 >
                   <View style={styles.settingLeft}>
-                    <View style={[styles.settingIconContainer, { backgroundColor: '#9C27B0' + '20' }]}>
-                      <Ionicons name="shield-checkmark" size={20} color="#9C27B0" />
+                    <View style={[styles.settingIconContainer, { backgroundColor: timeblocColors.premium' + '20' }]}>
+                      <Ionicons name="shield-checkmark" size={20} color="timeblocColors.premium" />
                     </View>
                     <Text style={styles.settingText}>Admin Panel</Text>
                   </View>
@@ -534,12 +536,12 @@ export const ProfileScreenNew = () => {
               onPress={handleRemoveUserAccount}
             >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIconContainer, { backgroundColor: '#FF4B4B' + '20' }]}>
-                  <Ionicons name="trash-bin-outline" size={20} color="#FF4B4B" />
+                <View style={[styles.settingIconContainer, { backgroundColor: timeblocColors.error + '20' }]}>
+                  <Ionicons name="trash-bin-outline" size={20} color="timeblocColors.error" />
                 </View>
-                <Text style={[styles.settingText, { color: '#FF4B4B', fontWeight: '600' }]}>Remove User Account</Text>
+                <Text style={[styles.settingText, { color: timeblocColors.error, fontWeight: '600' }]}>Remove User Account</Text>
               </View>
-              <Ionicons name="warning-outline" size={20} color="#FF4B4B" />
+              <Ionicons name="warning-outline" size={20} color="timeblocColors.error" />
             </TouchableOpacity>
 
             <View style={styles.settingDivider} />
@@ -549,12 +551,12 @@ export const ProfileScreenNew = () => {
               onPress={handleLogout}
             >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIconContainer, { backgroundColor: '#FF4B4B' + '20' }]}>
-                  <Ionicons name="log-out-outline" size={20} color="#FF4B4B" />
+                <View style={[styles.settingIconContainer, { backgroundColor: timeblocColors.error + '20' }]}>
+                  <Ionicons name="log-out-outline" size={20} color="timeblocColors.error" />
                 </View>
-                <Text style={[styles.settingText, { color: '#FF4B4B' }]}>Logout</Text>
+                <Text style={[styles.settingText, { color: timeblocColors.error }]}>Logout</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#FF4B4B" />
+              <Ionicons name="chevron-forward" size={20} color="timeblocColors.error" />
             </TouchableOpacity>
           </View>
         </View>
@@ -632,7 +634,7 @@ export const ProfileScreenNew = () => {
                     <Text style={styles.currencyOptionSymbol}>Symbol: {item.symbol}</Text>
                   </View>
                   {currency === item.code && (
-                    <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
+                    <Ionicons name="checkmark-circle" size={24} color="timeblocColors.nutrition" />
                   )}
                 </TouchableOpacity>
               )}
@@ -647,11 +649,11 @@ export const ProfileScreenNew = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F8FA',
+    backgroundColor: timeblocColors.background,
   },
-  // Header - Duolingo Style
+  // Header - TimeBloc Style (Light)
   header: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: timeblocColors.primary,
     paddingTop: 50,
     paddingBottom: 30,
     paddingHorizontal: 20,
@@ -696,7 +698,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 4,
-    borderColor: 'white',
+    borderColor: timeblocColors.surface,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -707,9 +709,9 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#F5F8FA',
+    backgroundColor: timeblocColors.background,
     borderWidth: 4,
-    borderColor: 'white',
+    borderColor: timeblocColors.surface,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
@@ -720,7 +722,7 @@ const styles = StyleSheet.create({
   },
   uploadingText: {
     fontSize: 12,
-    color: '#666',
+    color: timeblocColors.textSecondary,
     marginTop: 8,
   },
   photoActions: {
@@ -734,11 +736,11 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#4A90E2',
+    backgroundColor: timeblocColors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
-    borderColor: 'white',
+    borderColor: timeblocColors.surface,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
@@ -746,7 +748,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   deleteButton: {
-    backgroundColor: '#FF4B4B',
+    backgroundColor: timeblocColors.error,
   },
   photoInfo: {
     alignItems: 'center',
@@ -754,17 +756,17 @@ const styles = StyleSheet.create({
   photoTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1A1A1A',
+    color: timeblocColors.text,
     marginBottom: 4,
   },
   photoSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: timeblocColors.textSecondary,
   },
   // Stats Bar - overlapping header
   statsBar: {
     flexDirection: 'row',
-    backgroundColor: 'white',
+    backgroundColor: timeblocColors.surface,
     marginHorizontal: 20,
     marginTop: -20,
     borderRadius: 16,
@@ -784,18 +786,18 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1A1A1A',
+    color: timeblocColors.text,
     marginTop: 4,
   },
   statLabel: {
     fontSize: 11,
-    color: '#666',
+    color: timeblocColors.textSecondary,
     textAlign: 'center',
   },
   statDivider: {
     width: 1,
     height: 40,
-    backgroundColor: '#E5E5E5',
+    backgroundColor: timeblocColors.borderLight,
   },
   // Level Card
   levelSection: {
@@ -803,7 +805,7 @@ const styles = StyleSheet.create({
   },
   levelCard: {
     borderRadius: 20,
-    backgroundColor: '#4A90E2',
+    backgroundColor: timeblocColors.primary,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -856,7 +858,7 @@ const styles = StyleSheet.create({
   },
   levelProgressFill: {
     height: '100%',
-    backgroundColor: 'white',
+    backgroundColor: timeblocColors.surface,
     borderRadius: 3,
   },
   levelProgressText: {
@@ -878,11 +880,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1A1A1A',
+    color: timeblocColors.text,
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: timeblocColors.textSecondary,
   },
   // Achievements
   achievementsScroll: {
@@ -920,7 +922,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   achievementNameLocked: {
-    color: '#999',
+    color: timeblocColors.textTertiary,
   },
   achievementUnlocked: {
     position: 'absolute',
@@ -988,7 +990,7 @@ const styles = StyleSheet.create({
   },
   // Settings
   settingsCard: {
-    backgroundColor: 'white',
+    backgroundColor: timeblocColors.surface,
     borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -1017,16 +1019,16 @@ const styles = StyleSheet.create({
   settingText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1A1A1A',
+    color: timeblocColors.text,
   },
   settingSubtext: {
     fontSize: 13,
-    color: '#666',
+    color: timeblocColors.textSecondary,
     marginTop: 2,
   },
   settingDivider: {
     height: 1,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: 'timeblocColors.borderLight',
     marginLeft: 68,
   },
   // Currency Modal
@@ -1036,7 +1038,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: '#FFF',
+    backgroundColor: timeblocColors.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '80%',
@@ -1048,15 +1050,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    borderBottomColor: 'timeblocColors.borderLight',
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1A1A1A',
+    color: timeblocColors.text,
   },
   modalSearch: {
-    backgroundColor: '#F5F8FA',
+    backgroundColor: timeblocColors.background,
     marginHorizontal: 20,
     marginTop: 16,
     marginBottom: 12,
@@ -1064,9 +1066,9 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     fontSize: 16,
-    color: '#1A1A1A',
+    color: timeblocColors.text,
     borderWidth: 1,
-    borderColor: '#E0E0E0',
+    borderColor: timeblocColors.border,
   },
   currencyOption: {
     flexDirection: 'row',
@@ -1075,13 +1077,13 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     marginVertical: 4,
     borderRadius: 12,
-    backgroundColor: '#F5F8FA',
+    backgroundColor: timeblocColors.background,
     gap: 12,
   },
   currencyOptionSelected: {
-    backgroundColor: '#E8F5E9',
+    backgroundColor: 'timeblocColors.surface',
     borderWidth: 2,
-    borderColor: '#4CAF50',
+    borderColor: timeblocColors.nutrition,
   },
   currencyOptionFlag: {
     fontSize: 32,
@@ -1092,18 +1094,18 @@ const styles = StyleSheet.create({
   currencyOptionCode: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#1A1A1A',
+    color: timeblocColors.text,
     marginBottom: 2,
   },
   currencyOptionName: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#666',
+    color: timeblocColors.textSecondary,
     marginBottom: 2,
   },
   currencyOptionSymbol: {
     fontSize: 12,
-    color: '#999',
+    color: timeblocColors.textTertiary,
   },
   // Motivation Card
   motivationSection: {
@@ -1112,7 +1114,7 @@ const styles = StyleSheet.create({
   },
   motivationCard: {
     padding: 24,
-    backgroundColor: 'white',
+    backgroundColor: timeblocColors.surface,
     borderRadius: 20,
     alignItems: 'center',
     shadowColor: '#000',
@@ -1128,13 +1130,13 @@ const styles = StyleSheet.create({
   motivationTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1A1A1A',
+    color: timeblocColors.text,
     marginBottom: 8,
     textAlign: 'center',
   },
   motivationText: {
     fontSize: 14,
-    color: '#666',
+    color: timeblocColors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
   },

@@ -16,7 +16,7 @@ export const WelcomeScreen = ({ navigation }: any) => {
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
         <Text style={styles.emoji}>🎯</Text>
-        <Text style={styles.title}>Welcome to LifeQuest!</Text>
+        <Text style={styles.title}>Welcome to Structura!</Text>
         <Text style={styles.subtitle}>Your journey to holistic self-improvement</Text>
 
         <View style={styles.pillarsContainer}>

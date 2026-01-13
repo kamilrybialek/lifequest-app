@@ -2,7 +2,7 @@
 
 ## ✅ What Was Done
 
-Your LifeQuest app has been successfully migrated from Supabase to Firebase! Here's what was changed:
+Your Structura app has been successfully migrated from Supabase to Firebase! Here's what was changed:
 
 ### 1. **Installed Firebase SDK**
    - Added `firebase` package (version 10+)

@@ -1,6 +1,6 @@
 /**
  * New Finance Path Structure - 10 Steps Method (Marcin Iwuć)
- * International adaptation for LifeQuest app
+ * International adaptation for Structura app
  */
 
 // ============================================

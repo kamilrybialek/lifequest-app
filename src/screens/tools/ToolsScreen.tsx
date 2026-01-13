@@ -1,6 +1,6 @@
 /**
  * TOOLS SCREEN - Duolingo Style
- * All LifeQuest Tools organized by 4 Pillars with blue theme
+ * All Structura Tools organized by 4 Pillars with blue theme
  */
 
 import React from 'react';

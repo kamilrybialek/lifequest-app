@@ -1,4 +1,4 @@
-# LifeQuest PWA Architecture
+# Structura PWA Architecture
 
 ## Overview
 Progressive Web App with offline-first architecture and server synchronization.
@@ -230,8 +230,8 @@ async function syncWithServer() {
 ### Manifest
 ```json
 {
-  "name": "LifeQuest",
-  "short_name": "LifeQuest",
+  "name": "Structura",
+  "short_name": "Structura",
   "description": "Gamified life improvement app",
   "start_url": "/",
   "display": "standalone",

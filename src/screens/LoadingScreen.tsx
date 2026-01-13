@@ -101,7 +101,7 @@ export const LoadingScreen = () => {
         </Animated.View>
 
         {/* App Name */}
-        <Text style={styles.appName}>LifeQuest</Text>
+        <Text style={styles.appName}>Structura</Text>
         <Text style={styles.tagline}>Your Journey to Greatness</Text>
 
         {/* Custom Animated Loader */}

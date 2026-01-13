@@ -1,4 +1,4 @@
-# 🚀 LifeQuest - Deployment Instructions
+# 🚀 Structura - Deployment Instructions
 
 ## GitHub Setup
 
@@ -163,7 +163,7 @@ git push
 ### Quick Share Message Template:
 
 ```
-🎉 LifeQuest App - Test Link
+🎉 Structura App - Test Link
 
 Try the app: https://lifequest-app.vercel.app
 

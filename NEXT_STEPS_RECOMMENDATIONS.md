@@ -1,4 +1,4 @@
-# LifeQuest - Next Steps & Recommendations
+# Structura - Next Steps & Recommendations
 
 ## 📋 Testing Completed
 
@@ -186,7 +186,7 @@ import { VictoryLine, VictoryPie, VictoryBar } from 'victory-native';
 ```
 Step 1: Welcome
 - Big logo
-- "Welcome to LifeQuest! Transform your life in 4 pillars"
+- "Welcome to Structura! Transform your life in 4 pillars"
 - [Continue] button
 
 Step 2: Explain Concept

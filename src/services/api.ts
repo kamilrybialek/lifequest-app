@@ -1,5 +1,5 @@
 /**
- * API Client for LifeQuest Backend
+ * API Client for Structura Backend
  * Handles all HTTP requests with authentication
  */
 

@@ -110,7 +110,7 @@ export const scheduleMorningMotivation = async (): Promise<void> => {
     await Notifications.scheduleNotificationAsync({
       identifier: 'morning-motivation',
       content: {
-        title: 'LifeQuest',
+        title: 'Structura',
         body: randomMessage,
         sound: true,
         data: { type: 'morning-motivation' },

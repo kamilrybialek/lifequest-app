@@ -1,6 +1,6 @@
-# 🔐 LifeQuest Admin Panel
+# 🔐 Structura Admin Panel
 
-Panel administracyjny do zarządzania aplikacją LifeQuest.
+Panel administracyjny do zarządzania aplikacją Structura.
 
 ## 📋 Funkcje
 
@@ -236,4 +236,4 @@ Panel używa tej samej bazy SQLite co aplikacja mobilna (`lifequest.db`), więc 
 
 ---
 
-**Built with ❤️ for LifeQuest**
+**Built with ❤️ for Structura**

@@ -1,6 +1,6 @@
 {
-  "name": "lifequest",
-  "version": "alpha-0.2.3",
+  "name": "structura",
+  "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
     "start": "expo start",

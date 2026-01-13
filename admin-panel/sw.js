@@ -92,7 +92,7 @@ self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {};
 
   const options = {
-    body: data.body || 'New notification from LifeQuest Admin',
+    body: data.body || 'New notification from Structura Admin',
     icon: './icon-192.png',
     badge: './icon-192.png',
     vibrate: [200, 100, 200],
@@ -102,7 +102,7 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title || 'LifeQuest Admin', options)
+    self.registration.showNotification(data.title || 'Structura Admin', options)
   );
 });
 

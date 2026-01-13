@@ -219,7 +219,7 @@ export const ProfileScreen = ({ navigation }: any) => {
         </View>
 
         <View style={styles.footer}>
-          <Text style={styles.version}>LifeQuest v1.0.0</Text>
+          <Text style={styles.version}>Structura v1.0.0</Text>
         </View>
       </ScrollView>
     </View>

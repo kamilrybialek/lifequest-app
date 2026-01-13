@@ -1,5 +1,5 @@
 /**
- * LifeQuest Design System
+ * Structura Design System
  * Inspired by Duolingo - Fun, Colorful, Gamified
  *
  * Official design language for the entire app

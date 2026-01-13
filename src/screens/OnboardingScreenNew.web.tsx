@@ -278,7 +278,7 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
       case 0:
         return (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>🎯 Welcome to LifeQuest!</Text>
+            <Text style={styles.stepTitle}>🎯 Welcome to Structura!</Text>
             <Text style={styles.stepDescription}>
               Your personal life optimization platform. Track your finances, health, and habits while leveling up your life.
             </Text>
@@ -1276,7 +1276,7 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
 
         return (
           <View style={styles.stepContainer}>
-            <Text style={styles.stepTitle}>📊 Your LifeQuest Summary</Text>
+            <Text style={styles.stepTitle}>📊 Your Structura Summary</Text>
             <Text style={styles.stepDescription}>
               Here's your personalized profile
             </Text>
@@ -1401,7 +1401,7 @@ export const OnboardingScreenNew: React.FC<OnboardingScreenNewProps> = ({ naviga
         {/* Header */}
         <View style={styles.header}>
           <View style={{ width: 28 }} />
-          <Text style={styles.headerTitle}>Setup LifeQuest</Text>
+          <Text style={styles.headerTitle}>Setup Structura</Text>
           <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
             <Ionicons name="log-out-outline" size={24} color="white" />
           </TouchableOpacity>

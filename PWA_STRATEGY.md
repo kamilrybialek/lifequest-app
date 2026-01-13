@@ -1,4 +1,4 @@
-# 🎯 LifeQuest - Strategia PWA First
+# 🎯 Structura - Strategia PWA First
 
 ## Dlaczego PWA First?
 
@@ -61,7 +61,7 @@
 ### Po:
 ```json
 "web": {
-  "name": "LifeQuest - Personal Growth",
+  "name": "Structura - Personal Growth",
   "description": "4 Pillars. One Journey. Better You.",
   "display": "standalone",                          // Full screen (bez paska przeglądarki)
   "orientation": "portrait",                        // Tylko pionowa orientacja
@@ -118,7 +118,7 @@
   - Biometric auth (częściowe)
   - Health Kit / Google Fit (bezpośredni)
 
-### 🤔 Czy to problem dla LifeQuest?
+### 🤔 Czy to problem dla Structura?
 
 **NIE!** Twoja aplikacja używa:
 - ✅ Forms & input (PWA: 100%)
@@ -229,7 +229,7 @@ Dostajesz URL: `https://lifequest-app.vercel.app`
 
 ### Krok 4: Share z testerami (1 minuta)
 ```
-🎉 Try LifeQuest PWA:
+🎉 Try Structura PWA:
 https://lifequest-app.vercel.app
 
 📱 Install on home screen (works like native app!)

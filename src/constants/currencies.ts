@@ -1,5 +1,5 @@
 /**
- * Currency System for LifeQuest
+ * Currency System for Structura
  * Supports 40+ currencies with real-time conversion to USD
  */
 

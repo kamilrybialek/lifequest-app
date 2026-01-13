@@ -1,5 +1,5 @@
 /**
- * LifeQuest Unified Design System
+ * Structura Unified Design System
  * Single source of truth for all design tokens
  * Inspired by Duolingo - Fun, Colorful, Gamified
  */

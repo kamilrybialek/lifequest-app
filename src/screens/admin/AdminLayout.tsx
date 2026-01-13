@@ -58,7 +58,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, activeTab, o
         <View style={styles.logoContainer}>
           <Text style={styles.logo}>⚡</Text>
           <View>
-            <Text style={styles.logoText}>LifeQuest</Text>
+            <Text style={styles.logoText}>Structura</Text>
             <Text style={styles.adminBadge}>ADMIN PANEL</Text>
           </View>
         </View>

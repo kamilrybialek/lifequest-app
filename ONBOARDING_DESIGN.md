@@ -1,4 +1,4 @@
-# LifeQuest - Onboarding Design
+# Structura - Onboarding Design
 
 ## Cel
 Rozbudowany onboarding który zbiera dane od użytkownika, ocenia jego obecny stan i dopasowuje do odpowiednich ścieżek nauki.
@@ -9,7 +9,7 @@ Rozbudowany onboarding który zbiera dane od użytkownika, ocenia jego obecny st
 **Cel:** Przywitać użytkownika i wyjaśnić cel onboardingu
 
 **Treść:**
-- Witaj w LifeQuest!
+- Witaj w Structura!
 - "W ciągu 2 minut poznamy Twój obecny stan w 4 obszarach życia"
 - "Dzięki temu dopasujemy ścieżkę rozwoju idealną dla Ciebie"
 - Przycisk: "Zacznijmy"

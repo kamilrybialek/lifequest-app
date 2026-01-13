@@ -1,4 +1,4 @@
-# LifeQuest - Plan Hostingu
+# Structura - Plan Hostingu
 
 ## Wymagania Techniczne
 
@@ -39,10 +39,10 @@
 Hostup VPS:
 ├── WordPress sites (port 80/443)
 │   └── twojadomena.pl
-├── LifeQuest Backend API (port 3000)
+├── Structura Backend API (port 3000)
 │   └── api.twojadomena.pl (reverse proxy)
 ├── PostgreSQL (port 5432)
-└── LifeQuest PWA (subdomena)
+└── Structura PWA (subdomena)
     └── app.twojadomena.pl
 ```
 
@@ -140,7 +140,7 @@ Vercel:
 
 ---
 
-## Rekomendacja dla LifeQuest (Pierwszych Testów)
+## Rekomendacja dla Structura (Pierwszych Testów)
 
 ### **OPCJA B - Hybrydowa**
 

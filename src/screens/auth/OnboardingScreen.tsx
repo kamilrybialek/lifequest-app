@@ -33,7 +33,7 @@ export const OnboardingScreen = () => {
       case 0:
         return (
           <View style={styles.stepContainer}>
-            <Title style={styles.stepTitle}>Welcome to LifeQuest!</Title>
+            <Title style={styles.stepTitle}>Welcome to Structura!</Title>
             <Text style={styles.stepDescription}>
               Develop yourself holistically across 4 key pillars of life.
               Just 20 minutes a day (5 minutes per pillar).

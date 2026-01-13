@@ -434,7 +434,7 @@ export const ProfileScreenNew = () => {
                 <View style={[styles.settingIconContainer, { backgroundColor: '#FFB800' + '20' }]}>
                   <Ionicons name="information-circle-outline" size={20} color="#FFB800" />
                 </View>
-                <Text style={styles.settingText}>About LifeQuest</Text>
+                <Text style={styles.settingText}>About Structura</Text>
               </View>
               <Ionicons name="chevron-forward" size={20} color="#CCC" />
             </TouchableOpacity>

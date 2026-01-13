@@ -1,4 +1,4 @@
-# LifeQuest - Personal Growth MVP
+# Structura - Personal Growth MVP
 
 **4 Pillars. One Journey. Better You.**
 
@@ -13,7 +13,7 @@ A holistic personal development app built with React Native and Expo, focusing o
 ### Installation
 
 ```bash
-cd LifeQuest
+cd Structura
 npm install
 ```
 
@@ -38,7 +38,7 @@ The app will open in your browser at `http://localhost:8081`
 **To install as PWA:**
 1. Open the app in Chrome/Edge/Safari
 2. Click the "Install" button in the address bar
-3. Or go to Settings → Install LifeQuest
+3. Or go to Settings → Install Structura
 4. The app will appear on your home screen like a native app
 
 ## 🏗️ App Architecture
@@ -60,7 +60,7 @@ Main Menu
 - No progress tracking
 - No connection to daily tasks
 
-#### LifeQuest Approach (✅ What We DO):
+#### Structura Approach (✅ What We DO):
 ```
 Finance Path
 ├── Baby Steps Dashboard
@@ -201,7 +201,7 @@ When fund reaches $1,000 → Step 1 complete → Step 2 unlocked
 ## 📂 Project Structure
 
 ```
-LifeQuest/
+Structura/
 ├── src/
 │   ├── navigation/
 │   │   ├── AppNavigator.tsx          # Root navigator
@@ -287,7 +287,7 @@ LifeQuest/
 ### Hamburger Menu (Drawer - Future)
 ```
 ╔════════════════════════════════════╗
-║  LifeQuest                         ║
+║  Structura                         ║
 ╠════════════════════════════════════╣
 ║  📊 MY DEVELOPMENT PATHS           ║
 ║  ├── 💰 Finance                    ║

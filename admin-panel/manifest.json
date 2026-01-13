@@ -1,7 +1,7 @@
 {
-  "name": "LifeQuest Admin Panel",
+  "name": "Structura Admin Panel",
   "short_name": "LQ Admin",
-  "description": "Admin panel for LifeQuest - Manage users, recipes, and content",
+  "description": "Admin panel for Structura - Manage users, recipes, and content",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

@@ -105,7 +105,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ navigation }
         </LinearGradient>
       </View>
 
-      <Text style={styles.title}>Welcome to LifeQuest! 🎯</Text>
+      <Text style={styles.title}>Welcome to Structura! 🎯</Text>
       <Text style={styles.description}>
         Your personal finance RPG. Level up your financial health by completing quests, tracking
         expenses, and building wealth.

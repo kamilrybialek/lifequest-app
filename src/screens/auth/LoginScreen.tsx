@@ -2,7 +2,7 @@
  * Login Screen - Duolingo Style
  *
  * Fun, colorful, welcoming login experience
- * Uses official LifeQuest Design System
+ * Uses official Structura Design System
  */
 
 import React, { useState } from 'react';
@@ -90,7 +90,7 @@ export const LoginScreen = ({ navigation }: any) => {
           </View>
 
           {/* Title */}
-          <Text style={styles.heroTitle}>Welcome to LifeQuest!</Text>
+          <Text style={styles.heroTitle}>Welcome to Structura!</Text>
           <Text style={styles.heroSubtitle}>4 Pillars. One Journey. Better You.</Text>
 
           {/* Pillar Icons */}

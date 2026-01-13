@@ -2,7 +2,7 @@
 
 ## Overview
 
-All LifeQuest tools have been completely redesigned to be **advanced, feature-rich, and integrated with health apps** (iPhone Health/Google Fit). This document summarizes the new enhanced tools and how to integrate them.
+All Structura tools have been completely redesigned to be **advanced, feature-rich, and integrated with health apps** (iPhone Health/Google Fit). This document summarizes the new enhanced tools and how to integrate them.
 
 ---
 
@@ -83,7 +83,7 @@ All LifeQuest tools have been completely redesigned to be **advanced, feature-ri
   - Compatible with Google Fit API
 - 🔄 **Bidirectional Sync**:
   - **Import**: Auto-pull workouts, sleep, weight from health apps
-  - **Export**: Push LifeQuest workouts to health apps
+  - **Export**: Push Structura workouts to health apps
 - ⚡ **Auto-Sync**: Runs on app launch and background refresh
 - 🔐 **Permission Management**: Handles all health permissions
 - 📊 **Last Sync Tracking**: Shows when data was last synced

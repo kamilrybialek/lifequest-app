@@ -1,4 +1,4 @@
-# LifeQuest Complete Redesign Plan
+# Structura Complete Redesign Plan
 
 ## 🎯 Cele Redesignu
 

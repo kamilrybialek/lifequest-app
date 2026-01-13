@@ -75,7 +75,7 @@ export const shareUserData = async (userId: number): Promise<void> => {
     if (canShare) {
       await Sharing.shareAsync(fileUri, {
         mimeType: 'application/json',
-        dialogTitle: 'Export LifeQuest Data',
+        dialogTitle: 'Export Structura Data',
       });
     } else {
       throw new Error('Sharing is not available on this device');

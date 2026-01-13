@@ -430,7 +430,7 @@ export const AdminScreen = ({ navigation }: any) => {
       <View style={styles.header}>
         <View>
           <Text style={styles.headerTitle}>🔧 Admin Panel</Text>
-          <Text style={styles.headerSubtitle}>Manage LifeQuest</Text>
+          <Text style={styles.headerSubtitle}>Manage Structura</Text>
         </View>
         <TouchableOpacity onPress={() => navigation.navigate('Profile')}>
           <Ionicons name="person-circle" size={32} color={colors.primary} />
