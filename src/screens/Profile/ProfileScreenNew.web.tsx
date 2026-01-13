@@ -1,5 +1,5 @@
 /**
- * Profile Screen - Duolingo Style (Web Version)
+ * Profile Screen - TimeBloc Design (Web Version)
  * Matching Journey and Tasks screen design language
  */
 
@@ -7,9 +7,11 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, SafeAreaView, TouchableOpacity, RefreshControl, Image, ActivityIndicator } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
 import { deleteAllUserData } from '../../services/firebaseUserService';
+import { timeblocColors, timeblocShadows, timeblocSpacing, timeblocBorderRadius, timeblocTypography } from '../../theme/timeblocTheme';
 import { uploadProfilePhoto, deleteProfilePhoto, getProfilePhotoURL, pickImage } from '../../services/photoUploadService';
 
 export const ProfileScreenNew = () => {
@@ -229,7 +231,7 @@ export const ProfileScreenNew = () => {
             >
               {uploadingPhoto ? (
                 <View style={styles.photoPlaceholder}>
-                  <ActivityIndicator size="large" color="#4A90E2" />
+                  <ActivityIndicator size="large" color="timeblocColors.primary" />
                   <Text style={styles.uploadingText}>
                     {uploadStatus === 'compressing' ? 'Compressing...' : 'Uploading...'}
                   </Text>
@@ -283,7 +285,7 @@ export const ProfileScreenNew = () => {
                     onPress={handleChangePhoto}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="camera" size={20} color="#4A90E2" />
+                    <Ionicons name="camera" size={20} color="timeblocColors.primary" />
                     <Text style={styles.photoMenuText}>Change Photo</Text>
                   </TouchableOpacity>
 
@@ -294,8 +296,8 @@ export const ProfileScreenNew = () => {
                     onPress={handleRemovePhoto}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="trash" size={20} color="#FF4B4B" />
-                    <Text style={[styles.photoMenuText, { color: '#FF4B4B' }]}>Delete Photo</Text>
+                    <Ionicons name="trash" size={20} color="timeblocColors.error" />
+                    <Text style={[styles.photoMenuText, { color: timeblocColors.error }]}>Delete Photo</Text>
                   </TouchableOpacity>
                 </View>
               </>
@@ -317,19 +319,19 @@ export const ProfileScreenNew = () => {
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Ionicons name="flame" size={20} color="#FF6B6B" />
+            <Ionicons name="flame" size={20} color="timeblocColors.physical" />
             <Text style={styles.statValue}>{bestStreak}</Text>
             <Text style={styles.statLabel}>Best Streak</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Ionicons name="trophy" size={20} color="#4CAF50" />
+            <Ionicons name="trophy" size={20} color="timeblocColors.nutrition" />
             <Text style={styles.statValue}>{unlockedAchievements.length}/{totalAchievements}</Text>
             <Text style={styles.statLabel}>Achievements</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Ionicons name="calendar" size={20} color="#1CB0F6" />
+            <Ionicons name="calendar" size={20} color="timeblocColors.mental" />
             <Text style={styles.statValue}>{currentStreakSum}</Text>
             <Text style={styles.statLabel}>Current Streak</Text>
           </View>
@@ -371,8 +373,8 @@ export const ProfileScreenNew = () => {
               onPress={() => handleSettingPress('notifications')}
             >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIconContainer, { backgroundColor: '#FF9500' + '20' }]}>
-                  <Ionicons name="notifications-outline" size={20} color="#FF9500" />
+                <View style={[styles.settingIconContainer, { backgroundColor: timeblocColors.warning + '20' }]}>
+                  <Ionicons name="notifications-outline" size={20} color="timeblocColors.warning" />
                 </View>
                 <Text style={styles.settingText}>Notifications</Text>
               </View>
@@ -386,8 +388,8 @@ export const ProfileScreenNew = () => {
               onPress={() => handleSettingPress('account')}
             >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIconContainer, { backgroundColor: '#1CB0F6' + '20' }]}>
-                  <Ionicons name="person-outline" size={20} color="#1CB0F6" />
+                <View style={[styles.settingIconContainer, { backgroundColor: timeblocColors.mental + '20' }]}>
+                  <Ionicons name="person-outline" size={20} color="timeblocColors.mental" />
                 </View>
                 <Text style={styles.settingText}>Account Settings</Text>
               </View>
@@ -401,8 +403,8 @@ export const ProfileScreenNew = () => {
               onPress={() => handleSettingPress('data')}
             >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIconContainer, { backgroundColor: '#9C27B0' + '20' }]}>
-                  <Ionicons name="download-outline" size={20} color="#9C27B0" />
+                <View style={[styles.settingIconContainer, { backgroundColor: timeblocColors.premium + '20' }]}>
+                  <Ionicons name="download-outline" size={20} color="timeblocColors.premium" />
                 </View>
                 <Text style={styles.settingText}>Export Data</Text>
               </View>
@@ -416,8 +418,8 @@ export const ProfileScreenNew = () => {
               onPress={() => handleSettingPress('privacy')}
             >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIconContainer, { backgroundColor: '#4CAF50' + '20' }]}>
-                  <Ionicons name="shield-outline" size={20} color="#4CAF50" />
+                <View style={[styles.settingIconContainer, { backgroundColor: timeblocColors.nutrition + '20' }]}>
+                  <Ionicons name="shield-outline" size={20} color="timeblocColors.nutrition" />
                 </View>
                 <Text style={styles.settingText}>Privacy & Security</Text>
               </View>
@@ -431,8 +433,8 @@ export const ProfileScreenNew = () => {
               onPress={() => handleSettingPress('about')}
             >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIconContainer, { backgroundColor: '#FFB800' + '20' }]}>
-                  <Ionicons name="information-circle-outline" size={20} color="#FFB800" />
+                <View style={[styles.settingIconContainer, { backgroundColor: timeblocColors.gold + '20' }]}>
+                  <Ionicons name="information-circle-outline" size={20} color="timeblocColors.gold" />
                 </View>
                 <Text style={styles.settingText}>About Structura</Text>
               </View>
@@ -450,12 +452,12 @@ export const ProfileScreenNew = () => {
               onPress={handleRemoveUserAccount}
             >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIconContainer, { backgroundColor: '#FF4B4B' + '20' }]}>
-                  <Ionicons name="trash-bin-outline" size={20} color="#FF4B4B" />
+                <View style={[styles.settingIconContainer, { backgroundColor: timeblocColors.error + '20' }]}>
+                  <Ionicons name="trash-bin-outline" size={20} color="timeblocColors.error" />
                 </View>
-                <Text style={[styles.settingText, { color: '#FF4B4B', fontWeight: '600' }]}>Remove User Account</Text>
+                <Text style={[styles.settingText, { color: timeblocColors.error, fontWeight: '600' }]}>Remove User Account</Text>
               </View>
-              <Ionicons name="warning-outline" size={20} color="#FF4B4B" />
+              <Ionicons name="warning-outline" size={20} color="timeblocColors.error" />
             </TouchableOpacity>
 
             <View style={styles.settingDivider} />
@@ -465,12 +467,12 @@ export const ProfileScreenNew = () => {
               onPress={handleLogout}
             >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIconContainer, { backgroundColor: '#FF4B4B' + '20' }]}>
-                  <Ionicons name="log-out-outline" size={20} color="#FF4B4B" />
+                <View style={[styles.settingIconContainer, { backgroundColor: timeblocColors.error + '20' }]}>
+                  <Ionicons name="log-out-outline" size={20} color="timeblocColors.error" />
                 </View>
-                <Text style={[styles.settingText, { color: '#FF4B4B' }]}>Logout</Text>
+                <Text style={[styles.settingText, { color: timeblocColors.error }]}>Logout</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color="#FF4B4B" />
+              <Ionicons name="chevron-forward" size={20} color="timeblocColors.error" />
             </TouchableOpacity>
           </View>
         </View>
@@ -496,11 +498,11 @@ export const ProfileScreenNew = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F8FA',
+    backgroundColor: timeblocColors.background,
   },
   // Header - Duolingo Style
   header: {
-    backgroundColor: '#4A90E2',
+    backgroundColor: timeblocColors.primary,
     paddingTop: 50,
     paddingBottom: 30,
     paddingHorizontal: 20,
@@ -575,7 +577,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#4A90E2',
+    backgroundColor: timeblocColors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 3,
@@ -600,7 +602,7 @@ const styles = StyleSheet.create({
     left: '50%',
     transform: [{ translateX: -80 }],
     width: 160,
-    backgroundColor: 'white',
+    backgroundColor: timeblocColors.surface,
     borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -629,24 +631,24 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 60,
-    backgroundColor: '#F5F8FA',
+    backgroundColor: timeblocColors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
   uploadingText: {
     fontSize: 12,
-    color: '#666',
+    color: timeblocColors.textSecondary,
     marginTop: 8,
   },
   errorText: {
     fontSize: 12,
-    color: '#FF4B4B',
+    color: timeblocColors.error,
     marginTop: 8,
     textAlign: 'center',
   },
   uploadHint: {
     fontSize: 11,
-    color: '#999',
+    color: timeblocColors.textTertiary,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -656,17 +658,17 @@ const styles = StyleSheet.create({
   photoTitle: {
     fontSize: 24,
     fontWeight: 'bold',
-    color: '#1A1A1A',
+    color: timeblocColors.text,
     marginBottom: 4,
   },
   photoSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: timeblocColors.textSecondary,
   },
   // Stats Bar
   statsBar: {
     flexDirection: 'row',
-    backgroundColor: 'white',
+    backgroundColor: timeblocColors.surface,
     marginHorizontal: 20,
     marginTop: 10,
     borderRadius: 16,
@@ -686,12 +688,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#1A1A1A',
+    color: timeblocColors.text,
     marginTop: 4,
   },
   statLabel: {
     fontSize: 11,
-    color: '#666',
+    color: timeblocColors.textSecondary,
     textAlign: 'center',
   },
   statDivider: {
@@ -705,7 +707,7 @@ const styles = StyleSheet.create({
   },
   levelCard: {
     borderRadius: 20,
-    backgroundColor: '#4A90E2',
+    backgroundColor: timeblocColors.primary,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
@@ -758,7 +760,7 @@ const styles = StyleSheet.create({
   },
   levelProgressFill: {
     height: '100%',
-    backgroundColor: 'white',
+    backgroundColor: timeblocColors.surface,
     borderRadius: 3,
   },
   levelProgressText: {
@@ -780,11 +782,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1A1A1A',
+    color: timeblocColors.text,
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: '#666',
+    color: timeblocColors.textSecondary,
   },
   // Achievements
   achievementsScroll: {
@@ -822,7 +824,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   achievementNameLocked: {
-    color: '#999',
+    color: timeblocColors.textTertiary,
   },
   achievementUnlocked: {
     position: 'absolute',
@@ -890,7 +892,7 @@ const styles = StyleSheet.create({
   },
   // Settings
   settingsCard: {
-    backgroundColor: 'white',
+    backgroundColor: timeblocColors.surface,
     borderRadius: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -919,7 +921,7 @@ const styles = StyleSheet.create({
   settingText: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#1A1A1A',
+    color: timeblocColors.text,
   },
   settingDivider: {
     height: 1,
@@ -933,7 +935,7 @@ const styles = StyleSheet.create({
   },
   motivationCard: {
     padding: 24,
-    backgroundColor: 'white',
+    backgroundColor: timeblocColors.surface,
     borderRadius: 20,
     alignItems: 'center',
     shadowColor: '#000',
@@ -949,13 +951,13 @@ const styles = StyleSheet.create({
   motivationTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#1A1A1A',
+    color: timeblocColors.text,
     marginBottom: 8,
     textAlign: 'center',
   },
   motivationText: {
     fontSize: 14,
-    color: '#666',
+    color: timeblocColors.textSecondary,
     textAlign: 'center',
     lineHeight: 20,
   },
