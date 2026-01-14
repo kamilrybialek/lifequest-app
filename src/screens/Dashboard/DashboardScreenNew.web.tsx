@@ -1,6 +1,6 @@
 /**
  * DASHBOARD - Web/PWA Version with TimeBloc Design
- * Pragmatic, goal-oriented approach (no gamification)
+ * Redesigned: Clean, unified life overview with goal tracking
  */
 
 import React, { useState, useEffect } from 'react';
@@ -19,9 +19,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../store/authStore';
 import { useGoalsStore, Goal } from '../../store/goalsStore';
 import { timeblocColors, timeblocShadows, timeblocSpacing, timeblocBorderRadius, timeblocTypography, timeblocGradients } from '../../theme/timeblocTheme';
-import { HealthMetricsCard } from '../../components/health/HealthMetricsCard';
+import { LifeOverviewCard } from '../../components/dashboard/LifeOverviewCard';
 import { WeeklyHealthQuiz } from '../../components/health/WeeklyHealthQuiz';
-import { LifeScoreCard } from '../../components/dashboard/LifeScoreCard';
 import { getTodaysTasks, getRecentActivity, Task } from '../../database/tasks';
 
 interface QuickAction {
@@ -29,24 +28,22 @@ interface QuickAction {
   title: string;
   icon: string;
   color: string[];
-  description: string;
   screen: string;
 }
 
 const QUICK_ACTIONS: QuickAction[] = [
-  { id: '1', title: 'Finance', icon: '💰', color: timeblocGradients.finance, description: 'Track finances', screen: 'FinanceDashboard' },
-  { id: '2', title: 'Diet', icon: '🥗', color: timeblocGradients.nutrition, description: 'Diet', screen: 'DietDashboardScreen' },
-  { id: '3', title: 'Physical', icon: '💪', color: timeblocGradients.physical, description: 'Physical health', screen: 'WorkoutTrackerScreen' },
-  { id: '4', title: 'Mental', icon: '🧠', color: timeblocGradients.mental, description: 'Mental wellness', screen: 'MeditationTimer' },
+  { id: '1', title: 'Finance', icon: '💰', color: timeblocGradients.finance, screen: 'FinanceDashboard' },
+  { id: '2', title: 'Diet', icon: '🥗', color: timeblocGradients.nutrition, screen: 'DietDashboardScreen' },
+  { id: '3', title: 'Physical', icon: '💪', color: timeblocGradients.physical, screen: 'WorkoutTrackerScreen' },
+  { id: '4', title: 'Mental', icon: '🧠', color: timeblocGradients.mental, screen: 'MeditationTimer' },
 ];
 
 export const DashboardScreenNew = ({ navigation }: any) => {
   const { user } = useAuthStore();
-  const { goals, loadGoals, toggleGoal } = useGoalsStore();
+  const { goals, loadGoals } = useGoalsStore();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showHealthQuiz, setShowHealthQuiz] = useState(false);
-  const [healthKey, setHealthKey] = useState(0);
   const [todaysTasks, setTodaysTasks] = useState<Task[]>([]);
   const [recentActivity, setRecentActivity] = useState<Task[]>([]);
 
@@ -59,12 +56,10 @@ export const DashboardScreenNew = ({ navigation }: any) => {
       setLoading(true);
       await loadGoals();
 
-      // Load today's tasks
       if (user?.id) {
         const tasks = await getTodaysTasks(user.id);
         setTodaysTasks(tasks);
 
-        // Load recent activity (last 5 completed)
         const activity = await getRecentActivity(user.id, 5);
         setRecentActivity(activity);
       }
@@ -93,28 +88,15 @@ export const DashboardScreenNew = ({ navigation }: any) => {
     return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   };
 
-  // Get active goals (top 5 incomplete)
-  const activeGoals = goals
-    .filter(g => !g.completed && (g.timeHorizon === 'month' || g.timeHorizon === 'quarter'))
-    .slice(0, 5);
-
-  // Calculate weekly summary
-  const weeklyTasksCompleted = recentActivity.filter(t => {
-    if (!t.completed_at) return false;
-    const completedDate = new Date(t.completed_at);
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    return completedDate >= weekAgo;
-  }).length;
+  // Get goals by horizon
+  const monthGoals = goals.filter(g => g.timeHorizon === 'month');
+  const quarterGoals = goals.filter(g => g.timeHorizon === 'quarter');
+  const yearGoals = goals.filter(g => g.timeHorizon === 'year');
+  const lifeGoals = goals.filter(g => g.timeHorizon === 'life');
 
   const handleTaskToggle = async (taskId: number) => {
     // TODO: Implement task toggle
     console.log('Toggle task:', taskId);
-    await loadData();
-  };
-
-  const handleGoalToggle = async (goalId: string) => {
-    await toggleGoal(goalId);
     await loadData();
   };
 
@@ -151,7 +133,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Header - Clean, No Gamification */}
+        {/* Header */}
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>{getGreeting()} 👋</Text>
@@ -160,21 +142,143 @@ export const DashboardScreenNew = ({ navigation }: any) => {
           </View>
         </View>
 
-        {/* Life Score Result */}
+        {/* Life Overview - Unified LifeScore + Health */}
         {user?.id && (
-          <LifeScoreCard
+          <LifeOverviewCard
             userId={user.id}
-            onSurveyPress={() => setShowHealthQuiz(true)}
+            onDetailsPress={() => setShowHealthQuiz(true)}
           />
         )}
 
-        {/* Health Metrics */}
-        {user?.id && (
-          <HealthMetricsCard
-            key={healthKey}
-            userId={user.id}
-          />
-        )}
+        {/* Goals Progress - All 4 Horizons */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>🎯 Your Goals</Text>
+            <TouchableOpacity onPress={() => navigation?.navigate('GoalsScreen')}>
+              <Text style={styles.seeAllText}>Manage</Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.goalsGrid}>
+            {/* Month Goals */}
+            <TouchableOpacity
+              style={styles.goalHorizonCard}
+              onPress={() => navigation?.navigate('GoalsScreen')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.goalHorizonHeader}>
+                <Ionicons name="calendar-outline" size={20} color={timeblocColors.mental} />
+                <Text style={styles.goalHorizonTitle}>Month</Text>
+              </View>
+              <View style={styles.goalHorizonStats}>
+                <Text style={styles.goalHorizonValue}>
+                  {monthGoals.filter(g => g.completed).length}/{monthGoals.length}
+                </Text>
+                <View style={styles.goalProgressBar}>
+                  <View
+                    style={[
+                      styles.goalProgressFill,
+                      {
+                        width: monthGoals.length > 0
+                          ? `${(monthGoals.filter(g => g.completed).length / monthGoals.length) * 100}%`
+                          : '0%',
+                        backgroundColor: timeblocColors.mental
+                      }
+                    ]}
+                  />
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            {/* Quarter Goals */}
+            <TouchableOpacity
+              style={styles.goalHorizonCard}
+              onPress={() => navigation?.navigate('GoalsScreen')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.goalHorizonHeader}>
+                <Ionicons name="calendar" size={20} color={timeblocColors.finance} />
+                <Text style={styles.goalHorizonTitle}>Quarter</Text>
+              </View>
+              <View style={styles.goalHorizonStats}>
+                <Text style={styles.goalHorizonValue}>
+                  {quarterGoals.filter(g => g.completed).length}/{quarterGoals.length}
+                </Text>
+                <View style={styles.goalProgressBar}>
+                  <View
+                    style={[
+                      styles.goalProgressFill,
+                      {
+                        width: quarterGoals.length > 0
+                          ? `${(quarterGoals.filter(g => g.completed).length / quarterGoals.length) * 100}%`
+                          : '0%',
+                        backgroundColor: timeblocColors.finance
+                      }
+                    ]}
+                  />
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            {/* Year Goals */}
+            <TouchableOpacity
+              style={styles.goalHorizonCard}
+              onPress={() => navigation?.navigate('GoalsScreen')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.goalHorizonHeader}>
+                <Ionicons name="calendar-sharp" size={20} color={timeblocColors.physical} />
+                <Text style={styles.goalHorizonTitle}>Year</Text>
+              </View>
+              <View style={styles.goalHorizonStats}>
+                <Text style={styles.goalHorizonValue}>
+                  {yearGoals.filter(g => g.completed).length}/{yearGoals.length}
+                </Text>
+                <View style={styles.goalProgressBar}>
+                  <View
+                    style={[
+                      styles.goalProgressFill,
+                      {
+                        width: yearGoals.length > 0
+                          ? `${(yearGoals.filter(g => g.completed).length / yearGoals.length) * 100}%`
+                          : '0%',
+                        backgroundColor: timeblocColors.physical
+                      }
+                    ]}
+                  />
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            {/* Life Goals (300 Goals) */}
+            <TouchableOpacity
+              style={styles.goalHorizonCard}
+              onPress={() => navigation?.navigate('GoalsScreen')}
+              activeOpacity={0.7}
+            >
+              <View style={styles.goalHorizonHeader}>
+                <Ionicons name="infinite" size={20} color={timeblocColors.nutrition} />
+                <Text style={styles.goalHorizonTitle}>Life</Text>
+              </View>
+              <View style={styles.goalHorizonStats}>
+                <Text style={styles.goalHorizonValue}>
+                  {lifeGoals.length}/300
+                </Text>
+                <View style={styles.goalProgressBar}>
+                  <View
+                    style={[
+                      styles.goalProgressFill,
+                      {
+                        width: `${(lifeGoals.length / 300) * 100}%`,
+                        backgroundColor: timeblocColors.nutrition
+                      }
+                    ]}
+                  />
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
 
         {/* Today's Focus */}
         <View style={styles.section}>
@@ -194,7 +298,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
                 <Text style={styles.emptySubtext}>Add tasks to stay focused</Text>
               </View>
             ) : (
-              todaysTasks.map((task) => (
+              todaysTasks.slice(0, 3).map((task) => (
                 <TouchableOpacity
                   key={task.id}
                   style={styles.taskItem}
@@ -209,55 +313,11 @@ export const DashboardScreenNew = ({ navigation }: any) => {
                   <Text style={[styles.taskText, task.completed && styles.taskCompleted]}>
                     {task.title}
                   </Text>
-                  {task.pillar && (
-                    <View style={[styles.pillarBadge, { backgroundColor: getPillarColor(task.pillar) + '20' }]}>
-                      <Text style={[styles.pillarText, { color: getPillarColor(task.pillar) }]}>
-                        {task.pillar}
-                      </Text>
-                    </View>
-                  )}
                 </TouchableOpacity>
               ))
             )}
           </View>
         </View>
-
-        {/* Active Goals */}
-        {activeGoals.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>🎯 Active Goals</Text>
-              <TouchableOpacity onPress={() => navigation?.navigate('GoalsScreen')}>
-                <Text style={styles.seeAllText}>See All</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.goalsContainer}>
-              {activeGoals.map((goal) => (
-                <View key={goal.id} style={styles.goalCard}>
-                  <View style={styles.goalHeader}>
-                    <TouchableOpacity onPress={() => handleGoalToggle(goal.id)}>
-                      <Ionicons
-                        name={goal.completed ? 'checkmark-circle' : 'ellipse-outline'}
-                        size={20}
-                        color={goal.completed ? timeblocColors.success : timeblocColors.textSecondary}
-                      />
-                    </TouchableOpacity>
-                    <Text style={styles.goalText} numberOfLines={1}>
-                      {goal.text}
-                    </Text>
-                    <Text style={styles.goalHorizon}>
-                      {goal.timeHorizon === 'month' ? '30d' : '90d'}
-                    </Text>
-                  </View>
-                  {/* Progress bar placeholder - would calculate based on sub-tasks */}
-                  <View style={styles.progressBar}>
-                    <View style={[styles.progressFill, { width: '40%', backgroundColor: timeblocColors.primary }]} />
-                  </View>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
 
         {/* Quick Actions */}
         <View style={styles.section}>
@@ -278,35 +338,9 @@ export const DashboardScreenNew = ({ navigation }: any) => {
                 >
                   <Text style={styles.actionIcon}>{action.icon}</Text>
                   <Text style={styles.actionTitle}>{action.title}</Text>
-                  <Text style={styles.actionDescription}>{action.description}</Text>
                 </LinearGradient>
               </TouchableOpacity>
             ))}
-          </View>
-        </View>
-
-        {/* Weekly Summary */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📈 This Week</Text>
-          <View style={styles.summaryCard}>
-            <View style={styles.summaryRow}>
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryValue}>{weeklyTasksCompleted}</Text>
-                <Text style={styles.summaryLabel}>Tasks Done</Text>
-              </View>
-              <View style={styles.summaryDivider} />
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryValue}>{goals.filter(g => g.completed).length}</Text>
-                <Text style={styles.summaryLabel}>Goals Hit</Text>
-              </View>
-              <View style={styles.summaryDivider} />
-              <View style={styles.summaryItem}>
-                <Text style={styles.summaryValue}>
-                  {Math.round((weeklyTasksCompleted / 7) * 100)}%
-                </Text>
-                <Text style={styles.summaryLabel}>Completion</Text>
-              </View>
-            </View>
           </View>
         </View>
 
@@ -337,23 +371,11 @@ export const DashboardScreenNew = ({ navigation }: any) => {
       <WeeklyHealthQuiz
         visible={showHealthQuiz}
         onClose={() => setShowHealthQuiz(false)}
-        onComplete={() => {
-          setHealthKey(prev => prev + 1);
-        }}
+        onComplete={() => loadData()}
         userId={user?.id || ''}
       />
     </SafeAreaView>
   );
-};
-
-const getPillarColor = (pillar: string) => {
-  const colors: Record<string, string> = {
-    finance: timeblocColors.finance,
-    mental: timeblocColors.mental,
-    physical: timeblocColors.physical,
-    nutrition: timeblocColors.nutrition,
-  };
-  return colors[pillar.toLowerCase()] || timeblocColors.textSecondary;
 };
 
 const styles = StyleSheet.create({
@@ -373,7 +395,7 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: timeblocSpacing.xl,
     paddingTop: timeblocSpacing.xl,
-    paddingBottom: timeblocSpacing.xxl,
+    paddingBottom: timeblocSpacing.md,
   },
   greeting: {
     fontSize: 15,
@@ -396,7 +418,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   section: {
-    marginTop: timeblocSpacing.sm,
+    marginTop: timeblocSpacing.lg,
     paddingHorizontal: timeblocSpacing.xl,
   },
   sectionHeader: {
@@ -418,17 +440,60 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: timeblocColors.primary,
   },
+  // Goals Grid (2x2)
+  goalsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: timeblocSpacing.md,
+    marginBottom: timeblocSpacing.xl,
+  },
+  goalHorizonCard: {
+    width: 'calc(50% - 6px)',
+    backgroundColor: timeblocColors.surface,
+    borderRadius: timeblocBorderRadius.lg,
+    padding: timeblocSpacing.md,
+    ...timeblocShadows.soft,
+  },
+  goalHorizonHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: timeblocSpacing.xs,
+    marginBottom: timeblocSpacing.sm,
+  },
+  goalHorizonTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: timeblocColors.text,
+  },
+  goalHorizonStats: {
+    gap: timeblocSpacing.xs,
+  },
+  goalHorizonValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: timeblocColors.text,
+  },
+  goalProgressBar: {
+    height: 4,
+    backgroundColor: timeblocColors.borderLight,
+    borderRadius: timeblocBorderRadius.sm,
+    overflow: 'hidden',
+  },
+  goalProgressFill: {
+    height: '100%',
+    borderRadius: timeblocBorderRadius.sm,
+  },
   // Today's Focus
   todayCard: {
     backgroundColor: timeblocColors.surface,
     borderRadius: timeblocBorderRadius.xl,
     padding: timeblocSpacing.lg,
     ...timeblocShadows.soft,
-    marginBottom: timeblocSpacing.xxl,
+    marginBottom: timeblocSpacing.xl,
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: timeblocSpacing.xxl,
+    paddingVertical: timeblocSpacing.xl,
   },
   emptyText: {
     fontSize: 16,
@@ -457,60 +522,12 @@ const styles = StyleSheet.create({
     textDecorationLine: 'line-through',
     color: timeblocColors.textSecondary,
   },
-  pillarBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: timeblocBorderRadius.sm,
-  },
-  pillarText: {
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-  },
-  // Active Goals
-  goalsContainer: {
-    gap: timeblocSpacing.md,
-    marginBottom: timeblocSpacing.xxl,
-  },
-  goalCard: {
-    backgroundColor: timeblocColors.surface,
-    borderRadius: timeblocBorderRadius.lg,
-    padding: timeblocSpacing.lg,
-    ...timeblocShadows.soft,
-  },
-  goalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: timeblocSpacing.sm,
-    marginBottom: timeblocSpacing.sm,
-  },
-  goalText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '500',
-    color: timeblocColors.text,
-  },
-  goalHorizon: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: timeblocColors.textTertiary,
-  },
-  progressBar: {
-    height: 4,
-    backgroundColor: timeblocColors.borderLight,
-    borderRadius: timeblocBorderRadius.sm,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: timeblocBorderRadius.sm,
-  },
   // Quick Actions
   actionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: timeblocSpacing.md,
-    marginBottom: timeblocSpacing.xxl,
+    marginBottom: timeblocSpacing.xl,
   },
   actionCardWrapper: {
     width: 'calc(50% - 6px)',
@@ -520,57 +537,18 @@ const styles = StyleSheet.create({
   actionCard: {
     padding: timeblocSpacing.xl,
     borderRadius: timeblocBorderRadius.xl,
-    minHeight: 130,
+    minHeight: 100,
     justifyContent: 'center',
     alignItems: 'center',
   },
   actionIcon: {
-    fontSize: 36,
+    fontSize: 32,
     marginBottom: timeblocSpacing.sm,
   },
   actionTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: '700',
     color: '#FFF',
-    marginBottom: 4,
-  },
-  actionDescription: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.9)',
-    textAlign: 'center',
-  },
-  // Weekly Summary
-  summaryCard: {
-    backgroundColor: timeblocColors.surface,
-    borderRadius: timeblocBorderRadius.xl,
-    padding: timeblocSpacing.lg,
-    ...timeblocShadows.soft,
-    marginBottom: timeblocSpacing.xxl,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  summaryItem: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  summaryValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: timeblocColors.text,
-    marginBottom: 4,
-  },
-  summaryLabel: {
-    fontSize: 12,
-    color: timeblocColors.textSecondary,
-    fontWeight: '500',
-  },
-  summaryDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: timeblocColors.borderLight,
   },
   // Recent Activity
   activityCard: {
@@ -578,7 +556,7 @@ const styles = StyleSheet.create({
     borderRadius: timeblocBorderRadius.xl,
     padding: timeblocSpacing.lg,
     ...timeblocShadows.soft,
-    marginBottom: timeblocSpacing.xxl,
+    marginBottom: timeblocSpacing.xl,
   },
   activityItem: {
     flexDirection: 'row',
