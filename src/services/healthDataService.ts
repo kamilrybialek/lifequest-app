@@ -222,19 +222,20 @@ export const calculateHealthStats = async (userId: string): Promise<HealthStats>
       throw new Error('No health metrics found');
     }
 
-    // Calculate BMI
-    const heightInMeters = metrics.height / 100;
-    const currentBMI = metrics.weight / (heightInMeters * heightInMeters);
+    // Calculate BMI (with validation to prevent NaN)
+    const hasValidMetrics = metrics.height && metrics.weight && metrics.height > 0 && metrics.weight > 0;
+    const heightInMeters = hasValidMetrics ? metrics.height / 100 : 0;
+    const currentBMI = hasValidMetrics ? metrics.weight / (heightInMeters * heightInMeters) : 0;
 
     // Calculate ideal weight range (BMI 18.5-25)
-    const idealWeightMin = 18.5 * heightInMeters * heightInMeters;
-    const idealWeightMax = 25 * heightInMeters * heightInMeters;
+    const idealWeightMin = hasValidMetrics ? 18.5 * heightInMeters * heightInMeters : 0;
+    const idealWeightMax = hasValidMetrics ? 25 * heightInMeters * heightInMeters : 0;
 
-    // Calculate averages from recent quizzes
-    let avgSleepQuality = metrics.sleepQuality;
-    let avgStressLevel = metrics.stressLevel;
-    let avgExerciseHours = metrics.weeklyExerciseHours / 7;
-    let avgWaterIntake = metrics.waterIntakeLiters;
+    // Calculate averages from recent quizzes (with validation)
+    let avgSleepQuality = metrics.sleepQuality || 0;
+    let avgStressLevel = metrics.stressLevel || 0;
+    let avgExerciseHours = (metrics.weeklyExerciseHours || 0) / 7;
+    let avgWaterIntake = metrics.waterIntakeLiters || 0;
 
     if (recentQuizzes.length > 0) {
       avgSleepQuality =
@@ -264,6 +265,11 @@ export const calculateHealthStats = async (userId: string): Promise<HealthStats>
 
     // Calculate calorie target based on BMR and activity level
     const calculateCalorieTarget = (): number => {
+      // Return 0 if metrics are invalid
+      if (!hasValidMetrics || !metrics.age || metrics.age <= 0) {
+        return 0;
+      }
+
       // Mifflin-St Jeor Equation
       const bmr =
         metrics.gender === 'male'

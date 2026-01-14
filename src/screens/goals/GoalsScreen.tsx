@@ -62,11 +62,11 @@ export const GoalsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+          <Ionicons name="arrow-back" size={24} color={timeblocColors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Goals</Text>
         <TouchableOpacity onPress={() => setShowInfo(true)} style={styles.infoButton}>
-          <Ionicons name="information-circle-outline" size={24} color={colors.primary} />
+          <Ionicons name="information-circle-outline" size={24} color={timeblocColors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -78,7 +78,7 @@ export const GoalsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           activeOpacity={0.7}
         >
           <LinearGradient
-            colors={gradients.primary}
+            colors={timeblocGradients.primary}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.methodGradient}
@@ -99,7 +99,7 @@ export const GoalsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           title="This Month's Goals"
           subtitle="30-day targets"
           icon="calendar-outline"
-          color={colors.mental}
+          color={timeblocColors.mental}
           goals={getGoalsByHorizon('month')}
           onToggle={toggleGoal}
           onDelete={deleteGoal}
@@ -110,7 +110,7 @@ export const GoalsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           title="This Quarter's Goals"
           subtitle="90-day targets"
           icon="calendar"
-          color={colors.finance}
+          color={timeblocColors.finance}
           goals={getGoalsByHorizon('quarter')}
           onToggle={toggleGoal}
           onDelete={deleteGoal}
@@ -121,7 +121,7 @@ export const GoalsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           title="This Year's Goals"
           subtitle="Annual goals"
           icon="calendar-sharp"
-          color={colors.physical}
+          color={timeblocColors.physical}
           goals={getGoalsByHorizon('year')}
           onToggle={toggleGoal}
           onDelete={deleteGoal}
@@ -132,7 +132,7 @@ export const GoalsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           title="Life Goals"
           subtitle={`Add 300 life goals • ${getGoalsByHorizon('life').length}/300`}
           icon="infinite"
-          color={colors.nutrition}
+          color={timeblocColors.nutrition}
           goals={getGoalsByHorizon('life')}
           onToggle={toggleGoal}
           onDelete={deleteGoal}
@@ -150,7 +150,7 @@ export const GoalsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
           <TextInput
             style={styles.input}
             placeholder={`Add ${getHorizonLabel(selectedHorizon).toLowerCase()} goal...`}
-            placeholderTextColor={colors.textLight}
+            placeholderTextColor={timeblocColors.textSecondary}
             value={newGoalText}
             onChangeText={setNewGoalText}
             onSubmitEditing={addGoal}
@@ -164,7 +164,7 @@ export const GoalsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             <Ionicons
               name="add-circle"
               size={32}
-              color={newGoalText.trim() ? colors.primary : colors.textLight}
+              color={newGoalText.trim() ? timeblocColors.primary : timeblocColors.textSecondary}
             />
           </TouchableOpacity>
         </View>
@@ -173,25 +173,25 @@ export const GoalsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
             label="Month"
             selected={selectedHorizon === 'month'}
             onPress={() => setSelectedHorizon('month')}
-            color={colors.mental}
+            color={timeblocColors.mental}
           />
           <HorizonButton
             label="Quarter"
             selected={selectedHorizon === 'quarter'}
             onPress={() => setSelectedHorizon('quarter')}
-            color={colors.finance}
+            color={timeblocColors.finance}
           />
           <HorizonButton
             label="Year"
             selected={selectedHorizon === 'year'}
             onPress={() => setSelectedHorizon('year')}
-            color={colors.physical}
+            color={timeblocColors.physical}
           />
           <HorizonButton
             label="Life"
             selected={selectedHorizon === 'life'}
             onPress={() => setSelectedHorizon('life')}
-            color={colors.nutrition}
+            color={timeblocColors.nutrition}
           />
         </View>
       </View>
@@ -204,7 +204,7 @@ export const GoalsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>300 Life Goals Method</Text>
                 <TouchableOpacity onPress={() => setShowInfo(false)}>
-                  <Ionicons name="close-circle" size={32} color={colors.textLight} />
+                  <Ionicons name="close-circle" size={32} color={timeblocColors.textSecondary} />
                 </TouchableOpacity>
               </View>
 
@@ -377,7 +377,7 @@ const GoalItem: React.FC<GoalItemProps> = ({ goal, color, onToggle, onDelete }) 
         {goal.text}
       </Text>
       <TouchableOpacity onPress={onDelete} style={styles.deleteButton}>
-        <Ionicons name="trash-outline" size={18} color={colors.error} />
+        <Ionicons name="trash-outline" size={18} color={timeblocColors.error} />
       </TouchableOpacity>
     </View>
   );
@@ -438,46 +438,46 @@ const getHorizonLabel = (horizon: TimeHorizon): string => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: timeblocColors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.background,
+    paddingHorizontal: timeblocSpacing.lg,
+    paddingVertical: timeblocSpacing.md,
+    backgroundColor: timeblocColors.background,
     borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderBottomColor: timeblocColors.border,
   },
   backButton: {
-    padding: spacing.xs,
+    padding: timeblocSpacing.xs,
   },
   headerTitle: {
-    ...typography.h2,
-    color: colors.text,
+    ...timeblocTypography.h2,
+    color: timeblocColors.text,
     flex: 1,
     textAlign: 'center',
   },
   infoButton: {
-    padding: spacing.xs,
+    padding: timeblocSpacing.xs,
   },
   content: {
     flex: 1,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: timeblocSpacing.lg,
   },
   methodCard: {
-    marginTop: spacing.lg,
-    marginBottom: spacing.md,
+    marginTop: timeblocSpacing.lg,
+    marginBottom: timeblocSpacing.md,
     borderRadius: 16,
     overflow: 'hidden',
-    ...shadows.medium,
+    ...timeblocShadows.medium,
   },
   methodGradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.lg,
-    gap: spacing.md,
+    padding: timeblocSpacing.lg,
+    gap: timeblocSpacing.md,
   },
   methodIcon: {
     width: 48,
@@ -494,25 +494,25 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   methodTitle: {
-    ...typography.bodyBold,
+    ...timeblocTypography.bodyBold,
     color: '#FFFFFF',
     marginBottom: 4,
   },
   methodSubtitle: {
-    ...typography.small,
+    ...timeblocTypography.small,
     color: 'rgba(255,255,255,0.9)',
   },
   section: {
-    marginTop: spacing.lg,
-    backgroundColor: colors.surface,
+    marginTop: timeblocSpacing.lg,
+    backgroundColor: timeblocColors.surface,
     borderRadius: 16,
-    padding: spacing.lg,
-    ...shadows.small,
+    padding: timeblocSpacing.lg,
+    ...timeblocShadows.soft,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: timeblocSpacing.md,
   },
   sectionIconContainer: {
     width: 48,
@@ -520,30 +520,30 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    marginRight: timeblocSpacing.md,
   },
   sectionTitleContainer: {
     flex: 1,
   },
   sectionTitle: {
-    ...typography.h3,
-    color: colors.text,
+    ...timeblocTypography.h3,
+    color: timeblocColors.text,
     marginBottom: 4,
   },
   sectionSubtitle: {
-    ...typography.small,
-    color: colors.textLight,
+    ...timeblocTypography.small,
+    color: timeblocColors.textSecondary,
   },
   progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    marginBottom: spacing.md,
+    gap: timeblocSpacing.md,
+    marginBottom: timeblocSpacing.md,
   },
   progressBar: {
     flex: 1,
     height: 8,
-    backgroundColor: colors.border,
+    backgroundColor: timeblocColors.border,
     borderRadius: 4,
     overflow: 'hidden',
   },
@@ -552,109 +552,109 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   progressText: {
-    ...typography.small,
-    color: colors.textLight,
+    ...timeblocTypography.small,
+    color: timeblocColors.textSecondary,
     fontWeight: '600',
     minWidth: 50,
     textAlign: 'right',
   },
   goalsList: {
-    gap: spacing.sm,
+    gap: timeblocSpacing.sm,
   },
   goalItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.sm,
+    gap: timeblocSpacing.md,
+    paddingVertical: timeblocSpacing.sm,
   },
   goalCheckbox: {
-    padding: spacing.xs,
+    padding: timeblocSpacing.xs,
   },
   checkbox: {
     width: 24,
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: colors.border,
+    borderColor: timeblocColors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
   goalText: {
-    ...typography.body,
-    color: colors.text,
+    ...timeblocTypography.body,
+    color: timeblocColors.text,
     flex: 1,
   },
   goalTextCompleted: {
     textDecorationLine: 'line-through',
-    color: colors.textLight,
+    color: timeblocColors.textSecondary,
   },
   deleteButton: {
-    padding: spacing.sm,
+    padding: timeblocSpacing.sm,
   },
   emptyState: {
     alignItems: 'center',
-    paddingVertical: spacing.xl,
+    paddingVertical: timeblocSpacing.xl,
   },
   emptyStateText: {
-    ...typography.body,
-    color: colors.textLight,
+    ...timeblocTypography.body,
+    color: timeblocColors.textSecondary,
     marginBottom: 4,
   },
   emptyStateSubtext: {
-    ...typography.small,
-    color: colors.textLight,
+    ...timeblocTypography.small,
+    color: timeblocColors.textSecondary,
   },
   inputContainer: {
-    backgroundColor: colors.surface,
+    backgroundColor: timeblocColors.surface,
     borderTopWidth: 1,
-    borderTopColor: colors.border,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    borderTopColor: timeblocColors.border,
+    paddingHorizontal: timeblocSpacing.lg,
+    paddingVertical: timeblocSpacing.md,
     ...Platform.select({
       ios: {
-        paddingBottom: spacing.xl,
+        paddingBottom: timeblocSpacing.xl,
       },
     }),
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.background,
+    backgroundColor: timeblocColors.background,
     borderRadius: 12,
-    paddingHorizontal: spacing.md,
-    marginBottom: spacing.md,
+    paddingHorizontal: timeblocSpacing.md,
+    marginBottom: timeblocSpacing.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: timeblocColors.border,
   },
   input: {
     flex: 1,
-    ...typography.body,
-    color: colors.text,
-    paddingVertical: spacing.md,
+    ...timeblocTypography.body,
+    color: timeblocColors.text,
+    paddingVertical: timeblocSpacing.md,
   },
   addButton: {
-    padding: spacing.xs,
+    padding: timeblocSpacing.xs,
   },
   addButtonDisabled: {
     opacity: 0.5,
   },
   horizonSelector: {
     flexDirection: 'row',
-    gap: spacing.sm,
+    gap: timeblocSpacing.sm,
   },
   horizonButton: {
     flex: 1,
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.xs,
+    paddingVertical: timeblocSpacing.sm,
+    paddingHorizontal: timeblocSpacing.xs,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
+    borderColor: timeblocColors.border,
+    backgroundColor: timeblocColors.background,
     alignItems: 'center',
   },
   horizonButtonText: {
-    ...typography.tiny,
-    color: colors.textLight,
+    ...timeblocTypography.tiny,
+    color: timeblocColors.textSecondary,
     fontWeight: '600',
   },
   horizonButtonTextSelected: {
@@ -666,77 +666,77 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: colors.background,
+    backgroundColor: timeblocColors.background,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
-    paddingBottom: Platform.OS === 'ios' ? spacing.xl * 2 : spacing.xl,
+    paddingHorizontal: timeblocSpacing.lg,
+    paddingTop: timeblocSpacing.xl,
+    paddingBottom: Platform.OS === 'ios' ? timeblocSpacing.xl * 2 : timeblocSpacing.xl,
     maxHeight: '90%',
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.xl,
+    marginBottom: timeblocSpacing.xl,
   },
   modalTitle: {
-    ...typography.h2,
-    color: colors.text,
+    ...timeblocTypography.h2,
+    color: timeblocColors.text,
     flex: 1,
   },
   infoSection: {
-    marginBottom: spacing.xl,
+    marginBottom: timeblocSpacing.xl,
   },
   infoEmoji: {
     fontSize: 40,
-    marginBottom: spacing.sm,
+    marginBottom: timeblocSpacing.sm,
   },
   infoTitle: {
-    ...typography.h3,
-    color: colors.text,
-    marginBottom: spacing.sm,
+    ...timeblocTypography.h3,
+    color: timeblocColors.text,
+    marginBottom: timeblocSpacing.sm,
   },
   infoText: {
-    ...typography.body,
-    color: colors.textLight,
+    ...timeblocTypography.body,
+    color: timeblocColors.textSecondary,
     lineHeight: 24,
   },
   bold: {
     fontWeight: '700',
-    color: colors.text,
+    color: timeblocColors.text,
   },
   categoryList: {
-    gap: spacing.sm,
-    marginTop: spacing.sm,
+    gap: timeblocSpacing.sm,
+    marginTop: timeblocSpacing.sm,
   },
   categoryItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: spacing.sm,
+    gap: timeblocSpacing.sm,
   },
   categoryBullet: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: colors.primary,
+    backgroundColor: timeblocColors.primary,
     marginTop: 8,
   },
   categoryText: {
-    ...typography.body,
-    color: colors.textLight,
+    ...timeblocTypography.body,
+    color: timeblocColors.textSecondary,
     flex: 1,
   },
   closeButton: {
-    backgroundColor: colors.primary,
-    paddingVertical: spacing.md,
+    backgroundColor: timeblocColors.primary,
+    paddingVertical: timeblocSpacing.md,
     borderRadius: 12,
     alignItems: 'center',
-    marginTop: spacing.md,
-    ...shadows.medium,
+    marginTop: timeblocSpacing.md,
+    ...timeblocShadows.medium,
   },
   closeButtonText: {
-    ...typography.bodyBold,
+    ...timeblocTypography.bodyBold,
     color: '#FFFFFF',
   },
 });
