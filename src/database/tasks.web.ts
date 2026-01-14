@@ -466,3 +466,22 @@ export const getTaskStats = async (userId: number): Promise<{
     }).length,
   };
 };
+
+// ========================================
+// DASHBOARD HELPER FUNCTIONS
+// ========================================
+
+/**
+ * Get today's tasks for Dashboard
+ * Alias for getTasksForToday
+ */
+export const getTodaysTasks = getTasksForToday;
+
+/**
+ * Get recent activity (completed tasks) for Dashboard
+ * @param userId - User ID
+ * @param limit - Number of items to return (default: 5)
+ */
+export const getRecentActivity = async (userId: number, limit: number = 5): Promise<Task[]> => {
+  return await getCompletedTasks(userId, limit);
+};
