@@ -9,7 +9,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { timeblocColors, timeblocShadows, timeblocSpacing, timeblocBorderRadius, timeblocTypography } from '../../theme/timeblocTheme';
 import { getLifeScore, getPreviousLifeScore } from '../../services/lifeScoreService';
-import { getHealthMetrics, calculateHealthStats } from '../../services/healthDataService';
+import { getHealthMetrics, calculateHealthStats, getRecentQuizzes } from '../../services/healthDataService';
+import { LifeScoreBreakdownModal } from './LifeScoreBreakdownModal';
 
 interface LifeOverviewCardProps {
   userId: string;
@@ -29,6 +30,7 @@ export const LifeOverviewCard: React.FC<LifeOverviewCardProps> = ({ userId, onDe
   const [lifeScore, setLifeScore] = useState<number>(0);
   const [lifeScoreTrend, setLifeScoreTrend] = useState<'up' | 'down' | 'stable'>('stable');
   const [metrics, setMetrics] = useState<MetricData[]>([]);
+  const [showBreakdown, setShowBreakdown] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -56,31 +58,38 @@ export const LifeOverviewCard: React.FC<LifeOverviewCardProps> = ({ userId, onDe
         }
       }
 
-      // Load health stats
-      const stats = await calculateHealthStats(userId);
+      // Load health stats and recent quizzes for more accurate data
+      const [stats, recentQuizzes] = await Promise.all([
+        calculateHealthStats(userId),
+        getRecentQuizzes(userId, 4)
+      ]);
 
       if (stats) {
+        // Get latest sleep hours from most recent quiz
+        const latestQuiz = recentQuizzes[0];
+        const sleepHours = latestQuiz?.sleepHours || 0;
+
         const metricsData: MetricData[] = [
           {
-            label: 'BMI',
-            value: stats.currentBMI > 0 ? stats.currentBMI.toFixed(1) : '--',
-            trend: 'stable', // Will be calculated from history
-            isGoodWhenUp: false,
-            icon: 'body-outline'
+            label: 'Exercise',
+            value: stats.avgExerciseHours > 0 ? `${stats.avgExerciseHours.toFixed(1)}h` : '--',
+            trend: stats.exerciseTrend,
+            isGoodWhenUp: true,
+            icon: 'barbell-outline'
+          },
+          {
+            label: 'Water',
+            value: stats.avgWaterIntake > 0 ? `${stats.avgWaterIntake.toFixed(1)}L` : '--',
+            trend: 'stable', // Can add water trend calculation
+            isGoodWhenUp: true,
+            icon: 'water-outline'
           },
           {
             label: 'Sleep',
-            value: stats.avgSleepQuality > 0 ? `${stats.avgSleepQuality.toFixed(1)}/5` : '--',
+            value: sleepHours > 0 ? `${sleepHours.toFixed(1)}h` : '--',
             trend: stats.sleepTrend,
             isGoodWhenUp: true,
             icon: 'moon-outline'
-          },
-          {
-            label: 'Stress',
-            value: stats.avgStressLevel > 0 ? `${stats.avgStressLevel.toFixed(1)}/5` : '--',
-            trend: stats.stressTrend,
-            isGoodWhenUp: false,
-            icon: 'pulse-outline'
           }
         ];
 
@@ -143,7 +152,11 @@ export const LifeOverviewCard: React.FC<LifeOverviewCardProps> = ({ userId, onDe
       </View>
 
       {/* LifeScore - Big Display */}
-      <View style={styles.lifeScoreContainer}>
+      <TouchableOpacity
+        style={styles.lifeScoreContainer}
+        onPress={() => setShowBreakdown(true)}
+        activeOpacity={0.7}
+      >
         <LinearGradient
           colors={getLifeScoreGradient(lifeScore)}
           start={{ x: 0, y: 0 }}
@@ -161,10 +174,13 @@ export const LifeOverviewCard: React.FC<LifeOverviewCardProps> = ({ userId, onDe
                 />
               </View>
             </View>
-            <Text style={styles.lifeScoreLabel}>Life Score</Text>
+            <View style={styles.lifeScoreLabelContainer}>
+              <Text style={styles.lifeScoreLabel}>Life Score</Text>
+              <Ionicons name="information-circle-outline" size={16} color="rgba(255,255,255,0.8)" />
+            </View>
           </View>
         </LinearGradient>
-      </View>
+      </TouchableOpacity>
 
       {/* Health Metrics Grid */}
       <View style={styles.metricsGrid}>
@@ -185,6 +201,14 @@ export const LifeOverviewCard: React.FC<LifeOverviewCardProps> = ({ userId, onDe
           </View>
         ))}
       </View>
+
+      {/* Breakdown Modal */}
+      <LifeScoreBreakdownModal
+        visible={showBreakdown}
+        userId={userId}
+        lifeScore={lifeScore}
+        onClose={() => setShowBreakdown(false)}
+      />
     </View>
   );
 };
@@ -249,11 +273,16 @@ const styles = StyleSheet.create({
     borderRadius: timeblocBorderRadius.md,
     padding: timeblocSpacing.xs,
   },
+  lifeScoreLabelContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: timeblocSpacing.xs,
+    marginTop: timeblocSpacing.xs,
+  },
   lifeScoreLabel: {
     fontSize: 16,
     fontWeight: '600',
     color: 'rgba(255,255,255,0.95)',
-    marginTop: timeblocSpacing.xs,
   },
   // Metrics Grid
   metricsGrid: {
