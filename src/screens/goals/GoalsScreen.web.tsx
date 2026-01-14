@@ -22,7 +22,7 @@ import {
 import { SafeAreaView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, typography, spacing, shadows, gradients } from '../../theme';
+import { timeblocColors, timeblocShadows, timeblocSpacing, timeblocBorderRadius, timeblocTypography, timeblocGradients } from '../../theme/timeblocTheme';
 import { useGoalsStore, TimeHorizon, Goal } from '../../store/goalsStore';
 
 export const GoalsScreen: React.FC<{ navigation: any }> = ({ navigation }) => {
