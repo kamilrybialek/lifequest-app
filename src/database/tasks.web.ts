@@ -1,8 +1,8 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getDatabase } from './init';
 
-const TASKS_KEY = 'lifequest.db:tasks';
-const TAGS_KEY = 'lifequest.db:tags';
-const TASK_TAGS_KEY = 'lifequest.db:task_tags';
+// ========================================
+// TYPES
+// ========================================
 
 export interface Task {
   id: number;
@@ -11,16 +11,21 @@ export interface Task {
   notes?: string;
   list_id?: number;
   parent_task_id?: number;
-  pillar?: string;
-  priority: number;
+  pillar?: 'finance' | 'mental' | 'physical' | 'nutrition';
+  priority: 0 | 1 | 2 | 3; // 0=none, 1=low, 2=medium, 3=high
   completed: number;
   due_date?: string;
   due_time?: string;
   reminder_date?: string;
   completed_at?: string;
+  xp_reward: number;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  is_generated: number;
+  generation_source?: string;
   created_at: string;
   updated_at: string;
   tags?: Tag[];
+  subtasks?: Task[];
 }
 
 export interface TaskList {
@@ -34,6 +39,7 @@ export interface TaskList {
   sort_order: number;
   created_at: string;
   updated_at: string;
+  task_count?: number;
 }
 
 export interface Tag {
@@ -43,427 +49,715 @@ export interface Tag {
   color?: string;
   icon?: string;
   created_at: string;
+  task_count?: number;
 }
 
-// Helper functions
-const getAllTasks = async (): Promise<Task[]> => {
-  const data = await AsyncStorage.getItem(TASKS_KEY);
-  return data ? JSON.parse(data) : [];
+// ========================================
+// HELPER FUNCTIONS
+// ========================================
+
+/**
+ * Convert Firebase UID (string) or local ID (number) to database user_id (number)
+ * Uses a simple hash function to convert Firebase UIDs to consistent numbers
+ */
+const normalizeUserId = (userId: string | number): number => {
+  if (typeof userId === 'number') {
+    return userId;
+  }
+
+  // Convert Firebase UID string to a consistent number using hash
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    const char = userId.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash);
 };
 
-const saveAllTasks = async (tasks: Task[]): Promise<void> => {
-  await AsyncStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
-};
-
-const getAllTags = async (): Promise<Tag[]> => {
-  const data = await AsyncStorage.getItem(TAGS_KEY);
-  return data ? JSON.parse(data) : [];
-};
-
-const saveAllTags = async (tags: Tag[]): Promise<void> => {
-  await AsyncStorage.setItem(TAGS_KEY, JSON.stringify(tags));
-};
+// ========================================
+// TASKS CRUD
+// ========================================
 
 export const createTask = async (
-  userId: number,
-  taskData: Partial<Task>
+  userId: string | number,
+  taskData: {
+    title: string;
+    notes?: string;
+    list_id?: number;
+    parent_task_id?: number;
+    pillar?: 'finance' | 'mental' | 'physical' | 'nutrition';
+    priority?: 0 | 1 | 2 | 3;
+    due_date?: string;
+    due_time?: string;
+    reminder_date?: string;
+    xp_reward?: number;
+    difficulty?: 'easy' | 'medium' | 'hard';
+    is_generated?: number;
+    generation_source?: string;
+    tags?: number[]; // Array of tag IDs
+  }
 ): Promise<number> => {
-  const tasks = await getAllTasks();
-  const newId = tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) + 1 : 1;
-  const now = new Date().toISOString();
+  const db = await getDatabase();
+  const normalizedUserId = normalizeUserId(userId);
 
-  const newTask: Task = {
-    id: newId,
-    user_id: userId,
-    title: taskData.title || '',
-    notes: taskData.notes,
-    list_id: taskData.list_id,
-    parent_task_id: taskData.parent_task_id,
-    pillar: taskData.pillar,
-    priority: taskData.priority || 0,
-    completed: 0,
-    due_date: taskData.due_date,
-    due_time: taskData.due_time,
-    reminder_date: taskData.reminder_date,
-    created_at: now,
-    updated_at: now,
-  };
+  const result = await db.runAsync(
+    `INSERT INTO tasks (
+      user_id, title, notes, list_id, parent_task_id, pillar, priority,
+      due_date, due_time, reminder_date, xp_reward, difficulty,
+      is_generated, generation_source, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+    [
+      normalizedUserId,
+      taskData.title,
+      taskData.notes || null,
+      taskData.list_id || null,
+      taskData.parent_task_id || null,
+      taskData.pillar || null,
+      taskData.priority || 0,
+      taskData.due_date || null,
+      taskData.due_time || null,
+      taskData.reminder_date || null,
+      taskData.xp_reward || 10,
+      taskData.difficulty || null,
+      taskData.is_generated || 0,
+      taskData.generation_source || null,
+    ]
+  );
 
-  tasks.push(newTask);
-  await saveAllTasks(tasks);
+  const taskId = result.lastInsertRowId;
 
-  return newId;
+  // Add tags if provided
+  if (taskData.tags && taskData.tags.length > 0) {
+    for (const tagId of taskData.tags) {
+      await db.runAsync(
+        'INSERT INTO task_tags (task_id, tag_id) VALUES (?, ?)',
+        [taskId, tagId]
+      );
+    }
+  }
+
+  return taskId;
 };
 
 export const updateTask = async (
   taskId: number,
-  updates: Partial<Task>
-): Promise<void> => {
-  const tasks = await getAllTasks();
-  const taskIndex = tasks.findIndex(t => t.id === taskId);
+  updates: Partial<{
+    title: string;
+    notes: string;
+    list_id: number;
+    pillar: 'finance' | 'mental' | 'physical' | 'nutrition';
+    priority: 0 | 1 | 2 | 3;
+    completed: number;
+    due_date: string;
+    due_time: string;
+    reminder_date: string;
+    xp_reward: number;
+    difficulty: 'easy' | 'medium' | 'hard';
+  }>
+) => {
+  const db = await getDatabase();
 
-  if (taskIndex === -1) {
-    throw new Error('Task not found');
-  }
+  const fields = Object.keys(updates)
+    .map((key) => `${key} = ?`)
+    .join(', ');
 
-  tasks[taskIndex] = {
-    ...tasks[taskIndex],
-    ...updates,
-    updated_at: new Date().toISOString(),
-  };
+  const values = [...Object.values(updates), taskId];
 
-  await saveAllTasks(tasks);
+  await db.runAsync(
+    `UPDATE tasks SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    values
+  );
 };
 
-export const toggleTaskComplete = async (taskId: number): Promise<void> => {
-  const tasks = await getAllTasks();
-  const taskIndex = tasks.findIndex(t => t.id === taskId);
+export const toggleTaskComplete = async (taskId: number) => {
+  const db = await getDatabase();
 
-  if (taskIndex === -1) {
-    throw new Error('Task not found');
-  }
+  const task: any = await db.getFirstAsync('SELECT completed FROM tasks WHERE id = ?', [taskId]);
 
-  const isCompleted = tasks[taskIndex].completed === 1;
-  tasks[taskIndex] = {
-    ...tasks[taskIndex],
-    completed: isCompleted ? 0 : 1,
-    completed_at: isCompleted ? undefined : new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
+  if (!task) return;
 
-  await saveAllTasks(tasks);
+  const newStatus = task.completed ? 0 : 1;
+  const completedAt = newStatus ? new Date().toISOString() : null;
+
+  await db.runAsync(
+    'UPDATE tasks SET completed = ?, completed_at = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+    [newStatus, completedAt, taskId]
+  );
+
+  return newStatus;
 };
 
-export const deleteTask = async (taskId: number): Promise<void> => {
-  const tasks = await getAllTasks();
-  const filteredTasks = tasks.filter(t => t.id !== taskId);
-  await saveAllTasks(filteredTasks);
+export const deleteTask = async (taskId: number) => {
+  const db = await getDatabase();
+
+  // Delete tags associations
+  await db.runAsync('DELETE FROM task_tags WHERE task_id = ?', [taskId]);
+
+  // Delete task (subtasks will be deleted by CASCADE)
+  await db.runAsync('DELETE FROM tasks WHERE id = ?', [taskId]);
 };
 
 export const getTaskById = async (taskId: number): Promise<Task | null> => {
-  const tasks = await getAllTasks();
-  return tasks.find(t => t.id === taskId) || null;
+  const db = await getDatabase();
+
+  const task: any = await db.getFirstAsync('SELECT * FROM tasks WHERE id = ?', [taskId]);
+
+  if (!task) return null;
+
+  // Get tags
+  const tags: any[] = await db.getAllAsync(
+    `SELECT t.* FROM tags t
+     INNER JOIN task_tags tt ON t.id = tt.tag_id
+     WHERE tt.task_id = ?`,
+    [taskId]
+  );
+
+  // Get subtasks
+  const subtasks: any[] = await db.getAllAsync(
+    'SELECT * FROM tasks WHERE parent_task_id = ? ORDER BY created_at ASC',
+    [taskId]
+  );
+
+  return {
+    ...task,
+    tags,
+    subtasks,
+  };
 };
 
 export const getTasks = async (
-  userId: number,
+  userId: string | number,
   filters?: {
-    listId?: number;
-    completed?: boolean;
+    list_id?: number;
     pillar?: string;
-    parentTaskId?: number;
+    priority?: number;
+    completed?: number;
+    due_date?: string;
+    tag_id?: number;
+    parent_task_id?: number;
+    is_generated?: number;
   }
 ): Promise<Task[]> => {
-  let tasks = await getAllTasks();
-  tasks = tasks.filter(t => t.user_id === userId);
+  const db = await getDatabase();
+  const normalizedUserId = normalizeUserId(userId);
+
+  let query = 'SELECT * FROM tasks WHERE user_id = ?';
+  const params: any[] = [normalizedUserId];
 
   if (filters) {
-    if (filters.listId !== undefined) {
-      tasks = tasks.filter(t => t.list_id === filters.listId);
+    if (filters.list_id !== undefined) {
+      query += ' AND list_id = ?';
+      params.push(filters.list_id);
     }
-    if (filters.completed !== undefined) {
-      tasks = tasks.filter(t => (t.completed === 1) === filters.completed);
-    }
+
     if (filters.pillar) {
-      tasks = tasks.filter(t => t.pillar === filters.pillar);
+      query += ' AND pillar = ?';
+      params.push(filters.pillar);
     }
-    if (filters.parentTaskId !== undefined) {
-      tasks = tasks.filter(t => t.parent_task_id === filters.parentTaskId);
+
+    if (filters.priority !== undefined) {
+      query += ' AND priority = ?';
+      params.push(filters.priority);
     }
+
+    if (filters.completed !== undefined) {
+      query += ' AND completed = ?';
+      params.push(filters.completed);
+    }
+
+    if (filters.due_date) {
+      query += ' AND due_date = ?';
+      params.push(filters.due_date);
+    }
+
+    if (filters.tag_id) {
+      query = `SELECT DISTINCT t.* FROM tasks t
+               INNER JOIN task_tags tt ON t.id = tt.task_id
+               WHERE t.user_id = ? AND tt.tag_id = ?`;
+      params.push(filters.tag_id);
+    }
+
+    if (filters.parent_task_id !== undefined) {
+      if (filters.parent_task_id === null) {
+        query += ' AND parent_task_id IS NULL';
+      } else {
+        query += ' AND parent_task_id = ?';
+        params.push(filters.parent_task_id);
+      }
+    }
+
+    if (filters.is_generated !== undefined) {
+      query += ' AND is_generated = ?';
+      params.push(filters.is_generated);
+    }
+  }
+
+  // Only get parent tasks by default
+  if (!filters?.parent_task_id) {
+    query += ' AND parent_task_id IS NULL';
+  }
+
+  query += ' ORDER BY priority DESC, due_date ASC, created_at DESC';
+
+  const tasks: any[] = await db.getAllAsync(query, params);
+
+  // Load tags for each task
+  for (const task of tasks) {
+    const tags: any[] = await db.getAllAsync(
+      `SELECT t.* FROM tags t
+       INNER JOIN task_tags tt ON t.id = tt.tag_id
+       WHERE tt.task_id = ?`,
+      [task.id]
+    );
+    task.tags = tags;
+
+    // Load subtasks count
+    const subtasksResult: any = await db.getFirstAsync(
+      'SELECT COUNT(*) as count FROM tasks WHERE parent_task_id = ?',
+      [task.id]
+    );
+    task.subtasks_count = subtasksResult?.count || 0;
+
+    const completedSubtasksResult: any = await db.getFirstAsync(
+      'SELECT COUNT(*) as count FROM tasks WHERE parent_task_id = ? AND completed = 1',
+      [task.id]
+    );
+    task.subtasks_completed = completedSubtasksResult?.count || 0;
   }
 
   return tasks;
 };
 
-export const getTasksForToday = async (userId: number): Promise<Task[]> => {
-  const tasks = await getAllTasks();
+export const getTasksForToday = async (userId: string | number) {
+  const db = await getDatabase();
+  const normalizedUserId = normalizeUserId(userId);
   const today = new Date().toISOString().split('T')[0];
 
-  return tasks.filter(
-    t => t.user_id === userId && t.due_date === today && t.completed === 0
+  const tasks: any[] = await db.getAllAsync(
+    `SELECT * FROM tasks
+     WHERE user_id = ?
+     AND parent_task_id IS NULL
+     AND completed = 0
+     AND (due_date = ? OR due_date IS NULL)
+     ORDER BY priority DESC, created_at DESC
+     LIMIT 20`,
+    [normalizedUserId, today]
   );
+
+  // Load tags for each task
+  for (const task of tasks) {
+    const tags: any[] = await db.getAllAsync(
+      `SELECT t.* FROM tags t
+       INNER JOIN task_tags tt ON t.id = tt.tag_id
+       WHERE tt.task_id = ?`,
+      [task.id]
+    );
+    task.tags = tags;
+  }
+
+  return tasks;
 };
 
-export const getScheduledTasks = async (userId: number): Promise<Task[]> => {
-  const tasks = await getAllTasks();
-  return tasks.filter(
-    t => t.user_id === userId && t.due_date && t.completed === 0
+export const getScheduledTasks = async (userId: string | number) {
+  const db = await getDatabase();
+  const normalizedUserId = normalizeUserId(userId);
+
+  const tasks: any[] = await db.getAllAsync(
+    `SELECT * FROM tasks
+     WHERE user_id = ?
+     AND parent_task_id IS NULL
+     AND completed = 0
+     AND due_date IS NOT NULL
+     ORDER BY due_date ASC, due_time ASC`,
+    [normalizedUserId]
   );
+
+  // Load tags
+  for (const task of tasks) {
+    const tags: any[] = await db.getAllAsync(
+      `SELECT t.* FROM tags t
+       INNER JOIN task_tags tt ON t.id = tt.tag_id
+       WHERE tt.task_id = ?`,
+      [task.id]
+    );
+    task.tags = tags;
+  }
+
+  return tasks;
 };
 
-export const getImportantTasks = async (userId: number): Promise<Task[]> => {
-  const tasks = await getAllTasks();
-  return tasks.filter(
-    t => t.user_id === userId && t.priority >= 2 && t.completed === 0
+export const getImportantTasks = async (userId: string | number) {
+  return await getTasks(userId, { completed: 0, priority: 3 });
+};
+
+export const getCompletedTasks = async (userId: string | number, limit: number = 50) {
+  const db = await getDatabase();
+  const normalizedUserId = normalizeUserId(userId);
+
+  const tasks: any[] = await db.getAllAsync(
+    `SELECT * FROM tasks
+     WHERE user_id = ?
+     AND completed = 1
+     AND parent_task_id IS NULL
+     ORDER BY completed_at DESC
+     LIMIT ?`,
+    [normalizedUserId, limit]
   );
+
+  // Load tags
+  for (const task of tasks) {
+    const tags: any[] = await db.getAllAsync(
+      `SELECT t.* FROM tags t
+       INNER JOIN task_tags tt ON t.id = tt.tag_id
+       WHERE tt.task_id = ?`,
+      [task.id]
+    );
+    task.tags = tags;
+  }
+
+  return tasks;
 };
 
-export const getCompletedTasks = async (
-  userId: number,
-  limit: number = 50
-): Promise<Task[]> => {
-  const tasks = await getAllTasks();
-  return tasks
-    .filter(t => t.user_id === userId && t.completed === 1)
-    .sort((a, b) => (b.completed_at || '').localeCompare(a.completed_at || ''))
-    .slice(0, limit);
+// ========================================
+// TASK TAGS
+// ========================================
+
+export const addTagToTask = async (taskId: number, tagId: number) => {
+  const db = await getDatabase();
+
+  try {
+    await db.runAsync('INSERT INTO task_tags (task_id, tag_id) VALUES (?, ?)', [taskId, tagId]);
+  } catch (error) {
+    // Ignore duplicate errors
+    console.error('Error adding tag to task:', error);
+  }
 };
 
-// Tag functions
+export const removeTagFromTask = async (taskId: number, tagId: number) => {
+  const db = await getDatabase();
+  await db.runAsync('DELETE FROM task_tags WHERE task_id = ? AND tag_id = ?', [taskId, tagId]);
+};
+
+export const setTaskTags = async (taskId: number, tagIds: number[]) => {
+  const db = await getDatabase();
+
+  // Remove all existing tags
+  await db.runAsync('DELETE FROM task_tags WHERE task_id = ?', [taskId]);
+
+  // Add new tags
+  for (const tagId of tagIds) {
+    await db.runAsync('INSERT INTO task_tags (task_id, tag_id) VALUES (?, ?)', [taskId, tagId]);
+  }
+};
+
+// ========================================
+// TAGS CRUD
+// ========================================
+
 export const createTag = async (
-  userId: number,
-  name: string,
-  color?: string,
-  icon?: string
+  userId: string | number,
+  tagData: {
+    name: string;
+    color?: string;
+    icon?: string;
+  }
 ): Promise<number> => {
-  const tags = await getAllTags();
-  const newId = tags.length > 0 ? Math.max(...tags.map(t => t.id)) + 1 : 1;
+  const db = await getDatabase();
+  const normalizedUserId = normalizeUserId(userId);
 
-  const newTag: Tag = {
-    id: newId,
-    user_id: userId,
-    name,
-    color,
-    icon,
-    created_at: new Date().toISOString(),
-  };
+  const result = await db.runAsync(
+    'INSERT INTO tags (user_id, name, color, icon) VALUES (?, ?, ?, ?)',
+    [normalizedUserId, tagData.name, tagData.color || null, tagData.icon || null]
+  );
 
-  tags.push(newTag);
-  await saveAllTags(tags);
-
-  return newId;
-};
-
-export const getTags = async (userId: number): Promise<Tag[]> => {
-  const tags = await getAllTags();
-  return tags.filter(t => t.user_id === userId);
-};
-
-export const deleteTag = async (tagId: number): Promise<void> => {
-  const tags = await getAllTags();
-  const filteredTags = tags.filter(t => t.id !== tagId);
-  await saveAllTags(filteredTags);
+  return result.lastInsertRowId;
 };
 
 export const updateTag = async (
   tagId: number,
-  name: string,
-  color?: string,
-  icon?: string
-): Promise<void> => {
-  const tags = await getAllTags();
-  const tagIndex = tags.findIndex(t => t.id === tagId);
+  updates: {
+    name?: string;
+    color?: string;
+    icon?: string;
+  }
+) => {
+  const db = await getDatabase();
 
-  if (tagIndex === -1) {
-    throw new Error('Tag not found');
+  const fields = Object.keys(updates)
+    .map((key) => `${key} = ?`)
+    .join(', ');
+
+  const values = [...Object.values(updates), tagId];
+
+  await db.runAsync(`UPDATE tags SET ${fields} WHERE id = ?`, values);
+};
+
+export const deleteTag = async (tagId: number) => {
+  const db = await getDatabase();
+
+  // Delete tag associations
+  await db.runAsync('DELETE FROM task_tags WHERE tag_id = ?', [tagId]);
+
+  // Delete tag
+  await db.runAsync('DELETE FROM tags WHERE id = ?', [tagId]);
+};
+
+export const getTags = async (userId: string | number) {
+  const db = await getDatabase();
+  const normalizedUserId = normalizeUserId(userId);
+
+  const tags: any[] = await db.getAllAsync(
+    'SELECT * FROM tags WHERE user_id = ? ORDER BY name ASC',
+    [normalizedUserId]
+  );
+
+  // Get task count for each tag
+  for (const tag of tags) {
+    const result: any = await db.getFirstAsync(
+      `SELECT COUNT(*) as count FROM task_tags WHERE tag_id = ?`,
+      [tag.id]
+    );
+    tag.task_count = result?.count || 0;
   }
 
-  tags[tagIndex] = {
-    ...tags[tagIndex],
-    name,
-    color,
-    icon,
-  };
-
-  await saveAllTags(tags);
+  return tags;
 };
 
-// Simplified tag-task relations (not fully implemented for web)
-export const addTagToTask = async (taskId: number, tagId: number): Promise<void> => {
-  // Simplified - just log for now
-  console.log('addTagToTask not fully implemented on web', taskId, tagId);
+export const getTagById = async (tagId: number): Promise<Tag | null> => {
+  const db = await getDatabase();
+  return await db.getFirstAsync('SELECT * FROM tags WHERE id = ?', [tagId]);
 };
 
-export const removeTagFromTask = async (taskId: number, tagId: number): Promise<void> => {
-  console.log('removeTagFromTask not fully implemented on web', taskId, tagId);
+// ========================================
+// TASK LISTS CRUD
+// ========================================
+
+export const createTaskList = async (
+  userId: string | number,
+  listData: {
+    name: string;
+    icon?: string;
+    color?: string;
+    is_smart_list?: number;
+    smart_filter?: string;
+  }
+) {
+  const db = await getDatabase();
+  const normalizedUserId = normalizeUserId(userId);
+
+  // Get max sort_order
+  const maxOrder: any = await db.getFirstAsync(
+    'SELECT MAX(sort_order) as max_order FROM task_lists WHERE user_id = ?',
+    [normalizedUserId]
+  );
+
+  const sortOrder = (maxOrder?.max_order || 0) + 1;
+
+  const result = await db.runAsync(
+    `INSERT INTO task_lists (user_id, name, icon, color, is_smart_list, smart_filter, sort_order, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+    [
+      normalizedUserId,
+      listData.name,
+      listData.icon || null,
+      listData.color || null,
+      listData.is_smart_list || 0,
+      listData.smart_filter || null,
+      sortOrder,
+    ]
+  );
+
+  return result.lastInsertRowId;
 };
 
-export const setTaskTags = async (taskId: number, tagIds: number[]): Promise<void> => {
-  console.log('setTaskTags not fully implemented on web', taskId, tagIds);
+export const updateTaskList = async (
+  listId: number,
+  updates: {
+    name?: string;
+    icon?: string;
+    color?: string;
+  }
+) => {
+  const db = await getDatabase();
+
+  const fields = Object.keys(updates)
+    .map((key) => `${key} = ?`)
+    .join(', ');
+
+  const values = [...Object.values(updates), listId];
+
+  await db.runAsync(
+    `UPDATE task_lists SET ${fields}, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+    values
+  );
 };
 
-// Stub functions for completeness
-export const completeTask = toggleTaskComplete;
+export const deleteTaskList = async (listId: number) => {
+  const db = await getDatabase();
 
-// Task Lists - AsyncStorage implementation
-const TASK_LISTS_KEY = 'lifequest.db:task_lists';
+  // Set list_id to NULL for tasks in this list
+  await db.runAsync('UPDATE tasks SET list_id = NULL WHERE list_id = ?', [listId]);
 
-const getAllTaskLists = async (): Promise<TaskList[]> => {
-  const data = await AsyncStorage.getItem(TASK_LISTS_KEY);
-  return data ? JSON.parse(data) : [];
+  // Delete list
+  await db.runAsync('DELETE FROM task_lists WHERE id = ?', [listId]);
 };
 
-const saveAllTaskLists = async (lists: TaskList[]): Promise<void> => {
-  await AsyncStorage.setItem(TASK_LISTS_KEY, JSON.stringify(lists));
-};
+export const getTaskLists = async (userId: string | number) {
+  const db = await getDatabase();
+  const normalizedUserId = normalizeUserId(userId);
 
-export const getTaskLists = async (userId: number): Promise<(TaskList & { task_count?: number })[]> => {
-  const lists = await getAllTaskLists();
-  const userLists = lists.filter(l => l.user_id === userId);
+  const lists: any[] = await db.getAllAsync(
+    'SELECT * FROM task_lists WHERE user_id = ? ORDER BY is_smart_list DESC, sort_order ASC',
+    [normalizedUserId]
+  );
 
   // Get task count for each list
-  const tasks = await getAllTasks();
-  const listsWithCounts = userLists.map(list => ({
-    ...list,
-    task_count: tasks.filter(t => t.list_id === list.id && t.completed === 0).length,
-  }));
+  for (const list of lists) {
+    const result: any = await db.getFirstAsync(
+      `SELECT COUNT(*) as count FROM tasks WHERE list_id = ? AND completed = 0`,
+      [list.id]
+    );
+    list.task_count = result?.count || 0;
+  }
 
-  // Sort: smart lists first, then by sort_order
-  return listsWithCounts.sort((a, b) => {
-    if (a.is_smart_list !== b.is_smart_list) {
-      return b.is_smart_list - a.is_smart_list;
-    }
-    return a.sort_order - b.sort_order;
-  });
+  return lists;
 };
 
-export const initializeDefaultLists = async (userId: number): Promise<void> => {
-  // Use getAllTaskLists to avoid infinite recursion
-  const allLists = await getAllTaskLists();
-  const existingLists = allLists.filter(l => l.user_id === userId);
+export const getTaskListById = async (listId: number): Promise<TaskList | null> => {
+  const db = await getDatabase();
+  return await db.getFirstAsync('SELECT * FROM task_lists WHERE id = ?', [listId]);
+};
 
-  if (existingLists.length > 0) {
+// ========================================
+// INITIALIZATION & MIGRATION
+// ========================================
+
+export const initializeDefaultLists = async (userId: string | number) {
+  const db = await getDatabase();
+  const normalizedUserId = normalizeUserId(userId);
+
+  // Check if user already has lists
+  const existingLists: any = await db.getFirstAsync(
+    'SELECT COUNT(*) as count FROM task_lists WHERE user_id = ?',
+    [normalizedUserId]
+  );
+
+  if (existingLists && existingLists.count > 0) {
     return; // Already initialized
   }
 
-  const now = new Date().toISOString();
-  const defaultLists: TaskList[] = [
-    {
-      id: 1,
-      user_id: userId,
-      name: 'Today',
-      icon: '📅',
-      color: '#58CC02',
-      is_smart_list: 1,
-      smart_filter: 'today',
-      sort_order: 1,
-      created_at: now,
-      updated_at: now,
-    },
-    {
-      id: 2,
-      user_id: userId,
-      name: 'Important',
-      icon: '⭐',
-      color: '#FF4B4B',
-      is_smart_list: 1,
-      smart_filter: 'important',
-      sort_order: 2,
-      created_at: now,
-      updated_at: now,
-    },
-    {
-      id: 3,
-      user_id: userId,
-      name: 'All',
-      icon: '📋',
-      color: '#1CB0F6',
-      is_smart_list: 1,
-      smart_filter: 'all',
-      sort_order: 3,
-      created_at: now,
-      updated_at: now,
-    },
-    {
-      id: 4,
-      user_id: userId,
-      name: 'Completed',
-      icon: '✅',
-      color: '#58CC02',
-      is_smart_list: 1,
-      smart_filter: 'completed',
-      sort_order: 4,
-      created_at: now,
-      updated_at: now,
-    },
+  // Create default smart lists
+  const defaultLists = [
+    { name: 'Today', icon: '📅', color: '#1CB0F6', is_smart_list: 1, smart_filter: 'today' },
+    { name: 'Important', icon: '⭐', color: '#FF9500', is_smart_list: 1, smart_filter: 'important' },
+    { name: 'Scheduled', icon: '📆', color: '#9C27B0', is_smart_list: 1, smart_filter: 'scheduled' },
+    { name: 'Completed', icon: '✅', color: '#58CC02', is_smart_list: 1, smart_filter: 'completed' },
   ];
 
-  await saveAllTaskLists(defaultLists);
-};
-
-export const createList = async (
-  userId: number,
-  name: string,
-  icon?: string,
-  color?: string
-): Promise<number> => {
-  const lists = await getAllTaskLists();
-  const newId = lists.length > 0 ? Math.max(...lists.map(l => l.id)) + 1 : 1;
-  const now = new Date().toISOString();
-
-  const newList: TaskList = {
-    id: newId,
-    user_id: userId,
-    name,
-    icon,
-    color,
-    is_smart_list: 0,
-    sort_order: lists.length + 1,
-    created_at: now,
-    updated_at: now,
-  };
-
-  lists.push(newList);
-  await saveAllTaskLists(lists);
-
-  return newId;
-};
-
-export const updateList = async (
-  listId: number,
-  name: string,
-  icon?: string,
-  color?: string
-): Promise<void> => {
-  const lists = await getAllTaskLists();
-  const listIndex = lists.findIndex(l => l.id === listId);
-
-  if (listIndex === -1) {
-    throw new Error('List not found');
+  for (let i = 0; i < defaultLists.length; i++) {
+    const list = defaultLists[i];
+    await db.runAsync(
+      `INSERT INTO task_lists (user_id, name, icon, color, is_smart_list, smart_filter, sort_order, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [normalizedUserId, list.name, list.icon, list.color, list.is_smart_list, list.smart_filter, i]
+    );
   }
 
-  lists[listIndex] = {
-    ...lists[listIndex],
-    name,
-    icon,
-    color,
-    updated_at: new Date().toISOString(),
-  };
+  // Create default custom lists for each pillar
+  const pillarLists = [
+    { name: 'Finance', icon: '💰', color: '#FFB800' },
+    { name: 'Mental', icon: '🧠', color: '#CE82FF' },
+    { name: 'Physical', icon: '💪', color: '#FF4B4B' },
+    { name: 'Nutrition', icon: '🥗', color: '#58CC02' },
+  ];
 
-  await saveAllTaskLists(lists);
+  for (let i = 0; i < pillarLists.length; i++) {
+    const list = pillarLists[i];
+    await db.runAsync(
+      `INSERT INTO task_lists (user_id, name, icon, color, is_smart_list, sort_order, updated_at)
+       VALUES (?, ?, ?, ?, 0, ?, CURRENT_TIMESTAMP)`,
+      [normalizedUserId, list.name, list.icon, list.color, defaultLists.length + i]
+    );
+  }
 };
 
-export const deleteList = async (listId: number): Promise<void> => {
-  const lists = await getAllTaskLists();
-  const filteredLists = lists.filter(l => l.id !== listId);
-  await saveAllTaskLists(filteredLists);
+export const migrateDailyTasksToNewSystem = async (userId: string | number) {
+  const db = await getDatabase();
+  const normalizedUserId = normalizeUserId(userId);
 
-  // Also delete all tasks in this list
-  const tasks = await getAllTasks();
-  const filteredTasks = tasks.filter(t => t.list_id !== listId);
-  await saveAllTasks(filteredTasks);
+  // Get all daily_tasks for this user
+  const dailyTasks: any[] = await db.getAllAsync(
+    'SELECT * FROM daily_tasks WHERE user_id = ?',
+    [normalizedUserId]
+  );
+
+  for (const dailyTask of dailyTasks) {
+    // Check if already migrated
+    const existing: any = await db.getFirstAsync(
+      `SELECT id FROM tasks
+       WHERE user_id = ? AND title = ? AND is_generated = 1
+       AND generation_source = 'daily_tasks_migration'
+       AND created_at = ?`,
+      [normalizedUserId, dailyTask.title, dailyTask.created_at]
+    );
+
+    if (existing) {
+      continue; // Already migrated
+    }
+
+    // Create task in new system
+    await createTask(userId, {
+      title: dailyTask.title,
+      notes: dailyTask.description,
+      pillar: dailyTask.pillar,
+      due_date: dailyTask.task_date,
+      xp_reward: dailyTask.xp_reward,
+      is_generated: 1,
+      generation_source: 'daily_tasks_migration',
+    });
+  }
 };
 
-export const getTaskStats = async (userId: number): Promise<{
-  total: number;
-  active: number;
-  completed: number;
-  today: number;
-  overdue: number;
-}> => {
-  const tasks = await getAllTasks();
-  const userTasks = tasks.filter(t => t.user_id === userId);
+// ========================================
+// STATISTICS
+// ========================================
+
+export const getTaskStats = async (userId: string | number) {
+  const db = await getDatabase();
+  const normalizedUserId = normalizeUserId(userId);
+
   const today = new Date().toISOString().split('T')[0];
 
+  const [totalResult, completedResult, todayResult, overdueResult] = await Promise.all([
+    db.getFirstAsync<{ count: number }>(
+      'SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND parent_task_id IS NULL',
+      [normalizedUserId]
+    ),
+    db.getFirstAsync<{ count: number }>(
+      'SELECT COUNT(*) as count FROM tasks WHERE user_id = ? AND completed = 1 AND parent_task_id IS NULL',
+      [normalizedUserId]
+    ),
+    db.getFirstAsync<{ count: number }>(
+      `SELECT COUNT(*) as count FROM tasks
+       WHERE user_id = ? AND parent_task_id IS NULL AND completed = 0
+       AND (due_date = ? OR due_date IS NULL)`,
+      [normalizedUserId, today]
+    ),
+    db.getFirstAsync<{ count: number }>(
+      `SELECT COUNT(*) as count FROM tasks
+       WHERE user_id = ? AND parent_task_id IS NULL AND completed = 0
+       AND due_date < ?`,
+      [normalizedUserId, today]
+    ),
+  ]);
+
   return {
-    total: userTasks.length,
-    active: userTasks.filter(t => t.completed === 0).length,
-    completed: userTasks.filter(t => t.completed === 1).length,
-    today: userTasks.filter(t => t.due_date === today && t.completed === 0).length,
-    overdue: userTasks.filter(t => {
-      if (!t.due_date || t.completed === 1) return false;
-      return t.due_date < today;
-    }).length,
+    total: totalResult?.count || 0,
+    completed: completedResult?.count || 0,
+    today: todayResult?.count || 0,
+    overdue: overdueResult?.count || 0,
+    active: (totalResult?.count || 0) - (completedResult?.count || 0),
   };
 };
 
@@ -482,6 +776,6 @@ export const getTodaysTasks = getTasksForToday;
  * @param userId - User ID
  * @param limit - Number of items to return (default: 5)
  */
-export const getRecentActivity = async (userId: number, limit: number = 5): Promise<Task[]> => {
+export const getRecentActivity = async (userId: string | number, limit: number = 5) {
   return await getCompletedTasks(userId, limit);
 };
