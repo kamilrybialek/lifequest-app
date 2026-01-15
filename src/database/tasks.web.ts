@@ -155,7 +155,7 @@ export const updateTask = async (
     xp_reward: number;
     difficulty: 'easy' | 'medium' | 'hard';
   }>
-) => {
+): Promise<void> => {
   const db = await getDatabase();
 
   const fields = Object.keys(updates)
@@ -481,7 +481,7 @@ export const updateTag = async (
     color?: string;
     icon?: string;
   }
-) => {
+): Promise<void> => {
   const db = await getDatabase();
 
   const fields = Object.keys(updates)
@@ -542,7 +542,7 @@ export const createTaskList = async (
     is_smart_list?: number;
     smart_filter?: string;
   }
-) {
+): Promise<number> => {
   const db = await getDatabase();
   const normalizedUserId = normalizeUserId(userId);
 
@@ -578,7 +578,7 @@ export const updateTaskList = async (
     icon?: string;
     color?: string;
   }
-) => {
+): Promise<void> => {
   const db = await getDatabase();
 
   const fields = Object.keys(updates)
