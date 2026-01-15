@@ -18,6 +18,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '../config/firebase';
 import { getHealthMetrics } from './healthDataService';
 
+// User profile interface for accessing onboarding data
+interface UserProfile {
+  financialStatus?: 'struggling' | 'managing' | 'comfortable' | 'wealthy';
+  dietQuality?: number; // 1-5 scale
+  mealsPerDay?: number;
+  fastFoodFrequency?: number; // 0-7 days per week
+  waterIntakeLevel?: 'low' | 'moderate' | 'good' | 'excellent';
+}
+
 const LIFESCORE_CACHE_KEY = 'lifequest.lifescore';
 
 interface LifeScoreSnapshot {
@@ -31,36 +40,62 @@ interface LifeScoreSnapshot {
 }
 
 /**
- * Calculate Life Score from health metrics
- * Simple algorithm: average of 4 pillar scores (0-100 each)
+ * Get user profile data for Life Score calculation
+ * Exported for use in breakdown modal
+ */
+export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
+  try {
+    const userRef = doc(db, 'users', userId);
+    const userDoc = await getDoc(userRef);
+
+    if (!userDoc.exists()) {
+      return null;
+    }
+
+    const data = userDoc.data();
+    return {
+      financialStatus: data.financialStatus,
+      dietQuality: data.dietQuality,
+      mealsPerDay: data.mealsPerDay,
+      fastFoodFrequency: data.fastFoodFrequency,
+      waterIntakeLevel: data.waterIntakeLevel,
+    };
+  } catch (error) {
+    console.error('Error getting user profile:', error);
+    return null;
+  }
+};
+
+/**
+ * Calculate Life Score from health metrics and user profile
+ * Algorithm: average of 4 pillar scores (0-100 each)
  */
 export const calculateLifeScore = async (userId: string): Promise<number> => {
   try {
-    const metrics = await getHealthMetrics(userId);
+    const [metrics, profile] = await Promise.all([
+      getHealthMetrics(userId),
+      getUserProfile(userId),
+    ]);
 
     if (!metrics) {
       return 0;
     }
 
-    // Calculate pillar scores (simplified)
-    // In real app, these would be more sophisticated calculations
-
-    // Finance score (placeholder - would need finance data)
-    const financeScore = 50; // Default mid-range
-
-    // Mental score (based on stress and sleep)
+    // Calculate pillar scores using available data
+    const financeScore = calculateFinanceScore(profile?.financialStatus);
     const mentalScore = calculateMentalScore(metrics.sleepQuality, metrics.stressLevel);
-
-    // Physical score (based on BMI, exercise, water intake)
     const physicalScore = calculatePhysicalScore(
       metrics.weight,
       metrics.height,
       metrics.weeklyExerciseHours,
       metrics.waterIntakeLiters
     );
-
-    // Nutrition score (based on diet quality)
-    const nutritionScore = 50; // Default mid-range
+    const nutritionScore = calculateNutritionScore(
+      profile?.dietQuality,
+      profile?.mealsPerDay,
+      profile?.fastFoodFrequency,
+      metrics.waterIntakeLiters
+    );
 
     // Average of all 4 pillars
     const lifeScore = (financeScore + mentalScore + physicalScore + nutritionScore) / 4;
@@ -70,6 +105,78 @@ export const calculateLifeScore = async (userId: string): Promise<number> => {
     console.error('Error calculating life score:', error);
     return 0;
   }
+};
+
+/**
+ * Calculate finance score based on financial status
+ * Exported for use in breakdown modal
+ */
+export const calculateFinanceScore = (
+  financialStatus?: 'struggling' | 'managing' | 'comfortable' | 'wealthy'
+): number => {
+  if (!financialStatus) return 50; // Default mid-range
+
+  const statusScores: Record<string, number> = {
+    struggling: 30,
+    managing: 50,
+    comfortable: 75,
+    wealthy: 90,
+  };
+
+  return statusScores[financialStatus] || 50;
+};
+
+/**
+ * Calculate nutrition score
+ * Exported for use in breakdown modal
+ */
+export const calculateNutritionScore = (
+  dietQuality?: number,
+  mealsPerDay?: number,
+  fastFoodFrequency?: number,
+  waterIntake?: number
+): number => {
+  let score = 0;
+  let components = 0;
+
+  // Diet quality (1-5 scale)
+  if (dietQuality) {
+    score += (dietQuality / 5) * 100;
+    components++;
+  }
+
+  // Meals per day (ideal: 3-4)
+  if (mealsPerDay) {
+    if (mealsPerDay >= 3 && mealsPerDay <= 4) {
+      score += 100;
+    } else if (mealsPerDay < 3) {
+      score += (mealsPerDay / 3) * 100;
+    } else {
+      score += Math.max(0, 100 - (mealsPerDay - 4) * 15);
+    }
+    components++;
+  }
+
+  // Fast food frequency (0-7 days/week, lower is better)
+  if (fastFoodFrequency !== undefined) {
+    const fastFoodScore = Math.max(0, 100 - fastFoodFrequency * 15);
+    score += fastFoodScore;
+    components++;
+  }
+
+  // Water intake (ideal: 2-3 liters)
+  if (waterIntake) {
+    if (waterIntake >= 2 && waterIntake <= 3) {
+      score += 100;
+    } else if (waterIntake < 2) {
+      score += (waterIntake / 2) * 100;
+    } else {
+      score += Math.max(0, 100 - (waterIntake - 3) * 20);
+    }
+    components++;
+  }
+
+  return components > 0 ? score / components : 50;
 };
 
 /**
@@ -206,15 +313,18 @@ export const getPreviousLifeScore = async (userId: string): Promise<number | nul
  */
 export const saveLifeScoreSnapshot = async (userId: string): Promise<void> => {
   try {
-    const score = await calculateLifeScore(userId);
-    const metrics = await getHealthMetrics(userId);
+    const [score, metrics, profile] = await Promise.all([
+      calculateLifeScore(userId),
+      getHealthMetrics(userId),
+      getUserProfile(userId),
+    ]);
 
     if (!metrics) return;
 
     const snapshot: LifeScoreSnapshot = {
       user_id: userId,
       score,
-      finance_score: 50, // Placeholder
+      finance_score: Math.round(calculateFinanceScore(profile?.financialStatus)),
       mental_score: Math.round(calculateMentalScore(metrics.sleepQuality, metrics.stressLevel)),
       physical_score: Math.round(
         calculatePhysicalScore(
@@ -224,7 +334,14 @@ export const saveLifeScoreSnapshot = async (userId: string): Promise<void> => {
           metrics.waterIntakeLiters
         )
       ),
-      nutrition_score: 50, // Placeholder
+      nutrition_score: Math.round(
+        calculateNutritionScore(
+          profile?.dietQuality,
+          profile?.mealsPerDay,
+          profile?.fastFoodFrequency,
+          metrics.waterIntakeLiters
+        )
+      ),
       created_at: new Date().toISOString(),
     };
 

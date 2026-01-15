@@ -23,6 +23,11 @@ import {
   timeblocTypography,
 } from '../../theme/timeblocTheme';
 import { getHealthMetrics } from '../../services/healthDataService';
+import {
+  getUserProfile,
+  calculateFinanceScore,
+  calculateNutritionScore,
+} from '../../services/lifeScoreService';
 
 interface LifeScoreBreakdownModalProps {
   visible: boolean;
@@ -58,7 +63,10 @@ export const LifeScoreBreakdownModal: React.FC<LifeScoreBreakdownModalProps> = (
   const loadBreakdown = async () => {
     try {
       setLoading(true);
-      const metrics = await getHealthMetrics(userId);
+      const [metrics, profile] = await Promise.all([
+        getHealthMetrics(userId),
+        getUserProfile(userId),
+      ]);
 
       if (!metrics) {
         setPillars([]);
@@ -100,11 +108,29 @@ export const LifeScoreBreakdownModal: React.FC<LifeScoreBreakdownModalProps> = (
 
       const physicalScore = Math.round((bmiScore + exerciseScore + waterScore) / 3);
 
-      // Finance Score (placeholder)
-      const financeScore = 50;
+      // Finance Score (from user profile)
+      const financeScore = Math.round(calculateFinanceScore(profile?.financialStatus));
 
-      // Nutrition Score (placeholder)
-      const nutritionScore = 50;
+      // Nutrition Score (from profile data)
+      const nutritionScore = Math.round(
+        calculateNutritionScore(
+          profile?.dietQuality,
+          profile?.mealsPerDay,
+          profile?.fastFoodFrequency,
+          water
+        )
+      );
+
+      // Financial status label
+      const finStatusLabels = {
+        struggling: 'Struggling with debt/bills',
+        managing: 'Managing paycheck to paycheck',
+        comfortable: 'Comfortable & saving',
+        wealthy: 'Wealthy & investing',
+      };
+      const finStatusLabel = profile?.financialStatus
+        ? finStatusLabels[profile.financialStatus]
+        : 'Not set';
 
       const pillarData: PillarScore[] = [
         {
@@ -114,9 +140,9 @@ export const LifeScoreBreakdownModal: React.FC<LifeScoreBreakdownModalProps> = (
           color: timeblocColors.finance,
           gradient: ['#8E7DFF', '#A59FFF'],
           details: [
-            'Budget tracking: Not yet tracked',
-            'Savings rate: Not yet tracked',
-            'Debt management: Not yet tracked',
+            `Status: ${finStatusLabel}`,
+            'Budget tracking: Complete health quizzes for more insights',
+            'Savings rate: Data collection in progress',
           ],
         },
         {
@@ -150,9 +176,9 @@ export const LifeScoreBreakdownModal: React.FC<LifeScoreBreakdownModalProps> = (
           color: timeblocColors.nutrition,
           gradient: ['#A0D995', '#B8E5AD'],
           details: [
-            'Meal quality: Not yet tracked',
-            'Calorie balance: Not yet tracked',
-            `Diet type: ${metrics.dietType || 'Not set'}`,
+            `Diet quality: ${profile?.dietQuality ? `${profile.dietQuality.toFixed(1)}/5` : 'Not set'}`,
+            `Meals per day: ${profile?.mealsPerDay || 'Not set'}`,
+            `Fast food frequency: ${profile?.fastFoodFrequency !== undefined ? `${profile.fastFoodFrequency} days/week` : 'Not set'}`,
           ],
         },
       ];
