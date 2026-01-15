@@ -98,46 +98,56 @@ export const createTask = async (
     tags?: number[]; // Array of tag IDs
   }
 ): Promise<number> => {
-  const db = await getDatabase();
-  const normalizedUserId = normalizeUserId(userId);
+  try {
+    console.log('[tasks.ts] createTask called with userId:', userId, 'type:', typeof userId);
+    const db = await getDatabase();
+    const normalizedUserId = normalizeUserId(userId);
+    console.log('[tasks.ts] Normalized userId:', normalizedUserId);
 
-  const result = await db.runAsync(
-    `INSERT INTO tasks (
-      user_id, title, notes, list_id, parent_task_id, pillar, priority,
-      due_date, due_time, reminder_date, xp_reward, difficulty,
-      is_generated, generation_source, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
-    [
-      normalizedUserId,
-      taskData.title,
-      taskData.notes || null,
-      taskData.list_id || null,
-      taskData.parent_task_id || null,
-      taskData.pillar || null,
-      taskData.priority || 0,
-      taskData.due_date || null,
-      taskData.due_time || null,
-      taskData.reminder_date || null,
-      taskData.xp_reward || 10,
-      taskData.difficulty || null,
-      taskData.is_generated || 0,
-      taskData.generation_source || null,
-    ]
-  );
+    const result = await db.runAsync(
+      `INSERT INTO tasks (
+        user_id, title, notes, list_id, parent_task_id, pillar, priority,
+        due_date, due_time, reminder_date, xp_reward, difficulty,
+        is_generated, generation_source, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)`,
+      [
+        normalizedUserId,
+        taskData.title,
+        taskData.notes || null,
+        taskData.list_id || null,
+        taskData.parent_task_id || null,
+        taskData.pillar || null,
+        taskData.priority || 0,
+        taskData.due_date || null,
+        taskData.due_time || null,
+        taskData.reminder_date || null,
+        taskData.xp_reward || 10,
+        taskData.difficulty || null,
+        taskData.is_generated || 0,
+        taskData.generation_source || null,
+      ]
+    );
 
-  const taskId = result.lastInsertRowId;
+    const taskId = result.lastInsertRowId;
+    console.log('[tasks.ts] Task inserted with ID:', taskId);
 
-  // Add tags if provided
-  if (taskData.tags && taskData.tags.length > 0) {
-    for (const tagId of taskData.tags) {
-      await db.runAsync(
-        'INSERT INTO task_tags (task_id, tag_id) VALUES (?, ?)',
-        [taskId, tagId]
-      );
+    // Add tags if provided
+    if (taskData.tags && taskData.tags.length > 0) {
+      console.log('[tasks.ts] Adding tags:', taskData.tags);
+      for (const tagId of taskData.tags) {
+        await db.runAsync(
+          'INSERT INTO task_tags (task_id, tag_id) VALUES (?, ?)',
+          [taskId, tagId]
+        );
+      }
     }
-  }
 
-  return taskId;
+    console.log('[tasks.ts] Task created successfully:', taskId);
+    return taskId;
+  } catch (error) {
+    console.error('[tasks.ts] Error in createTask:', error);
+    throw error;
+  }
 };
 
 export const updateTask = async (

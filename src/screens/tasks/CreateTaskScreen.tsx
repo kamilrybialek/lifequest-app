@@ -100,6 +100,10 @@ export const CreateTaskScreen = ({ navigation, route }: any) => {
   };
 
   const handleCreate = async () => {
+    console.log('[CreateTask] Starting task creation...');
+    console.log('[CreateTask] User ID:', user?.id);
+    console.log('[CreateTask] Title:', title);
+
     if (!user?.id || !title.trim()) {
       Alert.alert('Error', 'Please enter a task title');
       return;
@@ -107,7 +111,14 @@ export const CreateTaskScreen = ({ navigation, route }: any) => {
 
     setIsSubmitting(true);
     try {
-      await createTask(user.id, {
+      console.log('[CreateTask] Calling createTask with data:', {
+        userId: user.id,
+        title: title.trim(),
+        pillar: selectedPillar,
+        priority,
+      });
+
+      const taskId = await createTask(user.id, {
         title: title.trim(),
         notes: notes.trim() || undefined,
         list_id: selectedList || undefined,
@@ -121,10 +132,12 @@ export const CreateTaskScreen = ({ navigation, route }: any) => {
         tags: selectedTags.length > 0 ? selectedTags : undefined,
       });
 
+      console.log('[CreateTask] Task created successfully with ID:', taskId);
       navigation.goBack();
     } catch (error) {
-      console.error('Error creating task:', error);
-      Alert.alert('Error', 'Failed to create task');
+      console.error('[CreateTask] Error creating task:', error);
+      console.error('[CreateTask] Error details:', JSON.stringify(error, null, 2));
+      Alert.alert('Error', `Failed to create task: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsSubmitting(false);
     }
