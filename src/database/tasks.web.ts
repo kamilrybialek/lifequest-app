@@ -329,7 +329,7 @@ export const getTasks = async (
   return tasks;
 };
 
-export const getTasksForToday = async (userId: string | number) {
+export const getTasksForToday = async (userId: string | number): Promise<Task[]> => {
   const db = await getDatabase();
   const normalizedUserId = normalizeUserId(userId);
   const today = new Date().toISOString().split('T')[0];
@@ -359,7 +359,7 @@ export const getTasksForToday = async (userId: string | number) {
   return tasks;
 };
 
-export const getScheduledTasks = async (userId: string | number) {
+export const getScheduledTasks = async (userId: string | number): Promise<Task[]> => {
   const db = await getDatabase();
   const normalizedUserId = normalizeUserId(userId);
 
@@ -387,11 +387,11 @@ export const getScheduledTasks = async (userId: string | number) {
   return tasks;
 };
 
-export const getImportantTasks = async (userId: string | number) {
+export const getImportantTasks = async (userId: string | number): Promise<Task[]> => {
   return await getTasks(userId, { completed: 0, priority: 3 });
 };
 
-export const getCompletedTasks = async (userId: string | number, limit: number = 50) {
+export const getCompletedTasks = async (userId: string | number, limit: number = 50): Promise<Task[]> => {
   const db = await getDatabase();
   const normalizedUserId = normalizeUserId(userId);
 
@@ -503,7 +503,7 @@ export const deleteTag = async (tagId: number) => {
   await db.runAsync('DELETE FROM tags WHERE id = ?', [tagId]);
 };
 
-export const getTags = async (userId: string | number) {
+export const getTags = async (userId: string | number): Promise<Tag[]> => {
   const db = await getDatabase();
   const normalizedUserId = normalizeUserId(userId);
 
@@ -603,7 +603,7 @@ export const deleteTaskList = async (listId: number) => {
   await db.runAsync('DELETE FROM task_lists WHERE id = ?', [listId]);
 };
 
-export const getTaskLists = async (userId: string | number) {
+export const getTaskLists = async (userId: string | number): Promise<TaskList[]> => {
   const db = await getDatabase();
   const normalizedUserId = normalizeUserId(userId);
 
@@ -633,7 +633,7 @@ export const getTaskListById = async (listId: number): Promise<TaskList | null> 
 // INITIALIZATION & MIGRATION
 // ========================================
 
-export const initializeDefaultLists = async (userId: string | number) {
+export const initializeDefaultLists = async (userId: string | number): Promise<void> => {
   const db = await getDatabase();
   const normalizedUserId = normalizeUserId(userId);
 
@@ -682,7 +682,7 @@ export const initializeDefaultLists = async (userId: string | number) {
   }
 };
 
-export const migrateDailyTasksToNewSystem = async (userId: string | number) {
+export const migrateDailyTasksToNewSystem = async (userId: string | number): Promise<void> => {
   const db = await getDatabase();
   const normalizedUserId = normalizeUserId(userId);
 
@@ -723,7 +723,7 @@ export const migrateDailyTasksToNewSystem = async (userId: string | number) {
 // STATISTICS
 // ========================================
 
-export const getTaskStats = async (userId: string | number) {
+export const getTaskStats = async (userId: string | number): Promise<{ total: number; completed: number; today: number; overdue: number; active: number }> => {
   const db = await getDatabase();
   const normalizedUserId = normalizeUserId(userId);
 
@@ -776,6 +776,6 @@ export const getTodaysTasks = getTasksForToday;
  * @param userId - User ID
  * @param limit - Number of items to return (default: 5)
  */
-export const getRecentActivity = async (userId: string | number, limit: number = 5) {
+export const getRecentActivity = async (userId: string | number, limit: number = 5): Promise<Task[]> => {
   return await getCompletedTasks(userId, limit);
 };
