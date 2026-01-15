@@ -65,6 +65,9 @@ import { NetWorthCalculatorScreen } from '../screens/finance/NetWorthCalculatorS
 // Goals (300 Life Goals Method)
 import { GoalsScreen } from '../screens/goals/GoalsScreen';
 
+// Health
+import { HealthQuizScreen } from '../screens/health/HealthQuizScreen';
+
 // Admin
 import { AdminGuard } from '../screens/admin/AdminGuard';
 
@@ -135,6 +138,9 @@ export const AppNavigator = () => {
 
             {/* Goals Screen (300 Life Goals Method) */}
             <Stack.Screen name="GoalsScreen" component={GoalsScreen} options={{ headerShown: false }} />
+
+            {/* Health Quiz */}
+            <Stack.Screen name="HealthQuiz" component={HealthQuizScreen} options={{ headerShown: false }} />
 
             {/* Lesson screens */}
             <Stack.Screen name="FinanceLessonIntro" component={FinanceLessonIntro} />

@@ -20,7 +20,6 @@ import { useAuthStore } from '../../store/authStore';
 import { useGoalsStore, Goal } from '../../store/goalsStore';
 import { timeblocColors, timeblocShadows, timeblocSpacing, timeblocBorderRadius, timeblocTypography, timeblocGradients } from '../../theme/timeblocTheme';
 import { LifeOverviewCard } from '../../components/dashboard/LifeOverviewCard';
-import { WeeklyHealthQuiz } from '../../components/health/WeeklyHealthQuiz';
 import { getTodaysTasks, getRecentActivity, Task } from '../../database/tasks';
 
 interface QuickAction {
@@ -43,7 +42,6 @@ export const DashboardScreenNew = ({ navigation }: any) => {
   const { goals, loadGoals } = useGoalsStore();
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [showHealthQuiz, setShowHealthQuiz] = useState(false);
   const [todaysTasks, setTodaysTasks] = useState<Task[]>([]);
   const [recentActivity, setRecentActivity] = useState<Task[]>([]);
 
@@ -146,7 +144,7 @@ export const DashboardScreenNew = ({ navigation }: any) => {
         {user?.id && (
           <LifeOverviewCard
             userId={user.id}
-            onDetailsPress={() => setShowHealthQuiz(true)}
+            onDetailsPress={() => navigation?.navigate('HealthQuiz')}
           />
         )}
 
@@ -366,14 +364,6 @@ export const DashboardScreenNew = ({ navigation }: any) => {
 
         <View style={{ height: 40 }} />
       </ScrollView>
-
-      {/* Weekly Health Quiz Modal */}
-      <WeeklyHealthQuiz
-        visible={showHealthQuiz}
-        onClose={() => setShowHealthQuiz(false)}
-        onComplete={() => loadData()}
-        userId={user?.id || ''}
-      />
     </SafeAreaView>
   );
 };
