@@ -19,11 +19,10 @@ import { shadows } from '../../theme/theme';
 import { useAuthStore } from '../../store/authStore';
 import {
   createTask,
-  getTaskLists,
-  getTags,
-  TaskList,
-  Tag,
-} from '../../database/tasks';
+  getUserLists,
+  getUserTags,
+} from '../../services/firebaseTaskService';
+import { TaskList, TaskTag } from '../../types';
 
 const PRIORITIES = [
   { id: 0, label: 'None', icon: '', color: colors.textLight },
@@ -70,8 +69,8 @@ export const CreateTaskScreen = ({ navigation, route }: any) => {
   const [showReminderPicker, setShowReminderPicker] = useState(false);
 
   const [lists, setLists] = useState<TaskList[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [selectedTags, setSelectedTags] = useState<number[]>([]);
+  const [tags, setTags] = useState<TaskTag[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const [showListPicker, setShowListPicker] = useState(false);
   const [showPillarPicker, setShowPillarPicker] = useState(false);
@@ -89,10 +88,10 @@ export const CreateTaskScreen = ({ navigation, route }: any) => {
     if (!user?.id) return;
     try {
       const [listsData, tagsData] = await Promise.all([
-        getTaskLists(user.id),
-        getTags(user.id),
+        getUserLists(user.id),
+        getUserTags(user.id),
       ]);
-      setLists(listsData.filter(l => !l.is_smart_list)); // Only custom lists
+      setLists(listsData);
       setTags(tagsData);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -114,22 +113,29 @@ export const CreateTaskScreen = ({ navigation, route }: any) => {
       console.log('[CreateTask] Calling createTask with data:', {
         userId: user.id,
         title: title.trim(),
-        pillar: selectedPillar,
         priority,
       });
 
+      // Convert priority number to string format for Firebase
+      const priorityMap = {
+        0: 'none',
+        1: 'low',
+        2: 'medium',
+        3: 'high',
+      } as const;
+
       const taskId = await createTask(user.id, {
         title: title.trim(),
-        notes: notes.trim() || undefined,
-        list_id: selectedList || undefined,
-        pillar: selectedPillar || undefined,
-        priority,
-        due_date: hasDueDate ? formatDate(dueDate) : undefined,
-        due_time: hasDueDate && hasDueTime ? formatTime(dueTime) : undefined,
-        reminder_date: hasReminder ? reminderDate.toISOString() : undefined,
-        difficulty,
-        xp_reward: xpReward,
-        tags: selectedTags.length > 0 ? selectedTags : undefined,
+        notes: notes.trim() || '',
+        list_id: selectedList || null,
+        priority: priorityMap[priority as 0 | 1 | 2 | 3],
+        due_date: hasDueDate ? dueDate.toISOString() : undefined,
+        tags: selectedTags.map(tagId => {
+          const tag = tags.find(t => t.id === tagId);
+          return tag?.name || '';
+        }),
+        completed: false,
+        flagged: false,
       });
 
       console.log('[CreateTask] Task created successfully with ID:', taskId);
@@ -169,7 +175,7 @@ export const CreateTaskScreen = ({ navigation, route }: any) => {
     return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   };
 
-  const toggleTag = (tagId: number) => {
+  const toggleTag = (tagId: string) => {
     if (selectedTags.includes(tagId)) {
       setSelectedTags(selectedTags.filter(id => id !== tagId));
     } else {

@@ -1,12 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SQLite from 'expo-sqlite';
 
 const DB_NAME = 'lifequest.db';
 
-let dbInstance: SQLite.SQLiteDatabase | null = null;
-
-// Web implementation using AsyncStorage (which uses IndexedDB)
-// This is a simplified version that stores data as JSON
+// Web implementation - no SQLite, all data goes to Firebase
+// SQLite is only used for native apps (iOS/Android) for offline cache
 
 // Default random action tasks seed data
 const DEFAULT_RANDOM_TASKS = [
@@ -67,179 +64,82 @@ const DEFAULT_RANDOM_TASKS = [
 ];
 
 export const initDatabase = async () => {
-  try {
-    console.log('🔧 Initializing SQLite database for web...');
+  console.log('✅ Database initialized for web (using AsyncStorage/IndexedDB)');
 
-    // Open or create database
-    dbInstance = await SQLite.openDatabaseAsync(DB_NAME);
+  // Initialize empty structures if they don't exist
+  const tables = [
+    'users',
+    'finance_progress',
+    'user_budgets',
+    'budget_categories',
+    'user_debts',
+    'debt_payments',
+    'user_expenses',
+    'daily_tasks',
+    'user_stats',
+    'lesson_progress',
+    'mental_progress',
+    'screen_time_logs',
+    'dopamine_detox_sessions',
+    'morning_routines',
+    'meditation_sessions',
+    'physical_progress',
+    'workout_sessions',
+    'water_intake_logs',
+    'sleep_logs',
+    'meal_plans',
+    'meal_plan_items',
+    'recipes',
+    'random_action_tasks', // Quick Tasks for home screen
+    'achievements',
+    'user_achievements'
+  ];
 
-    console.log('✅ Database instance created for web');
-
-    // Create tables
-    await dbInstance.execAsync(`
-      PRAGMA journal_mode = WAL;
-      PRAGMA foreign_keys = ON;
-
-      -- Tasks table
-      CREATE TABLE IF NOT EXISTS tasks (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        title TEXT NOT NULL,
-        notes TEXT,
-        list_id INTEGER,
-        parent_task_id INTEGER,
-        pillar TEXT CHECK(pillar IN ('finance', 'mental', 'physical', 'nutrition')),
-        priority INTEGER DEFAULT 0 CHECK(priority IN (0, 1, 2, 3)),
-        completed INTEGER DEFAULT 0,
-        due_date TEXT,
-        due_time TEXT,
-        reminder_date TEXT,
-        completed_at TEXT,
-        xp_reward INTEGER DEFAULT 10,
-        difficulty TEXT CHECK(difficulty IN ('easy', 'medium', 'hard')),
-        is_generated INTEGER DEFAULT 0,
-        generation_source TEXT,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (list_id) REFERENCES task_lists(id) ON DELETE SET NULL,
-        FOREIGN KEY (parent_task_id) REFERENCES tasks(id) ON DELETE CASCADE
-      );
-
-      -- Task lists table
-      CREATE TABLE IF NOT EXISTS task_lists (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        name TEXT NOT NULL,
-        icon TEXT,
-        color TEXT,
-        is_smart_list INTEGER DEFAULT 0,
-        smart_filter TEXT,
-        sort_order INTEGER DEFAULT 0,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
-      );
-
-      -- Tags table
-      CREATE TABLE IF NOT EXISTS tags (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        name TEXT NOT NULL,
-        color TEXT,
-        icon TEXT,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP
-      );
-
-      -- Task tags junction table
-      CREATE TABLE IF NOT EXISTS task_tags (
-        task_id INTEGER NOT NULL,
-        tag_id INTEGER NOT NULL,
-        PRIMARY KEY (task_id, tag_id),
-        FOREIGN KEY (task_id) REFERENCES tasks(id) ON DELETE CASCADE,
-        FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
-      );
-
-      -- Random action tasks
-      CREATE TABLE IF NOT EXISTS random_action_tasks (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        pillar TEXT NOT NULL CHECK(pillar IN ('finance', 'mental', 'physical', 'nutrition')),
-        title TEXT NOT NULL,
-        description TEXT,
-        duration_minutes INTEGER DEFAULT 10,
-        xp_reward INTEGER DEFAULT 25,
-        difficulty TEXT CHECK(difficulty IN ('easy', 'medium', 'hard')),
-        action_type TEXT DEFAULT 'instant',
-        icon TEXT,
-        is_active INTEGER DEFAULT 1,
-        weight INTEGER DEFAULT 1
-      );
-
-      -- Daily tasks (legacy, for backward compatibility)
-      CREATE TABLE IF NOT EXISTS daily_tasks (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
-        title TEXT NOT NULL,
-        description TEXT,
-        pillar TEXT,
-        task_date TEXT,
-        xp_reward INTEGER DEFAULT 10,
-        completed INTEGER DEFAULT 0,
-        created_at TEXT DEFAULT CURRENT_TIMESTAMP
-      );
-
-      -- Create indices
-      CREATE INDEX IF NOT EXISTS idx_tasks_user_id ON tasks(user_id);
-      CREATE INDEX IF NOT EXISTS idx_tasks_completed ON tasks(completed);
-      CREATE INDEX IF NOT EXISTS idx_tasks_due_date ON tasks(due_date);
-      CREATE INDEX IF NOT EXISTS idx_tasks_pillar ON tasks(pillar);
-      CREATE INDEX IF NOT EXISTS idx_task_lists_user_id ON task_lists(user_id);
-      CREATE INDEX IF NOT EXISTS idx_tags_user_id ON tags(user_id);
-      CREATE INDEX IF NOT EXISTS idx_daily_tasks_user_id ON daily_tasks(user_id);
-    `);
-
-    console.log('✅ Database tables created for web');
-
-    // Seed random_action_tasks if empty
-    const randomTasksCount = await dbInstance.getFirstAsync<{ count: number }>(
-      'SELECT COUNT(*) as count FROM random_action_tasks'
-    );
-
-    if (!randomTasksCount || randomTasksCount.count === 0) {
-      console.log('🌱 Seeding random action tasks...');
-      for (const task of DEFAULT_RANDOM_TASKS) {
-        await dbInstance.runAsync(
-          `INSERT INTO random_action_tasks (id, pillar, title, description, duration_minutes, xp_reward, difficulty, action_type, icon, is_active, weight)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [task.id, task.pillar, task.title, task.description, task.duration_minutes, task.xp_reward, task.difficulty, task.action_type, task.icon, task.is_active, task.weight]
-        );
-      }
-      console.log('✅ Seeded 50 default random action tasks for web');
+  for (const table of tables) {
+    const existing = await AsyncStorage.getItem(`${DB_NAME}:${table}`);
+    if (!existing) {
+      await AsyncStorage.setItem(`${DB_NAME}:${table}`, JSON.stringify([]));
     }
-
-    console.log('✅ Database initialized for web (using expo-sqlite with sql.js)');
-    return dbInstance;
-  } catch (error) {
-    console.error('❌ Error initializing database for web:', error);
-    throw error;
   }
+
+  // Seed random_action_tasks if empty
+  const randomTasksData = await AsyncStorage.getItem(`${DB_NAME}:random_action_tasks`);
+  const randomTasks = randomTasksData ? JSON.parse(randomTasksData) : [];
+  if (randomTasks.length === 0) {
+    await AsyncStorage.setItem(`${DB_NAME}:random_action_tasks`, JSON.stringify(DEFAULT_RANDOM_TASKS));
+    console.log('✅ Seeded 50 default random action tasks for web');
+  }
+
+  return null; // Web doesn't return a db instance - uses Firebase instead
 };
 
 export const getDatabase = async () => {
-  if (!dbInstance) {
-    console.log('⚠️ Database not initialized, initializing now...');
-    await initDatabase();
-  }
-  return dbInstance;
+  return null; // Web doesn't use SQLite - all data goes through Firebase
 };
 
 export const resetDatabase = async () => {
-  try {
-    const db = await getDatabase();
-    if (!db) {
-      console.error('❌ Cannot reset database: db is null');
-      return;
-    }
+  const tables = [
+    'users',
+    'finance_progress',
+    'user_budgets',
+    'budget_categories',
+    'user_debts',
+    'debt_payments',
+    'user_expenses',
+    'daily_tasks',
+    'user_stats',
+    'lesson_progress',
+    'mental_progress',
+    'screen_time_logs',
+    'dopamine_detox_sessions',
+    'morning_routines',
+    'meditation_sessions'
+  ];
 
-    // Delete all data from tables
-    await db.execAsync(`
-      DELETE FROM task_tags;
-      DELETE FROM tasks;
-      DELETE FROM tags;
-      DELETE FROM task_lists;
-      DELETE FROM random_action_tasks;
-    `);
-
-    // Re-seed random action tasks
-    for (const task of DEFAULT_RANDOM_TASKS) {
-      await db.runAsync(
-        `INSERT INTO random_action_tasks (id, pillar, title, description, duration_minutes, xp_reward, difficulty, action_type, icon, is_active, weight)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [task.id, task.pillar, task.title, task.description, task.duration_minutes, task.xp_reward, task.difficulty, task.action_type, task.icon, task.is_active, task.weight]
-      );
-    }
-
-    console.log('✅ Database reset complete (web)');
-  } catch (error) {
-    console.error('❌ Error resetting database:', error);
-    throw error;
+  for (const table of tables) {
+    await AsyncStorage.removeItem(`${DB_NAME}:${table}`);
+    await AsyncStorage.setItem(`${DB_NAME}:${table}`, JSON.stringify([]));
   }
+
+  console.log('✅ Database reset complete (web)');
 };
