@@ -131,3 +131,40 @@ export interface NutritionData {
   caloriesConsumed?: number;
   calorieGoal?: number;
 }
+
+// ============================================================================
+// USER TASKS (Apple Reminders style)
+// ============================================================================
+
+export interface UserTask {
+  id: string;
+  user_id: string;
+  title: string;
+  notes?: string;
+  completed: boolean;
+  completed_at?: string;
+  due_date?: string;
+  priority: 'none' | 'low' | 'medium' | 'high';
+  tags: string[]; // Array of tag names
+  list_id: string | null;
+  flagged: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TaskTag {
+  id: string;
+  user_id: string;
+  name: string;
+  color: string;
+  created_at: string;
+}
+
+export interface TaskList {
+  id: string;
+  user_id: string;
+  name: string;
+  color: string;
+  icon: string;
+  created_at: string;
+}
