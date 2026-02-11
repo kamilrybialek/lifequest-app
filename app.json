@@ -2,15 +2,15 @@
   "expo": {
     "name": "LifeQuest",
     "slug": "LifeQuest",
-    "version": "1.0.0",
+    "version": "3.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#0F1123"
     },
     "ios": {
       "supportsTablet": true
@@ -18,7 +18,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0F1123"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
@@ -27,12 +27,12 @@
       "favicon": "./assets/favicon.png",
       "name": "LifeQuest - Personal Growth",
       "shortName": "LifeQuest",
-      "description": "4 Pillars. One Journey. Better You. Track Finance, Mental, Physical Health, and Nutrition.",
+      "description": "Your Life Hub. Streak-powered personal growth with AI coaching, leagues, and season challenges.",
       "lang": "en",
       "scope": "/",
       "startUrl": "/",
-      "backgroundColor": "#FFFFFF",
-      "themeColor": "#58CC02",
+      "backgroundColor": "#0F1123",
+      "themeColor": "#0F1123",
       "display": "standalone",
       "orientation": "portrait",
       "bundler": "metro",
@@ -45,7 +45,7 @@
         "mobile-web-app-capable": "yes"
       },
       "splash": {
-        "backgroundColor": "#FFFFFF",
+        "backgroundColor": "#0F1123",
         "resizeMode": "contain",
         "image": "./assets/splash-icon.png"
       }

@@ -52,6 +52,10 @@ import { NetWorthCalculatorScreen } from '../screens/finance/NetWorthCalculatorS
 // Goals screen
 import { GoalsScreen } from '../screens/goals/GoalsScreen';
 
+// LifeQuest 3.0 screens
+import { LeagueScreen } from '../screens/League/LeagueScreen.web';
+import { ToolsScreen } from '../screens/Tools/ToolsScreen.web';
+
 import { useAuthStore } from '../store/authStore';
 
 const Stack = createNativeStackNavigator();
@@ -141,6 +145,10 @@ export const AppNavigator = () => {
 
             {/* Goals screen */}
             <Stack.Screen name="GoalsScreen" component={GoalsScreen} />
+
+            {/* LifeQuest 3.0 screens */}
+            <Stack.Screen name="League" component={LeagueScreen} />
+            <Stack.Screen name="ToolsHub" component={ToolsScreen} />
           </>
         )}
       </Stack.Navigator>
