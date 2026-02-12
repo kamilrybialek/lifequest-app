@@ -1,6 +1,6 @@
 /**
- * Journey Screen - TimeBloc Design (Native Version)
- * Soft, premium, minimal design language
+ * LifeQuest 3.0 - Journey/Paths Screen (Native)
+ * Dark theme, streak-centric design
  */
 
 import React from 'react';
@@ -10,25 +10,21 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { timeblocColors, timeblocShadows, timeblocSpacing, timeblocBorderRadius, timeblocTypography } from '../../theme/timeblocTheme';
+import { lq3, lq3Gradients, lq3Type, lq3Space, lq3Radius, lq3Shadow, PILLAR_CONFIG } from '../../theme/lifequest3';
 import { useAppStore } from '../../store/appStore';
 import { useAuthStore } from '../../store/authStore';
 import { Pillar } from '../../types';
-
-const { width } = Dimensions.get('window');
 
 interface PathCard {
   pillar: Pillar;
   title: string;
   subtitle: string;
-  icon: string;
   emoji: string;
-  color: string;
+  gradient: string[];
   lessons: number;
   completed: number;
 }
@@ -38,9 +34,8 @@ const PATHS: PathCard[] = [
     pillar: 'finance',
     title: 'Financial Freedom',
     subtitle: '10 Steps to Wealth',
-    icon: 'cash',
     emoji: '💰',
-    color: '#FF9F66', // TimeBloc finance color
+    gradient: lq3Gradients.finance as string[],
     lessons: 47,
     completed: 0,
   },
@@ -48,9 +43,8 @@ const PATHS: PathCard[] = [
     pillar: 'mental',
     title: 'Mental Mastery',
     subtitle: 'Build Unbreakable Focus',
-    icon: 'bulb',
     emoji: '🧠',
-    color: '#6FBAFF', // TimeBloc mental color
+    gradient: lq3Gradients.mental as string[],
     lessons: 35,
     completed: 0,
   },
@@ -58,9 +52,8 @@ const PATHS: PathCard[] = [
     pillar: 'physical',
     title: 'Physical Excellence',
     subtitle: 'Transform Your Body',
-    icon: 'fitness',
     emoji: '💪',
-    color: '#FF8E9E', // TimeBloc physical color
+    gradient: lq3Gradients.physical as string[],
     lessons: 40,
     completed: 0,
   },
@@ -68,9 +61,8 @@ const PATHS: PathCard[] = [
     pillar: 'nutrition',
     title: 'Nutrition Mastery',
     subtitle: 'Fuel Like a Champion',
-    icon: 'restaurant',
     emoji: '🥗',
-    color: '#A0D995', // TimeBloc nutrition color
+    gradient: lq3Gradients.nutrition as string[],
     lessons: 30,
     completed: 0,
   },
@@ -93,49 +85,43 @@ export const JourneyScreen = ({ navigation }: any) => {
 
   const totalXP = progress?.xp || 0;
   const level = progress?.level || 1;
+  const bestStreak = Math.max(...(progress?.streaks?.map(s => s.current) || [0]), 0);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header - Soft Purple Gradient */}
-        <LinearGradient
-          colors={['#7C6FE8', '#9F8EFF']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.header}
-        >
-          <Text style={styles.headerEmoji}>🧭</Text>
-          <Text style={styles.headerTitle}>Your Journey</Text>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Your Paths</Text>
           <Text style={styles.headerSubtitle}>Choose your path, {firstName}!</Text>
-        </LinearGradient>
+        </View>
 
-        {/* Stats Bar */}
-        <View style={styles.statsBar}>
-          <View style={styles.statItem}>
-            <Ionicons name="trophy" size={20} color="#FFD700" />
+        {/* Stats Row */}
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Ionicons name="star" size={18} color={lq3.xp} />
             <Text style={styles.statValue}>{totalXP}</Text>
             <Text style={styles.statLabel}>XP</Text>
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Ionicons name="star" size={20} color={timeblocColors.primary} />
+          <View style={styles.statCard}>
+            <Ionicons name="shield" size={18} color={lq3.accent} />
             <Text style={styles.statValue}>{level}</Text>
             <Text style={styles.statLabel}>Level</Text>
           </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Ionicons name="flame" size={20} color="#FF6B6B" />
-            <Text style={styles.statValue}>{progress?.streaks?.[0]?.current || 0}</Text>
+          <View style={styles.statCard}>
+            <Ionicons name="flame" size={18} color={lq3.streakOrange} />
+            <Text style={styles.statValue}>{bestStreak}</Text>
             <Text style={styles.statLabel}>Streak</Text>
           </View>
         </View>
 
         {/* Path Cards */}
         <View style={styles.pathsContainer}>
-          <Text style={styles.sectionTitle}>🎯 Learning Paths</Text>
+          <Text style={styles.sectionLabel}>LEARNING PATHS</Text>
 
-          {PATHS.map((path, index) => {
-            const progressPercent = (path.completed / path.lessons) * 100;
+          {PATHS.map((path) => {
+            const pillarConfig = PILLAR_CONFIG[path.pillar];
+            const progressPercent = path.lessons > 0 ? (path.completed / path.lessons) * 100 : 0;
 
             return (
               <TouchableOpacity
@@ -145,7 +131,7 @@ export const JourneyScreen = ({ navigation }: any) => {
                 activeOpacity={0.8}
               >
                 <LinearGradient
-                  colors={[path.color, path.color + 'E6']}
+                  colors={path.gradient as any}
                   start={{ x: 0, y: 0 }}
                   end={{ x: 1, y: 1 }}
                   style={styles.pathCardGradient}
@@ -159,7 +145,6 @@ export const JourneyScreen = ({ navigation }: any) => {
                       <Text style={styles.pathTitle}>{path.title}</Text>
                       <Text style={styles.pathSubtitle}>{path.subtitle}</Text>
 
-                      {/* Progress Bar */}
                       <View style={styles.progressContainer}>
                         <View style={styles.progressBar}>
                           <View
@@ -183,13 +168,13 @@ export const JourneyScreen = ({ navigation }: any) => {
           })}
         </View>
 
-        {/* Motivation Card */}
-        <View style={styles.motivationCard}>
-          <Text style={styles.motivationEmoji}>🚀</Text>
-          <Text style={styles.motivationTitle}>Keep Going!</Text>
-          <Text style={styles.motivationText}>
-            Every lesson brings you closer to mastery.{'\n'}
-            Small steps lead to big transformations!
+        {/* Quick Start */}
+        <View style={styles.quickStartCard}>
+          <Text style={styles.quickStartEmoji}>🚀</Text>
+          <Text style={styles.quickStartTitle}>Quick Start</Text>
+          <Text style={styles.quickStartText}>
+            Pick any path and complete your first lesson.{'\n'}
+            Every journey begins with a single step!
           </Text>
         </View>
 
@@ -202,86 +187,82 @@ export const JourneyScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: timeblocColors.background,
+    backgroundColor: lq3.bg,
   },
   header: {
-    paddingTop: 50,
-    paddingBottom: 30,
-    paddingHorizontal: timeblocSpacing.xl,
-    alignItems: 'center',
-  },
-  headerEmoji: {
-    fontSize: 48,
-    marginBottom: timeblocSpacing.sm,
+    paddingHorizontal: lq3Space.lg,
+    paddingTop: lq3Space.md,
+    paddingBottom: lq3Space.lg,
   },
   headerTitle: {
-    ...timeblocTypography.h1,
-    color: '#FFFFFF',
-    marginBottom: timeblocSpacing.xs,
+    ...lq3Type.h1,
+    color: lq3.text,
   },
   headerSubtitle: {
-    ...timeblocTypography.body,
-    color: 'rgba(255,255,255,0.9)',
+    ...lq3Type.small,
+    color: lq3.textSecondary,
+    marginTop: 4,
   },
-  statsBar: {
+
+  // Stats Row
+  statsRow: {
     flexDirection: 'row',
-    backgroundColor: timeblocColors.surface,
-    marginHorizontal: timeblocSpacing.xl,
-    marginTop: -20,
-    borderRadius: timeblocBorderRadius.lg,
-    padding: timeblocSpacing.lg,
-    justifyContent: 'space-around',
-    alignItems: 'center',
-    ...timeblocShadows.medium,
+    paddingHorizontal: lq3Space.lg,
+    gap: lq3Space.sm,
+    marginBottom: lq3Space.xl,
   },
-  statItem: {
-    alignItems: 'center',
+  statCard: {
     flex: 1,
+    backgroundColor: lq3.bgCard,
+    borderRadius: lq3Radius.md,
+    padding: lq3Space.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: lq3.border,
+    gap: 4,
   },
   statValue: {
-    ...timeblocTypography.h3,
-    marginTop: timeblocSpacing.xs,
+    ...lq3Type.h3,
+    color: lq3.text,
   },
   statLabel: {
-    ...timeblocTypography.small,
+    ...lq3Type.tiny,
+    color: lq3.textSecondary,
   },
-  statDivider: {
-    width: 1,
-    height: 40,
-    backgroundColor: timeblocColors.borderLight,
-  },
+
+  // Paths
   pathsContainer: {
-    padding: timeblocSpacing.xl,
+    paddingHorizontal: lq3Space.lg,
   },
-  sectionTitle: {
-    ...timeblocTypography.h3,
-    marginBottom: timeblocSpacing.lg,
+  sectionLabel: {
+    ...lq3Type.label,
+    marginBottom: lq3Space.lg,
   },
   pathCard: {
-    borderRadius: timeblocBorderRadius.xl,
-    marginBottom: timeblocSpacing.lg,
-    ...timeblocShadows.medium,
+    borderRadius: lq3Radius.lg,
+    marginBottom: lq3Space.md,
     overflow: 'hidden',
+    ...lq3Shadow.md,
   },
   pathCardGradient: {
-    borderRadius: timeblocBorderRadius.xl,
+    borderRadius: lq3Radius.lg,
   },
   pathCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: timeblocSpacing.xl,
+    padding: lq3Space.lg,
   },
   pathIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: timeblocSpacing.lg,
+    marginRight: lq3Space.lg,
   },
   pathEmoji: {
-    fontSize: 32,
+    fontSize: 28,
   },
   pathInfo: {
     flex: 1,
@@ -293,9 +274,9 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   pathSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
-    marginBottom: timeblocSpacing.sm,
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.85)',
+    marginBottom: lq3Space.sm,
   },
   progressContainer: {
     flexDirection: 'row',
@@ -304,39 +285,43 @@ const styles = StyleSheet.create({
   progressBar: {
     flex: 1,
     height: 6,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    borderRadius: timeblocBorderRadius.full,
-    marginRight: timeblocSpacing.sm,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 3,
+    marginRight: lq3Space.sm,
   },
   progressFill: {
     height: '100%',
     backgroundColor: '#FFFFFF',
-    borderRadius: timeblocBorderRadius.full,
+    borderRadius: 3,
   },
   progressText: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.9)',
+    color: 'rgba(255,255,255,0.85)',
     fontWeight: '600',
   },
-  motivationCard: {
-    margin: timeblocSpacing.xl,
-    marginTop: 0,
-    padding: timeblocSpacing.xxl,
-    backgroundColor: timeblocColors.surface,
-    borderRadius: timeblocBorderRadius.xl,
+
+  // Quick Start
+  quickStartCard: {
+    margin: lq3Space.lg,
+    padding: lq3Space.xl,
+    backgroundColor: lq3.bgCard,
+    borderRadius: lq3Radius.lg,
     alignItems: 'center',
-    ...timeblocShadows.soft,
+    borderWidth: 1,
+    borderColor: lq3.border,
   },
-  motivationEmoji: {
-    fontSize: 48,
-    marginBottom: timeblocSpacing.md,
+  quickStartEmoji: {
+    fontSize: 40,
+    marginBottom: lq3Space.md,
   },
-  motivationTitle: {
-    ...timeblocTypography.h3,
-    marginBottom: timeblocSpacing.sm,
+  quickStartTitle: {
+    ...lq3Type.h3,
+    color: lq3.text,
+    marginBottom: lq3Space.sm,
   },
-  motivationText: {
-    ...timeblocTypography.body,
+  quickStartText: {
+    ...lq3Type.small,
+    color: lq3.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
   },

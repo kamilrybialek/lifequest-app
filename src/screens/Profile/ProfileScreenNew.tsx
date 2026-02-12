@@ -1,6 +1,6 @@
 /**
- * Profile Screen - TimeBloc-Inspired Design (Native Version)
- * Soft, premium, minimal design language
+ * LifeQuest 3.0 - Profile Screen (Native)
+ * Dark theme with gamification stats
  */
 
 import React, { useState } from 'react';
@@ -11,7 +11,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
-import { timeblocColors, timeblocShadows, timeblocSpacing, timeblocBorderRadius, timeblocTypography } from '../../theme/timeblocTheme';
+import { lq3, lq3Gradients, lq3Type, lq3Space, lq3Radius, lq3Shadow } from '../../theme/lifequest3';
 import { ConfirmModal } from '../../components/ui/ConfirmModal';
 
 export const ProfileScreenNew = () => {
@@ -39,14 +39,8 @@ export const ProfileScreenNew = () => {
   };
 
   const confirmLogout = () => {
-    console.log('Logging out...');
     setShowLogoutModal(false);
     logout();
-  };
-
-  const handleSettingPress = (setting: string) => {
-    console.log('Setting pressed:', setting);
-    // TODO: Implement settings navigation
   };
 
   const handleResetDatabase = () => {
@@ -56,13 +50,10 @@ export const ProfileScreenNew = () => {
   const confirmResetDatabase = async () => {
     setShowResetModal(false);
     try {
-      console.log('Resetting database...');
       await AsyncStorage.clear();
-      console.log('Database cleared');
       setShowResetSuccessModal(true);
     } catch (error) {
       console.error('Error resetting database:', error);
-      // Could add an error modal here too if needed
     }
   };
 
@@ -72,35 +63,34 @@ export const ProfileScreenNew = () => {
   };
 
   const unlockedAchievements = progress.achievements.filter(a => a.unlocked);
-  const totalAchievements = progress.achievements.length;
   const bestStreak = Math.max(...progress.streaks.map(s => s.longest), 0);
   const currentStreakSum = progress.streaks.reduce((sum, s) => sum + s.current, 0);
-  const xpToNextLevel = (progress.level * 100) - (progress.xp % 100);
   const xpProgress = (progress.xp % 100);
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={lq3.accent}
+          />
         }
       >
-        {/* Header - TimeBloc Style */}
+        {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => {}} style={styles.backButton}>
-            <Ionicons name="chevron-back" size={24} color={timeblocColors.text} />
-          </TouchableOpacity>
           <Text style={styles.headerTitle}>Profile</Text>
-          <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-            <Ionicons name="log-out-outline" size={20} color={timeblocColors.textSecondary} />
+          <TouchableOpacity onPress={handleLogout} style={styles.logoutBtn}>
+            <Ionicons name="log-out-outline" size={20} color={lq3.textSecondary} />
           </TouchableOpacity>
         </View>
 
-        {/* Level Card - Soft Purple Gradient */}
+        {/* Level Card */}
         <View style={styles.levelSection}>
           <LinearGradient
-            colors={['#7C6FE8', '#9F8EFF']}
+            colors={lq3Gradients.xp as any}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.levelCard}
@@ -110,16 +100,12 @@ export const ProfileScreenNew = () => {
                 <Text style={styles.levelNumber}>{progress.level}</Text>
               </View>
               <View style={styles.levelInfo}>
-                <Text style={styles.levelTitle}>Level {progress.level}</Text>
-                <Text style={styles.levelSubtitle}>{xpToNextLevel} XP to next level</Text>
-                {/* Progress Bar */}
+                <Text style={styles.levelTitle}>{firstName}</Text>
+                <Text style={styles.levelSubtitle}>Level {progress.level}</Text>
                 <View style={styles.levelProgressContainer}>
                   <View style={styles.levelProgressBar}>
                     <View
-                      style={[
-                        styles.levelProgressFill,
-                        { width: `${xpProgress}%` }
-                      ]}
+                      style={[styles.levelProgressFill, { width: `${xpProgress}%` }]}
                     />
                   </View>
                   <Text style={styles.levelProgressText}>{xpProgress}%</Text>
@@ -129,7 +115,7 @@ export const ProfileScreenNew = () => {
           </LinearGradient>
         </View>
 
-        {/* Stats Grid - 2x2 */}
+        {/* Stats Grid */}
         <View style={styles.statsSection}>
           <View style={styles.statsRow}>
             <View style={styles.statCard}>
@@ -157,9 +143,9 @@ export const ProfileScreenNew = () => {
           </View>
         </View>
 
-        {/* Achievements Preview - Horizontal Scroll */}
+        {/* Achievements */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Achievements</Text>
+          <Text style={styles.sectionLabel}>ACHIEVEMENTS</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.achievementsScroll}>
             {progress.achievements.slice(0, 5).map((achievement) => (
               <TouchableOpacity
@@ -176,7 +162,7 @@ export const ProfileScreenNew = () => {
                 </Text>
                 {achievement.unlocked && (
                   <View style={styles.achievementCheck}>
-                    <Ionicons name="checkmark-circle" size={16} color={timeblocColors.primary} />
+                    <Ionicons name="checkmark-circle" size={16} color={lq3.accent} />
                   </View>
                 )}
               </TouchableOpacity>
@@ -184,150 +170,117 @@ export const ProfileScreenNew = () => {
           </ScrollView>
         </View>
 
-        {/* Settings Section */}
+        {/* Pillar Streaks */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>PILLAR STREAKS</Text>
+          <View style={styles.pillarStreaksRow}>
+            {progress.streaks.map((streak) => {
+              const pillarKey = streak.pillar as keyof typeof import('../../theme/lifequest3').PILLAR_CONFIG;
+              const color = pillarKey === 'finance' ? lq3.finance
+                : pillarKey === 'mental' ? lq3.mental
+                : pillarKey === 'physical' ? lq3.physical
+                : lq3.nutrition;
+              const emoji = pillarKey === 'finance' ? '💰'
+                : pillarKey === 'mental' ? '🧠'
+                : pillarKey === 'physical' ? '💪'
+                : '🥗';
+
+              return (
+                <View key={streak.pillar} style={styles.pillarStreakCard}>
+                  <Text style={styles.pillarStreakEmoji}>{emoji}</Text>
+                  <Text style={[styles.pillarStreakValue, { color }]}>{streak.current}</Text>
+                  <Text style={styles.pillarStreakLabel}>{streak.pillar}</Text>
+                  <Text style={styles.pillarStreakBest}>Best: {streak.longest}</Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* Settings */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>SETTINGS</Text>
           <View style={styles.settingsCard}>
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={() => handleSettingPress('notifications')}
-            >
-              <View style={styles.settingLeft}>
-                <Text style={styles.settingEmoji}>🔔</Text>
-                <Text style={styles.settingText}>Notifications</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={timeblocColors.textTertiary} />
-            </TouchableOpacity>
-
-            <View style={styles.settingDivider} />
-
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={() => handleSettingPress('account')}
-            >
-              <View style={styles.settingLeft}>
-                <Text style={styles.settingEmoji}>👤</Text>
-                <Text style={styles.settingText}>Account Settings</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={timeblocColors.textTertiary} />
-            </TouchableOpacity>
-
-            <View style={styles.settingDivider} />
-
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={() => handleSettingPress('data')}
-            >
-              <View style={styles.settingLeft}>
-                <Text style={styles.settingEmoji}>📥</Text>
-                <Text style={styles.settingText}>Export Data</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={timeblocColors.textTertiary} />
-            </TouchableOpacity>
-
-            <View style={styles.settingDivider} />
-
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={() => handleSettingPress('privacy')}
-            >
-              <View style={styles.settingLeft}>
-                <Text style={styles.settingEmoji}>🔒</Text>
-                <Text style={styles.settingText}>Privacy & Security</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={timeblocColors.textTertiary} />
-            </TouchableOpacity>
-
-            <View style={styles.settingDivider} />
-
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={() => handleSettingPress('about')}
-            >
-              <View style={styles.settingLeft}>
-                <Text style={styles.settingEmoji}>ℹ️</Text>
-                <Text style={styles.settingText}>About LifeQuest</Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color={timeblocColors.textTertiary} />
-            </TouchableOpacity>
+            {[
+              { emoji: '🔔', label: 'Notifications', key: 'notifications' },
+              { emoji: '👤', label: 'Account Settings', key: 'account' },
+              { emoji: '📥', label: 'Export Data', key: 'data' },
+              { emoji: '🔒', label: 'Privacy & Security', key: 'privacy' },
+              { emoji: 'ℹ️', label: 'About LifeQuest', key: 'about' },
+            ].map((setting, index) => (
+              <React.Fragment key={setting.key}>
+                {index > 0 && <View style={styles.settingDivider} />}
+                <TouchableOpacity style={styles.settingItem}>
+                  <View style={styles.settingLeft}>
+                    <Text style={styles.settingEmoji}>{setting.emoji}</Text>
+                    <Text style={styles.settingText}>{setting.label}</Text>
+                  </View>
+                  <Ionicons name="chevron-forward" size={20} color={lq3.textTertiary} />
+                </TouchableOpacity>
+              </React.Fragment>
+            ))}
           </View>
         </View>
 
         {/* Danger Zone */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>DANGER ZONE</Text>
+          <Text style={[styles.sectionLabel, { color: lq3.error }]}>DANGER ZONE</Text>
           <View style={styles.settingsCard}>
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={handleResetDatabase}
-            >
+            <TouchableOpacity style={styles.settingItem} onPress={handleResetDatabase}>
               <View style={styles.settingLeft}>
                 <Text style={styles.settingEmoji}>🗑️</Text>
-                <Text style={[styles.settingText, { color: timeblocColors.error }]}>Reset Database</Text>
+                <Text style={[styles.settingText, { color: lq3.error }]}>Reset Database</Text>
               </View>
-              <Ionicons name="warning-outline" size={20} color={timeblocColors.error} />
+              <Ionicons name="warning-outline" size={20} color={lq3.error} />
             </TouchableOpacity>
 
             <View style={styles.settingDivider} />
 
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={handleLogout}
-            >
+            <TouchableOpacity style={styles.settingItem} onPress={handleLogout}>
               <View style={styles.settingLeft}>
                 <Text style={styles.settingEmoji}>🚪</Text>
-                <Text style={[styles.settingText, { color: timeblocColors.error }]}>Logout</Text>
+                <Text style={[styles.settingText, { color: lq3.error }]}>Logout</Text>
               </View>
-              <Ionicons name="chevron-forward" size={20} color={timeblocColors.error} />
+              <Ionicons name="chevron-forward" size={20} color={lq3.error} />
             </TouchableOpacity>
           </View>
         </View>
 
+        {/* App version */}
+        <Text style={styles.versionText}>LifeQuest v3.0.0</Text>
+
         <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* Logout Confirmation Modal */}
       <ConfirmModal
         visible={showLogoutModal}
         title="Logout"
         message="Are you sure you want to logout?"
         confirmText="Logout"
         cancelText="Cancel"
-        confirmColor={timeblocColors.error}
+        confirmColor={lq3.error}
         onConfirm={confirmLogout}
         onCancel={() => setShowLogoutModal(false)}
       />
 
-      {/* Reset Database Confirmation Modal */}
       <ConfirmModal
         visible={showResetModal}
         title="⚠️ RESET DATABASE"
-        message="This will delete ALL your data including:
-- Onboarding data
-- Tasks and progress
-- Achievements and streaks
-- User authentication
-
-This action CANNOT be undone!
-
-Are you absolutely sure?"
+        message={`This will delete ALL your data including:\n- Onboarding data\n- Tasks and progress\n- Achievements and streaks\n- User authentication\n\nThis action CANNOT be undone!\n\nAre you absolutely sure?`}
         confirmText="Reset"
         cancelText="Cancel"
-        confirmColor={timeblocColors.error}
+        confirmColor={lq3.error}
         onConfirm={confirmResetDatabase}
         onCancel={() => setShowResetModal(false)}
       />
 
-      {/* Reset Success Modal */}
       <ConfirmModal
         visible={showResetSuccessModal}
         title="✅ Success"
-        message="Database has been reset successfully!
-
-Please restart the app."
+        message="Database has been reset successfully!\n\nPlease restart the app."
         confirmText="OK"
         cancelText="Cancel"
-        confirmColor={timeblocColors.primary}
+        confirmColor={lq3.accent}
         onConfirm={handleResetSuccess}
         onCancel={handleResetSuccess}
       />
@@ -338,59 +291,54 @@ Please restart the app."
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: timeblocColors.background,
+    backgroundColor: lq3.bg,
   },
   // Header
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: timeblocSpacing.xl,
-    paddingVertical: timeblocSpacing.lg,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: timeblocColors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...timeblocShadows.soft,
+    paddingHorizontal: lq3Space.lg,
+    paddingTop: lq3Space.md,
+    paddingBottom: lq3Space.md,
   },
   headerTitle: {
-    ...timeblocTypography.h2,
+    ...lq3Type.h1,
+    color: lq3.text,
   },
-  logoutButton: {
+  logoutBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: timeblocColors.surface,
+    backgroundColor: lq3.bgCard,
     justifyContent: 'center',
     alignItems: 'center',
-    ...timeblocShadows.soft,
+    borderWidth: 1,
+    borderColor: lq3.border,
   },
+
   // Level Card
   levelSection: {
-    paddingHorizontal: timeblocSpacing.xl,
-    marginTop: timeblocSpacing.lg,
+    paddingHorizontal: lq3Space.lg,
+    marginBottom: lq3Space.xl,
   },
   levelCard: {
-    borderRadius: timeblocBorderRadius.xl,
-    ...timeblocShadows.medium,
+    borderRadius: lq3Radius.xl,
+    ...lq3Shadow.md,
   },
   levelCardContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: timeblocSpacing.xxl,
+    padding: lq3Space.xl,
   },
   levelIconContainer: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: timeblocSpacing.lg,
+    marginRight: lq3Space.lg,
   },
   levelNumber: {
     fontSize: 28,
@@ -408,8 +356,8 @@ const styles = StyleSheet.create({
   },
   levelSubtitle: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
-    marginBottom: timeblocSpacing.sm,
+    color: 'rgba(255,255,255,0.85)',
+    marginBottom: lq3Space.sm,
   },
   levelProgressContainer: {
     flexDirection: 'row',
@@ -418,118 +366,165 @@ const styles = StyleSheet.create({
   levelProgressBar: {
     flex: 1,
     height: 6,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    borderRadius: timeblocBorderRadius.full,
-    marginRight: timeblocSpacing.sm,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: 3,
+    marginRight: lq3Space.sm,
   },
   levelProgressFill: {
     height: '100%',
     backgroundColor: '#FFFFFF',
-    borderRadius: timeblocBorderRadius.full,
+    borderRadius: 3,
   },
   levelProgressText: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.9)',
+    color: 'rgba(255,255,255,0.85)',
     fontWeight: '600',
   },
+
   // Stats Grid
   statsSection: {
-    paddingHorizontal: timeblocSpacing.xl,
-    marginTop: timeblocSpacing.xxl,
+    paddingHorizontal: lq3Space.lg,
+    marginBottom: lq3Space.lg,
   },
   statsRow: {
     flexDirection: 'row',
-    gap: timeblocSpacing.md,
-    marginBottom: timeblocSpacing.md,
+    gap: lq3Space.sm,
+    marginBottom: lq3Space.sm,
   },
   statCard: {
     flex: 1,
-    backgroundColor: timeblocColors.surface,
-    borderRadius: timeblocBorderRadius.lg,
-    padding: timeblocSpacing.lg,
+    backgroundColor: lq3.bgCard,
+    borderRadius: lq3Radius.md,
+    padding: lq3Space.lg,
     alignItems: 'center',
-    ...timeblocShadows.soft,
+    borderWidth: 1,
+    borderColor: lq3.border,
   },
   statIcon: {
-    fontSize: 32,
-    marginBottom: timeblocSpacing.sm,
+    fontSize: 28,
+    marginBottom: lq3Space.sm,
   },
   statValue: {
-    ...timeblocTypography.h2,
-    marginBottom: timeblocSpacing.xs,
+    ...lq3Type.h2,
+    color: lq3.text,
+    marginBottom: 2,
   },
   statLabel: {
-    ...timeblocTypography.small,
-    textAlign: 'center',
+    ...lq3Type.tiny,
+    color: lq3.textSecondary,
   },
+
   // Sections
   section: {
-    paddingHorizontal: timeblocSpacing.xl,
-    marginTop: timeblocSpacing.xxl,
-  },
-  sectionTitle: {
-    ...timeblocTypography.h3,
-    marginBottom: timeblocSpacing.md,
+    paddingHorizontal: lq3Space.lg,
+    marginTop: lq3Space.lg,
   },
   sectionLabel: {
-    ...timeblocTypography.label,
-    marginBottom: timeblocSpacing.md,
+    ...lq3Type.label,
+    marginBottom: lq3Space.md,
   },
+
   // Achievements
   achievementsScroll: {
-    marginHorizontal: -timeblocSpacing.xl,
-    paddingHorizontal: timeblocSpacing.xl,
+    marginHorizontal: -lq3Space.lg,
+    paddingHorizontal: lq3Space.lg,
   },
   achievementCard: {
     width: 100,
-    backgroundColor: timeblocColors.surface,
-    borderRadius: timeblocBorderRadius.lg,
-    padding: timeblocSpacing.lg,
-    marginRight: timeblocSpacing.md,
+    backgroundColor: lq3.bgCard,
+    borderRadius: lq3Radius.md,
+    padding: lq3Space.md,
+    marginRight: lq3Space.sm,
     alignItems: 'center',
-    ...timeblocShadows.soft,
+    borderWidth: 1,
+    borderColor: lq3.border,
   },
   achievementIcon: {
-    fontSize: 36,
-    marginBottom: timeblocSpacing.sm,
+    fontSize: 32,
+    marginBottom: lq3Space.sm,
   },
   achievementName: {
-    ...timeblocTypography.tiny,
+    ...lq3Type.tiny,
     textAlign: 'center',
-    color: timeblocColors.text,
+    color: lq3.text,
   },
   achievementCheck: {
     position: 'absolute',
-    top: timeblocSpacing.sm,
-    right: timeblocSpacing.sm,
+    top: lq3Space.xs,
+    right: lq3Space.xs,
   },
+
+  // Pillar Streaks
+  pillarStreaksRow: {
+    flexDirection: 'row',
+    gap: lq3Space.sm,
+  },
+  pillarStreakCard: {
+    flex: 1,
+    backgroundColor: lq3.bgCard,
+    borderRadius: lq3Radius.md,
+    padding: lq3Space.md,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: lq3.border,
+  },
+  pillarStreakEmoji: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
+  pillarStreakValue: {
+    fontSize: 24,
+    fontWeight: '700',
+  },
+  pillarStreakLabel: {
+    ...lq3Type.tiny,
+    color: lq3.textSecondary,
+    textTransform: 'capitalize',
+    marginTop: 2,
+  },
+  pillarStreakBest: {
+    fontSize: 10,
+    color: lq3.textTertiary,
+    marginTop: 2,
+  },
+
   // Settings
   settingsCard: {
-    backgroundColor: timeblocColors.surface,
-    borderRadius: timeblocBorderRadius.lg,
-    ...timeblocShadows.soft,
+    backgroundColor: lq3.bgCard,
+    borderRadius: lq3Radius.md,
+    borderWidth: 1,
+    borderColor: lq3.border,
   },
   settingItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: timeblocSpacing.lg,
-    paddingHorizontal: timeblocSpacing.lg,
+    paddingVertical: lq3Space.lg,
+    paddingHorizontal: lq3Space.lg,
   },
   settingLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: timeblocSpacing.md,
+    gap: lq3Space.md,
   },
   settingEmoji: {
-    fontSize: 24,
+    fontSize: 22,
   },
   settingText: {
-    ...timeblocTypography.body,
+    ...lq3Type.body,
+    color: lq3.text,
   },
   settingDivider: {
     height: 1,
-    backgroundColor: timeblocColors.borderLight,
-    marginLeft: timeblocSpacing.lg + timeblocSpacing.md + 24, // emoji + gap + padding
+    backgroundColor: lq3.border,
+    marginLeft: lq3Space.lg + lq3Space.md + 22,
+  },
+
+  // Version
+  versionText: {
+    ...lq3Type.tiny,
+    color: lq3.textTertiary,
+    textAlign: 'center',
+    marginTop: lq3Space.xl,
   },
 });

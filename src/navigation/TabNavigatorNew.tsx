@@ -2,26 +2,26 @@ import React from 'react';
 import { Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme';
+import { lq3 } from '../theme/lifequest3';
 
-// Import screens - React Native will automatically use .web.tsx on web and .tsx on native
-import { DashboardScreenNew } from '../screens/Dashboard/DashboardScreenNew';
-import { TasksScreen } from '../screens/tasks/TasksScreen';
+// Import LifeQuest 3.0 screens (native)
+import { HomeScreen } from '../screens/Home/HomeScreen';
 import { JourneyScreen } from '../screens/Journey/JourneyScreen';
+import { LeagueScreen } from '../screens/League/LeagueScreen';
+import { ToolsScreen } from '../screens/Tools/ToolsScreen';
 import { ProfileScreenNew } from '../screens/Profile/ProfileScreenNew';
 
 const Tab = createBottomTabNavigator();
 
 /**
- * Journey-Focused Navigation (Duolingo Style)
+ * LifeQuest 3.0 Navigation - NATIVE VERSION
  *
- * 4 Main Tabs:
- * - Dashboard: Daily overview, today's quest, quick stats
- * - Journey: Learning paths (Finance, Mental, Physical, Nutrition)
- * - Tasks: All todos, smart lists, habits
- * - Profile: User stats, achievements, settings
- *
- * Removed: Tools tab (now integrated into Journey paths)
+ * 5 Tabs (Hybrid C+D+E):
+ * - Home: Streak-centric dashboard with daily quests
+ * - Paths: Duolingo-style learning paths
+ * - Arena: League rankings + Season Pass + Weekly Chest
+ * - Tools: All life management tools
+ * - Profile: Stats, achievements, settings
  */
 export const TabNavigatorNew = () => {
   return (
@@ -30,65 +30,57 @@ export const TabNavigatorNew = () => {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: any;
 
-          if (route.name === 'Dashboard') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Journey') {
-            iconName = focused ? 'compass' : 'compass-outline';
-          } else if (route.name === 'Tasks') {
-            iconName = focused ? 'checkbox' : 'checkbox-outline';
+          if (route.name === 'Home') {
+            iconName = focused ? 'flame' : 'flame-outline';
+          } else if (route.name === 'Paths') {
+            iconName = focused ? 'map' : 'map-outline';
+          } else if (route.name === 'Arena') {
+            iconName = focused ? 'trophy' : 'trophy-outline';
+          } else if (route.name === 'Tools') {
+            iconName = focused ? 'grid' : 'grid-outline';
           } else if (route.name === 'ProfileNew') {
             iconName = focused ? 'person' : 'person-outline';
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textLight,
-        tabBarStyle: Platform.OS === 'web'
-          ? {
-              backgroundColor: colors.background,
-              borderTopWidth: 1,
-              borderTopColor: colors.border,
-              minHeight: 100,
-              height: 'auto',
-              paddingBottom: 32,
-              paddingTop: 12,
-            }
-          : {
-              backgroundColor: colors.background,
-              borderTopWidth: 1,
-              borderTopColor: colors.border,
-              paddingTop: 8,
-              paddingBottom: 8,
-              height: 70,
-            },
-        tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: '600',
-          marginTop: 4,
+        tabBarActiveTintColor: lq3.accent,
+        tabBarInactiveTintColor: lq3.textTertiary,
+        tabBarStyle: {
+          backgroundColor: lq3.bgCard,
+          borderTopWidth: 1,
+          borderTopColor: lq3.border,
+          paddingTop: 8,
+          paddingBottom: Platform.OS === 'ios' ? 24 : 8,
+          height: Platform.OS === 'ios' ? 88 : 64,
         },
-        tabBarIconStyle: Platform.OS === 'web'
-          ? {
-              marginTop: 2,
-            }
-          : undefined,
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+          marginTop: 2,
+        },
         headerShown: false,
       })}
     >
       <Tab.Screen
-        name="Dashboard"
-        component={DashboardScreenNew}
+        name="Home"
+        component={HomeScreen}
         options={{ tabBarLabel: 'Home' }}
       />
       <Tab.Screen
-        name="Journey"
+        name="Paths"
         component={JourneyScreen}
-        options={{ tabBarLabel: 'Journey' }}
+        options={{ tabBarLabel: 'Paths' }}
       />
       <Tab.Screen
-        name="Tasks"
-        component={TasksScreen}
-        options={{ tabBarLabel: 'Tasks' }}
+        name="Arena"
+        component={LeagueScreen}
+        options={{ tabBarLabel: 'Arena' }}
+      />
+      <Tab.Screen
+        name="Tools"
+        component={ToolsScreen}
+        options={{ tabBarLabel: 'Tools' }}
       />
       <Tab.Screen
         name="ProfileNew"
