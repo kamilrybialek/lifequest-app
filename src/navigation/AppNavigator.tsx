@@ -4,11 +4,11 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import { TabNavigatorNew } from './TabNavigatorNew';
 
-// Auth screens - these are simple and don't use expo-file-system
+// Auth screens
 import { LoginScreen } from '../screens/auth/LoginScreen';
 import { OnboardingScreen } from '../screens/auth/OnboardingScreen';
 
-// Path screens - web versions
+// Path screens
 import { FinancePathNew } from '../screens/finance/FinancePathNew';
 import { MentalHealthPath } from '../screens/mental/MentalHealthPath';
 import { PhysicalHealthPath } from '../screens/physical/PhysicalHealthPath';
@@ -39,7 +39,7 @@ import { MealLoggerScreen } from '../screens/nutrition/tools/MealLoggerScreen';
 import { WaterTrackerScreen } from '../screens/nutrition/tools/WaterTrackerScreen';
 import { CalorieCalculatorScreen } from '../screens/nutrition/tools/CalorieCalculatorScreen';
 
-// Finance tool screens - ENHANCED VERSIONS
+// Finance tool screens
 import { FinanceDashboardUnified } from '../screens/finance/FinanceDashboardUnified';
 import { EmergencyFundScreen } from '../screens/finance/EmergencyFundScreen';
 import { DebtTrackerScreenEnhanced } from '../screens/finance/DebtTrackerScreenEnhanced';
@@ -56,35 +56,12 @@ import { useAuthStore } from '../store/authStore';
 
 const Stack = createNativeStackNavigator();
 
-// Debug: track AppNavigator renders
-let appNavigatorRenderCount = 0;
-let previousValues = { isAuth: false, isLoading: true, userId: undefined as string | undefined };
-
 export const AppNavigator = () => {
   const { user, isAuthenticated, isLoading } = useAuthStore();
-
-  // Debug: log every render
-  appNavigatorRenderCount++;
-  const changed: string[] = [];
-  if (previousValues.isAuth !== isAuthenticated) changed.push(`isAuth: ${previousValues.isAuth} → ${isAuthenticated}`);
-  if (previousValues.isLoading !== isLoading) changed.push(`isLoading: ${previousValues.isLoading} → ${isLoading}`);
-  if (previousValues.userId !== user?.id) changed.push(`userId: ${previousValues.userId} → ${user?.id}`);
-
-  console.log(`📱 AppNavigator render #${appNavigatorRenderCount}, isAuth: ${isAuthenticated}, isLoading: ${isLoading}, user: ${user?.id}${changed.length > 0 ? ` [CHANGED: ${changed.join(', ')}]` : ' [NO CHANGE!]'}`);
-
-  previousValues = { isAuth: isAuthenticated, isLoading: isLoading, userId: user?.id };
-
-  if (appNavigatorRenderCount > 100) {
-    console.error('🔴 INFINITE RENDER in AppNavigator!');
-    throw new Error('Infinite render loop detected in AppNavigator');
-  }
 
   if (isLoading) {
     return null;
   }
-
-  // TEMPORARY DEBUG: Log before returning JSX
-  console.log(`📱 About to return JSX, branch: ${!isAuthenticated ? 'Login' : !user?.onboarded ? 'Onboarding' : 'Main'}`);
 
   return (
     <NavigationContainer>
@@ -97,8 +74,7 @@ export const AppNavigator = () => {
           <>
             <Stack.Screen name="Main" component={TabNavigatorNew} />
 
-            {/* TEMPORARY: Comment out all other screens for debugging */}
-            {/* Path screens - accessible from Journey */}
+            {/* Path screens - accessible from Paths tab */}
             <Stack.Screen name="FinancePathNew" component={FinancePathNew} />
             <Stack.Screen name="MentalHealthPath" component={MentalHealthPath} />
             <Stack.Screen name="PhysicalHealthPath" component={PhysicalHealthPath} />
@@ -118,7 +94,7 @@ export const AppNavigator = () => {
             <Stack.Screen name="MorningRoutine" component={MorningRoutine} />
             <Stack.Screen name="MeditationTimer" component={MeditationTimer} />
 
-            {/* Physical tool screens - ENHANCED */}
+            {/* Physical tool screens */}
             <Stack.Screen name="WorkoutTrackerScreen" component={WorkoutTrackerScreenEnhanced} />
             <Stack.Screen name="ExerciseLoggerScreen" component={ExerciseLoggerScreen} />
             <Stack.Screen name="SleepTrackerScreen" component={SleepTrackerScreen} />
@@ -129,7 +105,7 @@ export const AppNavigator = () => {
             <Stack.Screen name="WaterTrackerScreen" component={WaterTrackerScreen} />
             <Stack.Screen name="CalorieCalculatorScreen" component={CalorieCalculatorScreen} />
 
-            {/* Finance tool screens - ENHANCED */}
+            {/* Finance tool screens */}
             <Stack.Screen name="FinanceDashboard" component={FinanceDashboardUnified} />
             <Stack.Screen name="EmergencyFundScreen" component={EmergencyFundScreen} />
             <Stack.Screen name="DebtTrackerScreen" component={DebtTrackerScreenEnhanced} />

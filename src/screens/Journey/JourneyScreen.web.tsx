@@ -1,6 +1,6 @@
 /**
- * Journey Screen - TimeBloc Design (Web Version)
- * Soft, premium, minimal design language
+ * LifeQuest 3.0 - PATHS SCREEN (Web Version)
+ * Dark theme, Duolingo-style path cards with progress
  */
 
 import React from 'react';
@@ -10,26 +10,24 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { timeblocColors, timeblocShadows, timeblocSpacing, timeblocBorderRadius, timeblocTypography } from '../../theme/timeblocTheme';
+import { lq3, lq3Gradients, lq3Type, lq3Space, lq3Radius, PILLAR_CONFIG } from '../../theme/lifequest3';
 import { useAppStore } from '../../store/appStore';
 import { useAuthStore } from '../../store/authStore';
 import { Pillar } from '../../types';
-
-const { width } = Dimensions.get('window');
 
 interface PathCard {
   pillar: Pillar;
   title: string;
   subtitle: string;
-  icon: string;
   emoji: string;
+  gradient: string[];
   color: string;
   lessons: number;
   completed: number;
+  tools: string[];
 }
 
 const PATHS: PathCard[] = [
@@ -37,51 +35,54 @@ const PATHS: PathCard[] = [
     pillar: 'finance',
     title: 'Financial Freedom',
     subtitle: '10 Steps to Wealth',
-    icon: 'cash',
     emoji: '💰',
-    color: '#FF9F66', // TimeBloc finance color
+    gradient: lq3Gradients.finance,
+    color: lq3.finance,
     lessons: 47,
     completed: 0,
+    tools: ['Budget', 'Expenses', 'Debt', 'Savings'],
   },
   {
     pillar: 'mental',
     title: 'Mental Mastery',
     subtitle: 'Build Unbreakable Focus',
-    icon: 'bulb',
     emoji: '🧠',
-    color: '#6FBAFF', // TimeBloc mental color
+    gradient: lq3Gradients.mental,
+    color: lq3.mental,
     lessons: 35,
     completed: 0,
+    tools: ['Meditation', 'Detox', 'Routine', 'Screen Time'],
   },
   {
     pillar: 'physical',
     title: 'Physical Excellence',
     subtitle: 'Transform Your Body',
-    icon: 'fitness',
     emoji: '💪',
-    color: '#FF8E9E', // TimeBloc physical color
+    gradient: lq3Gradients.physical,
+    color: lq3.physical,
     lessons: 40,
     completed: 0,
+    tools: ['Workouts', 'Sleep', 'Body Stats', 'Exercise'],
   },
   {
     pillar: 'nutrition',
     title: 'Nutrition Mastery',
     subtitle: 'Fuel Like a Champion',
-    icon: 'restaurant',
     emoji: '🥗',
-    color: '#A0D995', // TimeBloc nutrition color
+    gradient: lq3Gradients.nutrition,
+    color: lq3.nutrition,
     lessons: 30,
     completed: 0,
+    tools: ['Meals', 'Water', 'Calories'],
   },
 ];
 
 export const JourneyScreen = ({ navigation }: any) => {
   const { progress } = useAppStore();
   const { user } = useAuthStore();
-  const firstName = user?.firstName || user?.email?.split('@')[0] || 'Champion';
 
   const handlePathPress = (pillar: Pillar) => {
-    const screenMap = {
+    const screenMap: Record<string, string> = {
       finance: 'FinancePathNew',
       mental: 'MentalHealthPath',
       physical: 'PhysicalHealthPath',
@@ -92,107 +93,96 @@ export const JourneyScreen = ({ navigation }: any) => {
 
   const totalXP = progress?.xp || 0;
   const level = progress?.level || 1;
+  const totalStreak = Math.max(...(progress?.streaks?.map(s => s.current) || [0]));
 
   return (
     <View style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header - Soft Purple Gradient */}
-        <LinearGradient
-          colors={['#7C6FE8', '#9F8EFF']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.header}
-        >
-          <Text style={styles.headerEmoji}>🧭</Text>
-          <Text style={styles.headerTitle}>Your Journey</Text>
-          <Text style={styles.headerSubtitle}>Choose your path, {firstName}!</Text>
-        </LinearGradient>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>Paths</Text>
+          <Text style={styles.headerSubtitle}>Choose your learning path</Text>
+        </View>
 
-        {/* Stats Bar */}
+        {/* Quick Stats */}
         <View style={styles.statsBar}>
           <View style={styles.statItem}>
-            <Ionicons name="trophy" size={20} color="#FFD700" />
+            <Ionicons name="flame" size={18} color={lq3.streakOrange} />
+            <Text style={styles.statValue}>{totalStreak}</Text>
+            <Text style={styles.statLabel}>Streak</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Ionicons name="star" size={18} color={lq3.xp} />
             <Text style={styles.statValue}>{totalXP}</Text>
             <Text style={styles.statLabel}>XP</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Ionicons name="star" size={20} color={timeblocColors.primary} />
+            <Ionicons name="shield-checkmark" size={18} color={lq3.accent} />
             <Text style={styles.statValue}>{level}</Text>
             <Text style={styles.statLabel}>Level</Text>
-          </View>
-          <View style={styles.statDivider} />
-          <View style={styles.statItem}>
-            <Ionicons name="flame" size={20} color="#FF6B6B" />
-            <Text style={styles.statValue}>{progress?.streaks?.[0]?.current || 0}</Text>
-            <Text style={styles.statLabel}>Streak</Text>
           </View>
         </View>
 
         {/* Path Cards */}
-        <View style={styles.pathsContainer}>
-          <Text style={styles.sectionTitle}>🎯 Learning Paths</Text>
+        {PATHS.map((path) => {
+          const progressPercent = path.lessons > 0 ? (path.completed / path.lessons) * 100 : 0;
+          const streak = progress?.streaks?.find(s => s.pillar === path.pillar)?.current || 0;
 
-          {PATHS.map((path, index) => {
-            const progressPercent = (path.completed / path.lessons) * 100;
-
-            return (
-              <TouchableOpacity
-                key={path.pillar}
-                style={styles.pathCard}
-                onPress={() => handlePathPress(path.pillar)}
-                activeOpacity={0.8}
-              >
-                <LinearGradient
-                  colors={[path.color, path.color + 'E6']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={styles.pathCardGradient}
-                >
-                  <View style={styles.pathCardContent}>
-                    <View style={styles.pathIconContainer}>
-                      <Text style={styles.pathEmoji}>{path.emoji}</Text>
-                    </View>
-
-                    <View style={styles.pathInfo}>
-                      <Text style={styles.pathTitle}>{path.title}</Text>
-                      <Text style={styles.pathSubtitle}>{path.subtitle}</Text>
-
-                      {/* Progress Bar */}
-                      <View style={styles.progressContainer}>
-                        <View style={styles.progressBar}>
-                          <View
-                            style={[
-                              styles.progressFill,
-                              { width: `${progressPercent}%` }
-                            ]}
-                          />
-                        </View>
-                        <Text style={styles.progressText}>
-                          {path.completed}/{path.lessons}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <Ionicons name="chevron-forward" size={24} color="rgba(255,255,255,0.8)" />
+          return (
+            <TouchableOpacity
+              key={path.pillar}
+              style={styles.pathCard}
+              onPress={() => handlePathPress(path.pillar)}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.pathCardInner, { borderLeftColor: path.color, borderLeftWidth: 4 }]}>
+                {/* Header row */}
+                <View style={styles.pathHeader}>
+                  <View style={[styles.pathIconContainer, { backgroundColor: path.color + '15' }]}>
+                    <Text style={styles.pathEmoji}>{path.emoji}</Text>
                   </View>
-                </LinearGradient>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+                  <View style={styles.pathInfo}>
+                    <Text style={styles.pathTitle}>{path.title}</Text>
+                    <Text style={styles.pathSubtitle}>{path.subtitle}</Text>
+                  </View>
+                  <View style={styles.pathStreakBadge}>
+                    <Text style={[styles.pathStreakText, { color: path.color }]}>
+                      {streak > 0 ? `🔥 ${streak}` : 'Start'}
+                    </Text>
+                  </View>
+                </View>
 
-        {/* Motivation Card */}
-        <View style={styles.motivationCard}>
-          <Text style={styles.motivationEmoji}>🚀</Text>
-          <Text style={styles.motivationTitle}>Keep Going!</Text>
-          <Text style={styles.motivationText}>
-            Every lesson brings you closer to mastery.{'\n'}
-            Small steps lead to big transformations!
-          </Text>
-        </View>
+                {/* Progress */}
+                <View style={styles.progressContainer}>
+                  <View style={styles.progressBar}>
+                    <LinearGradient
+                      colors={path.gradient as any}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 0 }}
+                      style={[styles.progressFill, { width: `${Math.max(progressPercent, 2)}%` }]}
+                    />
+                  </View>
+                  <Text style={styles.progressText}>
+                    {path.completed}/{path.lessons}
+                  </Text>
+                </View>
 
-        <View style={{ height: 40 }} />
+                {/* Tools pills */}
+                <View style={styles.toolsRow}>
+                  {path.tools.map((tool) => (
+                    <View key={tool} style={[styles.toolPill, { borderColor: path.color + '30' }]}>
+                      <Text style={[styles.toolPillText, { color: path.color }]}>{tool}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+
+        <View style={{ height: 100 }} />
       </ScrollView>
     </View>
   );
@@ -201,142 +191,144 @@ export const JourneyScreen = ({ navigation }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: timeblocColors.background,
+    backgroundColor: lq3.bg,
+  },
+  scrollContent: {
+    paddingHorizontal: lq3Space.lg,
+    paddingTop: lq3Space.lg,
   },
   header: {
-    paddingTop: 50,
-    paddingBottom: 30,
-    paddingHorizontal: timeblocSpacing.xl,
-    alignItems: 'center',
-  },
-  headerEmoji: {
-    fontSize: 48,
-    marginBottom: timeblocSpacing.sm,
+    marginBottom: lq3Space.xl,
   },
   headerTitle: {
-    ...timeblocTypography.h1,
-    color: '#FFFFFF',
-    marginBottom: timeblocSpacing.xs,
+    ...lq3Type.h1,
+    color: lq3.text,
   },
   headerSubtitle: {
-    ...timeblocTypography.body,
-    color: 'rgba(255,255,255,0.9)',
+    ...lq3Type.small,
+    color: lq3.textSecondary,
+    marginTop: 4,
   },
+
+  // Stats Bar
   statsBar: {
     flexDirection: 'row',
-    backgroundColor: timeblocColors.surface,
-    marginHorizontal: timeblocSpacing.xl,
-    marginTop: -20,
-    borderRadius: timeblocBorderRadius.lg,
-    padding: timeblocSpacing.lg,
+    backgroundColor: lq3.bgCard,
+    borderRadius: lq3Radius.lg,
+    padding: lq3Space.lg,
     justifyContent: 'space-around',
     alignItems: 'center',
-    ...timeblocShadows.medium,
+    marginBottom: lq3Space.xl,
+    borderWidth: 1,
+    borderColor: lq3.border,
   },
   statItem: {
     alignItems: 'center',
     flex: 1,
+    gap: 4,
   },
   statValue: {
-    ...timeblocTypography.h3,
-    marginTop: timeblocSpacing.xs,
+    ...lq3Type.h3,
+    color: lq3.text,
   },
   statLabel: {
-    ...timeblocTypography.small,
+    ...lq3Type.tiny,
+    color: lq3.textTertiary,
   },
   statDivider: {
     width: 1,
-    height: 40,
-    backgroundColor: timeblocColors.borderLight,
+    height: 36,
+    backgroundColor: lq3.border,
   },
-  pathsContainer: {
-    padding: timeblocSpacing.xl,
-  },
-  sectionTitle: {
-    ...timeblocTypography.h3,
-    marginBottom: timeblocSpacing.lg,
-  },
+
+  // Path Cards
   pathCard: {
-    borderRadius: timeblocBorderRadius.xl,
-    marginBottom: timeblocSpacing.lg,
-    ...timeblocShadows.medium,
-    overflow: 'hidden',
+    marginBottom: lq3Space.md,
   },
-  pathCardGradient: {
-    borderRadius: timeblocBorderRadius.xl,
+  pathCardInner: {
+    backgroundColor: lq3.bgCard,
+    borderRadius: lq3Radius.lg,
+    padding: lq3Space.lg,
+    borderWidth: 1,
+    borderColor: lq3.border,
   },
-  pathCardContent: {
+  pathHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: timeblocSpacing.xl,
+    marginBottom: lq3Space.md,
   },
   pathIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: timeblocSpacing.lg,
+    marginRight: lq3Space.md,
   },
   pathEmoji: {
-    fontSize: 32,
+    fontSize: 26,
   },
   pathInfo: {
     flex: 1,
   },
   pathTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FFFFFF',
-    marginBottom: 2,
+    ...lq3Type.bodyBold,
+    color: lq3.text,
   },
   pathSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.9)',
-    marginBottom: timeblocSpacing.sm,
+    ...lq3Type.small,
+    color: lq3.textSecondary,
+    marginTop: 2,
   },
+  pathStreakBadge: {
+    paddingHorizontal: lq3Space.md,
+    paddingVertical: lq3Space.xs,
+    borderRadius: lq3Radius.full,
+    backgroundColor: lq3.bgElevated,
+  },
+  pathStreakText: {
+    ...lq3Type.smallBold,
+  },
+
+  // Progress
   progressContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: lq3Space.md,
   },
   progressBar: {
     flex: 1,
-    height: 6,
-    backgroundColor: 'rgba(255,255,255,0.25)',
-    borderRadius: timeblocBorderRadius.full,
-    marginRight: timeblocSpacing.sm,
+    height: 8,
+    backgroundColor: lq3.bgElevated,
+    borderRadius: 4,
+    marginRight: lq3Space.md,
+    overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: timeblocBorderRadius.full,
+    borderRadius: 4,
   },
   progressText: {
-    fontSize: 12,
-    color: 'rgba(255,255,255,0.9)',
+    ...lq3Type.tiny,
+    color: lq3.textSecondary,
+    minWidth: 40,
+    textAlign: 'right',
+  },
+
+  // Tools row
+  toolsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: lq3Space.xs,
+  },
+  toolPill: {
+    paddingHorizontal: lq3Space.sm,
+    paddingVertical: 3,
+    borderRadius: lq3Radius.full,
+    borderWidth: 1,
+  },
+  toolPillText: {
+    fontSize: 11,
     fontWeight: '600',
-  },
-  motivationCard: {
-    margin: timeblocSpacing.xl,
-    marginTop: 0,
-    padding: timeblocSpacing.xxl,
-    backgroundColor: timeblocColors.surface,
-    borderRadius: timeblocBorderRadius.xl,
-    alignItems: 'center',
-    ...timeblocShadows.soft,
-  },
-  motivationEmoji: {
-    fontSize: 48,
-    marginBottom: timeblocSpacing.md,
-  },
-  motivationTitle: {
-    ...timeblocTypography.h3,
-    marginBottom: timeblocSpacing.sm,
-  },
-  motivationText: {
-    ...timeblocTypography.body,
-    textAlign: 'center',
-    lineHeight: 22,
   },
 });

@@ -1,25 +1,26 @@
 import React from 'react';
-import { Platform } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../theme';
+import { lq3 } from '../theme/lifequest3';
 
-// Import WEB versions of screens
-import { DashboardScreenNew } from '../screens/Dashboard/DashboardScreenNew.web';
-import { TasksScreen } from '../screens/tasks/TasksScreen.web';
+// Import LifeQuest 3.0 screens (web)
+import { HomeScreen } from '../screens/Home/HomeScreen.web';
 import { JourneyScreen } from '../screens/Journey/JourneyScreen.web';
+import { LeagueScreen } from '../screens/League/LeagueScreen.web';
+import { ToolsScreen } from '../screens/Tools/ToolsScreen.web';
 import { ProfileScreenNew } from '../screens/Profile/ProfileScreenNew.web';
 
 const Tab = createBottomTabNavigator();
 
 /**
- * Journey-Focused Navigation - WEB VERSION
+ * LifeQuest 3.0 Navigation - WEB VERSION
  *
- * 4 Main Tabs (Duolingo Style):
- * - Home: Daily overview
- * - Journey: Learning paths
- * - Tasks: Todo management
- * - Profile: Stats & settings
+ * 5 Tabs (Hybrid C+D+E):
+ * - Home: Streak-centric dashboard with daily quests
+ * - Paths: Duolingo-style learning paths
+ * - Arena: League rankings + Season Pass + Weekly Chest
+ * - Tools: All life management tools
+ * - Profile: Stats, achievements, settings
  */
 export const TabNavigatorNew = () => {
   return (
@@ -28,33 +29,35 @@ export const TabNavigatorNew = () => {
         tabBarIcon: ({ focused, color, size }) => {
           let iconName: any;
 
-          if (route.name === 'Dashboard') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Journey') {
-            iconName = focused ? 'compass' : 'compass-outline';
-          } else if (route.name === 'Tasks') {
-            iconName = focused ? 'checkbox' : 'checkbox-outline';
+          if (route.name === 'Home') {
+            iconName = focused ? 'flame' : 'flame-outline';
+          } else if (route.name === 'Paths') {
+            iconName = focused ? 'map' : 'map-outline';
+          } else if (route.name === 'Arena') {
+            iconName = focused ? 'trophy' : 'trophy-outline';
+          } else if (route.name === 'Tools') {
+            iconName = focused ? 'grid' : 'grid-outline';
           } else if (route.name === 'ProfileNew') {
             iconName = focused ? 'person' : 'person-outline';
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        tabBarActiveTintColor: colors.primary,
-        tabBarInactiveTintColor: colors.textLight,
+        tabBarActiveTintColor: lq3.accent,
+        tabBarInactiveTintColor: lq3.textTertiary,
         tabBarStyle: {
-          backgroundColor: colors.background,
+          backgroundColor: lq3.bgCard,
           borderTopWidth: 1,
-          borderTopColor: colors.border,
-          minHeight: 100,
+          borderTopColor: lq3.border,
+          minHeight: 80,
           height: 'auto',
-          paddingBottom: 32,
-          paddingTop: 12,
+          paddingBottom: 24,
+          paddingTop: 10,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: '600',
-          marginTop: 4,
+          marginTop: 2,
         },
         tabBarIconStyle: {
           marginTop: 2,
@@ -63,19 +66,24 @@ export const TabNavigatorNew = () => {
       })}
     >
       <Tab.Screen
-        name="Dashboard"
-        component={DashboardScreenNew}
+        name="Home"
+        component={HomeScreen}
         options={{ tabBarLabel: 'Home' }}
       />
       <Tab.Screen
-        name="Journey"
+        name="Paths"
         component={JourneyScreen}
-        options={{ tabBarLabel: 'Journey' }}
+        options={{ tabBarLabel: 'Paths' }}
       />
       <Tab.Screen
-        name="Tasks"
-        component={TasksScreen}
-        options={{ tabBarLabel: 'Tasks' }}
+        name="Arena"
+        component={LeagueScreen}
+        options={{ tabBarLabel: 'Arena' }}
+      />
+      <Tab.Screen
+        name="Tools"
+        component={ToolsScreen}
+        options={{ tabBarLabel: 'Tools' }}
       />
       <Tab.Screen
         name="ProfileNew"
