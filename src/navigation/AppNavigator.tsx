@@ -1,125 +1,283 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
+/**
+ * LifeQuest V4 - App Navigator (Scandinavian + Hinge Redesign)
+ * Bottom tabs + Stack navigation
+ * Light theme tab bar, clean icons
+ */
+
+import React, { createContext, useContext } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { theme } from '../theme/theme.v4';
 
-import { TabNavigatorNew } from './TabNavigatorNew';
+// Tab Screens
+import { HomeScreen } from '../screens/Home/HomeScreen';
+import { PathsScreen } from '../screens/Paths/PathsScreen';
+import { ToolsScreen } from '../screens/Tools/ToolsScreen';
+import { LeagueScreen } from '../screens/League/LeagueScreen';
+import { ProfileScreen } from '../screens/Profile/ProfileScreen';
 
-// Auth screens
-import { LoginScreen } from '../screens/auth/LoginScreen';
-import { OnboardingScreen } from '../screens/auth/OnboardingScreen';
+// Stack Screens
+import { LessonScreen } from '../screens/Paths/LessonScreen';
+import { ToolDetailScreen } from '../screens/Tools/ToolDetailScreen';
+import { DietPlannerScreen } from '../screens/Tools/DietPlannerScreen';
+import { AdminScreen } from '../screens/Admin/AdminScreen';
 
-// Path screens
-import { FinancePathNew } from '../screens/finance/FinancePathNew';
-import { MentalHealthPath } from '../screens/mental/MentalHealthPath';
-import { PhysicalHealthPath } from '../screens/physical/PhysicalHealthPath';
-import { NutritionPath } from '../screens/nutrition/NutritionPath';
-
-// Lesson screens
-import { MentalLessonIntro } from '../screens/mental/MentalLessonIntro';
-import { MentalLessonContent } from '../screens/mental/MentalLessonContent';
-import { PhysicalLessonIntro } from '../screens/physical/PhysicalLessonIntro';
-import { PhysicalLessonContent } from '../screens/physical/PhysicalLessonContent';
-import { NutritionLessonIntro } from '../screens/nutrition/NutritionLessonIntro';
-import { NutritionLessonContent } from '../screens/nutrition/NutritionLessonContent';
-
-// Mental tool screens
-import { DopamineDetox } from '../screens/mental/tools/DopamineDetox';
-import { ScreenTimeTracker } from '../screens/mental/tools/ScreenTimeTracker';
-import { MorningRoutine } from '../screens/mental/tools/MorningRoutine';
-import { MeditationTimer } from '../screens/mental/tools/MeditationTimer';
-
-// Physical tool screens
-import { WorkoutTrackerScreenEnhanced } from '../screens/physical/tools/WorkoutTrackerScreenEnhanced';
-import { ExerciseLoggerScreen } from '../screens/physical/tools/ExerciseLoggerScreen';
-import { SleepTrackerScreen } from '../screens/physical/tools/SleepTrackerScreen';
-import { BodyMeasurementsScreen } from '../screens/physical/tools/BodyMeasurementsScreen';
-
-// Nutrition tool screens
-import { MealLoggerScreen } from '../screens/nutrition/tools/MealLoggerScreen';
-import { WaterTrackerScreen } from '../screens/nutrition/tools/WaterTrackerScreen';
-import { CalorieCalculatorScreen } from '../screens/nutrition/tools/CalorieCalculatorScreen';
-
-// Finance tool screens
-import { FinanceDashboardUnified } from '../screens/finance/FinanceDashboardUnified';
-import { EmergencyFundScreen } from '../screens/finance/EmergencyFundScreen';
-import { DebtTrackerScreenEnhanced } from '../screens/finance/DebtTrackerScreenEnhanced';
+// Finance Tool Screens
+import { BudgetManagerScreen } from '../screens/finance/BudgetManagerScreen';
 import { ExpenseLoggerScreen } from '../screens/finance/ExpenseLoggerScreen';
-import { BudgetManagerScreenEnhanced } from '../screens/finance/BudgetManagerScreenEnhanced';
-import { SubscriptionsScreen } from '../screens/finance/SubscriptionsScreen';
 import { SavingsGoalsScreen } from '../screens/finance/SavingsGoalsScreen';
+import { DebtTrackerScreen } from '../screens/finance/DebtTrackerScreen';
 import { NetWorthCalculatorScreen } from '../screens/finance/NetWorthCalculatorScreen';
+import { EmergencyFundScreen } from '../screens/finance/EmergencyFundScreen';
 
-// Goals screen
-import { GoalsScreen } from '../screens/goals/GoalsScreen';
+// Task Screens
+import { TasksScreen } from '../screens/tasks/TasksScreen';
+import { TaskDetailScreen } from '../screens/tasks/TaskDetailScreen';
+import { CreateTaskScreen } from '../screens/tasks/CreateTaskScreen';
+import { TaskListScreen } from '../screens/tasks/TaskListScreen';
+import { TaskPlannerScreen } from '../screens/tasks/TaskPlannerScreen';
 
-import { useAuthStore } from '../store/authStore';
+// Context for mode switching
+export const AppModeContext = createContext<{ onSwitchMode?: () => void }>({});
+export const useAppMode = () => useContext(AppModeContext);
 
-const Stack = createNativeStackNavigator();
+// Types
+export type RootTabParamList = {
+  HomeTab: undefined;
+  PathsTab: undefined;
+  ToolsTab: undefined;
+  LeagueTab: undefined;
+  ProfileTab: undefined;
+};
 
-export const AppNavigator = () => {
-  const { user, isAuthenticated, isLoading } = useAuthStore();
+export type RootStackParamList = {
+  MainTabs: undefined;
+  Lesson: {
+    pillar: string;
+    lessonId: string;
+    lessonTitle: string;
+    unitIndex: number;
+    lessonIndex: number;
+  };
+  ToolDetail: {
+    toolId: string;
+    toolTitle: string;
+    pillar: string;
+  };
+  DietPlanner: undefined;
+  Admin: undefined;
+  // Finance tools
+  BudgetManager: undefined;
+  ExpenseLogger: undefined;
+  SavingsGoals: undefined;
+  DebtTracker: undefined;
+  NetWorthCalculator: undefined;
+  EmergencyFund: undefined;
+  // Tasks
+  Tasks: undefined;
+  TaskDetail: { taskId: string };
+  CreateTask: undefined;
+  TaskList: undefined;
+  TaskPlanner: undefined;
+};
 
-  if (isLoading) {
-    return null;
-  }
+const Tab = createBottomTabNavigator<RootTabParamList>();
+const Stack = createNativeStackNavigator<RootStackParamList>();
+
+// Tab icon component - Scandinavian minimal
+const TabIcon = ({ name, focused }: { name: string; focused: boolean }) => {
+  const labels: Record<string, string> = {
+    home: 'H',
+    paths: 'P',
+    tools: 'T',
+    league: 'L',
+    profile: 'U',
+  };
 
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!isAuthenticated ? (
-          <Stack.Screen name="Login" component={LoginScreen} />
-        ) : !user?.onboarded ? (
-          <Stack.Screen name="Onboarding" component={OnboardingScreen} />
-        ) : (
-          <>
-            <Stack.Screen name="Main" component={TabNavigatorNew} />
-
-            {/* Path screens - accessible from Paths tab */}
-            <Stack.Screen name="FinancePathNew" component={FinancePathNew} />
-            <Stack.Screen name="MentalHealthPath" component={MentalHealthPath} />
-            <Stack.Screen name="PhysicalHealthPath" component={PhysicalHealthPath} />
-            <Stack.Screen name="NutritionPath" component={NutritionPath} />
-
-            {/* Lesson screens */}
-            <Stack.Screen name="MentalLessonIntro" component={MentalLessonIntro} />
-            <Stack.Screen name="MentalLessonContent" component={MentalLessonContent} />
-            <Stack.Screen name="PhysicalLessonIntro" component={PhysicalLessonIntro} />
-            <Stack.Screen name="PhysicalLessonContent" component={PhysicalLessonContent} />
-            <Stack.Screen name="NutritionLessonIntro" component={NutritionLessonIntro} />
-            <Stack.Screen name="NutritionLessonContent" component={NutritionLessonContent} />
-
-            {/* Mental tool screens */}
-            <Stack.Screen name="DopamineDetox" component={DopamineDetox} />
-            <Stack.Screen name="ScreenTimeTracker" component={ScreenTimeTracker} />
-            <Stack.Screen name="MorningRoutine" component={MorningRoutine} />
-            <Stack.Screen name="MeditationTimer" component={MeditationTimer} />
-
-            {/* Physical tool screens */}
-            <Stack.Screen name="WorkoutTrackerScreen" component={WorkoutTrackerScreenEnhanced} />
-            <Stack.Screen name="ExerciseLoggerScreen" component={ExerciseLoggerScreen} />
-            <Stack.Screen name="SleepTrackerScreen" component={SleepTrackerScreen} />
-            <Stack.Screen name="BodyMeasurementsScreen" component={BodyMeasurementsScreen} />
-
-            {/* Nutrition tool screens */}
-            <Stack.Screen name="MealLoggerScreen" component={MealLoggerScreen} />
-            <Stack.Screen name="WaterTrackerScreen" component={WaterTrackerScreen} />
-            <Stack.Screen name="CalorieCalculatorScreen" component={CalorieCalculatorScreen} />
-
-            {/* Finance tool screens */}
-            <Stack.Screen name="FinanceDashboard" component={FinanceDashboardUnified} />
-            <Stack.Screen name="EmergencyFundScreen" component={EmergencyFundScreen} />
-            <Stack.Screen name="DebtTrackerScreen" component={DebtTrackerScreenEnhanced} />
-            <Stack.Screen name="ExpenseLoggerScreen" component={ExpenseLoggerScreen} />
-            <Stack.Screen name="BudgetManagerScreen" component={BudgetManagerScreenEnhanced} />
-            <Stack.Screen name="SubscriptionsScreen" component={SubscriptionsScreen} />
-            <Stack.Screen name="SavingsGoalsScreen" component={SavingsGoalsScreen} />
-            <Stack.Screen name="NetWorthCalculatorScreen" component={NetWorthCalculatorScreen} />
-
-            {/* Goals screen */}
-            <Stack.Screen name="GoalsScreen" component={GoalsScreen} />
-          </>
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <View style={[iconStyles.container, focused && iconStyles.containerActive]}>
+      <Text style={[
+        iconStyles.icon,
+        { color: focused ? theme.colors.primary : theme.colors.textTertiary },
+      ]}>
+        {labels[name]}
+      </Text>
+    </View>
   );
 };
+
+const iconStyles = StyleSheet.create({
+  container: {
+    width: 36,
+    height: 28,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  containerActive: {
+    backgroundColor: theme.colors.primary + '12',
+  },
+  icon: {
+    fontSize: 16,
+    fontWeight: '800',
+  },
+});
+
+function MainTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: theme.colors.surface,
+          borderTopColor: theme.colors.border,
+          borderTopWidth: 1,
+          height: 85,
+          paddingBottom: 28,
+          paddingTop: 8,
+        },
+        tabBarActiveTintColor: theme.colors.primary,
+        tabBarInactiveTintColor: theme.colors.textTertiary,
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: '600',
+          marginTop: 2,
+        },
+      }}
+    >
+      <Tab.Screen
+        name="HomeTab"
+        component={HomeScreen}
+        options={{
+          tabBarLabel: 'Home',
+          tabBarIcon: ({ focused }) => <TabIcon name="home" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="PathsTab"
+        component={PathsScreen}
+        options={{
+          tabBarLabel: 'Paths',
+          tabBarIcon: ({ focused }) => <TabIcon name="paths" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="ToolsTab"
+        component={ToolsScreen}
+        options={{
+          tabBarLabel: 'Tools',
+          tabBarIcon: ({ focused }) => <TabIcon name="tools" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="LeagueTab"
+        component={LeagueScreen}
+        options={{
+          tabBarLabel: 'League',
+          tabBarIcon: ({ focused }) => <TabIcon name="league" focused={focused} />,
+        }}
+      />
+      <Tab.Screen
+        name="ProfileTab"
+        component={ProfileScreen}
+        options={{
+          tabBarLabel: 'Profile',
+          tabBarIcon: ({ focused }) => <TabIcon name="profile" focused={focused} />,
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+export function AppNavigator({ onSwitchMode }: { onSwitchMode?: () => void }) {
+  return (
+    <AppModeContext.Provider value={{ onSwitchMode }}>
+      <Stack.Navigator
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: theme.colors.background },
+        }}
+      >
+        <Stack.Screen name="MainTabs" component={MainTabs} />
+        <Stack.Screen
+          name="Lesson"
+          component={LessonScreen}
+          options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+          name="ToolDetail"
+          component={ToolDetailScreen}
+          options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+          name="DietPlanner"
+          component={DietPlannerScreen}
+          options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+          name="Admin"
+          component={AdminScreen}
+          options={{ animation: 'slide_from_right' }}
+        />
+        {/* Finance Tools */}
+        <Stack.Screen
+          name="BudgetManager"
+          component={BudgetManagerScreen}
+          options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+          name="ExpenseLogger"
+          component={ExpenseLoggerScreen}
+          options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+          name="SavingsGoals"
+          component={SavingsGoalsScreen}
+          options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+          name="DebtTracker"
+          component={DebtTrackerScreen}
+          options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+          name="NetWorthCalculator"
+          component={NetWorthCalculatorScreen}
+          options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+          name="EmergencyFund"
+          component={EmergencyFundScreen}
+          options={{ animation: 'slide_from_right' }}
+        />
+        {/* Tasks */}
+        <Stack.Screen
+          name="Tasks"
+          component={TasksScreen}
+          options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+          name="TaskDetail"
+          component={TaskDetailScreen}
+          options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+          name="CreateTask"
+          component={CreateTaskScreen}
+          options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+          name="TaskList"
+          component={TaskListScreen}
+          options={{ animation: 'slide_from_right' }}
+        />
+        <Stack.Screen
+          name="TaskPlanner"
+          component={TaskPlannerScreen}
+          options={{ animation: 'slide_from_right' }}
+        />
+      </Stack.Navigator>
+    </AppModeContext.Provider>
+  );
+}

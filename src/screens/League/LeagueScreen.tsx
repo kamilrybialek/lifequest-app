@@ -1,622 +1,379 @@
 /**
- * LifeQuest 3.0 - LEAGUE SCREEN (Native)
- *
- * Weekly rankings + Season Pass progress + Weekly Chest
- * Duolingo-style leagues with promotion/demotion
+ * LifeQuest V4 - League Screen (Redesigned)
+ * Compact leaderboard rows, smaller tier card, clean rankings
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Animated,
+  StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { theme } from '../../theme/theme.v4';
+import { useAuthStore } from '../../store/authStore';
 import { useAppStore } from '../../store/appStore';
-import { useSeasonStore } from '../../store/seasonStore';
-import { lq3, lq3Gradients, lq3Type, lq3Space, lq3Radius, LEAGUE_TIERS } from '../../theme/lifequest3';
 
-// ========================
-// TAB SELECTOR
-// ========================
-const TabSelector = ({ activeTab, onTabChange }: { activeTab: string; onTabChange: (tab: string) => void }) => (
-  <View style={styles.tabRow}>
-    {['League', 'Season Pass', 'Chest'].map((tab) => (
-      <TouchableOpacity
-        key={tab}
-        style={[styles.tab, activeTab === tab && styles.tabActive]}
-        onPress={() => onTabChange(tab)}
-      >
-        <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
-          {tab === 'Chest' ? '🎁 Chest' : tab === 'Season Pass' ? '🏆 Season' : '⚔️ League'}
-        </Text>
-      </TouchableOpacity>
-    ))}
-  </View>
-);
+// ============================================================================
+// MOCK LEAGUE DATA
+// ============================================================================
 
-// ========================
-// LEAGUE TAB
-// ========================
-const LeagueTab = ({ league, currentTier }: { league: any[]; currentTier: string }) => {
-  const tier = LEAGUE_TIERS.find(t => t.id === currentTier) || LEAGUE_TIERS[0];
-  const promotionLine = 3;
-  const demotionLine = league.length - 5;
+interface LeaguePlayer {
+  id: string;
+  name: string;
+  xp: number;
+  level: number;
+  rank: number;
+  isCurrentUser: boolean;
+  streak: number;
+}
+
+const LEAGUE_TIERS = [
+  { name: 'Bronze', color: '#CD7F32', minXp: 0 },
+  { name: 'Silver', color: '#C0C0C0', minXp: 500 },
+  { name: 'Gold', color: '#FFD700', minXp: 1500 },
+  { name: 'Diamond', color: '#1CB0F6', minXp: 5000 },
+  { name: 'Champion', color: '#CE82FF', minXp: 15000 },
+];
+
+const generateMockPlayers = (currentUserXp: number, currentUserName: string): LeaguePlayer[] => {
+  const mockNames = [
+    'Alex T.', 'Sarah K.', 'Mike R.', 'Emma L.', 'James W.',
+    'Olivia M.', 'Noah B.', 'Sophia C.', 'Liam D.', 'Ava P.',
+    'Ethan G.', 'Mia H.', 'Mason J.', 'Isabella F.', 'Logan S.',
+  ];
+
+  const players: LeaguePlayer[] = mockNames.map((name, i) => ({
+    id: `mock-${i}`,
+    name,
+    xp: Math.max(0, Math.floor(Math.random() * (currentUserXp * 2 + 100))),
+    level: Math.floor(Math.random() * 10) + 1,
+    rank: 0,
+    isCurrentUser: false,
+    streak: Math.floor(Math.random() * 14),
+  }));
+
+  players.push({
+    id: 'current',
+    name: currentUserName,
+    xp: currentUserXp,
+    level: Math.floor(currentUserXp / 100) + 1,
+    rank: 0,
+    isCurrentUser: true,
+    streak: 0,
+  });
+
+  players.sort((a, b) => b.xp - a.xp);
+  players.forEach((p, i) => { p.rank = i + 1; });
+
+  return players;
+};
+
+// ============================================================================
+// SUB-COMPONENTS
+// ============================================================================
+
+const LeagueTierCard = ({ currentXp }: { currentXp: number }) => {
+  const currentTier = [...LEAGUE_TIERS].reverse().find((t) => currentXp >= t.minXp) || LEAGUE_TIERS[0];
+  const nextTier = LEAGUE_TIERS[LEAGUE_TIERS.indexOf(currentTier) + 1];
+  const progress = nextTier
+    ? (currentXp - currentTier.minXp) / (nextTier.minXp - currentTier.minXp)
+    : 1;
 
   return (
-    <View>
-      <View style={styles.leagueTierHeader}>
-        <Text style={styles.leagueTierIcon}>{tier.icon}</Text>
-        <Text style={[styles.leagueTierName, { color: tier.color }]}>{tier.name} League</Text>
-        <Text style={styles.leagueTierSub}>Top 3 get promoted</Text>
+    <View style={[styles.tierCard, { borderColor: currentTier.color + '40' }]}>
+      <View style={styles.tierRow}>
+        <View style={[styles.tierBadge, { backgroundColor: currentTier.color + '20' }]}>
+          <Text style={[styles.tierBadgeText, { color: currentTier.color }]}>
+            {currentTier.name[0]}
+          </Text>
+        </View>
+        <View style={styles.tierInfo}>
+          <Text style={styles.tierName}>{currentTier.name} League</Text>
+          <Text style={styles.tierSubtext}>
+            {nextTier
+              ? `${nextTier.minXp - currentXp} XP to ${nextTier.name}`
+              : 'Maximum tier!'
+            }
+          </Text>
+        </View>
       </View>
-
-      {league.map((entry, index) => {
-        const isPromotion = index < promotionLine;
-        const isDemotion = index >= demotionLine;
-        const isUser = entry.isCurrentUser;
-
-        return (
-          <View key={entry.id}>
-            {index === promotionLine && (
-              <View style={styles.dividerLine}>
-                <View style={[styles.dividerDash, { backgroundColor: lq3.accent }]} />
-                <Text style={[styles.dividerText, { color: lq3.accent }]}>PROMOTION ZONE</Text>
-                <View style={[styles.dividerDash, { backgroundColor: lq3.accent }]} />
-              </View>
-            )}
-            {index === demotionLine && (
-              <View style={styles.dividerLine}>
-                <View style={[styles.dividerDash, { backgroundColor: lq3.error }]} />
-                <Text style={[styles.dividerText, { color: lq3.error }]}>DANGER ZONE</Text>
-                <View style={[styles.dividerDash, { backgroundColor: lq3.error }]} />
-              </View>
-            )}
-
-            <View
-              style={[
-                styles.leagueRow,
-                isUser && styles.leagueRowUser,
-                isPromotion && styles.leagueRowPromo,
-                isDemotion && styles.leagueRowDanger,
-              ]}
-            >
-              <View style={styles.leagueRankContainer}>
-                <Text style={[
-                  styles.leagueRank,
-                  index === 0 && { color: lq3.gold },
-                  index === 1 && { color: lq3.leagueSilver },
-                  index === 2 && { color: lq3.leagueBronze },
-                ]}>
-                  {entry.rank}
-                </Text>
-              </View>
-              <View style={styles.leagueName}>
-                <Text style={[styles.leagueNameText, isUser && { color: lq3.accent, fontWeight: '700' }]}>
-                  {isUser ? '→ You' : entry.name}
-                </Text>
-              </View>
-              <Text style={[styles.leagueXP, isUser && { color: lq3.xp }]}>
-                {entry.xpThisWeek} XP
-              </Text>
-            </View>
-          </View>
-        );
-      })}
-
-      <View style={styles.resetTimer}>
-        <Ionicons name="time-outline" size={14} color={lq3.textTertiary} />
-        <Text style={styles.resetTimerText}>League resets every Monday</Text>
-      </View>
+      {nextTier && (
+        <View style={styles.tierProgressBar}>
+          <View style={[styles.tierProgressFill, { width: `${Math.min(progress * 100, 100)}%`, backgroundColor: currentTier.color }]} />
+        </View>
+      )}
     </View>
   );
 };
 
-// ========================
-// SEASON PASS TAB
-// ========================
-const SeasonPassTab = ({ seasonPass, currentXP, season }: { seasonPass: any[]; currentXP: number; season: any }) => {
+const PlayerRow = ({ player }: { player: LeaguePlayer }) => {
+  const isTop3 = player.rank <= 3;
+  const rankColors = ['#FFD700', '#C0C0C0', '#CD7F32'];
+
   return (
-    <View>
-      <View style={styles.seasonHeader}>
-        <Text style={styles.seasonEmoji}>🏆</Text>
-        <Text style={styles.seasonName}>{season.name}</Text>
-        <Text style={styles.seasonDays}>
-          Day {season.currentDay} of {season.totalDays}
-        </Text>
-        <Text style={styles.seasonXP}>{currentXP} XP earned this season</Text>
+    <View style={[styles.playerRow, player.isCurrentUser && styles.playerRowCurrent]}>
+      <Text style={[
+        styles.rankText,
+        isTop3 && { color: rankColors[player.rank - 1], fontWeight: '800' as const },
+      ]}>
+        {player.rank}
+      </Text>
+
+      <View style={[styles.avatar, player.isCurrentUser && styles.avatarCurrent]}>
+        <Text style={styles.avatarText}>{player.name[0]}</Text>
       </View>
 
-      {seasonPass.map((tier, index) => {
-        const isUnlocked = currentXP >= tier.requiredXP;
-        const isNext = !isUnlocked && (index === 0 || currentXP >= seasonPass[index - 1].requiredXP);
-        const progress = isNext
-          ? Math.min((currentXP - (index > 0 ? seasonPass[index - 1].requiredXP : 0)) / (tier.requiredXP - (index > 0 ? seasonPass[index - 1].requiredXP : 0)), 1)
-          : isUnlocked ? 1 : 0;
+      <View style={styles.playerInfo}>
+        <Text style={[styles.playerName, player.isCurrentUser && styles.playerNameCurrent]} numberOfLines={1}>
+          {player.isCurrentUser ? `${player.name} (You)` : player.name}
+        </Text>
+        <Text style={styles.playerLevel}>Lvl {player.level}</Text>
+      </View>
 
-        return (
-          <View key={tier.tier} style={styles.tierRow}>
-            {index > 0 && (
-              <View style={[
-                styles.tierLine,
-                isUnlocked && { backgroundColor: lq3.accent },
-              ]} />
-            )}
-
-            <View style={[
-              styles.tierCard,
-              isUnlocked && styles.tierCardUnlocked,
-              isNext && styles.tierCardNext,
-            ]}>
-              <View style={[
-                styles.tierBadge,
-                isUnlocked && { backgroundColor: lq3.accent },
-                isNext && { borderColor: lq3.streakOrange, borderWidth: 2 },
-              ]}>
-                <Text style={styles.tierBadgeText}>
-                  {isUnlocked ? '✓' : tier.tier}
-                </Text>
-              </View>
-
-              <View style={styles.tierInfo}>
-                <Text style={[styles.tierName, isUnlocked && { color: lq3.accent }]}>
-                  {tier.name}
-                </Text>
-                <Text style={styles.tierReward}>
-                  {tier.rewardIcon} {tier.reward}
-                </Text>
-                {isNext && (
-                  <View style={styles.tierProgressBar}>
-                    <View style={[styles.tierProgressFill, { width: `${progress * 100}%` }]} />
-                  </View>
-                )}
-              </View>
-
-              <Text style={styles.tierXP}>{tier.requiredXP} XP</Text>
-            </View>
-          </View>
-        );
-      })}
+      <Text style={[styles.playerXp, isTop3 && { color: rankColors[player.rank - 1] }]}>
+        {player.xp}
+      </Text>
     </View>
   );
 };
 
-// ========================
-// WEEKLY CHEST TAB
-// ========================
-const WeeklyChestTab = ({ chest, onOpen }: { chest: any; onOpen: () => void }) => {
-  const pulseAnim = useRef(new Animated.Value(1)).current;
-  const canOpen = chest && !chest.opened && new Date() >= new Date(chest.availableAt);
+// ============================================================================
+// MAIN SCREEN
+// ============================================================================
 
-  useEffect(() => {
-    if (canOpen) {
-      Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.08, duration: 800, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 800, useNativeDriver: true }),
-        ])
-      ).start();
-    }
-  }, [canOpen]);
-
-  if (!chest) return null;
-
-  if (chest.opened) {
-    return (
-      <View style={styles.chestContainer}>
-        <Text style={styles.chestEmoji}>📦</Text>
-        <Text style={styles.chestTitle}>Chest Opened!</Text>
-        <Text style={styles.chestSub}>You received:</Text>
-        {chest.rewards.map((reward: any, i: number) => (
-          <View key={i} style={styles.rewardRow}>
-            <Text style={styles.rewardText}>{reward.label}</Text>
-          </View>
-        ))}
-        <Text style={styles.chestNext}>Next chest available Monday</Text>
-      </View>
-    );
-  }
-
-  if (!canOpen) {
-    const availableDate = new Date(chest.availableAt);
-    const now = new Date();
-    const diffMs = availableDate.getTime() - now.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffHours / 24);
-
-    return (
-      <View style={styles.chestContainer}>
-        <Text style={styles.chestEmoji}>🔒</Text>
-        <Text style={styles.chestTitle}>Weekly Chest</Text>
-        <Text style={styles.chestTimer}>
-          Opens in {diffDays > 0 ? `${diffDays}d ` : ''}{diffHours % 24}h
-        </Text>
-        <Text style={styles.chestSub}>Complete tasks to earn better rewards!</Text>
-      </View>
-    );
-  }
-
-  return (
-    <View style={styles.chestContainer}>
-      <Animated.Text style={[styles.chestEmojiReady, { transform: [{ scale: pulseAnim }] }]}>
-        🎁
-      </Animated.Text>
-      <Text style={styles.chestTitleReady}>Chest Ready!</Text>
-      <Text style={styles.chestSub}>Tap to open your weekly rewards</Text>
-      <TouchableOpacity style={styles.chestOpenBtn} onPress={onOpen}>
-        <LinearGradient
-          colors={lq3Gradients.gold as any}
-          style={styles.chestOpenBtnGradient}
-        >
-          <Text style={styles.chestOpenBtnText}>OPEN CHEST</Text>
-        </LinearGradient>
-      </TouchableOpacity>
-    </View>
-  );
-};
-
-// ========================
-// MAIN LEAGUE SCREEN
-// ========================
 export const LeagueScreen = () => {
-  const { progress } = useAppStore();
-  const { currentSeason, seasonPass, league, leagueTier, weeklyChest, openWeeklyChest, loadSeasonData } = useSeasonStore();
-  const [activeTab, setActiveTab] = useState('League');
+  const insets = useSafeAreaInsets();
+  const user = useAuthStore((s) => s.user);
+  const progress = useAppStore((s) => s.progress);
+  const [activeTab, setActiveTab] = useState<'weekly' | 'alltime'>('weekly');
 
-  useEffect(() => {
-    loadSeasonData();
-  }, []);
-
-  const handleOpenChest = async () => {
-    await openWeeklyChest();
-  };
+  const displayName = (user as any)?.firstName || user?.email?.split('@')[0] || 'You';
+  const players = generateMockPlayers(progress.xp, displayName);
+  const currentUserRank = players.find((p) => p.isCurrentUser)?.rank || 0;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Arena</Text>
+        <Text style={styles.headerTitle}>League</Text>
+        <Text style={styles.headerSubtitle}>
+          #{currentUserRank} of {players.length}
+        </Text>
       </View>
-
-      <TabSelector activeTab={activeTab} onTabChange={setActiveTab} />
 
       <ScrollView
-        style={styles.scroll}
+        style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {activeTab === 'League' && (
-          <LeagueTab league={league} currentTier={leagueTier} />
-        )}
-        {activeTab === 'Season Pass' && (
-          <SeasonPassTab
-            seasonPass={seasonPass}
-            currentXP={progress.xp}
-            season={currentSeason}
-          />
-        )}
-        {activeTab === 'Chest' && (
-          <WeeklyChestTab chest={weeklyChest} onOpen={handleOpenChest} />
-        )}
+        <LeagueTierCard currentXp={progress.xp} />
 
-        <View style={{ height: 40 }} />
+        {/* Tabs */}
+        <View style={styles.tabBar}>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'weekly' && styles.tabActive]}
+            onPress={() => setActiveTab('weekly')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.tabText, activeTab === 'weekly' && styles.tabTextActive]}>
+              This Week
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeTab === 'alltime' && styles.tabActive]}
+            onPress={() => setActiveTab('alltime')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.tabText, activeTab === 'alltime' && styles.tabTextActive]}>
+              All Time
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Leaderboard */}
+        <View style={styles.leaderboard}>
+          {players.map((player) => (
+            <PlayerRow key={player.id} player={player} />
+          ))}
+        </View>
+
+        <View style={{ height: 20 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
-// ========================
+// ============================================================================
 // STYLES
-// ========================
+// ============================================================================
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: lq3.bg,
+    backgroundColor: theme.colors.background,
   },
   header: {
-    paddingHorizontal: lq3Space.lg,
-    paddingTop: lq3Space.md,
-    paddingBottom: lq3Space.md,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    paddingHorizontal: theme.spacing.md,
+    paddingTop: theme.spacing.md,
+    paddingBottom: theme.spacing.sm,
   },
   headerTitle: {
-    ...lq3Type.h1,
-    color: lq3.text,
+    ...theme.typography.h3,
   },
-  scroll: {
+  headerSubtitle: {
+    ...theme.typography.caption,
+    color: theme.colors.primary,
+    fontWeight: '700',
+  },
+  scrollView: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: lq3Space.lg,
+    paddingHorizontal: theme.spacing.md,
+    paddingTop: theme.spacing.sm,
+    paddingBottom: theme.spacing.xl,
   },
 
-  // Tabs
-  tabRow: {
+  // Tier - compact
+  tierCard: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.md,
+    padding: theme.spacing.md,
+    borderWidth: 1,
+    marginBottom: theme.spacing.md,
+  },
+  tierRow: {
     flexDirection: 'row',
-    paddingHorizontal: lq3Space.lg,
-    gap: lq3Space.sm,
-    marginBottom: lq3Space.xl,
+    alignItems: 'center',
+    marginBottom: theme.spacing.sm,
+    gap: theme.spacing.sm,
+  },
+  tierBadge: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tierBadgeText: {
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  tierInfo: {},
+  tierName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: theme.colors.text,
+    marginBottom: 2,
+  },
+  tierSubtext: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    fontWeight: '500',
+  },
+  tierProgressBar: {
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: theme.colors.surface,
+  },
+  tierProgressFill: {
+    height: 5,
+    borderRadius: 3,
+  },
+
+  // Tabs - compact
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.sm,
+    padding: 3,
+    marginBottom: theme.spacing.sm,
   },
   tab: {
     flex: 1,
-    paddingVertical: lq3Space.md,
-    borderRadius: lq3Radius.md,
-    backgroundColor: lq3.bgCard,
+    paddingVertical: 7,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: lq3.border,
+    borderRadius: theme.radius.sm - 2,
   },
   tabActive: {
-    backgroundColor: lq3.accent + '15',
-    borderColor: lq3.accent,
+    backgroundColor: theme.colors.card,
   },
   tabText: {
-    ...lq3Type.smallBold,
-    color: lq3.textSecondary,
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
   },
   tabTextActive: {
-    color: lq3.accent,
+    color: theme.colors.primary,
   },
 
-  // League
-  leagueTierHeader: {
-    alignItems: 'center',
-    paddingVertical: lq3Space['2xl'],
-    marginBottom: lq3Space.lg,
+  // Leaderboard - compact rows
+  leaderboard: {
+    gap: 3,
   },
-  leagueTierIcon: {
-    fontSize: 48,
-    marginBottom: lq3Space.sm,
-  },
-  leagueTierName: {
-    ...lq3Type.h2,
-  },
-  leagueTierSub: {
-    ...lq3Type.small,
-    color: lq3.textTertiary,
-    marginTop: 4,
-  },
-
-  leagueRow: {
+  playerRow: {
+    backgroundColor: theme.colors.card,
+    borderRadius: theme.radius.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: lq3Space.md,
-    backgroundColor: lq3.bgCard,
-    borderRadius: lq3Radius.sm,
-    marginBottom: 4,
+  },
+  playerRowCurrent: {
     borderWidth: 1,
-    borderColor: lq3.border,
+    borderColor: theme.colors.primary + '35',
+    backgroundColor: theme.colors.primary + '06',
   },
-  leagueRowUser: {
-    backgroundColor: lq3.accent + '10',
-    borderColor: lq3.accent + '40',
-  },
-  leagueRowPromo: {
-    borderLeftWidth: 3,
-    borderLeftColor: lq3.accent,
-  },
-  leagueRowDanger: {
-    borderLeftWidth: 3,
-    borderLeftColor: lq3.error,
-    opacity: 0.7,
-  },
-  leagueRankContainer: {
-    width: 32,
-    alignItems: 'center',
-  },
-  leagueRank: {
-    ...lq3Type.bodyBold,
-    color: lq3.textSecondary,
-  },
-  leagueName: {
-    flex: 1,
-    marginLeft: lq3Space.md,
-  },
-  leagueNameText: {
-    ...lq3Type.body,
-    color: lq3.text,
-  },
-  leagueXP: {
-    ...lq3Type.smallBold,
-    color: lq3.textSecondary,
-  },
-
-  dividerLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: lq3Space.md,
-    gap: lq3Space.sm,
-  },
-  dividerDash: {
-    flex: 1,
-    height: 1,
-  },
-  dividerText: {
-    ...lq3Type.label,
-    fontSize: 10,
-  },
-
-  resetTimer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: lq3Space.xs,
-    marginTop: lq3Space.xl,
-    paddingVertical: lq3Space.md,
-  },
-  resetTimerText: {
-    ...lq3Type.tiny,
-    color: lq3.textTertiary,
-  },
-
-  // Season Pass
-  seasonHeader: {
-    alignItems: 'center',
-    paddingVertical: lq3Space['2xl'],
-    marginBottom: lq3Space.lg,
-  },
-  seasonEmoji: {
-    fontSize: 48,
-    marginBottom: lq3Space.sm,
-  },
-  seasonName: {
-    ...lq3Type.h2,
-    color: lq3.gold,
-  },
-  seasonDays: {
-    ...lq3Type.small,
-    color: lq3.textSecondary,
-    marginTop: 4,
-  },
-  seasonXP: {
-    ...lq3Type.bodyBold,
-    color: lq3.xp,
-    marginTop: lq3Space.sm,
-  },
-
-  tierRow: {
-    position: 'relative',
-    marginBottom: lq3Space.sm,
-  },
-  tierLine: {
-    position: 'absolute',
-    left: 28,
-    top: -8,
-    width: 2,
-    height: 12,
-    backgroundColor: lq3.border,
-  },
-  tierCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: lq3.bgCard,
-    borderRadius: lq3Radius.md,
-    padding: lq3Space.lg,
-    borderWidth: 1,
-    borderColor: lq3.border,
-    gap: lq3Space.md,
-  },
-  tierCardUnlocked: {
-    borderColor: lq3.accent + '40',
-    backgroundColor: lq3.accent + '08',
-  },
-  tierCardNext: {
-    borderColor: lq3.streakOrange + '60',
-  },
-  tierBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: lq3.bgElevated,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  tierBadgeText: {
-    ...lq3Type.bodyBold,
-    color: lq3.text,
-  },
-  tierInfo: {
-    flex: 1,
-  },
-  tierName: {
-    ...lq3Type.bodyBold,
-    color: lq3.text,
-  },
-  tierReward: {
-    ...lq3Type.small,
-    color: lq3.textSecondary,
-    marginTop: 2,
-  },
-  tierProgressBar: {
-    height: 4,
-    backgroundColor: lq3.bgElevated,
-    borderRadius: 2,
-    marginTop: lq3Space.sm,
-    overflow: 'hidden',
-  },
-  tierProgressFill: {
-    height: '100%',
-    backgroundColor: lq3.streakOrange,
-    borderRadius: 2,
-  },
-  tierXP: {
-    ...lq3Type.tiny,
-    color: lq3.textTertiary,
-  },
-
-  // Chest
-  chestContainer: {
-    alignItems: 'center',
-    paddingVertical: lq3Space['5xl'],
-  },
-  chestEmoji: {
-    fontSize: 64,
-    marginBottom: lq3Space.lg,
-    opacity: 0.5,
-  },
-  chestEmojiReady: {
-    fontSize: 80,
-    marginBottom: lq3Space.lg,
-  },
-  chestTitle: {
-    ...lq3Type.h2,
-    color: lq3.textSecondary,
-    marginBottom: lq3Space.sm,
-  },
-  chestTitleReady: {
-    ...lq3Type.h1,
-    color: lq3.gold,
-    marginBottom: lq3Space.sm,
-  },
-  chestTimer: {
-    ...lq3Type.h3,
-    color: lq3.streakOrange,
-    marginBottom: lq3Space.sm,
-  },
-  chestSub: {
-    ...lq3Type.body,
-    color: lq3.textSecondary,
+  rankText: {
+    width: 24,
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.textSecondary,
     textAlign: 'center',
-    marginBottom: lq3Space.xl,
   },
-  chestNext: {
-    ...lq3Type.small,
-    color: lq3.textTertiary,
-    marginTop: lq3Space.xl,
+  avatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: theme.colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 8,
   },
-  rewardRow: {
-    backgroundColor: lq3.bgCard,
-    borderRadius: lq3Radius.md,
-    paddingHorizontal: lq3Space.xl,
-    paddingVertical: lq3Space.md,
-    marginBottom: lq3Space.sm,
-    borderWidth: 1,
-    borderColor: lq3.gold + '30',
+  avatarCurrent: {
+    backgroundColor: theme.colors.primary + '20',
   },
-  rewardText: {
-    ...lq3Type.bodyBold,
-    color: lq3.gold,
+  avatarText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: theme.colors.text,
   },
-  chestOpenBtn: {
-    borderRadius: lq3Radius.lg,
-    overflow: 'hidden',
-    marginTop: lq3Space.lg,
+  playerInfo: {
+    flex: 1,
   },
-  chestOpenBtnGradient: {
-    paddingHorizontal: lq3Space['4xl'],
-    paddingVertical: lq3Space.lg,
-    borderRadius: lq3Radius.lg,
+  playerName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: theme.colors.text,
   },
-  chestOpenBtnText: {
-    ...lq3Type.bodyBold,
-    color: lq3.bg,
-    fontSize: 18,
-    fontWeight: '800',
-    letterSpacing: 1,
+  playerNameCurrent: {
+    color: theme.colors.primary,
+  },
+  playerLevel: {
+    fontSize: 10,
+    fontWeight: '500',
+    color: theme.colors.textTertiary,
+  },
+  playerXp: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.text,
+    marginLeft: theme.spacing.sm,
   },
 });
-
-export default LeagueScreen;

@@ -1,10 +1,10 @@
 /**
- * LifeQuest V4 - Clean Theme System
- * No circular dependencies, simple and maintainable
+ * LifeQuest V4 - Scandinavian + Hinge Design System
+ * Light, minimal, beautiful with generous white space
  */
 
 // ============================================================================
-// COLORS - Simple, flat structure
+// COLORS - Scandinavian light palette
 // ============================================================================
 
 export const colors = {
@@ -18,16 +18,17 @@ export const colors = {
   mental: '#1CB0F6',
   physical: '#FF4B4B',
   nutrition: '#CE82FF',
+  diet: '#CE82FF',
 
-  // Base
-  background: '#0F1123',
-  surface: '#1A1D35',
-  card: '#252941',
+  // Backgrounds - LIGHT Scandinavian
+  background: '#F8F9FA',
+  surface: '#FFFFFF',
+  card: '#FFFFFF',
 
-  // Text
-  text: '#FFFFFF',
-  textSecondary: '#A0A3BD',
-  textTertiary: '#6E7191',
+  // Text - DARK on light
+  text: '#2C3E50',
+  textSecondary: '#7F8C8D',
+  textTertiary: '#BDC3C7',
 
   // Status
   success: '#58CC02',
@@ -35,29 +36,29 @@ export const colors = {
   error: '#FF4B4B',
   info: '#1CB0F6',
 
-  // UI
-  border: '#2E3148',
-  divider: '#252941',
-  overlay: 'rgba(0, 0, 0, 0.7)',
+  // UI Elements
+  border: '#E8EAED',
+  divider: '#F0F2F5',
+  overlay: 'rgba(0, 0, 0, 0.5)',
 } as const;
 
 // ============================================================================
-// TYPOGRAPHY - Simple definitions with hardcoded colors
+// TYPOGRAPHY - Clean SF Pro / System font
 // ============================================================================
 
 export const typography = {
-  h1: { fontSize: 32, fontWeight: '800', lineHeight: 40, color: '#FFFFFF' },
-  h2: { fontSize: 28, fontWeight: '700', lineHeight: 36, color: '#FFFFFF' },
-  h3: { fontSize: 24, fontWeight: '700', lineHeight: 32, color: '#FFFFFF' },
-  h4: { fontSize: 20, fontWeight: '600', lineHeight: 28, color: '#FFFFFF' },
+  h1: { fontSize: 32, fontWeight: '800' as const, lineHeight: 40, color: '#2C3E50' },
+  h2: { fontSize: 24, fontWeight: '700' as const, lineHeight: 32, color: '#2C3E50' },
+  h3: { fontSize: 20, fontWeight: '600' as const, lineHeight: 28, color: '#2C3E50' },
+  h4: { fontSize: 18, fontWeight: '600' as const, lineHeight: 24, color: '#2C3E50' },
 
-  body: { fontSize: 16, fontWeight: '500', lineHeight: 24, color: '#FFFFFF' },
-  bodySmall: { fontSize: 14, fontWeight: '500', lineHeight: 20, color: '#A0A3BD' },
-  caption: { fontSize: 12, fontWeight: '600', lineHeight: 16, color: '#6E7191' },
+  body: { fontSize: 16, fontWeight: '400' as const, lineHeight: 24, color: '#2C3E50' },
+  bodySmall: { fontSize: 14, fontWeight: '400' as const, lineHeight: 20, color: '#7F8C8D' },
+  caption: { fontSize: 12, fontWeight: '500' as const, lineHeight: 16, color: '#BDC3C7' },
 } as const;
 
 // ============================================================================
-// SPACING - Simple scale
+// SPACING - Generous Scandinavian white space
 // ============================================================================
 
 export const spacing = {
@@ -70,43 +71,56 @@ export const spacing = {
 } as const;
 
 // ============================================================================
-// RADIUS - Consistent rounded corners
+// RADIUS - Rounded Hinge-style corners
 // ============================================================================
 
 export const radius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
+  sm: 12,
+  md: 16,
+  lg: 20,
   xl: 24,
   full: 999,
 } as const;
 
 // ============================================================================
-// SHADOWS - Subtle depth
+// SHADOWS - Soft, subtle Scandinavian shadows
 // ============================================================================
 
 export const shadows = {
   sm: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 1,
   },
   md: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
     shadowRadius: 8,
-    elevation: 4,
+    elevation: 3,
   },
   lg: {
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
     shadowRadius: 16,
-    elevation: 8,
+    elevation: 6,
   },
+} as const;
+
+// ============================================================================
+// GRADIENTS - Pillar gradient pairs for cards
+// ============================================================================
+
+export const gradients = {
+  primary: ['#58CC02', '#89E219'] as const,
+  finance: ['#FF9500', '#FFB347'] as const,
+  mental: ['#1CB0F6', '#64CCFA'] as const,
+  physical: ['#FF4B4B', '#FF7B7B'] as const,
+  nutrition: ['#CE82FF', '#DDA8FF'] as const,
+  greeting: ['#58CC02', '#4BA101'] as const,
 } as const;
 
 // ============================================================================
@@ -119,6 +133,7 @@ export const theme = {
   spacing,
   radius,
   shadows,
+  gradients,
 } as const;
 
 export default theme;

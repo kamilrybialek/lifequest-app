@@ -1,3 +1,8 @@
+/**
+ * NET WORTH CALCULATOR - V4 COMPACT DESIGN
+ * Dark theme, 2-column asset/liability grids, inline forms
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -8,26 +13,34 @@ import {
   ScrollView,
   SafeAreaView,
   StatusBar,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../theme/colors';
-import { shadows } from '../../theme/theme';
+import { theme } from '../../theme/theme.v4';
 import { useAuthStore } from '../../store/authStore';
 import { getDatabase } from '../../database/init';
 
-interface Asset {
-  id: string;
-  name: string;
-  value: number;
-  type: 'cash' | 'investment' | 'property' | 'other';
-}
+const { width } = Dimensions.get('window');
+const CARD_GAP = theme.spacing.sm;
+const CARD_WIDTH = (width - theme.spacing.md * 2 - CARD_GAP) / 2;
 
-interface Liability {
-  id: string;
-  name: string;
-  value: number;
-  type: 'mortgage' | 'car' | 'student' | 'credit' | 'other';
-}
+interface Asset { id: string; name: string; value: number; type: 'cash' | 'investment' | 'property' | 'other'; }
+interface Liability { id: string; name: string; value: number; type: 'mortgage' | 'car' | 'student' | 'credit' | 'other'; }
+
+const ASSET_TYPES: { key: Asset['type']; icon: string; label: string }[] = [
+  { key: 'cash', icon: '💵', label: 'Cash' },
+  { key: 'investment', icon: '📈', label: 'Investment' },
+  { key: 'property', icon: '🏠', label: 'Property' },
+  { key: 'other', icon: '💼', label: 'Other' },
+];
+
+const LIABILITY_TYPES: { key: Liability['type']; icon: string; label: string }[] = [
+  { key: 'mortgage', icon: '🏠', label: 'Mortgage' },
+  { key: 'car', icon: '🚗', label: 'Car' },
+  { key: 'student', icon: '🎓', label: 'Student' },
+  { key: 'credit', icon: '💳', label: 'Credit' },
+  { key: 'other', icon: '📄', label: 'Other' },
+];
 
 export const NetWorthCalculatorScreen = ({ navigation }: any) => {
   const { user } = useAuthStore();
@@ -36,347 +49,210 @@ export const NetWorthCalculatorScreen = ({ navigation }: any) => {
   const [showAddAsset, setShowAddAsset] = useState(false);
   const [showAddLiability, setShowAddLiability] = useState(false);
 
-  // New asset form
   const [newAssetName, setNewAssetName] = useState('');
   const [newAssetValue, setNewAssetValue] = useState('');
   const [newAssetType, setNewAssetType] = useState<Asset['type']>('cash');
 
-  // New liability form
   const [newLiabilityName, setNewLiabilityName] = useState('');
   const [newLiabilityValue, setNewLiabilityValue] = useState('');
   const [newLiabilityType, setNewLiabilityType] = useState<Liability['type']>('credit');
 
-  useEffect(() => {
-    loadNetWorthData();
-  }, []);
+  useEffect(() => { loadNetWorthData(); }, []);
 
   const loadNetWorthData = async () => {
     if (!user?.id) return;
-
     try {
       const db = await getDatabase();
-
-      // Create tables if they don't exist
       await db.execAsync(`
-        CREATE TABLE IF NOT EXISTS net_worth_assets (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          user_id INTEGER NOT NULL,
-          name TEXT NOT NULL,
-          value REAL NOT NULL,
-          type TEXT NOT NULL,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (user_id) REFERENCES users(id)
-        );
-
-        CREATE TABLE IF NOT EXISTS net_worth_liabilities (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          user_id INTEGER NOT NULL,
-          name TEXT NOT NULL,
-          value REAL NOT NULL,
-          type TEXT NOT NULL,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          FOREIGN KEY (user_id) REFERENCES users(id)
-        );
+        CREATE TABLE IF NOT EXISTS net_worth_assets (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, name TEXT NOT NULL, value REAL NOT NULL, type TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
+        CREATE TABLE IF NOT EXISTS net_worth_liabilities (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL, name TEXT NOT NULL, value REAL NOT NULL, type TEXT NOT NULL, created_at DATETIME DEFAULT CURRENT_TIMESTAMP, FOREIGN KEY (user_id) REFERENCES users(id));
       `);
-
-      // Load assets
-      const loadedAssets = await db.getAllAsync<any>(
-        'SELECT * FROM net_worth_assets WHERE user_id = ?',
-        [user.id]
-      );
+      const loadedAssets = await db.getAllAsync<any>('SELECT * FROM net_worth_assets WHERE user_id = ?', [user.id]);
       setAssets(loadedAssets.map(a => ({ ...a, id: String(a.id) })));
-
-      // Load liabilities
-      const loadedLiabilities = await db.getAllAsync<any>(
-        'SELECT * FROM net_worth_liabilities WHERE user_id = ?',
-        [user.id]
-      );
+      const loadedLiabilities = await db.getAllAsync<any>('SELECT * FROM net_worth_liabilities WHERE user_id = ?', [user.id]);
       setLiabilities(loadedLiabilities.map(l => ({ ...l, id: String(l.id) })));
-    } catch (error) {
-      console.error('Error loading net worth data:', error);
-    }
+    } catch (error) { console.error('Error loading net worth data:', error); }
   };
 
   const handleAddAsset = async () => {
     if (!user?.id || !newAssetName || !newAssetValue) return;
-
     try {
       const db = await getDatabase();
-      await db.runAsync(
-        'INSERT INTO net_worth_assets (user_id, name, value, type) VALUES (?, ?, ?, ?)',
-        [user.id, newAssetName, parseFloat(newAssetValue), newAssetType]
-      );
-
-      // Reset form
-      setNewAssetName('');
-      setNewAssetValue('');
-      setNewAssetType('cash');
-      setShowAddAsset(false);
-
-      // Reload data
+      await db.runAsync('INSERT INTO net_worth_assets (user_id, name, value, type) VALUES (?, ?, ?, ?)', [user.id, newAssetName, parseFloat(newAssetValue), newAssetType]);
+      setNewAssetName(''); setNewAssetValue(''); setNewAssetType('cash'); setShowAddAsset(false);
       await loadNetWorthData();
-    } catch (error) {
-      console.error('Error adding asset:', error);
-    }
+    } catch (error) { console.error('Error adding asset:', error); }
   };
 
   const handleAddLiability = async () => {
     if (!user?.id || !newLiabilityName || !newLiabilityValue) return;
-
     try {
       const db = await getDatabase();
-      await db.runAsync(
-        'INSERT INTO net_worth_liabilities (user_id, name, value, type) VALUES (?, ?, ?, ?)',
-        [user.id, newLiabilityName, parseFloat(newLiabilityValue), newLiabilityType]
-      );
-
-      // Reset form
-      setNewLiabilityName('');
-      setNewLiabilityValue('');
-      setNewLiabilityType('credit');
-      setShowAddLiability(false);
-
-      // Reload data
+      await db.runAsync('INSERT INTO net_worth_liabilities (user_id, name, value, type) VALUES (?, ?, ?, ?)', [user.id, newLiabilityName, parseFloat(newLiabilityValue), newLiabilityType]);
+      setNewLiabilityName(''); setNewLiabilityValue(''); setNewLiabilityType('credit'); setShowAddLiability(false);
       await loadNetWorthData();
-    } catch (error) {
-      console.error('Error adding liability:', error);
-    }
+    } catch (error) { console.error('Error adding liability:', error); }
   };
 
   const handleDeleteAsset = async (assetId: string) => {
-    if (!user?.id) return;
-
-    try {
-      const db = await getDatabase();
-      await db.runAsync('DELETE FROM net_worth_assets WHERE id = ?', [parseInt(assetId)]);
-      await loadNetWorthData();
-    } catch (error) {
-      console.error('Error deleting asset:', error);
-    }
+    try { const db = await getDatabase(); await db.runAsync('DELETE FROM net_worth_assets WHERE id = ?', [parseInt(assetId)]); await loadNetWorthData(); }
+    catch (error) { console.error('Error deleting asset:', error); }
   };
 
   const handleDeleteLiability = async (liabilityId: string) => {
-    if (!user?.id) return;
-
-    try {
-      const db = await getDatabase();
-      await db.runAsync('DELETE FROM net_worth_liabilities WHERE id = ?', [parseInt(liabilityId)]);
-      await loadNetWorthData();
-    } catch (error) {
-      console.error('Error deleting liability:', error);
-    }
+    try { const db = await getDatabase(); await db.runAsync('DELETE FROM net_worth_liabilities WHERE id = ?', [parseInt(liabilityId)]); await loadNetWorthData(); }
+    catch (error) { console.error('Error deleting liability:', error); }
   };
 
-  // Calculate totals
-  const totalAssets = assets.reduce((sum, asset) => sum + asset.value, 0);
-  const totalLiabilities = liabilities.reduce((sum, liability) => sum + liability.value, 0);
+  const totalAssets = assets.reduce((s, a) => s + a.value, 0);
+  const totalLiabilities = liabilities.reduce((s, l) => s + l.value, 0);
   const netWorth = totalAssets - totalLiabilities;
 
-  const getAssetIcon = (type: Asset['type']) => {
-    switch (type) {
-      case 'cash': return '💵';
-      case 'investment': return '📈';
-      case 'property': return '🏠';
-      default: return '💼';
-    }
-  };
+  const getAssetIcon = (type: Asset['type']) => ASSET_TYPES.find(t => t.key === type)?.icon || '💼';
+  const getLiabilityIcon = (type: Liability['type']) => LIABILITY_TYPES.find(t => t.key === type)?.icon || '📄';
 
-  const getLiabilityIcon = (type: Liability['type']) => {
-    switch (type) {
-      case 'mortgage': return '🏠';
-      case 'car': return '🚗';
-      case 'student': return '🎓';
-      case 'credit': return '💳';
-      default: return '📄';
-    }
-  };
+  const renderInlineForm = (
+    isAsset: boolean, name: string, setName: (v: string) => void, value: string, setValue: (v: string) => void,
+    types: { key: string; icon: string; label: string }[], selectedType: string, setType: (v: any) => void,
+    onSubmit: () => void, onCancel: () => void
+  ) => (
+    <View style={s.inlineForm}>
+      <TextInput style={s.formInput} value={name} onChangeText={setName} placeholder={isAsset ? 'Asset name' : 'Liability name'} placeholderTextColor={theme.colors.textTertiary} />
+      <View style={s.formAmountRow}>
+        <Text style={s.formDollar}>$</Text>
+        <TextInput style={s.formAmountInput} value={value} onChangeText={setValue} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={theme.colors.textTertiary} />
+      </View>
+      <View style={s.typeChips}>
+        {types.map((t) => (
+          <TouchableOpacity key={t.key} style={[s.typeChip, selectedType === t.key && s.typeChipActive]} onPress={() => setType(t.key)}>
+            <Text style={s.typeChipEmoji}>{t.icon}</Text>
+            <Text style={[s.typeChipText, selectedType === t.key && { color: '#FFF' }]}>{t.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <View style={s.formActions}>
+        <TouchableOpacity style={s.formCancelBtn} onPress={onCancel}>
+          <Text style={s.formCancelText}>Cancel</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[s.formSubmitBtn, { backgroundColor: isAsset ? theme.colors.success : theme.colors.error }]} onPress={onSubmit}>
+          <Text style={s.formSubmitText}>Add {isAsset ? 'Asset' : 'Liability'}</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView style={s.safe}>
+      <StatusBar barStyle="light-content" />
 
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Net Worth Calculator</Text>
-        <View style={{ width: 24 }} />
+        <Text style={s.headerTitle}>Net Worth</Text>
+        <View style={{ width: 22 }} />
       </View>
 
-      <ScrollView style={styles.container}>
-        {/* Net Worth Summary */}
-        <View style={[styles.summaryCard, netWorth >= 0 ? styles.summaryPositive : styles.summaryNegative]}>
-          <Text style={styles.summaryLabel}>Your Net Worth</Text>
-          <Text style={styles.summaryAmount}>${netWorth.toFixed(2)}</Text>
-          <View style={styles.summaryBreakdown}>
-            <View style={styles.breakdownItem}>
-              <Text style={styles.breakdownLabel}>Assets</Text>
-              <Text style={styles.breakdownValue}>${totalAssets.toFixed(2)}</Text>
-            </View>
-            <Text style={styles.breakdownMinus}>−</Text>
-            <View style={styles.breakdownItem}>
-              <Text style={styles.breakdownLabel}>Liabilities</Text>
-              <Text style={styles.breakdownValue}>${totalLiabilities.toFixed(2)}</Text>
-            </View>
+      {/* Net Worth Header */}
+      <View style={s.netWorthCard}>
+        <Text style={s.nwLabel}>Net Worth</Text>
+        <Text style={[s.nwValue, { color: netWorth >= 0 ? theme.colors.success : theme.colors.error }]}>${netWorth.toFixed(0)}</Text>
+        <View style={s.nwBreakdown}>
+          <View style={s.nwItem}>
+            <Text style={s.nwItemLabel}>Assets</Text>
+            <Text style={[s.nwItemValue, { color: theme.colors.success }]}>${totalAssets.toFixed(0)}</Text>
+          </View>
+          <Text style={s.nwMinus}>-</Text>
+          <View style={s.nwItem}>
+            <Text style={s.nwItemLabel}>Liabilities</Text>
+            <Text style={[s.nwItemValue, { color: theme.colors.error }]}>${totalLiabilities.toFixed(0)}</Text>
           </View>
         </View>
+      </View>
 
-        {/* Info Card */}
-        <View style={styles.infoCard}>
-          <Ionicons name="information-circle" size={24} color={colors.finance} />
-          <Text style={styles.infoText}>
-            Net Worth = Assets − Liabilities. This is your true financial position at a point in time.
-          </Text>
-        </View>
-
+      <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
         {/* Assets Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Assets (What You Own)</Text>
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => setShowAddAsset(!showAddAsset)}
-            >
-              <Ionicons name={showAddAsset ? "close-circle" : "add-circle"} size={28} color={colors.success} />
+        <View style={s.section}>
+          <View style={s.sectionHeader}>
+            <Text style={s.sectionLabel}>ASSETS</Text>
+            <TouchableOpacity onPress={() => setShowAddAsset(!showAddAsset)}>
+              <Ionicons name={showAddAsset ? 'close-circle' : 'add-circle'} size={22} color={theme.colors.success} />
             </TouchableOpacity>
           </View>
 
-          {showAddAsset && (
-            <View style={styles.addForm}>
-              <TextInput
-                style={styles.input}
-                placeholder="Asset name (e.g., Savings Account)"
-                value={newAssetName}
-                onChangeText={setNewAssetName}
-                placeholderTextColor={colors.textSecondary}
-              />
-              <View style={styles.inputRow}>
-                <View style={styles.dollarInputContainer}>
-                  <Text style={styles.dollarSign}>$</Text>
-                  <TextInput
-                    style={styles.valueInput}
-                    placeholder="Value"
-                    value={newAssetValue}
-                    onChangeText={setNewAssetValue}
-                    keyboardType="decimal-pad"
-                    placeholderTextColor={colors.textSecondary}
-                  />
-                </View>
-                <View style={styles.typeButtons}>
-                  {(['cash', 'investment', 'property', 'other'] as Asset['type'][]).map(type => (
-                    <TouchableOpacity
-                      key={type}
-                      style={[styles.typeButton, newAssetType === type && styles.typeButtonActive]}
-                      onPress={() => setNewAssetType(type)}
-                    >
-                      <Text style={[styles.typeButtonText, newAssetType === type && styles.typeButtonTextActive]}>
-                        {type}
-                      </Text>
+          {showAddAsset && renderInlineForm(
+            true, newAssetName, setNewAssetName, newAssetValue, setNewAssetValue,
+            ASSET_TYPES, newAssetType, setNewAssetType, handleAddAsset, () => setShowAddAsset(false)
+          )}
+
+          {assets.length === 0 && !showAddAsset ? (
+            <Text style={s.emptyText}>No assets added yet</Text>
+          ) : (
+            <View style={s.itemGrid}>
+              {assets.map(asset => (
+                <View key={asset.id} style={s.itemCard}>
+                  <View style={s.itemTop}>
+                    <Text style={s.itemIcon}>{getAssetIcon(asset.type)}</Text>
+                    <TouchableOpacity onPress={() => handleDeleteAsset(asset.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <Ionicons name="close" size={14} color={theme.colors.textTertiary} />
                     </TouchableOpacity>
-                  ))}
+                  </View>
+                  <Text style={s.itemName} numberOfLines={1}>{asset.name}</Text>
+                  <Text style={[s.itemValue, { color: theme.colors.success }]}>${asset.value.toFixed(0)}</Text>
+                  <Text style={s.itemType}>{asset.type}</Text>
                 </View>
-              </View>
-              <TouchableOpacity style={styles.submitButton} onPress={handleAddAsset}>
-                <Text style={styles.submitButtonText}>Add Asset</Text>
-              </TouchableOpacity>
+              ))}
             </View>
           )}
 
-          {assets.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No assets added yet</Text>
-              <Text style={styles.emptySubtext}>Tap + to add your first asset</Text>
+          {assets.length > 0 && (
+            <View style={s.totalRow}>
+              <Text style={s.totalLabel}>Total Assets</Text>
+              <Text style={[s.totalValue, { color: theme.colors.success }]}>${totalAssets.toFixed(0)}</Text>
             </View>
-          ) : (
-            assets.map(asset => (
-              <View key={asset.id} style={styles.itemCard}>
-                <Text style={styles.itemIcon}>{getAssetIcon(asset.type)}</Text>
-                <View style={styles.itemInfo}>
-                  <Text style={styles.itemName}>{asset.name}</Text>
-                  <Text style={styles.itemType}>{asset.type}</Text>
-                </View>
-                <Text style={styles.itemValue}>${asset.value.toFixed(2)}</Text>
-                <TouchableOpacity onPress={() => handleDeleteAsset(asset.id)}>
-                  <Ionicons name="trash-outline" size={20} color={colors.error} />
-                </TouchableOpacity>
-              </View>
-            ))
           )}
         </View>
 
         {/* Liabilities Section */}
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Liabilities (What You Owe)</Text>
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => setShowAddLiability(!showAddLiability)}
-            >
-              <Ionicons name={showAddLiability ? "close-circle" : "add-circle"} size={28} color={colors.error} />
+        <View style={s.section}>
+          <View style={s.sectionHeader}>
+            <Text style={s.sectionLabel}>LIABILITIES</Text>
+            <TouchableOpacity onPress={() => setShowAddLiability(!showAddLiability)}>
+              <Ionicons name={showAddLiability ? 'close-circle' : 'add-circle'} size={22} color={theme.colors.error} />
             </TouchableOpacity>
           </View>
 
-          {showAddLiability && (
-            <View style={styles.addForm}>
-              <TextInput
-                style={styles.input}
-                placeholder="Liability name (e.g., Credit Card)"
-                value={newLiabilityName}
-                onChangeText={setNewLiabilityName}
-                placeholderTextColor={colors.textSecondary}
-              />
-              <View style={styles.inputRow}>
-                <View style={styles.dollarInputContainer}>
-                  <Text style={styles.dollarSign}>$</Text>
-                  <TextInput
-                    style={styles.valueInput}
-                    placeholder="Amount"
-                    value={newLiabilityValue}
-                    onChangeText={setNewLiabilityValue}
-                    keyboardType="decimal-pad"
-                    placeholderTextColor={colors.textSecondary}
-                  />
-                </View>
-                <View style={styles.typeButtons}>
-                  {(['mortgage', 'car', 'student', 'credit', 'other'] as Liability['type'][]).map(type => (
-                    <TouchableOpacity
-                      key={type}
-                      style={[styles.typeButton, newLiabilityType === type && styles.typeButtonActive]}
-                      onPress={() => setNewLiabilityType(type)}
-                    >
-                      <Text style={[styles.typeButtonText, newLiabilityType === type && styles.typeButtonTextActive]}>
-                        {type}
-                      </Text>
+          {showAddLiability && renderInlineForm(
+            false, newLiabilityName, setNewLiabilityName, newLiabilityValue, setNewLiabilityValue,
+            LIABILITY_TYPES, newLiabilityType, setNewLiabilityType, handleAddLiability, () => setShowAddLiability(false)
+          )}
+
+          {liabilities.length === 0 && !showAddLiability ? (
+            <Text style={s.emptyText}>No liabilities added yet</Text>
+          ) : (
+            <View style={s.itemGrid}>
+              {liabilities.map(l => (
+                <View key={l.id} style={s.itemCard}>
+                  <View style={s.itemTop}>
+                    <Text style={s.itemIcon}>{getLiabilityIcon(l.type)}</Text>
+                    <TouchableOpacity onPress={() => handleDeleteLiability(l.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <Ionicons name="close" size={14} color={theme.colors.textTertiary} />
                     </TouchableOpacity>
-                  ))}
+                  </View>
+                  <Text style={s.itemName} numberOfLines={1}>{l.name}</Text>
+                  <Text style={[s.itemValue, { color: theme.colors.error }]}>-${l.value.toFixed(0)}</Text>
+                  <Text style={s.itemType}>{l.type}</Text>
                 </View>
-              </View>
-              <TouchableOpacity style={styles.submitButton} onPress={handleAddLiability}>
-                <Text style={styles.submitButtonText}>Add Liability</Text>
-              </TouchableOpacity>
+              ))}
             </View>
           )}
 
-          {liabilities.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Text style={styles.emptyText}>No liabilities added yet</Text>
-              <Text style={styles.emptySubtext}>Tap + to add a liability</Text>
+          {liabilities.length > 0 && (
+            <View style={s.totalRow}>
+              <Text style={s.totalLabel}>Total Liabilities</Text>
+              <Text style={[s.totalValue, { color: theme.colors.error }]}>${totalLiabilities.toFixed(0)}</Text>
             </View>
-          ) : (
-            liabilities.map(liability => (
-              <View key={liability.id} style={styles.itemCard}>
-                <Text style={styles.itemIcon}>{getLiabilityIcon(liability.type)}</Text>
-                <View style={styles.itemInfo}>
-                  <Text style={styles.itemName}>{liability.name}</Text>
-                  <Text style={styles.itemType}>{liability.type}</Text>
-                </View>
-                <Text style={[styles.itemValue, styles.itemValueNegative]}>−${liability.value.toFixed(2)}</Text>
-                <TouchableOpacity onPress={() => handleDeleteLiability(liability.id)}>
-                  <Ionicons name="trash-outline" size={20} color={colors.error} />
-                </TouchableOpacity>
-              </View>
-            ))
           )}
         </View>
 
@@ -386,237 +262,93 @@ export const NetWorthCalculatorScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.backgroundGray,
-  },
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: theme.colors.background },
+  scroll: { flex: 1 },
+
+  // Header
   header: {
-    flexDirection: 'row',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm + 2,
+    borderBottomWidth: 1, borderBottomColor: theme.colors.border,
+  },
+  headerTitle: { ...theme.typography.h4, textAlign: 'center', flex: 1 },
+
+  // Net Worth card
+  netWorthCard: {
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    marginHorizontal: theme.spacing.md, marginTop: theme.spacing.sm,
+    backgroundColor: theme.colors.surface, borderRadius: theme.radius.sm,
+    paddingVertical: theme.spacing.md, paddingHorizontal: theme.spacing.md,
   },
-  backButton: {
-    padding: 8,
+  nwLabel: { ...theme.typography.caption, marginBottom: theme.spacing.xs },
+  nwValue: { fontSize: 32, fontWeight: '800', color: theme.colors.text, marginBottom: theme.spacing.sm },
+  nwBreakdown: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md },
+  nwItem: { alignItems: 'center' },
+  nwItemLabel: { fontSize: 11, color: theme.colors.textTertiary, marginBottom: 2 },
+  nwItemValue: { fontSize: 15, fontWeight: '700' },
+  nwMinus: { fontSize: 18, fontWeight: '700', color: theme.colors.textTertiary },
+
+  // Section
+  section: { marginHorizontal: theme.spacing.md, marginTop: theme.spacing.md },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.sm },
+  sectionLabel: { ...theme.typography.caption, textTransform: 'uppercase', letterSpacing: 1 },
+
+  // Inline Form
+  inlineForm: {
+    backgroundColor: theme.colors.surface, borderRadius: theme.radius.sm,
+    padding: theme.spacing.sm, marginBottom: theme.spacing.sm,
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
+  formInput: {
+    backgroundColor: theme.colors.card, borderRadius: theme.radius.sm,
+    paddingVertical: theme.spacing.xs + 2, paddingHorizontal: theme.spacing.sm,
+    fontSize: 14, color: theme.colors.text, marginBottom: theme.spacing.xs,
   },
-  container: {
-    flex: 1,
+  formAmountRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: theme.colors.card, borderRadius: theme.radius.sm,
+    paddingHorizontal: theme.spacing.sm, marginBottom: theme.spacing.xs,
   },
-  summaryCard: {
-    margin: 20,
-    padding: 24,
-    borderRadius: 16,
-    alignItems: 'center',
-    ...shadows.medium,
+  formDollar: { fontSize: 16, fontWeight: '700', color: theme.colors.finance },
+  formAmountInput: { flex: 1, fontSize: 16, fontWeight: '700', color: theme.colors.text, paddingVertical: theme.spacing.xs + 2 },
+  typeChips: { flexDirection: 'row', flexWrap: 'wrap', gap: theme.spacing.xs, marginBottom: theme.spacing.sm },
+  typeChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    paddingHorizontal: theme.spacing.sm, paddingVertical: theme.spacing.xs,
+    backgroundColor: theme.colors.card, borderRadius: theme.radius.sm,
   },
-  summaryPositive: {
-    backgroundColor: colors.success,
-  },
-  summaryNegative: {
-    backgroundColor: colors.error,
-  },
-  summaryLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: 8,
-  },
-  summaryAmount: {
-    fontSize: 48,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 16,
-  },
-  summaryBreakdown: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  breakdownItem: {
-    alignItems: 'center',
-  },
-  breakdownLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-    marginBottom: 4,
-  },
-  breakdownValue: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
-  },
-  breakdownMinus: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  infoCard: {
-    flexDirection: 'row',
-    backgroundColor: colors.background,
-    marginHorizontal: 20,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 20,
-    gap: 12,
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-  },
-  addButton: {
-    padding: 4,
-  },
-  addForm: {
-    backgroundColor: colors.background,
-    marginHorizontal: 20,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    ...shadows.small,
-  },
-  input: {
-    backgroundColor: colors.backgroundGray,
-    borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: colors.text,
-    marginBottom: 12,
-  },
-  inputRow: {
-    gap: 12,
-    marginBottom: 12,
-  },
-  dollarInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.backgroundGray,
-    borderRadius: 8,
-    paddingHorizontal: 16,
-  },
-  dollarSign: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginRight: 8,
-  },
-  valueInput: {
-    flex: 1,
-    paddingVertical: 12,
-    fontSize: 16,
-    color: colors.text,
-  },
-  typeButtons: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  typeButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: colors.backgroundGray,
-    borderRadius: 8,
-  },
-  typeButtonActive: {
-    backgroundColor: colors.finance,
-  },
-  typeButtonText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    textTransform: 'capitalize',
-  },
-  typeButtonTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  submitButton: {
-    backgroundColor: colors.finance,
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 32,
-    paddingHorizontal: 20,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    marginBottom: 4,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: colors.textLight,
-  },
+  typeChipActive: { backgroundColor: theme.colors.finance },
+  typeChipEmoji: { fontSize: 12 },
+  typeChipText: { fontSize: 11, color: theme.colors.textSecondary, fontWeight: '500', textTransform: 'capitalize' },
+  formActions: { flexDirection: 'row', gap: theme.spacing.sm },
+  formCancelBtn: { flex: 1, height: 40, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.colors.card, borderRadius: theme.radius.sm },
+  formCancelText: { fontSize: 13, color: theme.colors.textSecondary, fontWeight: '600' },
+  formSubmitBtn: { flex: 2, height: 40, alignItems: 'center', justifyContent: 'center', borderRadius: theme.radius.sm },
+  formSubmitText: { fontSize: 13, fontWeight: '700', color: '#FFF' },
+
+  // Item grid
+  itemGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: CARD_GAP },
   itemCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.background,
-    marginHorizontal: 20,
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 8,
-    ...shadows.small,
+    width: CARD_WIDTH, backgroundColor: theme.colors.surface,
+    borderRadius: theme.radius.sm, padding: theme.spacing.sm,
+    ...theme.shadows.sm,
   },
-  itemIcon: {
-    fontSize: 32,
-    marginRight: 12,
+  itemTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.xs },
+  itemIcon: { fontSize: 20 },
+  itemName: { fontSize: 13, fontWeight: '600', color: theme.colors.text, marginBottom: 2 },
+  itemValue: { fontSize: 15, fontWeight: '700', marginBottom: 1 },
+  itemType: { fontSize: 10, color: theme.colors.textTertiary, textTransform: 'capitalize' },
+
+  // Total row
+  totalRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    backgroundColor: theme.colors.surface, borderRadius: theme.radius.sm,
+    paddingVertical: theme.spacing.xs + 2, paddingHorizontal: theme.spacing.sm,
+    marginTop: theme.spacing.sm,
   },
-  itemInfo: {
-    flex: 1,
-  },
-  itemName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 2,
-  },
-  itemType: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    textTransform: 'capitalize',
-  },
-  itemValue: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.success,
-    marginRight: 12,
-  },
-  itemValueNegative: {
-    color: colors.error,
-  },
+  totalLabel: { ...theme.typography.bodySmall, fontWeight: '600' },
+  totalValue: { fontSize: 16, fontWeight: '700' },
+
+  // Empty
+  emptyText: { ...theme.typography.bodySmall, textAlign: 'center', paddingVertical: theme.spacing.lg },
 });

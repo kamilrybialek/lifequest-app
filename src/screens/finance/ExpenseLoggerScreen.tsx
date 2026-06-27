@@ -1,3 +1,8 @@
+/**
+ * EXPENSE LOGGER - V4 COMPACT DESIGN
+ * Dark theme, compact rows, floating add button
+ */
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -11,10 +16,10 @@ import {
   SafeAreaView,
   StatusBar,
   Modal,
-  Animated,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { colors } from '../../theme/colors';
+import { theme } from '../../theme/theme.v4';
 import { useAuthStore } from '../../store/authStore';
 import { useFinanceStore } from '../../store/financeStore';
 import {
@@ -26,24 +31,29 @@ import {
   getExpensesByCategory,
 } from '../../database/finance';
 
+const { height } = Dimensions.get('window');
+
 const EXPENSE_CATEGORIES = [
-  { id: 'housing', label: 'Housing', icon: '🏠', color: colors.finance },
+  { id: 'housing', label: 'Housing', icon: '🏠', color: theme.colors.finance },
   { id: 'food', label: 'Food', icon: '🍔', color: '#FF9500' },
   { id: 'transport', label: 'Transport', icon: '🚗', color: '#FF4B4B' },
   { id: 'utilities', label: 'Utilities', icon: '💡', color: '#1CB0F6' },
   { id: 'entertainment', label: 'Entertainment', icon: '🎬', color: '#CE82FF' },
-  { id: 'shopping', label: 'Shopping', icon: '🛍️', color: '#FF6B9D' },
-  { id: 'health', label: 'Health', icon: '⚕️', color: '#58CC02' },
+  { id: 'shopping', label: 'Shopping', icon: '🛍', color: '#FF6B9D' },
+  { id: 'health', label: 'Health', icon: '💊', color: '#58CC02' },
   { id: 'other', label: 'Other', icon: '📦', color: '#AFAFAF' },
 ];
 
 export const ExpenseLoggerScreen = ({ navigation }: any) => {
   const { user } = useAuthStore();
   const { recentExpenses, setRecentExpenses } = useFinanceStore();
+  const [isLoading, setIsLoading] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  // Add form state
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('food');
-  const [isLoading, setIsLoading] = useState(false);
 
   // Edit modal state
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -52,23 +62,18 @@ export const ExpenseLoggerScreen = ({ navigation }: any) => {
   const [editDescription, setEditDescription] = useState('');
   const [editCategory, setEditCategory] = useState('food');
 
-  // Filter/search state
-  const [showFilters, setShowFilters] = useState(false);
+  // Filter state
   const [searchTerm, setSearchTerm] = useState('');
   const [filterCategory, setFilterCategory] = useState('');
   const [sortBy, setSortBy] = useState<'date' | 'amount'>('date');
 
-  useEffect(() => {
-    loadRecentExpenses();
-  }, []);
+  useEffect(() => { loadRecentExpenses(); }, []);
+  useEffect(() => { loadRecentExpenses(); }, [searchTerm, filterCategory, sortBy]);
 
   const loadRecentExpenses = async () => {
     if (!user?.id) return;
-
     try {
       let expenses: any;
-
-      // Apply filters if any are active
       if (searchTerm || filterCategory) {
         expenses = await searchExpenses(user.id, {
           searchTerm: searchTerm || undefined,
@@ -77,456 +82,271 @@ export const ExpenseLoggerScreen = ({ navigation }: any) => {
       } else {
         expenses = await getRecentExpenses(user.id, 50);
       }
-
-      // Apply sorting
       if (sortBy === 'amount') {
         expenses.sort((a: any, b: any) => b.amount - a.amount);
       } else {
-        expenses.sort((a: any, b: any) =>
-          new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime()
-        );
+        expenses.sort((a: any, b: any) => new Date(b.expense_date).getTime() - new Date(a.expense_date).getTime());
       }
-
       setRecentExpenses(expenses);
     } catch (error) {
       console.error('Error loading expenses:', error);
     }
   };
 
-  // Reload when filters change
-  useEffect(() => {
-    loadRecentExpenses();
-  }, [searchTerm, filterCategory, sortBy]);
-
   const handleAddExpense = async () => {
     if (!user?.id) return;
-
     const expenseAmount = parseFloat(amount);
-
-    if (!expenseAmount || expenseAmount <= 0) {
-      Alert.alert('Invalid Amount', 'Please enter a valid amount.');
-      return;
-    }
-
+    if (!expenseAmount || expenseAmount <= 0) { Alert.alert('Invalid Amount', 'Please enter a valid amount.'); return; }
     setIsLoading(true);
-
     try {
       const categoryName = EXPENSE_CATEGORIES.find((c) => c.id === selectedCategory)?.label || 'Other';
-
       await addExpense(user.id, {
-        amount: expenseAmount,
-        category: categoryName,
-        description,
+        amount: expenseAmount, category: categoryName, description,
         expenseDate: new Date().toISOString().split('T')[0],
       });
-
-      // TODO: Future integration with Budget Manager
-      // When user logs an expense, automatically deduct from corresponding budget category
-      // Example: If user logs $20 for "Food", reduce "Food" budget's available amount by $20
-      // This will help users see real-time budget impact and prevent overspending
-      // Implementation plan:
-      // 1. Check if user has an active budget for current month
-      // 2. Find matching budget category (or "Other" category)
-      // 3. Update spent_amount in budget_categories table
-      // 4. Show alert if expense exceeds remaining budget for that category
-
-      // Reload expenses
       await loadRecentExpenses();
-
-      // Clear form
-      setAmount('');
-      setDescription('');
-
-      Alert.alert('Expense Logged! ✅', `$${expenseAmount.toFixed(2)} added to ${categoryName}`);
+      setAmount(''); setDescription(''); setShowAddModal(false);
+      Alert.alert('Logged!', `$${expenseAmount.toFixed(2)} added to ${categoryName}`);
     } catch (error) {
       console.error('Error adding expense:', error);
-      Alert.alert('Error', 'Failed to log expense. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+      Alert.alert('Error', 'Failed to log expense.');
+    } finally { setIsLoading(false); }
   };
 
   const handleDeleteExpense = async (expenseId: number) => {
-    Alert.alert(
-      'Delete Expense',
-      'Are you sure you want to delete this expense?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            if (!user?.id) return;
-
-            try {
-              await deleteExpense(expenseId, user.id);
-              await loadRecentExpenses();
-              Alert.alert('Deleted', 'Expense deleted successfully');
-            } catch (error) {
-              console.error('Error deleting expense:', error);
-              Alert.alert('Error', 'Failed to delete expense');
-            }
-          },
-        },
-      ]
-    );
+    Alert.alert('Delete Expense', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: async () => {
+        if (!user?.id) return;
+        try { await deleteExpense(expenseId, user.id); await loadRecentExpenses(); }
+        catch (error) { Alert.alert('Error', 'Failed to delete expense'); }
+      }},
+    ]);
   };
 
   const openEditModal = (expense: any) => {
     setEditingExpense(expense);
     setEditAmount(expense.amount.toString());
     setEditDescription(expense.description || '');
-    const categoryId = EXPENSE_CATEGORIES.find((c) => c.label === expense.category)?.id || 'other';
-    setEditCategory(categoryId);
+    setEditCategory(EXPENSE_CATEGORIES.find((c) => c.label === expense.category)?.id || 'other');
     setEditModalVisible(true);
   };
 
   const handleUpdateExpense = async () => {
     if (!user?.id || !editingExpense) return;
-
     const expenseAmount = parseFloat(editAmount);
-
-    if (!expenseAmount || expenseAmount <= 0) {
-      Alert.alert('Invalid Amount', 'Please enter a valid amount.');
-      return;
-    }
-
+    if (!expenseAmount || expenseAmount <= 0) { Alert.alert('Invalid Amount', 'Please enter a valid amount.'); return; }
     setIsLoading(true);
-
     try {
       const categoryName = EXPENSE_CATEGORIES.find((c) => c.id === editCategory)?.label || 'Other';
-
-      await updateExpense(editingExpense.id, user.id, {
-        amount: expenseAmount,
-        category: categoryName,
-        description: editDescription,
-      });
-
+      await updateExpense(editingExpense.id, user.id, { amount: expenseAmount, category: categoryName, description: editDescription });
       await loadRecentExpenses();
       setEditModalVisible(false);
-      Alert.alert('Updated', 'Expense updated successfully');
-    } catch (error) {
-      console.error('Error updating expense:', error);
-      Alert.alert('Error', 'Failed to update expense');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const clearFilters = () => {
-    setSearchTerm('');
-    setFilterCategory('');
-    setSortBy('date');
+    } catch (error) { Alert.alert('Error', 'Failed to update expense'); }
+    finally { setIsLoading(false); }
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    if (date.toDateString() === today.toDateString()) {
-      return 'Today';
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return 'Yesterday';
-    } else {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    }
+    const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+    if (date.toDateString() === today.toDateString()) return 'Today';
+    if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   const getTodayTotal = () => {
     const today = new Date().toISOString().split('T')[0];
-    return recentExpenses
-      .filter((expense: any) => expense.expense_date === today)
-      .reduce((sum: number, expense: any) => sum + expense.amount, 0);
+    return recentExpenses.filter((e: any) => e.expense_date === today).reduce((sum: number, e: any) => sum + e.amount, 0);
   };
 
-  const renderExpenseItem = ({ item }: { item: any }) => {
-    const category = EXPENSE_CATEGORIES.find((c) => c.label === item.category) || EXPENSE_CATEGORIES[7];
+  const getWeekTotal = () => {
+    const now = new Date();
+    const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7);
+    return recentExpenses.filter((e: any) => new Date(e.expense_date) >= weekAgo).reduce((sum: number, e: any) => sum + e.amount, 0);
+  };
 
+  const renderExpenseRow = ({ item }: { item: any }) => {
+    const cat = EXPENSE_CATEGORIES.find((c) => c.label === item.category) || EXPENSE_CATEGORIES[7];
     return (
-      <View style={styles.expenseItemContainer}>
-        <View style={styles.expenseItem}>
-          <View style={[styles.categoryIcon, { backgroundColor: category.color + '20' }]}>
-            <Text style={styles.categoryEmoji}>{category.icon}</Text>
-          </View>
-
-          <View style={styles.expenseInfo}>
-            <Text style={styles.expenseCategory}>{item.category}</Text>
-            {item.description && <Text style={styles.expenseDescription}>{item.description}</Text>}
-            <Text style={styles.expenseDate}>{formatDate(item.expense_date)}</Text>
-          </View>
-
-          <Text style={styles.expenseAmount}>-${item.amount.toFixed(2)}</Text>
+      <TouchableOpacity style={s.expRow} onPress={() => openEditModal(item)} onLongPress={() => handleDeleteExpense(item.id)} activeOpacity={0.7}>
+        <View style={[s.expIcon, { backgroundColor: cat.color + '20' }]}>
+          <Text style={s.expEmoji}>{cat.icon}</Text>
         </View>
-
-        <View style={styles.expenseActions}>
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => openEditModal(item)}
-          >
-            <Ionicons name="pencil" size={18} color={colors.finance} />
-            <Text style={styles.actionButtonText}>Edit</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.deleteButton]}
-            onPress={() => handleDeleteExpense(item.id)}
-          >
-            <Ionicons name="trash" size={18} color={colors.error} />
-            <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Delete</Text>
-          </TouchableOpacity>
+        <View style={s.expInfo}>
+          <Text style={s.expCat} numberOfLines={1}>{item.category}</Text>
+          {item.description ? <Text style={s.expDesc} numberOfLines={1}>{item.description}</Text> : null}
         </View>
-      </View>
+        <View style={s.expRight}>
+          <Text style={s.expAmount}>-${item.amount.toFixed(2)}</Text>
+          <Text style={s.expDate}>{formatDate(item.expense_date)}</Text>
+        </View>
+      </TouchableOpacity>
     );
   };
 
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color={colors.text} />
+  const renderCategoryChips = (selected: string, onSelect: (id: string) => void) => (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.chipsScroll}>
+      {EXPENSE_CATEGORIES.map((cat) => (
+        <TouchableOpacity
+          key={cat.id}
+          style={[s.chip, selected === cat.id && { backgroundColor: cat.color }]}
+          onPress={() => onSelect(cat.id)}
+        >
+          <Text style={s.chipEmoji}>{cat.icon}</Text>
+          <Text style={[s.chipText, selected === cat.id && { color: '#FFF', fontWeight: '600' }]}>{cat.label}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Expense Logger</Text>
+      ))}
+    </ScrollView>
+  );
+
+  return (
+    <SafeAreaView style={s.safe}>
+      <StatusBar barStyle="light-content" />
+
+      {/* Header */}
+      <View style={s.header}>
+        <TouchableOpacity onPress={() => navigation.goBack()} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
+        </TouchableOpacity>
+        <Text style={s.headerTitle}>Expenses</Text>
+        <TouchableOpacity onPress={() => setSortBy(sortBy === 'date' ? 'amount' : 'date')} style={s.sortBtn}>
+          <Ionicons name={sortBy === 'date' ? 'calendar-outline' : 'cash-outline'} size={18} color={theme.colors.finance} />
+        </TouchableOpacity>
       </View>
 
-      <ScrollView style={styles.scrollContainer}>
-        {/* Search and Filter Bar */}
-        <View style={styles.searchSection}>
-          <View style={styles.searchBar}>
-            <Ionicons name="search" size={20} color={colors.textSecondary} />
-            <TextInput
-              style={styles.searchInput}
-              value={searchTerm}
-              onChangeText={setSearchTerm}
-              placeholder="Search expenses..."
-              placeholderTextColor={colors.textSecondary}
-            />
-            {searchTerm.length > 0 && (
-              <TouchableOpacity onPress={() => setSearchTerm('')}>
-                <Ionicons name="close-circle" size={20} color={colors.textSecondary} />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <View style={styles.filterRow}>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll}>
-              <TouchableOpacity
-                style={[styles.filterChip, !filterCategory && styles.filterChipActive]}
-                onPress={() => setFilterCategory('')}
-              >
-                <Text style={[styles.filterChipText, !filterCategory && styles.filterChipTextActive]}>
-                  All
-                </Text>
-              </TouchableOpacity>
-              {EXPENSE_CATEGORIES.map((cat) => (
-                <TouchableOpacity
-                  key={cat.id}
-                  style={[
-                    styles.filterChip,
-                    filterCategory === cat.label && styles.filterChipActive,
-                  ]}
-                  onPress={() => setFilterCategory(filterCategory === cat.label ? '' : cat.label)}
-                >
-                  <Text style={styles.filterChipEmoji}>{cat.icon}</Text>
-                  <Text
-                    style={[
-                      styles.filterChipText,
-                      filterCategory === cat.label && styles.filterChipTextActive,
-                    ]}
-                  >
-                    {cat.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            <TouchableOpacity
-              style={styles.sortButton}
-              onPress={() => setSortBy(sortBy === 'date' ? 'amount' : 'date')}
-            >
-              <Ionicons
-                name={sortBy === 'date' ? 'calendar-outline' : 'cash-outline'}
-                size={20}
-                color={colors.finance}
-              />
-            </TouchableOpacity>
-          </View>
-
-          {(searchTerm || filterCategory) && (
-            <TouchableOpacity style={styles.clearFiltersButton} onPress={clearFilters}>
-              <Ionicons name="close-circle" size={16} color={colors.textSecondary} />
-              <Text style={styles.clearFiltersText}>Clear filters</Text>
-            </TouchableOpacity>
-          )}
+      {/* Inline Stats */}
+      <View style={s.statsRow}>
+        <View style={s.statItem}>
+          <Text style={s.statLabel}>Today</Text>
+          <Text style={s.statValue}>${getTodayTotal().toFixed(0)}</Text>
         </View>
-
-        {/* Today's Total */}
-        <View style={styles.todayCard}>
-          <Text style={styles.todayLabel}>Today's Expenses</Text>
-          <Text style={styles.todayAmount}>${getTodayTotal().toFixed(2)}</Text>
+        <View style={s.statDivider} />
+        <View style={s.statItem}>
+          <Text style={s.statLabel}>This Week</Text>
+          <Text style={s.statValue}>${getWeekTotal().toFixed(0)}</Text>
         </View>
+        <View style={s.statDivider} />
+        <View style={s.statItem}>
+          <Text style={s.statLabel}>Count</Text>
+          <Text style={s.statValue}>{recentExpenses.length}</Text>
+        </View>
+      </View>
 
-        {/* Add Expense Form */}
-        <View style={styles.formSection}>
-          <Text style={styles.sectionTitle}>Log New Expense</Text>
-
-          {/* Amount Input */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.dollarSign}>$</Text>
-            <TextInput
-              style={styles.input}
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="decimal-pad"
-              placeholder="0.00"
-              placeholderTextColor={colors.textSecondary}
-            />
-          </View>
-
-          {/* Description Input */}
-          <TextInput
-            style={styles.descriptionInput}
-            value={description}
-            onChangeText={setDescription}
-            placeholder="Description (optional)"
-            placeholderTextColor={colors.textSecondary}
-          />
-
-          {/* Category Selection */}
-          <Text style={styles.categoryTitle}>Category</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
-            {EXPENSE_CATEGORIES.map((category) => (
-              <TouchableOpacity
-                key={category.id}
-                style={[
-                  styles.categoryButton,
-                  selectedCategory === category.id && styles.categoryButtonActive,
-                  { borderColor: category.color },
-                  selectedCategory === category.id && { backgroundColor: category.color },
-                ]}
-                onPress={() => setSelectedCategory(category.id)}
-              >
-                <Text style={styles.categoryButtonEmoji}>{category.icon}</Text>
-                <Text
-                  style={[
-                    styles.categoryButtonText,
-                    selectedCategory === category.id && styles.categoryButtonTextActive,
-                  ]}
-                >
-                  {category.label}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          {/* Add Button */}
-          <TouchableOpacity
-            style={[styles.addButton, isLoading && styles.addButtonDisabled]}
-            onPress={handleAddExpense}
-            disabled={isLoading}
-          >
-            <Ionicons name="add-circle" size={24} color="#FFFFFF" />
-            <Text style={styles.addButtonText}>{isLoading ? 'Logging...' : 'Log Expense'}</Text>
+      {/* Search */}
+      <View style={s.searchRow}>
+        <Ionicons name="search" size={16} color={theme.colors.textTertiary} />
+        <TextInput
+          style={s.searchInput}
+          value={searchTerm}
+          onChangeText={setSearchTerm}
+          placeholder="Search expenses..."
+          placeholderTextColor={theme.colors.textTertiary}
+        />
+        {searchTerm.length > 0 && (
+          <TouchableOpacity onPress={() => setSearchTerm('')}>
+            <Ionicons name="close-circle" size={16} color={theme.colors.textTertiary} />
           </TouchableOpacity>
-        </View>
+        )}
+      </View>
 
-        {/* Recent Expenses */}
-        <View style={styles.recentSection}>
-          <Text style={styles.sectionTitle}>Recent Expenses</Text>
-
-          {recentExpenses.length === 0 ? (
-            <View style={styles.emptyState}>
-              <Ionicons name="receipt-outline" size={48} color={colors.textSecondary} />
-              <Text style={styles.emptyText}>No expenses logged yet</Text>
-              <Text style={styles.emptySubtext}>Start tracking your spending above</Text>
-            </View>
-          ) : (
-            <FlatList
-              data={recentExpenses}
-              renderItem={renderExpenseItem}
-              keyExtractor={(item: any) => item.id.toString()}
-              scrollEnabled={false}
-            />
-          )}
-        </View>
-
-        <View style={styles.bottomSpacer} />
+      {/* Filter Chips */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.filterRow} contentContainerStyle={s.filterContent}>
+        <TouchableOpacity style={[s.filterChip, !filterCategory && s.filterChipActive]} onPress={() => setFilterCategory('')}>
+          <Text style={[s.filterChipText, !filterCategory && s.filterChipTextActive]}>All</Text>
+        </TouchableOpacity>
+        {EXPENSE_CATEGORIES.map((cat) => (
+          <TouchableOpacity
+            key={cat.id}
+            style={[s.filterChip, filterCategory === cat.label && s.filterChipActive]}
+            onPress={() => setFilterCategory(filterCategory === cat.label ? '' : cat.label)}
+          >
+            <Text style={s.filterChipEmoji}>{cat.icon}</Text>
+            <Text style={[s.filterChipText, filterCategory === cat.label && s.filterChipTextActive]}>{cat.label}</Text>
+          </TouchableOpacity>
+        ))}
       </ScrollView>
 
-      {/* Edit Modal */}
-      <Modal
-        visible={editModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setEditModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Edit Expense</Text>
-              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
-                <Ionicons name="close" size={28} color={colors.text} />
+      {/* Expense List */}
+      {recentExpenses.length === 0 ? (
+        <View style={s.empty}>
+          <Ionicons name="receipt-outline" size={40} color={theme.colors.textTertiary} />
+          <Text style={s.emptyText}>No expenses logged yet</Text>
+          <Text style={s.emptyHint}>Tap + to add your first expense</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={recentExpenses}
+          renderItem={renderExpenseRow}
+          keyExtractor={(item: any) => item.id.toString()}
+          style={s.list}
+          contentContainerStyle={{ paddingBottom: 80 }}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+
+      {/* FAB */}
+      <TouchableOpacity style={s.fab} onPress={() => setShowAddModal(true)} activeOpacity={0.8}>
+        <Ionicons name="add" size={28} color="#FFF" />
+      </TouchableOpacity>
+
+      {/* Add Expense Modal */}
+      <Modal visible={showAddModal} transparent animationType="slide" onRequestClose={() => setShowAddModal(false)}>
+        <View style={s.modalOverlay}>
+          <View style={s.modalContent}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>Log Expense</Text>
+              <TouchableOpacity onPress={() => setShowAddModal(false)}>
+                <Ionicons name="close" size={24} color={theme.colors.text} />
               </TouchableOpacity>
             </View>
 
-            {/* Amount Input */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.dollarSign}>$</Text>
-              <TextInput
-                style={styles.input}
-                value={editAmount}
-                onChangeText={setEditAmount}
-                keyboardType="decimal-pad"
-                placeholder="0.00"
-                placeholderTextColor={colors.textSecondary}
-              />
+            <Text style={s.inputLabel}>Amount</Text>
+            <View style={s.amountRow}>
+              <Text style={s.dollar}>$</Text>
+              <TextInput style={s.amountInput} value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={theme.colors.textTertiary} autoFocus />
             </View>
 
-            {/* Description Input */}
-            <TextInput
-              style={styles.descriptionInput}
-              value={editDescription}
-              onChangeText={setEditDescription}
-              placeholder="Description (optional)"
-              placeholderTextColor={colors.textSecondary}
-            />
+            <Text style={s.inputLabel}>Description</Text>
+            <TextInput style={s.textInput} value={description} onChangeText={setDescription} placeholder="Optional" placeholderTextColor={theme.colors.textTertiary} />
 
-            {/* Category Selection */}
-            <Text style={styles.categoryTitle}>Category</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesScroll}>
-              {EXPENSE_CATEGORIES.map((category) => (
-                <TouchableOpacity
-                  key={category.id}
-                  style={[
-                    styles.categoryButton,
-                    editCategory === category.id && styles.categoryButtonActive,
-                    { borderColor: category.color },
-                    editCategory === category.id && { backgroundColor: category.color },
-                  ]}
-                  onPress={() => setEditCategory(category.id)}
-                >
-                  <Text style={styles.categoryButtonEmoji}>{category.icon}</Text>
-                  <Text
-                    style={[
-                      styles.categoryButtonText,
-                      editCategory === category.id && styles.categoryButtonTextActive,
-                    ]}
-                  >
-                    {category.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            <Text style={s.inputLabel}>Category</Text>
+            {renderCategoryChips(selectedCategory, setSelectedCategory)}
 
-            {/* Update Button */}
-            <TouchableOpacity
-              style={[styles.addButton, isLoading && styles.addButtonDisabled]}
-              onPress={handleUpdateExpense}
-              disabled={isLoading}
-            >
-              <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
-              <Text style={styles.addButtonText}>{isLoading ? 'Updating...' : 'Update Expense'}</Text>
+            <TouchableOpacity style={[s.submitBtn, isLoading && { opacity: 0.6 }]} onPress={handleAddExpense} disabled={isLoading}>
+              <Ionicons name="add-circle-outline" size={18} color="#FFF" />
+              <Text style={s.submitBtnText}>{isLoading ? 'Logging...' : 'Log Expense'}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Edit Modal */}
+      <Modal visible={editModalVisible} transparent animationType="slide" onRequestClose={() => setEditModalVisible(false)}>
+        <View style={s.modalOverlay}>
+          <View style={s.modalContent}>
+            <View style={s.modalHeader}>
+              <Text style={s.modalTitle}>Edit Expense</Text>
+              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
+                <Ionicons name="close" size={24} color={theme.colors.text} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={s.inputLabel}>Amount</Text>
+            <View style={s.amountRow}>
+              <Text style={s.dollar}>$</Text>
+              <TextInput style={s.amountInput} value={editAmount} onChangeText={setEditAmount} keyboardType="decimal-pad" placeholder="0.00" placeholderTextColor={theme.colors.textTertiary} />
+            </View>
+
+            <Text style={s.inputLabel}>Description</Text>
+            <TextInput style={s.textInput} value={editDescription} onChangeText={setEditDescription} placeholder="Optional" placeholderTextColor={theme.colors.textTertiary} />
+
+            <Text style={s.inputLabel}>Category</Text>
+            {renderCategoryChips(editCategory, setEditCategory)}
+
+            <TouchableOpacity style={[s.submitBtn, isLoading && { opacity: 0.6 }]} onPress={handleUpdateExpense} disabled={isLoading}>
+              <Ionicons name="checkmark-circle-outline" size={18} color="#FFF" />
+              <Text style={s.submitBtnText}>{isLoading ? 'Updating...' : 'Update Expense'}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -535,343 +355,116 @@ export const ExpenseLoggerScreen = ({ navigation }: any) => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: colors.backgroundGray,
-  },
+const s = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: theme.colors.background },
+
+  // Header
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm + 2,
+    borderBottomWidth: 1, borderBottomColor: theme.colors.border,
   },
-  backButton: {
-    marginRight: 16,
+  headerTitle: { ...theme.typography.h4, flex: 1, marginLeft: theme.spacing.sm },
+  sortBtn: { padding: theme.spacing.xs, backgroundColor: theme.colors.surface, borderRadius: theme.radius.sm },
+
+  // Stats
+  statsRow: {
+    flexDirection: 'row', alignItems: 'center',
+    marginHorizontal: theme.spacing.md, marginTop: theme.spacing.sm,
+    backgroundColor: theme.colors.surface, borderRadius: theme.radius.sm,
+    paddingVertical: theme.spacing.sm, paddingHorizontal: theme.spacing.md,
   },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: colors.text,
+  statItem: { flex: 1, alignItems: 'center' },
+  statLabel: { ...theme.typography.caption, marginBottom: 2 },
+  statValue: { fontSize: 16, fontWeight: '700', color: theme.colors.text },
+  statDivider: { width: 1, height: 28, backgroundColor: theme.colors.border },
+
+  // Search
+  searchRow: {
+    flexDirection: 'row', alignItems: 'center', gap: theme.spacing.xs,
+    marginHorizontal: theme.spacing.md, marginTop: theme.spacing.sm,
+    backgroundColor: theme.colors.surface, borderRadius: theme.radius.sm,
+    paddingHorizontal: theme.spacing.sm, paddingVertical: theme.spacing.xs,
   },
-  scrollContainer: {
-    flex: 1,
-  },
-  todayCard: {
-    backgroundColor: colors.finance,
-    padding: 20,
-    marginHorizontal: 20,
-    marginTop: 20,
-    borderRadius: 16,
-    alignItems: 'center',
-  },
-  todayLabel: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: 8,
-  },
-  todayAmount: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  formSection: {
-    backgroundColor: colors.background,
-    marginHorizontal: 20,
-    marginTop: 20,
-    padding: 20,
-    borderRadius: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginBottom: 16,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.backgroundGray,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  dollarSign: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text,
-    marginRight: 8,
-  },
-  input: {
-    flex: 1,
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text,
-    paddingVertical: 16,
-  },
-  descriptionInput: {
-    backgroundColor: colors.backgroundGray,
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: colors.text,
-    marginBottom: 16,
-  },
-  categoryTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    marginBottom: 12,
-  },
-  categoriesScroll: {
-    marginBottom: 20,
-  },
-  categoryButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    backgroundColor: colors.backgroundGray,
-    borderRadius: 12,
-    marginRight: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    minWidth: 90,
-  },
-  categoryButtonActive: {
-    backgroundColor: colors.finance,
-    borderColor: colors.finance,
-  },
-  categoryButtonEmoji: {
-    fontSize: 24,
-    marginBottom: 4,
-  },
-  categoryButtonText: {
-    fontSize: 12,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  categoryButtonTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  addButton: {
-    backgroundColor: colors.finance,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 12,
-    gap: 8,
-  },
-  addButtonDisabled: {
-    opacity: 0.6,
-  },
-  addButtonText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-  },
-  recentSection: {
-    backgroundColor: colors.background,
-    marginHorizontal: 20,
-    marginTop: 20,
-    padding: 20,
-    borderRadius: 16,
-  },
-  expenseItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  categoryIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  categoryEmoji: {
-    fontSize: 20,
-  },
-  expenseInfo: {
-    flex: 1,
-  },
-  expenseCategory: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.text,
-    marginBottom: 2,
-  },
-  expenseDescription: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginBottom: 2,
-  },
-  expenseDate: {
-    fontSize: 12,
-    color: colors.textSecondary,
-  },
-  expenseAmount: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: colors.error,
-  },
-  emptyState: {
-    alignItems: 'center',
-    paddingVertical: 40,
-  },
-  emptyText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    marginTop: 12,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    marginTop: 4,
-  },
-  bottomSpacer: {
-    height: 40,
-  },
-  // Search and Filter
-  searchSection: {
-    backgroundColor: colors.background,
-    padding: 16,
-    paddingBottom: 12,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.backgroundGray,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    marginBottom: 12,
-  },
-  searchInput: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 8,
-    fontSize: 16,
-    color: colors.text,
-  },
-  filterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  filterScroll: {
-    flex: 1,
-  },
+  searchInput: { flex: 1, fontSize: 14, color: theme.colors.text, paddingVertical: theme.spacing.xs },
+
+  // Filter chips
+  filterRow: { maxHeight: 40, marginTop: theme.spacing.sm },
+  filterContent: { paddingHorizontal: theme.spacing.md, gap: theme.spacing.xs },
   filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: colors.backgroundGray,
-    borderRadius: 20,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: 'transparent',
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: theme.spacing.sm, paddingVertical: theme.spacing.xs,
+    backgroundColor: theme.colors.surface, borderRadius: theme.radius.full,
   },
-  filterChipActive: {
-    backgroundColor: colors.finance,
-    borderColor: colors.finance,
+  filterChipActive: { backgroundColor: theme.colors.finance },
+  filterChipEmoji: { fontSize: 14 },
+  filterChipText: { fontSize: 12, color: theme.colors.textSecondary, fontWeight: '500' },
+  filterChipTextActive: { color: '#FFF', fontWeight: '600' },
+
+  // List
+  list: { flex: 1, marginTop: theme.spacing.sm },
+  expRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: theme.spacing.md, paddingVertical: theme.spacing.sm,
+    borderBottomWidth: 1, borderBottomColor: theme.colors.border,
   },
-  filterChipEmoji: {
-    fontSize: 16,
-    marginRight: 4,
+  expIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginRight: theme.spacing.sm },
+  expEmoji: { fontSize: 16 },
+  expInfo: { flex: 1 },
+  expCat: { fontSize: 14, fontWeight: '600', color: theme.colors.text },
+  expDesc: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 1 },
+  expRight: { alignItems: 'flex-end' },
+  expAmount: { fontSize: 14, fontWeight: '700', color: theme.colors.error },
+  expDate: { fontSize: 11, color: theme.colors.textTertiary, marginTop: 1 },
+
+  // Empty
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingBottom: 80 },
+  emptyText: { ...theme.typography.body, color: theme.colors.textSecondary, marginTop: theme.spacing.sm },
+  emptyHint: { ...theme.typography.caption, marginTop: theme.spacing.xs },
+
+  // FAB
+  fab: {
+    position: 'absolute', bottom: 24, right: theme.spacing.md,
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: theme.colors.finance, alignItems: 'center', justifyContent: 'center',
+    ...theme.shadows.md,
   },
-  filterChipText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  filterChipTextActive: {
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  sortButton: {
-    padding: 8,
-    backgroundColor: colors.backgroundGray,
-    borderRadius: 20,
-    marginLeft: 8,
-  },
-  clearFiltersButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    marginTop: 8,
-  },
-  clearFiltersText: {
-    fontSize: 13,
-    color: colors.textSecondary,
-    marginLeft: 4,
-  },
-  // Expense Item with Actions
-  expenseItemContainer: {
-    marginBottom: 12,
-  },
-  expenseActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingTop: 8,
-    gap: 12,
-  },
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    backgroundColor: colors.backgroundGray,
-    gap: 4,
-  },
-  deleteButton: {
-    backgroundColor: colors.error + '15',
-  },
-  actionButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.finance,
-  },
-  deleteButtonText: {
-    color: colors.error,
-  },
-  // Edit Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
+
+  // Modal
+  modalOverlay: { flex: 1, backgroundColor: theme.colors.overlay, justifyContent: 'flex-end' },
   modalContent: {
-    backgroundColor: colors.background,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-    paddingBottom: 40,
-    maxHeight: '80%',
+    backgroundColor: theme.colors.surface, borderTopLeftRadius: theme.radius.lg, borderTopRightRadius: theme.radius.lg,
+    padding: theme.spacing.md, maxHeight: height * 0.75,
   },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: theme.spacing.md },
+  modalTitle: { ...theme.typography.h4 },
+
+  inputLabel: { ...theme.typography.caption, textTransform: 'uppercase', letterSpacing: 1, marginTop: theme.spacing.sm, marginBottom: theme.spacing.xs },
+  amountRow: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: theme.colors.card, borderRadius: theme.radius.sm, paddingHorizontal: theme.spacing.sm,
   },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: colors.text,
+  dollar: { fontSize: 18, fontWeight: '700', color: theme.colors.finance },
+  amountInput: { flex: 1, fontSize: 20, fontWeight: '700', color: theme.colors.text, paddingVertical: theme.spacing.sm },
+  textInput: {
+    backgroundColor: theme.colors.card, borderRadius: theme.radius.sm,
+    paddingVertical: theme.spacing.sm, paddingHorizontal: theme.spacing.sm,
+    fontSize: 14, color: theme.colors.text,
   },
+
+  chipsScroll: { marginTop: theme.spacing.xs, marginBottom: theme.spacing.sm },
+  chip: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    paddingHorizontal: theme.spacing.sm, paddingVertical: theme.spacing.xs + 2,
+    backgroundColor: theme.colors.card, borderRadius: theme.radius.sm, marginRight: theme.spacing.xs,
+  },
+  chipEmoji: { fontSize: 16 },
+  chipText: { fontSize: 12, color: theme.colors.textSecondary },
+
+  submitBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: theme.colors.finance, height: 48, borderRadius: theme.radius.sm,
+    gap: theme.spacing.sm, marginTop: theme.spacing.md,
+  },
+  submitBtnText: { fontSize: 15, fontWeight: '700', color: '#FFF' },
 });

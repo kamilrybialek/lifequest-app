@@ -1,6 +1,6 @@
 /**
- * LifeQuest V4 - Fresh Start
- * Minimal, clean implementation
+ * LifeQuest V4 - Main App Entry
+ * Clean architecture with mode selection, bottom tabs and stack navigation
  */
 
 import React, { useEffect, useState } from 'react';
@@ -9,53 +9,48 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-// Import existing auth store (keeping your data!)
+// Stores
 import { useAuthStore } from './src/store/authStore';
 
-// Import theme
+// Theme
 import { theme } from './src/theme/theme.v4';
 
-// Temporary minimal screens (we'll build proper ones next)
+// Screens
 import { LoginScreen } from './src/screens/auth/LoginScreen';
+import { ModeSelectionScreen } from './src/screens/auth/ModeSelectionScreen';
+import { AppNavigator } from './src/navigation/AppNavigator';
+import { AdminScreen } from './src/screens/Admin/AdminScreen';
 
 const Stack = createNativeStackNavigator();
 
-// Minimal Home Screen (temporary)
-const HomeScreen = () => {
-  const user = useAuthStore((state) => state.user);
-  const logout = useAuthStore((state) => state.logout);
-
-  return (
-    <View style={styles.container}>
-      <Text style={styles.title}>🎯 LifeQuest V4</Text>
-      <Text style={styles.subtitle}>Welcome back!</Text>
-      <Text style={styles.email}>{user?.email}</Text>
-      <Text style={styles.button} onPress={logout}>
-        Logout
-      </Text>
-    </View>
-  );
-};
-
 export default function App() {
   const [isInitializing, setIsInitializing] = useState(true);
+  const [appMode, setAppMode] = useState<'user' | 'admin' | null>(null);
   const loadUser = useAuthStore((state) => state.loadUser);
   const user = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
 
   useEffect(() => {
     const initialize = async () => {
       try {
-        console.log('🚀 Initializing LifeQuest V4...');
+        console.log('Initializing LifeQuest V4...');
         await loadUser();
-        console.log('✅ User loaded');
+        console.log('User loaded');
       } catch (error) {
-        console.error('❌ Init error:', error);
+        console.error('Init error:', error);
       } finally {
         setIsInitializing(false);
       }
     };
     initialize();
   }, []);
+
+  // Reset mode when user logs out
+  useEffect(() => {
+    if (!user) {
+      setAppMode(null);
+    }
+  }, [user]);
 
   if (isInitializing) {
     return (
@@ -66,34 +61,64 @@ export default function App() {
     );
   }
 
+  // Not logged in: show login
+  if (!user) {
+    return (
+      <SafeAreaProvider>
+        <NavigationContainer>
+          <Stack.Navigator
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: theme.colors.background },
+            }}
+          >
+            <Stack.Screen name="Login" component={LoginScreen} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </SafeAreaProvider>
+    );
+  }
+
+  // Logged in but no mode selected: show mode selection
+  if (!appMode) {
+    return (
+      <SafeAreaProvider>
+        <NavigationContainer>
+          <ModeSelectionScreen onSelectMode={setAppMode} />
+        </NavigationContainer>
+      </SafeAreaProvider>
+    );
+  }
+
+  // Admin mode: show full-screen admin panel
+  if (appMode === 'admin') {
+    return (
+      <SafeAreaProvider>
+        <NavigationContainer>
+          <Stack.Navigator
+            screenOptions={{
+              headerShown: false,
+              contentStyle: { backgroundColor: theme.colors.background },
+            }}
+          >
+            <Stack.Screen name="AdminFull" component={AdminScreen} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </SafeAreaProvider>
+    );
+  }
+
+  // User mode: show full app with tabs
   return (
     <SafeAreaProvider>
       <NavigationContainer>
-        <Stack.Navigator
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: theme.colors.background },
-          }}
-        >
-          {user ? (
-            <Stack.Screen name="Home" component={HomeScreen} />
-          ) : (
-            <Stack.Screen name="Login" component={LoginScreen} />
-          )}
-        </Stack.Navigator>
+        <AppNavigator onSwitchMode={() => setAppMode(null)} />
       </NavigationContainer>
     </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: theme.colors.background,
-    padding: theme.spacing.lg,
-  },
   loading: {
     flex: 1,
     justifyContent: 'center',
@@ -103,27 +128,5 @@ const styles = StyleSheet.create({
   loadingText: {
     ...theme.typography.body,
     marginTop: theme.spacing.md,
-  },
-  title: {
-    ...theme.typography.h1,
-    marginBottom: theme.spacing.sm,
-  },
-  subtitle: {
-    ...theme.typography.h3,
-    color: theme.colors.textSecondary,
-    marginBottom: theme.spacing.lg,
-  },
-  email: {
-    ...theme.typography.body,
-    color: theme.colors.primary,
-    marginBottom: theme.spacing.xl,
-  },
-  button: {
-    ...theme.typography.h4,
-    color: theme.colors.primary,
-    paddingVertical: theme.spacing.md,
-    paddingHorizontal: theme.spacing.xl,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.radius.md,
   },
 });
